@@ -1818,6 +1818,18 @@ C안에서 아직 안 한 것:
   이 값을 읽을 수 있다 — 그래서 토큰 권한을 이 저장소 Contents로만 좁힌다.
 - 시험: 가짜 GitHub로 커밋 흐름(사진 올리기·옛 사진 지우기·스팟 지우기·잘못된 토큰)을 Node와 브라우저에서 확인. 실제 저장소에는 아직 안 올려 봄.
 
+## 저장소·주소 이전: johnsongarage/walson (2026-11-15)
+
+- 새 저장소 https://github.com/johnsongarage/walson , 새 주소 **https://johnsongarage.co.kr/walson/** (johnsongarage 계정의 내 도메인).
+- 이 폴더의 git remote: `origin` = johnsongarage/walson(이제 여기에 올린다 = 배포), `old` = kery27/petwalk-dasan.
+- 새 저장소의 첫 README 커밋은 지우지 않고 합쳤다(이 프로젝트의 README를 남김).
+- 예전 주소 kery27.github.io/petwalk-dasan 은 모든 화면이 새 주소의 같은 화면으로 넘어간다(? 뒤 값도 그대로, 없는 주소는 새 첫 화면).
+  예전 저장소 main에 넘기기 페이지만 남겼고, 그 전 기록은 저장소 히스토리에 그대로 있다.
+- 스팟 편집 페이지는 johnsongarage/walson에 커밋한다 — 토큰도 이 저장소용으로 새로 만들어야 한다.
+- 주민증 카드 QR·주소는 johnsongarage.co.kr/walson.
+- 휴대폰 안 기록(산책·프로필·사진)은 주소별로 따로 저장돼서 예전 주소의 기록은 새 주소로 오지 않는다.
+- johnsongarage.co.kr 아래 다른 사이트(money-matching-excel)와 같은 출처 — localStorage를 같이 쓴다(키 이름은 겹치지 않음).
+
 ## 해야 할 것 (개발 백로그)
 
 사용자가 "해야 할 것에 저장해두자"고 한 항목들. 아직 구현 안 함 — 착수할 때 이 목록에서 지우고 날짜별
