@@ -13,7 +13,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=6"></script>
+<script src="infra-pins.js?v=9"></script>
 <script src="demo-geo.js?v=1"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
@@ -218,9 +218,10 @@
     btn.addEventListener('click', function () {
       // 동반 스팟을 꺼 두었더라도 누르면 다시 켠다
       if (hidden.spot) { delete hidden.spot; saveHidden(); refreshChips(); }
-      map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 16), { animate: true });
+      // 바로 옮기고 연다 — 팝업이 위쪽 버튼·아래쪽 줄에 가리지 않게 Leaflet이 알아서 지도를 더 옮긴다(autoPan)
+      map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 16), { animate: false });
       sync();
-      setTimeout(function () { spotMarkers[pin.id].openPopup(); }, 300);
+      spotMarkers[pin.id].openPopup();
     });
     starsEl.appendChild(btn);
   });

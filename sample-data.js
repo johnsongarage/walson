@@ -2,11 +2,11 @@
 // 공원에서 견주에게 보여 주거나, 기능을 한눈에 확인할 때 쓴다. 전역 window.PetwalkSample.
 //
 // 넣는 것(전부 이 휴대폰 안에만, 서버로 보내지 않음):
-//   - 강아지 프로필(샘플 이름·그린 그림 사진·신호등·주민증 번호)
+//   - 강아지 프로필: 왈슨(앱 그림 사진·빨강불·주민증 번호)
 //   - 최근 3주 산책 기록: 길 기록 산책(공원 둘레 가짜 경로) + 시간만 잰 산책, 끝 화면 답, 오늘의 한 장 사진
 //   - 산책 중에 찍은 메모 핀 2개
-//   - [동네] 지도의 샘플 가게 3곳과 수호지킴이(이름에 "(샘플)"이 붙는다)
-// 사진은 전부 캔버스로 그린 그림이다 — 실제 사람·강아지 사진이 아니다.
+//   - [동네] 지도의 수호지킴이 한 마리: 다산동 푸라닭 수호신 봄이(가르시아가 준 실제 가게·사진)
+// 사진: 왈슨은 앱 그림, 봄이는 가르시아가 준 사진(icons/sample-*.jpg). 오늘의 한 장도 왈슨 그림.
 // 경로는 공용 공원(다산중앙공원·다산수변공원) 둘레를 도는 지어낸 고리다 — 누구의 실제 경로도 아니다.
 //
 // 켜면 지금 기록을 따로 보관해 두고(petwalk_sample_backup), 끄면 샘플을 지우고 그대로 되돌린다.
@@ -21,57 +21,6 @@
   var PHOTO_PREFIX = 'sample-';
 
   function isOn() { try { return localStorage.getItem(FLAG) === '1'; } catch (e) { return false; } }
-
-  // ── 그림 그리기(가짜 사진) ──
-  var PALETTES = [
-    { sky: ['#bfe3f5', '#fdf3dc'], ground: '#9cc98f', fur: '#e8c08f', dark: '#7a5230' },
-    { sky: ['#fbd6c4', '#fff4e0'], ground: '#c9b48a', fur: '#f5f0e6', dark: '#8a7a68' },
-    { sky: ['#d9d2f2', '#f6eefc'], ground: '#a7c79d', fur: '#5b4636', dark: '#2f241b' },
-    { sky: ['#cdeee0', '#fffbe8'], ground: '#b9d58f', fur: '#d9a066', dark: '#6b4423' },
-    { sky: ['#ffe2a8', '#fff7e3'], ground: '#8fbf8a', fur: '#f2e3c9', dark: '#9b7b55' }
-  ];
-  function drawDogPicture(w, h, pal, label) {
-    var c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    var x = c.getContext('2d');
-    var g = x.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, pal.sky[0]); g.addColorStop(1, pal.sky[1]);
-    x.fillStyle = g; x.fillRect(0, 0, w, h);
-    x.fillStyle = pal.ground;
-    x.beginPath(); x.ellipse(w * 0.5, h * 1.02, w * 0.8, h * 0.32, 0, 0, Math.PI * 2); x.fill();
-    var s = Math.min(w, h);
-    var cx = w * 0.5, cy = h * 0.58;
-    // 몸
-    x.fillStyle = pal.fur;
-    x.beginPath(); x.ellipse(cx, cy + s * 0.2, s * 0.26, s * 0.2, 0, 0, Math.PI * 2); x.fill();
-    // 귀
-    x.fillStyle = pal.dark;
-    x.beginPath(); x.ellipse(cx - s * 0.17, cy - s * 0.12, s * 0.07, s * 0.13, -0.5, 0, Math.PI * 2); x.fill();
-    x.beginPath(); x.ellipse(cx + s * 0.17, cy - s * 0.12, s * 0.07, s * 0.13, 0.5, 0, Math.PI * 2); x.fill();
-    // 머리
-    x.fillStyle = pal.fur;
-    x.beginPath(); x.arc(cx, cy - s * 0.04, s * 0.19, 0, Math.PI * 2); x.fill();
-    // 주둥이
-    x.fillStyle = '#fffaf3';
-    x.beginPath(); x.ellipse(cx, cy + s * 0.05, s * 0.09, s * 0.065, 0, 0, Math.PI * 2); x.fill();
-    // 눈·코
-    x.fillStyle = '#2b2018';
-    x.beginPath(); x.arc(cx - s * 0.07, cy - s * 0.06, s * 0.022, 0, Math.PI * 2); x.fill();
-    x.beginPath(); x.arc(cx + s * 0.07, cy - s * 0.06, s * 0.022, 0, Math.PI * 2); x.fill();
-    x.beginPath(); x.ellipse(cx, cy + s * 0.02, s * 0.03, s * 0.022, 0, 0, Math.PI * 2); x.fill();
-    // 혀
-    x.fillStyle = '#e8837a';
-    x.beginPath(); x.ellipse(cx, cy + s * 0.1, s * 0.022, s * 0.03, 0, 0, Math.PI * 2); x.fill();
-    // "샘플" 표시 — 진짜 사진으로 오해하지 않게
-    x.fillStyle = 'rgba(74,63,53,0.55)';
-    x.font = '700 ' + Math.round(s * 0.06) + 'px Pretendard, sans-serif';
-    x.textAlign = 'right';
-    x.fillText(label || '샘플', w - s * 0.04, h - s * 0.04);
-    return c;
-  }
-  function canvasToBlob(c) {
-    return new Promise(function (resolve) { c.toBlob(resolve, 'image/jpeg', 0.82); });
-  }
 
   // ── 가짜 경로: 공원 둘레 고리 ──
   function loop(center, radiusM, points, phase) {
@@ -122,12 +71,20 @@
     [20, 'time', 18, null, 0, 'enough', 3, 1, -1]
   ];
 
-  // [id 끝, 가게 이름, 종류 태그, 강아지 이름, 신호등, 한마디, 위치(공원 근처), 그림 번호]
-  var SHOPS = [
-    ['1', '다산 수제간식 공방 (샘플)', ['실내OK', '소형견만'], '콩이', 'green', '간식 주면 손 줘요', [37.62268, 127.15840], 3],
-    ['2', '왕숙천 카페 (샘플)', ['테라스만', '대형견OK'], '두부', 'yellow', '처음엔 천천히 다가와 주세요', [37.62452, 127.14630], 1],
-    ['3', '중앙공원 펫살롱 (샘플)', ['예약 필수'], '깜순이', 'red', '눈으로만 예뻐해 주세요', [37.62200, 127.16090], 2]
-  ];
+  // 샘플 사진(2026-11-15 가르시아가 준 것): 왈슨 = 앱 그림, 봄이 = 다산동 푸라닭 수호신 사진.
+  // 파일로 두고 경로로 쓴다(메타데이터 없이 다시 저장한 것).
+  var WALSON_PHOTO = 'icons/sample-walson.jpg';
+  var BOM_PHOTO = 'icons/sample-bom.jpg';
+
+  // 샘플 수호지킴이는 봄이 한 마리(2026-11-15 가르시아가 알려 준 정보).
+  // 같은 가게가 서비스 데이터에도 올라가 있어서(field-1794669441573), 샘플을 보는 동안에는 그 핀 대신 이 핀을 보인다(replaces).
+  var SHOPS = [{
+    id: 'sample-shop-bom', replaces: 'field-1794669441573',
+    cat: 'spot', name: '다산동 푸라닭 수호신', lat: 37.6221, lng: 127.15995,
+    tags: ['가끔 출몰'],
+    note: '계산대 밑에서 손님맞이를 해요. 가게에 가끔 출몰해요.',
+    guardian: { name: '봄이', signal: 'yellow', line: '얌전히 있다가 치킨을 가져가면 짖기 시작해요', photo: BOM_PHOTO }
+  }];
 
   function turnOn() {
     if (isOn()) return Promise.resolve();
@@ -152,24 +109,23 @@
       }
       if (p[8] >= 0 && window.WalkPhotos) {
         w.photoKey = PHOTO_PREFIX + 'walk-' + i;
-        photoJobs.push([w.photoKey, PALETTES[p[8] % PALETTES.length]]);
+        photoJobs.push(w.photoKey);
       }
       walks.push(w);
     });
 
-    var profilePic = drawDogPicture(480, 480, PALETTES[0], '샘플').toDataURL('image/jpeg', 0.82);
     var spots = SHOPS.map(function (s) {
-      return {
-        id: 'sample-shop-' + s[0], cat: 'spot', name: s[1], lat: s[6][0], lng: s[6][1], tags: s[2],
-        source: 'field', verifiedAt: dateKey(now), note: '샘플 데이터예요. 실제 가게가 아니에요.',
-        guardian: { name: s[3], signal: s[4], line: s[5], photo: drawDogPicture(360, 360, PALETTES[s[7]], '샘플').toDataURL('image/jpeg', 0.8) }
-      };
+      var copy = JSON.parse(JSON.stringify(s));
+      copy.source = 'field';
+      copy.verifiedAt = dateKey(now);
+      return copy;
     });
 
     try {
       localStorage.setItem('petwalk_walks', JSON.stringify(walks));
+      // 샘플 강아지는 왈슨(앱 그림) — 빨강불은 으르렁 얼굴에 맞춘 것
       localStorage.setItem('petwalk_profile', JSON.stringify({
-        name: '보리', size: 'small', signal: 'green', photo: profilePic,
+        name: '왈슨', size: 'small', signal: 'red', photo: WALSON_PHOTO,
         cardNo: 'DASAN-SAMPLE', cardIssued: now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.'
       }));
       localStorage.setItem('petwalk_pins', JSON.stringify([
@@ -187,14 +143,30 @@
       return Promise.reject(new Error('저장 공간이 부족해요'));
     }
 
-    // 오늘의 한 장 사진(그림)은 휴대폰 안 사진 저장소에
-    return photoJobs.reduce(function (chain, job) {
-      return chain.then(function () {
-        return canvasToBlob(drawDogPicture(1080, 1080, job[1], '샘플 · 오늘의 한 장'))
-          .then(function (blob) { return WalkPhotos.put(job[0], blob); })
-          .catch(function () { /* 사진 하나 못 넣어도 나머지는 그대로 */ });
-      });
-    }, Promise.resolve());
+    // 오늘의 한 장 사진은 왈슨 그림으로 — 휴대폰 안 사진 저장소에 넣는다
+    if (!photoJobs.length) return Promise.resolve();
+    return fetch(WALSON_PHOTO).then(function (r) { return r.blob(); }).then(function (blob) {
+      return Promise.all(photoJobs.map(function (key) {
+        return WalkPhotos.put(key, blob).catch(function () { /* 사진 하나 못 넣어도 나머지는 그대로 */ });
+      }));
+    }).catch(function () { /* 사진 없이도 샘플은 그대로 */ });
+  }
+
+  // 처음 온 사람(기록·프로필이 없음)은 샘플로 시작한다(2026-11-15 가르시아 "샘플로 보는걸 기본으로").
+  // 한 번 자동으로 켠 뒤(또는 직접 끈 뒤)에는 다시 켜지 않는다.
+  var AUTO = 'petwalk_sample_auto_done';
+  function shouldAutoStart() {
+    try {
+      if (isOn() || localStorage.getItem(AUTO)) return false;
+      var walks = JSON.parse(localStorage.getItem('petwalk_walks') || '[]');
+      if (walks && walks.length) return false;
+      if (localStorage.getItem('petwalk_profile')) return false;
+      return true;
+    } catch (e) { return false; }
+  }
+  function autoStart() {
+    try { localStorage.setItem(AUTO, '1'); } catch (e) { return Promise.resolve(false); }
+    return turnOn().then(function () { return true; }, function () { return false; });
   }
 
   function restoreKeys(backup) {
@@ -224,5 +196,5 @@
     return Promise.all(jobs.map(function (k) { return WalkPhotos.remove(k).catch(function () {}); }));
   }
 
-  window.PetwalkSample = { isOn: isOn, turnOn: turnOn, turnOff: turnOff, SPOTS_KEY: SPOTS };
+  window.PetwalkSample = { isOn: isOn, turnOn: turnOn, turnOff: turnOff, shouldAutoStart: shouldAutoStart, autoStart: autoStart, SPOTS_KEY: SPOTS };
 })();

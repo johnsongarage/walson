@@ -35,7 +35,10 @@
   try {
     if (localStorage.getItem('petwalk_sample_mode') === '1') sampleSpots = JSON.parse(localStorage.getItem('petwalk_sample_spots')) || [];
   } catch (e) { sampleSpots = []; }
-  var SEED = (window.PETWALK_SPOTS || []).concat(sampleSpots).filter(function (p) {
+  // 샘플 핀에 replaces가 있으면 같은 가게의 서비스 핀은 샘플을 보는 동안 감춘다(같은 가게가 두 번 뜨지 않게)
+  var replaced = {};
+  sampleSpots.forEach(function (p) { if (p && p.replaces) replaced[p.replaces] = true; });
+  var SEED = (window.PETWALK_SPOTS || []).filter(function (p) { return !(p && replaced[p.id]); }).concat(sampleSpots).filter(function (p) {
     return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number';
   });
   function all() { return SEED.slice(); }
@@ -116,7 +119,8 @@
 
   // 팝업(2026-11-14): 사진이 있으면 사진을 가운데에 크게 세운다. 지도 화면들이 같이 쓴다.
   // 쓰는 법: L.marker(...).bindPopup(InfraPins.popupEl(pin), InfraPins.POPUP_OPTS)
-  var POPUP_OPTS = { minWidth: 230, maxWidth: 260 };
+  // 위쪽(제목·칩·편집 버튼)과 아래쪽(동네 스타 줄·탭)에 가리지 않게 여유를 두고 지도를 옮겨 연다
+  var POPUP_OPTS = { minWidth: 230, maxWidth: 260, autoPanPaddingTopLeft: [16, 162], autoPanPaddingBottomRight: [16, 190] };
   function el(tag, css, text) {
     var e = document.createElement(tag);
     if (css) e.style.cssText = css;
@@ -132,7 +136,7 @@
 
     if (photo) {
       var frame = el('div', 'position:relative;margin:-2px -2px 4px;border-radius:14px;overflow:hidden;background:#f3ddd2;' +
-        'aspect-ratio:1/1;' + (sig ? 'box-shadow:inset 0 -6px 0 ' + sig.color + ';' : ''));
+        'aspect-ratio:4/3;' + (sig ? 'box-shadow:inset 0 -6px 0 ' + sig.color + ';' : ''));
       var img = el('img', 'width:100%;height:100%;object-fit:cover;display:block;');
       img.src = photo;
       img.alt = g ? g.name : (pin.name || '');
