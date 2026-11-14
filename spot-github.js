@@ -9,10 +9,10 @@
 //   - 운영자가 GitHub에서 직접 만든 "fine-grained" 토큰. 이 저장소 하나, Contents 읽기/쓰기만.
 //   - 운영자 컴퓨터의 이 브라우저 localStorage(petwalk_admin_token)에만 둔다. 다른 데로 보내지 않는다(api.github.com만).
 //   - 토큰이 있는 기기 = 운영자 기기. [동네] 지도의 "스팟 편집" 버튼은 이 기기에서만 보인다.
-//   - 주의: kery27.github.io 아래의 다른 저장소 사이트도 같은 출처라 이 값을 읽을 수 있다 — 그래서 권한을 이 저장소로만 좁힌다.
+//   - 주의: johnsongarage.co.kr 아래의 다른 사이트(예: money-matching-excel)도 같은 출처라 이 값을 읽을 수 있다 — 그래서 권한을 이 저장소로만 좁힌다.
 (function () {
-  var OWNER = 'kery27';
-  var REPO = 'petwalk-dasan';
+  var OWNER = 'johnsongarage';   // 2026-11-15 kery27/petwalk-dasan에서 옮김
+  var REPO = 'walson';
   var BRANCH = 'main';
   var DATA_PATH = 'spots-data.js';
   var PHOTO_DIR = 'spots/photos/';
