@@ -14,7 +14,6 @@ window.PETWALK_SPOTS = [
   {"id":"osm-vet-1","cat":"vet","name":"부영동물병원","lat":37.60844,"lng":127.16264,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"osm-vet-2","cat":"vet","name":"폭시팻동물병원","lat":37.61297,"lng":127.14099,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"osm-vet-3","cat":"vet","name":"래플즈동물병원","lat":37.60969,"lng":127.13675,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
-  {"id":"osm-park-3","cat":"park","name":"다산수변공원","lat":37.62359,"lng":127.14487,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704265889","cat":"park","name":"계단숲산책로_동","lat":37.6128,"lng":127.15608,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704231850","cat":"park","name":"계단숲산책로_서","lat":37.61127,"lng":127.15381,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704113098","cat":"park","name":"다산중앙공원_하","lat":37.61912,"lng":127.16097,"source":"field","verifiedAt":"2026-11-15"},
