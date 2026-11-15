@@ -46,6 +46,8 @@
   .ticket { text-align: center; border: 4px solid var(--accent); }
   .ticket .face { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 10px; background: var(--accent-tint); border: 4px solid var(--ok); }
   .ticket .name { font-size: 28px; font-weight: 900; margin: 0; }
+  .ticket .cardno { font-size: 26px; font-weight: 900; letter-spacing: 0.04em; margin: 8px 0 0; font-variant-numeric: tabular-nums; }
+  .ticket .imported { display: inline-block; font-size: 12px; font-weight: 800; color: #8a5a2b; background: #fff3d6; border-radius: 999px; padding: 2px 10px; margin: 0 0 10px; }
   .ticket .no { font-size: 13px; color: var(--ink-soft); margin: 4px 0 12px; font-weight: 700; }
   .ticket .clock { font-size: 40px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
   .ticket .date { font-size: 13px; color: var(--ink-soft); margin-top: 4px; font-weight: 700; }
@@ -100,7 +102,9 @@
     <div class="card ticket" id="ticket" hidden>
       <img class="face" id="t-face" alt="">
       <p class="name" id="t-name"></p>
+      <p class="cardno" id="t-cardno"></p>
       <p class="no" id="t-no"></p>
+      <p class="imported" id="t-imported" hidden></p>
       <div class="clock" id="t-clock"></div>
       <div class="date" id="t-date"></div>
       <p class="say" id="t-say">직원에게 이 화면을 보여 주세요</p>
@@ -108,7 +112,7 @@
     </div>
     <div id="staff" hidden>
       <button type="button" class="btn-main" id="give-btn">드렸어요 (직원이 눌러요)</button>
-      <p class="staff-note">직원이 키링을 건넨 뒤 누르면 이 휴대폰에 받은 날이 남아요.</p>
+      <p class="staff-note">직원이 키링을 건넨 뒤 누르면 이 휴대폰에 받은 날이 남아요. 명단에 <b>주민증 번호</b>를 적고, 같은 번호가 또 오면 드리지 않아요.</p>
     </div>
   </div>
 
@@ -183,7 +187,11 @@
   var SIG = { green: '#3f9b5b', yellow: '#dfa21f', red: '#d2493f' };
   if (SIG[profile.signal]) $('t-face').style.borderColor = SIG[profile.signal];
   $('t-name').textContent = profile.name;
-  $('t-no').textContent = '주민증 ' + profile.cardNo + ' · 산책 ' + p.walks + '번';
+  // 직원은 명단에 이 카드 번호를 적는다 — 같은 번호가 또 오면(기록을 빌려준 경우 등) 거절
+  $('t-cardno').textContent = profile.cardNo;
+  $('t-no').textContent = '주민증 번호 · 산책 ' + p.walks + '번';
+  var imported = localStorage.getItem('petwalk_imported_at');
+  if (imported) { $('t-imported').hidden = false; $('t-imported').textContent = '기록 불러옴 · ' + imported.split(',')[0]; }
 
   // 움직이는 시계 — 캡처한 화면을 다시 보여 주면 시각이 멈춰 있어서 알아볼 수 있다
   var DAYS = ['일', '월', '화', '수', '목', '금', '토'];

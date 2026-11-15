@@ -28,6 +28,22 @@
     for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     return new Blob([arr], { type: m[1] });
   }
+  // ── 파일 검증 값(2026-11-15, 치팅 방지 ②) ──
+  // 내용 + 고정 문자열을 SHA-256으로 묶어 sig에 넣는다. 메모장으로 기록을 고치면 값이 안 맞아 불러오지 않는다.
+  // 코드가 공개돼 있어 작정하면 다시 계산할 수 있다 — 손쉬운 조작만 막는 장치. 진짜 확인은 현장 명단(카드 번호).
+  var SALT = 'walson-backup-v1:dasan';
+  function canonical(obj) {
+    var keys = Object.keys(obj || {}).sort(), out = {};
+    keys.forEach(function (k) { out[k] = obj[k]; });
+    return JSON.stringify(out);
+  }
+  function signOf(obj) {
+    var text = SALT + '|' + obj.at + '|' + canonical(obj.data) + '|' + canonical(obj.photos);
+    if (!(window.crypto && crypto.subtle)) return Promise.reject(new Error('이 브라우저에서는 기록 옮기기를 쓸 수 없어요(보안 연결 필요).'));
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
   function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function walksOf(obj) { try { return JSON.parse(obj) || []; } catch (e) { return []; } }
 
@@ -45,8 +61,12 @@
         return b ? blobToDataUrl(b).then(function (u) { photos[k] = u; }) : null;
       }).catch(function () { /* 사진 하나 못 읽어도 나머지는 담는다 */ });
     });
+    var obj;
     return Promise.all(jobs).then(function () {
-      var obj = { app: 'walson', kind: 'backup', v: 1, at: new Date().toISOString(), data: data, photos: photos };
+      obj = { app: 'walson', kind: 'backup', v: 2, at: new Date().toISOString(), data: data, photos: photos };
+      return signOf(obj);
+    }).then(function (sig) {
+      obj.sig = sig;
       var walks = walksOf(data.petwalk_walks).length;
       var blob = new Blob([JSON.stringify(obj)], { type: 'text/plain' });   // 휴대폰 공유 창이 받는 형식(.txt)
       return { blob: blob, name: 'walson-backup-' + today() + '.txt', walks: walks, photos: Object.keys(photos).length };
@@ -60,8 +80,13 @@
         try {
           var obj = JSON.parse(r.result);
           if (!obj || obj.app !== 'walson' || obj.kind !== 'backup' || !obj.data) throw new Error('왈슨 기록 파일이 아니에요.');
-          res(obj);
-        } catch (e) { rej(new Error(e.message.indexOf('왈슨') >= 0 ? e.message : '파일을 읽지 못했어요(왈슨 기록 파일인지 확인해 주세요).')); }
+          if (!obj.sig) throw new Error('예전 형식의 왈슨 기록 파일이에요. 기록이 있는 곳에서 다시 내보내 주세요.');
+          signOf(obj).then(function (sig) {
+            if (sig !== obj.sig) rej(new Error('파일 내용이 바뀌어서 불러올 수 없어요. 기록이 있는 곳에서 다시 내보내 주세요.'));
+            else res(obj);
+          }, rej);
+          return;
+        } catch (e) { rej(new Error(/왈슨|예전 형식/.test(e.message) ? e.message : '파일을 읽지 못했어요(왈슨 기록 파일인지 확인해 주세요).')); }
       };
       r.onerror = function () { rej(new Error('파일을 읽지 못했어요.')); };
       r.readAsText(file);
@@ -76,6 +101,8 @@
   // merge=false면 이 기기의 왈슨 기록을 파일 내용으로 바꾼다. 운영자 토큰은 어느 쪽이든 건드리지 않는다.
   function importAll(obj, merge) {
     var data = obj.data || {}, failed = false;
+    // 치팅 방지 ①: "키링 받음"은 불러오기로 절대 지워지지 않는다(이 기기·파일 중 한쪽이라도 받았으면 유지)
+    var keyringHere = localStorage.getItem('petwalk_keyring');
     // 샘플을 보는 중이었다면 샘플 자료부터 걷어 낸다(파일은 진짜 기록)
     ['petwalk_sample_mode', 'petwalk_sample_backup', 'petwalk_sample_spots'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } });
     if (!merge) keys().forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } });
@@ -97,6 +124,14 @@
       }
       try { localStorage.setItem(k, v); } catch (e) { failed = true; }
     });
+    var keyringThere = data.petwalk_keyring || null;
+    var keep = keyringHere || keyringThere;
+    try { if (keep) localStorage.setItem('petwalk_keyring', keep); } catch (e) { failed = true; }
+    // 치팅 방지 ③: 기록을 불러온 적이 있음을 남긴다(키링 표에 작게 보인다). 파일에 이미 있던 날짜는 이어 간다.
+    try {
+      var prevImports = localStorage.getItem('petwalk_imported_at');
+      localStorage.setItem('petwalk_imported_at', today() + (prevImports && prevImports !== today() ? ',' + prevImports : ''));
+    } catch (e) { /* 표시용이라 실패해도 진행 */ }
     if (failed) return Promise.reject(new Error('이 휴대폰 저장 공간이 부족해서 일부를 불러오지 못했어요.'));
     var photos = obj.photos || {};
     var jobs = Object.keys(photos).map(function (k) {
