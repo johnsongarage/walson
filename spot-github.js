@@ -78,14 +78,22 @@
   function parseData(text) {
     var spots = parseArray(text, 'window.PETWALK_SPOTS = [');
     if (!spots) throw new Error('spots-data.js 모양이 예상과 달라요');
-    return { spots: spots, categories: parseArray(text, 'window.PETWALK_SPOT_CATEGORIES = [') || [] };
+    return {
+      spots: spots,
+      categories: parseArray(text, 'window.PETWALK_SPOT_CATEGORIES = [') || [],
+      // null = 파일에 아직 없음(편집 페이지가 reward-rules.js의 기본 세 곳으로 시작한다)
+      stampPlaces: parseArray(text, 'window.PETWALK_STAMP_PLACES = [')
+    };
   }
-  function buildData(spots, categories) {
+  function buildData(spots, categories, stampPlaces) {
     var body = spots.map(function (s) { return '  ' + JSON.stringify(s); }).join(',\n');
     var cats = (categories || []).map(function (c) { return '  ' + JSON.stringify(c); }).join(',\n');
     return HEADER + body + (body ? '\n' : '') + '];\n' +
       '// 운영자가 편집 페이지에서 직접 만든 종류 — { key, label, color }. 아이콘은 별표로 같다.\n' +
-      'window.PETWALK_SPOT_CATEGORIES = [\n' + cats + (cats ? '\n' : '') + '];\n';
+      'window.PETWALK_SPOT_CATEGORIES = [\n' + cats + (cats ? '\n' : '') + '];\n' +
+      (stampPlaces ? '// 우리 개 발도장 장소 — { id, name, lat, lng, radiusM, kind: park|water|building }. reward-rules.js가 읽는다.\n' +
+        'window.PETWALK_STAMP_PLACES = [\n' + stampPlaces.map(function (p) { return '  ' + JSON.stringify(p); }).join(',\n') +
+        (stampPlaces.length ? '\n' : '') + '];\n' : '');
   }
 
   // 토큰 확인: 이 저장소에 쓸 수 있는지
@@ -102,7 +110,7 @@
       var sha = ref.object.sha;
       return gh('GET', '/contents/' + DATA_PATH + '?ref=' + sha).then(function (file) {
         var d = parseData(b64ToUtf8(file.content));
-        return { spots: d.spots, categories: d.categories, headSha: sha };
+        return { spots: d.spots, categories: d.categories, stampPlaces: d.stampPlaces, headSha: sha };
       });
     });
   }
@@ -120,7 +128,8 @@
   //  - 목록에서 더 안 쓰는 사진 파일은 같은 커밋에서 지운다
   //  - baseSha: 편집을 시작할 때 본 커밋. 그 사이 누가(다른 컴퓨터에서) 바꿨으면 멈추고 알린다
   // categories: 직접 만든 종류 목록(spots-data.js에 같이 쓴다)
-  function publish(spots, baseSha, message, categories) {
+  // stampPlaces: 우리 개 발도장 장소(넘기지 않으면 파일에 쓰지 않는다)
+  function publish(spots, baseSha, message, categories, stampPlaces) {
     var work = JSON.parse(JSON.stringify(spots));
     var uploads = [];   // { path, b64 }
     var jobs = [];
@@ -177,7 +186,7 @@
           return { path: u.path, mode: '100644', type: 'blob', sha: b.sha };
         });
       })).then(function (photoEntries) {
-        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories)), encoding: 'base64' }).then(function (b) {
+        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories, stampPlaces)), encoding: 'base64' }).then(function (b) {
           return photoEntries.concat(deletions, [{ path: DATA_PATH, mode: '100644', type: 'blob', sha: b.sha }]);
         });
       });

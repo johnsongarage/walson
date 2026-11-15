@@ -16,11 +16,24 @@
   // 아울렛은 OSM에 없어서 사용자가 준 네이버 지도 장소(현대프리미엄아울렛 스페이스원, 다산순환로 50) 좌표.
   // pending: true인 장소는 위치가 확정되기 전이라 도장 판정에서 빠진다.
   // 산책 경로 점 중 하나라도 radiusKm 안에 들어오면 방문으로 친다.
-  var PLACES = [
+  // 기본 세 곳. 운영자가 스팟 편집에서 바꾸면 spots-data.js의 PETWALK_STAMP_PLACES가 대신 쓰인다(2026-11-15) —
+  // 그래서 이 파일보다 spots-data.js를 먼저 불러야 한다. 발도장 카드 뒷면은 장소 5곳 안팎을 기준으로 그려져 있다.
+  var DEFAULT_PLACES = [
     { id: 'outlet',    name: '아울렛',       badge: '#아울렛_발도장',   center: [37.61633, 127.15268], radiusKm: 0.15, kind: 'building' },
     { id: 'central',   name: '다산 중앙공원', badge: '#중앙공원_발도장', center: [37.62330, 127.15962], radiusKm: 0.25, kind: 'park' },
     { id: 'waterside', name: '다산수변공원',  badge: '#수변공원_발도장', center: [37.62396, 127.14529], radiusKm: 0.3,  kind: 'water' }
   ];
+  function fromData(list) {
+    return list.filter(function (p) { return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number'; }).map(function (p) {
+      return {
+        id: p.id, name: p.name || '발도장', badge: '#' + String(p.name || '발도장').replace(/\s+/g, '') + '_발도장',
+        center: [p.lat, p.lng], radiusKm: (p.radiusM || 200) / 1000,
+        kind: p.kind === 'water' || p.kind === 'building' ? p.kind : 'park', pending: !!p.pending
+      };
+    });
+  }
+  var PLACES = (Array.isArray(window.PETWALK_STAMP_PLACES) && window.PETWALK_STAMP_PLACES.length)
+    ? fromData(window.PETWALK_STAMP_PLACES) : DEFAULT_PLACES;
 
   // 키링 나눔(2026-11-15, keyring.html). 조건·수량·받는 날은 가르시아가 정한다(hq 남은 일) — 정하기 전에는
   // open: false로 두어 앱 어디에도 약속하지 않는다(카드 탭의 "키링 받기" 링크도 숨김). 운영자는 keyring.html?preview=1로 미리 본다.
@@ -99,6 +112,7 @@
     KEYRING: KEYRING,
     SLOT_RULES: SLOT_RULES,
     PLACES: PLACES,
+    DEFAULT_PLACES: DEFAULT_PLACES,
     computeProgress: computeProgress,
     tierFor: tierFor,
     nextTier: nextTier,

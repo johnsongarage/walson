@@ -9,8 +9,11 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=14"></script>
-<script src="spot-github.js?v=2"></script>
+<script src="infra-pins.js?v=15"></script>
+<script src="reward-rules.js?v=4"></script>
+<script src="card-shared.js?v=11"></script>
+<script src="map-deco.js?v=2"></script>
+<script src="spot-github.js?v=3"></script>
 <style>
   /* 스팟 편집 — 운영자 전용(2026-11-15 다시 정리, 기획표 V0-18).
      배포된 사이트에 있지만, GitHub 토큰을 넣은 브라우저(= 운영자 컴퓨터)에서만 쓸 수 있다.
@@ -73,6 +76,20 @@
   .spot-extra { border: 1px solid var(--panel-border); background: #fff; }
   .guardian { border: 1px dashed var(--accent); background: #fdf3ec; }
   .spot-extra[hidden], .guardian[hidden] { display: none; }
+  .guardian .radio { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; font-weight: 500; color: var(--ink); margin: 3px 0; line-height: 1.45; }
+  .guardian .radio input { margin-top: 2px; flex-shrink: 0; width: auto; padding: 0; border: none; }
+  .guardian .field .radio { font-size: 12px; }
+  .guardian .radio[hidden] { display: none; }
+  .guardian .checks { border-top: 1px dashed var(--panel-border); margin-top: 8px; padding-top: 8px; }
+  .guardian .consent { margin: 8px 0; font-size: 12px; }
+  .guardian .consent textarea { width: 100%; font-family: inherit; font-size: 12px; margin: 6px 0; border: 1px solid var(--panel-border); border-radius: 8px; padding: 6px; }
+  .drawn-pick { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .drawn-pick[hidden] { display: none; }
+  .drawn-preview { width: 72px; height: 72px; border-radius: 12px; background: #fff; border: 1px solid var(--panel-border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .coats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .coats button { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 2px solid var(--panel-border); }
+  .coats button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .photo-row[hidden] { display: none; }
   .guardian h3, .spot-extra h3 { font-size: 13px; margin: 0 0 4px; color: var(--accent); }
 
   #pin-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -92,6 +109,13 @@
   .newcat input[type=text] { flex: 1; font-family: inherit; font-size: 14px; padding: 8px 9px; border: 1px solid var(--panel-border); border-radius: 8px; }
   .newcat input[type=color] { width: 40px; height: 36px; padding: 2px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; }
   #cat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  #place-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  #place-list li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; }
+  #place-list li.is-editing { border-color: var(--accent); background: #fdf3ec; }
+  #place-list .label { flex: 1; min-width: 0; }
+  #place-list .label b { display: block; }
+  #place-list .label span { color: var(--ink-soft); font-size: 11px; }
+  #place-list button { padding: 4px 7px; font-size: 11px; }
   #cat-list li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: #fff; }
   #cat-list .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
   #cat-list .label { flex: 1; font-weight: 700; }
@@ -115,6 +139,8 @@
   .crop-actions button { flex: 1; padding: 10px; font-size: 13px; }
   .crop-actions button.primary { width: auto; }
 
+  .place-tip { background: rgba(255,250,243,0.9); border: 1px solid var(--accent); color: var(--accent); font-weight: 800; font-size: 11px; box-shadow: none; padding: 1px 6px; }
+  .place-tip::before { display: none; }
   .draft-marker { width: 22px; height: 22px; border-radius: 50%; border: 3px dashed var(--accent); background: rgba(184, 86, 58, 0.25); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 </style>
 </head>
@@ -177,11 +203,32 @@
       </div>
 
       <div class="guardian" id="guardian-box" hidden>
-        <h3>수호지킴이 (이 가게를 지키는 강아지)</h3>
-        <p class="hint">사진을 고르면 지도 핀·팝업·카드에 보여 줄 부분을 고를 수 있어요.</p>
-        <p class="hint">가게 주인이 알려 주고, 올려도 된다고 한 강아지만 넣어 주세요(사진·이름·가게 정보를 올려도 된다는 동의를 카톡 등으로 남겨 두기). 이름을 비워 두면 수호지킴이 없이 저장됩니다.</p>
-        <p class="hint"><b>스팟 이름·강아지 이름에 브랜드(프랜차이즈) 이름을 넣지 마세요.</b> "다산동 치킨집 수호신"처럼 일반 이름으로 — 제휴·공식 캐릭터로 오해받을 수 있어요. 메모에 가게가 강아지를 어디에 두는지(조리장·계산대 등) 자세히 쓰지 않기.</p>
-        <div class="photo-row">
+        <h3>수호견 (사장님네 강아지) — 미리 보기</h3>
+        <p class="hint" id="g-off-note" style="color:var(--danger);font-weight:700;">지금 수호견 기능은 꺼져 있어요(infra-pins.js GUARDIANS_ON). 저장·반영해도 사용자 화면에는 안 보여요. 단, 반영하면 사진 파일은 공개 저장소에 올라가니 동의받은 사진만.</p>
+        <div class="field">
+          <label>종류</label>
+          <label class="radio"><input type="radio" name="g-kind" value="home" checked> 재택 명예 수호견 — 음식점·카페(매장에 두지 않는 사장님 댁 반려견)</label>
+          <label class="radio"><input type="radio" name="g-kind" value="work"> 출근 수호견 — 펫샵·미용실 등 비식품 업종(매장에 있어도 되는 곳)</label>
+        </div>
+        <div class="field"><label for="g-name">강아지 이름 (브랜드 이름 넣지 않기)</label><input id="g-name" maxlength="10"></div>
+        <div class="field">
+          <label for="g-signal">산책 신호등 (다른 강아지를 만났을 때)</label>
+          <select id="g-signal">
+            <option value="">안 정함</option>
+            <option value="green">초록불 · 다가와도 좋아요</option>
+            <option value="yellow">노랑불 · 천천히 인사해요</option>
+            <option value="red">빨강불 · 눈으로만 예뻐해 주세요</option>
+          </select>
+        </div>
+        <div class="field"><label for="g-line">한마디 (선택, 예: 간식 주면 손 줘요 — 매장 안 모습은 쓰지 않기)</label><input id="g-line" maxlength="30"></div>
+
+        <div class="field">
+          <label>사진 모양</label>
+          <label class="radio"><input type="radio" name="g-style" value="photo"> 실사 — 집·산책·가게 밖에서 찍은 사진만</label>
+          <label class="radio"><input type="radio" name="g-style" value="cartoon" checked> 카툰 필터 — 고른 사진을 만화처럼(이 컴퓨터 안에서 바꿔요)</label>
+          <label class="radio"><input type="radio" name="g-style" value="drawn"> 닮은꼴 그림 — 사진 없이 털색·자세만 골라요</label>
+        </div>
+        <div class="photo-row" id="g-photo-row">
           <div class="thumb"><img id="g-preview" alt="" hidden></div>
           <div>
             <button type="button" id="g-pick">사진 고르기</button>
@@ -190,17 +237,24 @@
             <input type="file" id="g-input" accept="image/*">
           </div>
         </div>
-        <div class="field"><label for="g-name">강아지 이름</label><input id="g-name" maxlength="10"></div>
-        <div class="field">
-          <label for="g-signal">산책 신호등 (손님 강아지를 만났을 때)</label>
-          <select id="g-signal">
-            <option value="">안 정함</option>
-            <option value="green">초록불 — 다가와도 좋아요</option>
-            <option value="yellow">노랑불 — 천천히 인사해요</option>
-            <option value="red">빨강불 — 눈으로만 예뻐해 주세요</option>
-          </select>
+        <div class="drawn-pick" id="g-drawn" hidden>
+          <div class="drawn-preview" id="g-drawn-preview"></div>
+          <div>
+            <div class="field"><label for="g-pose">자세</label><select id="g-pose"><option value="sit">앉아</option><option value="lie">엎드려</option><option value="run">뛰어</option><option value="ball">공놀이</option></select></div>
+            <div class="field"><label>털색</label><div class="coats" id="g-coats"></div></div>
+          </div>
         </div>
-        <div class="field"><label for="g-line">한마디 (선택, 예: 간식 주면 손 줘요)</label><input id="g-line" maxlength="30"></div>
+
+        <div class="checks">
+          <label class="radio"><input type="checkbox" id="g-c1"> 사장님 본인에게 강아지 사진·이름·가게 이름을 왈슨에 올려도 된다는 동의를 받았어요 (카톡 등으로 남김)</label>
+          <label class="radio" id="g-c2-row"><input type="checkbox" id="g-c2"> <span id="g-c2-text"></span></label>
+          <label class="radio"><input type="checkbox" id="g-c3"> 사진에 매장 안(주방·테이블·메뉴판), 손님·직원 얼굴, 영수증·주소가 나오지 않아요</label>
+        </div>
+        <details class="consent">
+          <summary>사장님께 보낼 동의 문구 견본</summary>
+          <textarea id="g-consent" readonly rows="6"></textarea>
+          <button type="button" id="g-consent-copy">문구 복사</button>
+        </details>
         <button type="button" id="g-card-btn" disabled>주민증 카드 보기</button>
       </div>
 
@@ -219,6 +273,25 @@
       <h2>3. 직접 만든 종류</h2>
       <p class="hint">위 "종류"에서 "+ 새 종류 직접 만들기"로 추가해요. 쓰는 스팟이 없는 종류만 지울 수 있어요.</p>
       <ul id="cat-list"></ul>
+    </div>
+
+    <div class="section">
+      <h2>4. 우리 개 발도장 장소 (<span id="place-count">0</span>)</h2>
+      <p class="hint">길 기록 산책으로 이 원 안을 지나가면 발도장이 찍히고, [동네] 지도에 우리 개 얼굴이 떠요. 카드 뒷면에 모두 그려지니 5곳 안팎이 좋아요. 지도에 점선 원으로 보여요.</p>
+      <ul id="place-list"></ul>
+      <div class="newcat" id="place-form" hidden>
+        <div class="field"><label for="pl-name">이름 (카드·지도에 그대로 나와요)</label><input id="pl-name" maxlength="12"></div>
+        <div class="row">
+          <div class="field" style="flex:1;"><label for="pl-kind">모양</label><select id="pl-kind"><option value="park">공원</option><option value="water">물가</option><option value="building">건물</option></select></div>
+          <div class="field" style="width:110px;"><label for="pl-radius">반경(m)</label><input id="pl-radius" type="number" min="50" max="1000" step="10"></div>
+        </div>
+        <p class="hint" style="margin:0 0 6px;">지도를 누르면 원의 가운데가 그 자리로 옮겨져요. 위치: <b id="pl-pos"></b></p>
+        <div class="row">
+          <button type="button" id="pl-save" style="flex:1;">이 장소 저장</button>
+          <button type="button" id="pl-cancel">취소</button>
+        </div>
+      </div>
+      <button type="button" id="place-add" style="width:100%;">+ 새 발도장 장소</button>
     </div>
   </div>
 </div>
@@ -257,6 +330,8 @@
   var baseSha = null;      // 그 목록을 읽은 커밋
   var categories = [];     // 직접 만든 종류 { key, label, color } — 편집 중
   var baseCategories = []; // 저장소에 올라가 있는 것
+  var places = [];         // 우리 개 발도장 장소 { id, name, lat, lng, radiusM, kind } — 편집 중
+  var basePlaces = [];     // 저장소에 올라가 있는 것(파일에 아직 없으면 reward-rules.js 기본 세 곳)
   var busy = false;
 
   function sameSpot(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
@@ -269,11 +344,15 @@
     var catById = {};
     baseCategories.forEach(function (c) { catById[c.key] = c; });
     categories.forEach(function (c) { if (!catById[c.key] || !sameSpot(catById[c.key], c)) n++; delete catById[c.key]; });
-    return n + Object.keys(catById).length;
+    n += Object.keys(catById).length;
+    var plById = {};
+    basePlaces.forEach(function (p) { plById[p.id] = p; });
+    places.forEach(function (p) { if (!plById[p.id] || !sameSpot(plById[p.id], p)) n++; delete plById[p.id]; });
+    return n + Object.keys(plById).length;
   }
   function saveDraft() {
     try {
-      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots, categories: categories }));
+      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots, categories: categories, places: places }));
       else localStorage.removeItem(DRAFT_KEY);
       return true;
     } catch (e) { return false; }
@@ -310,12 +389,13 @@
     if (!confirm('바뀐 스팟·종류 ' + n + '개를 저장소에 커밋해서 모든 사람에게 보이게 할까요?\n(반영된 뒤 서비스에 보이기까지 몇 분 걸려요)')) return;
     busy = true; renderStatus();
     $('status-msg').textContent = 'GitHub에 올리는 중…';
-    SpotGitHub.publish(spots, baseSha, null, categories).then(function (res) {
+    SpotGitHub.publish(spots, baseSha, null, categories, places).then(function (res) {
       busy = false;
       baseSha = res.headSha;
       spots = res.spots;                 // 사진이 파일 경로로 바뀐 목록
       baseSpots = JSON.parse(JSON.stringify(res.spots));
       baseCategories = JSON.parse(JSON.stringify(categories));
+      basePlaces = JSON.parse(JSON.stringify(places));
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 무시 */ }
       clearForm();
       renderAll();
@@ -375,7 +455,9 @@
 
   // withCrop: 고른 뒤 보여 줄 부분(정사각형)을 고르게 한다(수호지킴이 사진). 원본은 이 창에서만 들고 있다가
   // "다시 고르기"에 쓴다 — 이미 반영된 사진은 원본이 없으니 지금 사진(640px)에서 다시 고른다.
-  function photoField(prefix, setter, withCrop) {
+  // transform: 자른 뒤 보여 주기 전에 거치는 단계(수호견 카툰 필터) — Promise<dataURL>
+  function photoField(prefix, setter, withCrop, transform) {
+    function after(v) { return transform ? transform(v) : Promise.resolve(v); }
     var preview = $(prefix + '-preview'), clear = $(prefix + '-clear'), input = $(prefix + '-input');
     var recrop = $(prefix + '-crop');
     var original = null;
@@ -389,7 +471,7 @@
     if (recrop) recrop.addEventListener('click', function () {
       var from = original || preview.src;
       if (!from) return;
-      openCrop(from).then(function (v) { if (v) show(v, true); })
+      openCrop(from).then(function (v) { return v ? after(v).then(function (t) { show(t, true); }) : null; })
         .catch(function (err) { alert('사진을 불러오지 못했습니다: ' + err.message); });
     });
     input.addEventListener('change', function () {
@@ -402,7 +484,7 @@
       }
       // 자를 여유를 두고 긴 변 1600px까지만 줄여 둔다(EXIF는 여기서 빠진다)
       resizeImageFile(file, 1600).then(function (big) {
-        return openCrop(big).then(function (v) { if (v) { show(v); original = big; } });
+        return openCrop(big).then(function (v) { if (v) return after(v).then(function (t) { show(t); original = big; }); });
       }).catch(function (err) { alert('사진을 불러오지 못했습니다: ' + err.message); });
     });
     return show;
@@ -513,7 +595,117 @@
       reader.readAsDataURL(file);
     });
   }
-  var showGPhoto = photoField('g', function (v) { gPhoto = v; }, true);
+  var gPhotoCartoon = false;   // 지금 gPhoto가 카툰 필터를 거친 것인지
+  var showGPhoto = photoField('g', function (v) { gPhoto = v; if (!v) gPhotoCartoon = false; }, true, function (v) {
+    // 고른(자른) 사진 — 사진 모양이 "카툰"이면 바로 바꿔서 보여 준다
+    return gStyle() === 'cartoon' ? toCartoon(v).then(function (c) { gPhotoCartoon = true; return c; }) : (gPhotoCartoon = false, Promise.resolve(v));
+  });
+
+  // ── 수호견 v2 입력 ──
+  function radioValue(name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ''; }
+  function setRadio(name, v) { var r = document.querySelector('input[name="' + name + '"][value="' + v + '"]'); if (r) r.checked = true; }
+  function gKind() { return radioValue('g-kind') || 'home'; }
+  function gStyle() { return radioValue('g-style') || 'cartoon'; }
+  function loadImg(src) {
+    return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { rej(new Error('이미지를 읽지 못했습니다')); }; i.src = src; });
+  }
+  // 카툰 필터 — 주민증 카드와 같은 픽셀 처리(card-shared.js). 서버로 보내지 않는다.
+  function toCartoon(dataUrl) {
+    return loadImg(dataUrl).then(function (img) { return CardShared.applyCartoonEffect(img, { maxDim: 640 }).toDataURL('image/jpeg', 0.85); });
+  }
+  // 닮은꼴 그림 — 지도 꾸미기의 그림 강아지(map-deco.js)를 640×640 PNG로
+  var gCoat = 0;
+  function drawnSvg(px) { return MapDeco.dogSvg($('g-pose').value, MapDeco.COATS[gCoat], px); }
+  function drawnPng() {
+    var svg = drawnSvg(560).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+    return loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)).then(function (img) {
+      var c = document.createElement('canvas'); c.width = c.height = 640;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#fdf3ec'; ctx.fillRect(0, 0, 640, 640);
+      ctx.drawImage(img, 40, 50, 560, 560);
+      return c.toDataURL('image/png');
+    });
+  }
+  MapDeco.COATS.forEach(function (coat, i) {
+    var b = document.createElement('button'); b.type = 'button'; b.style.background = coat[0]; b.title = '털색 ' + (i + 1);
+    b.addEventListener('click', function () { gCoat = i; paintDrawn(); });
+    $('g-coats').appendChild(b);
+  });
+  $('g-pose').addEventListener('change', paintDrawn);
+  function paintDrawn() {
+    $('g-drawn-preview').innerHTML = drawnSvg(64);
+    Array.prototype.forEach.call($('g-coats').children, function (b, i) { b.setAttribute('aria-pressed', i === gCoat ? 'true' : 'false'); });
+  }
+  function paintGuardianForm() {
+    var style = gStyle(), kind = gKind();
+    $('g-photo-row').hidden = style === 'drawn';
+    $('g-drawn').hidden = style !== 'drawn';
+    if (style === 'drawn') paintDrawn();
+    $('g-c2-text').textContent = kind === 'home'
+      ? '이 강아지는 매장 조리·취식 공간에 두지 않는 사장님 댁 반려견이에요(재택 명예 수호견)'
+      : '이 가게는 펫샵·미용실처럼 음식을 다루지 않는 곳이라 매장에 강아지가 있어도 돼요(출근 수호견)';
+    $('g-c3').parentNode.hidden = style === 'drawn';
+    var name = gName.value.trim() || '(강아지 이름)';
+    var kindText = kind === 'home' ? '재택 명예 수호견(가게엔 출근 안 하는 사장님 댁 반려견)' : '출근 수호견';
+    $('g-consent').value =
+      '안녕하세요, 다산동 산책 앱 "왈슨"을 만들고 있어요. 사장님네 강아지 ' + name + '를 왈슨 동네 지도에 "' + kindText + '"로 소개하고 싶어요.\n' +
+      '- 올리는 것: 강아지 이름, 사진(또는 만화·그림으로 바꾼 것), 한마디, 가게 이름과 위치\n' +
+      (kind === 'home' ? '- 음식점·카페는 "매장에 두지 않는 사장님 댁 반려견"으로 소개해요. 매장 안 사진은 올리지 않아요\n' : '') +
+      '- 왈슨은 가게·브랜드와 제휴 관계가 아니라고 함께 적어요\n' +
+      '- 언제든 "내려 주세요" 하시면 바로 내려요\n' +
+      '괜찮으시면 "동의합니다"라고 답장 부탁드려요.';
+  }
+  ['g-kind', 'g-style'].forEach(function (n) {
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="' + n + '"]'), function (r) { r.addEventListener('change', onStyleOrKind); });
+  });
+  gName.addEventListener('input', paintGuardianForm);
+  function onStyleOrKind() {
+    var style = gStyle();
+    // 이미 고른 실사 사진을 카툰으로 바꾸면 바로 바꿔 준다. 카툰 → 실사는 되돌릴 수 없어 다시 고르게 한다.
+    if (style === 'cartoon' && gPhoto && !gPhotoCartoon && /^data:/.test(gPhoto)) {
+      toCartoon(gPhoto).then(function (c) { showGPhoto(c, true); gPhotoCartoon = true; });
+    } else if (style === 'photo' && gPhotoCartoon) {
+      alert('실사로 바꾸려면 사진을 다시 골라 주세요(카툰으로 바꾼 사진은 되돌릴 수 없어요).');
+      showGPhoto(null);
+    }
+    paintGuardianForm();
+  }
+  $('g-consent-copy').addEventListener('click', function () {
+    var t = $('g-consent').value;
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { alert('복사했어요.'); }, function () { $('g-consent').select(); });
+    else $('g-consent').select();
+  });
+  // 흔한 프랜차이즈 이름 — 스팟·강아지 이름에 들어가면 한 번 더 묻는다(제휴·공식 캐릭터 오해 방지)
+  var FRANCHISE = ['푸라닭', 'bbq', '비비큐', '교촌', 'bhc', '비에이치씨', '굽네', '네네', '처갓집', '페리카나', '멕시카나', '호식이', '60계', '노랑통닭',
+    '자담', '맘스터치', '맥도날드', '버거킹', '롯데리아', 'kfc', '스타벅스', '투썸', '이디야', '메가커피', '메가mgc', '컴포즈', '빽다방', '할리스', '커피빈',
+    '폴바셋', '파스쿠찌', '파리바게뜨', '뚜레쥬르', '배스킨', '던킨', '설빙', '서브웨이', '도미노', '피자헛', '파파존스', '미스터피자', '본죽', '김밥천국', '한솥'];
+  function franchiseIn(text) {
+    var t = String(text || '').toLowerCase().replace(/\s+/g, '');
+    for (var i = 0; i < FRANCHISE.length; i++) if (t.indexOf(FRANCHISE[i]) >= 0) return FRANCHISE[i];
+    return null;
+  }
+  // 저장 전에 수호견 입력을 확인하고 guardian 객체를 만든다. null = 수호견 없음, false = 저장 멈춤
+  function buildGuardian() {
+    if (!GUARDIAN_INPUT || !gName.value.trim()) return Promise.resolve(null);
+    var style = gStyle();
+    if (!$('g-c1').checked) { alert('사장님 본인 동의를 받았는지 확인해 주세요. 동의 전에는 수호견을 올리지 않아요.'); return Promise.resolve(false); }
+    if (!$('g-c2').checked) { alert('두 번째 확인(' + (gKind() === 'home' ? '매장에 두지 않는 반려견' : '비식품 업종') + ')에 체크해 주세요.'); return Promise.resolve(false); }
+    if (style !== 'drawn' && !gPhoto) { alert('사진을 고르거나, 사진 모양을 "닮은꼴 그림"으로 바꿔 주세요.'); return Promise.resolve(false); }
+    if (style !== 'drawn' && !$('g-c3').checked) { alert('사진에 매장 안·사람 얼굴·영수증이 없는지 확인해 주세요.'); return Promise.resolve(false); }
+    var brand = franchiseIn(fName.value) || franchiseIn(gName.value) || franchiseIn(gLine.value);
+    if (brand && !confirm('"' + brand + '"처럼 브랜드 이름이 들어 있어요. 제휴·공식 캐릭터로 오해받을 수 있어요.\n그래도 이대로 저장할까요? (취소하고 "다산동 치킨집"처럼 일반 이름으로 바꾸기를 권해요)')) {
+      return Promise.resolve(false);
+    }
+    var g = { name: gName.value.trim(), kind: gKind(), style: style, consentAt: todayText() };
+    if (gSignal.value) g.signal = gSignal.value;
+    if (gLine.value.trim()) g.line = gLine.value.trim();
+    if (style === 'drawn') {
+      g.avatar = { pose: $('g-pose').value, coat: gCoat };
+      return drawnPng().then(function (png) { g.photo = png; return g; });
+    }
+    g.photo = gPhoto;
+    return Promise.resolve(g);
+  }
   var showPPhoto = photoField('p', function (v) { pPhoto = v; }, true);
 
   // ── 직접 만든 종류 ──
@@ -618,13 +810,15 @@
 
   // 가게 수호지킴이 입력은 꺼 둔다(2026-11-15 가르시아 "이 기능은 리스크가 너무 커") — 사장님 동의 없이 올라간 것을 내렸고,
   // 음식점 위생 기준·브랜드 문제로 방식을 다시 정하기 전까지 새로 넣지 않는다. 다시 켜려면 true.
-  var GUARDIAN_INPUT = false;
+  // 수호견 v2(2026-11-15): infra-pins.js의 GUARDIANS_ON이 켜져 있거나, 미리 보기 주소(spot-editor.html?guardian=1)일 때만 입력칸이 보인다.
+  var GUARDIAN_INPUT = InfraPins.GUARDIANS_ON || /[?&]guardian=1/.test(location.search);
+  $('g-off-note').hidden = InfraPins.GUARDIANS_ON;
   function refreshExtras() {
     var isSpot = fCat.value === 'spot';
     $('guardian-box').hidden = !isSpot || !GUARDIAN_INPUT;
     $('spot-extra').hidden = !isSpot;
     // 카드는 서비스에 올라간 내용으로 그리므로, 반영된 수호지킴이만 볼 수 있다
-    var saved = editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardian(s); });
+    var saved = InfraPins.GUARDIANS_ON && editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardianData(s); });
     $('g-card-btn').disabled = !saved;
     $('g-card-btn').textContent = saved ? '주민증 카드 보기' : '주민증 카드 보기 (모두에게 반영한 뒤에)';
   }
@@ -639,6 +833,9 @@
     if (fCat.value === NEW_CAT) fCat.value = lastCat;
     fName.value = ''; fTags.value = ''; fNote.value = ''; fPhone.value = ''; fArea.value = '';
     gName.value = ''; gSignal.value = ''; gLine.value = '';
+    setRadio('g-kind', 'home'); setRadio('g-style', 'cartoon'); gCoat = 0; $('g-pose').value = 'sit';
+    ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = false; });
+    paintGuardianForm();
     showGPhoto(null); showPPhoto(null);
     setDraft(null);
     $('form-title').textContent = '1. 새 스팟 넣기';
@@ -658,7 +855,14 @@
     fArea.value = pin.area || '';
     var g = pin.guardian || {};
     gName.value = g.name || ''; gSignal.value = g.signal || ''; gLine.value = g.line || '';
-    showGPhoto(g.photo || null);
+    setRadio('g-kind', g.kind || 'home');
+    setRadio('g-style', g.style || (g.photo ? 'photo' : 'cartoon'));
+    if (g.avatar) { $('g-pose').value = g.avatar.pose || 'sit'; gCoat = g.avatar.coat || 0; }
+    // 이미 받은 동의는 체크된 채로(다시 확인하려면 풀었다가 체크)
+    ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = !!g.consentAt; });
+    showGPhoto(g.style === 'drawn' ? null : (g.photo || null));
+    gPhotoCartoon = g.style === 'cartoon';
+    paintGuardianForm();
     showPPhoto(pin.photo || null);
     setDraft(L.latLng(pin.lat, pin.lng));
     map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 17));
@@ -695,20 +899,20 @@
     if (pin.cat === 'spot') {
       if (fArea.value.trim()) pin.area = fArea.value.trim().replace(/\s+/g, ' ');
       if (pPhoto) pin.photo = pPhoto;
-      if (GUARDIAN_INPUT && gName.value.trim()) {
-        pin.guardian = { name: gName.value.trim() };
-        if (gSignal.value) pin.guardian.signal = gSignal.value;
-        if (gLine.value.trim()) pin.guardian.line = gLine.value.trim();
-        if (gPhoto) pin.guardian.photo = gPhoto;
-      }
+      // 수호견 입력을 안 보여 주는 동안(꺼짐)에는 기존 수호견 데이터를 그대로 둔다
+      if (!GUARDIAN_INPUT && old && old.guardian) pin.guardian = old.guardian;
     }
     var keepId = pin.id;
-    spots = spots.filter(function (s) { return s.id !== pin.id; }).concat([pin]);
-    save().then(function () {
+    (pin.cat === 'spot' ? buildGuardian() : Promise.resolve(null)).then(function (g) {
+      if (g === false) return;
+      if (g) pin.guardian = g;
+      spots = spots.filter(function (s) { return s.id !== pin.id; }).concat([pin]);
+      return save().then(function () {
       // 저장한 뒤에도 같은 스팟을 계속 고칠 수 있게 연다(수호지킴이 카드 보기가 바로 되도록)
-      var saved = spots.filter(function (s) { return s.id === keepId; })[0];
-      if (saved) startEdit(saved); else clearForm();
-    }).catch(function () {});
+        var saved = spots.filter(function (s) { return s.id === keepId; })[0];
+        if (saved) startEdit(saved); else clearForm();
+      });
+    }).catch(function (e) { alert('저장하지 못했어요: ' + (e && e.message)); });
   });
 
   function renderMarkers() {
@@ -747,7 +951,7 @@
         name.textContent = pin.name || cat.label;
         var meta = document.createElement('div');
         meta.className = 'meta';
-        meta.textContent = cat.label + (pin.area ? ' · ' + pin.area : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardian(pin) ? ' · 수호지킴이 ' + pin.guardian.name : '');
+        meta.textContent = cat.label + (pin.area ? ' · ' + pin.area : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
         info.appendChild(name); info.appendChild(meta);
         info.addEventListener('click', function () { map.setView([pin.lat, pin.lng], 17); });
         var edit = document.createElement('button');
@@ -765,7 +969,91 @@
         listEl.appendChild(li);
       });
   }
-  function renderAll() { if (map) { renderMarkers(); renderList(); renderCategories(); fillAreaList(); } }
+  function renderAll() { if (map) { renderMarkers(); renderList(); renderCategories(); fillAreaList(); renderPlaces(); } }
+
+  // ── 우리 개 발도장 장소 ──
+  var placeLayer = null, placeEditId = null, placeDraft = null;
+  function placeFromDefault(p) {
+    return { id: p.id, name: p.name, lat: p.center[0], lng: p.center[1], radiusM: Math.round(p.radiusKm * 1000), kind: p.kind || 'park' };
+  }
+  var KIND_LABEL = { park: '공원', water: '물가', building: '건물' };
+  function renderPlaces() {
+    $('place-count').textContent = places.length;
+    if (placeLayer) placeLayer.clearLayers(); else placeLayer = L.layerGroup().addTo(map);
+    places.forEach(function (p) {
+      var editing = p.id === placeEditId;
+      var src = editing && placeDraft ? placeDraft : p;
+      L.circle([src.lat, src.lng], {
+        radius: src.radiusM, color: editing ? '#b3261e' : '#b8563a', weight: editing ? 3 : 2, dashArray: '6 6',
+        fillColor: '#b8563a', fillOpacity: editing ? 0.15 : 0.06, interactive: false
+      }).bindTooltip(src.name, { permanent: true, direction: 'center', className: 'place-tip' }).addTo(placeLayer);
+    });
+    if (placeEditId === '__new__' && placeDraft) {
+      L.circle([placeDraft.lat, placeDraft.lng], { radius: placeDraft.radiusM, color: '#b3261e', weight: 3, dashArray: '6 6', fillOpacity: 0.15, interactive: false }).addTo(placeLayer);
+    }
+    var ul = $('place-list');
+    ul.innerHTML = '';
+    places.forEach(function (p) {
+      var li = document.createElement('li');
+      if (p.id === placeEditId) li.className = 'is-editing';
+      var label = document.createElement('span'); label.className = 'label';
+      label.innerHTML = '<b></b><span></span>';
+      label.firstChild.textContent = p.name;
+      label.lastChild.textContent = (KIND_LABEL[p.kind] || '공원') + ' · 반경 ' + p.radiusM + 'm';
+      label.style.cursor = 'pointer';
+      label.addEventListener('click', function () { map.setView([p.lat, p.lng], 16); });
+      li.appendChild(label);
+      var edit = document.createElement('button'); edit.type = 'button'; edit.textContent = '고치기';
+      edit.addEventListener('click', function () { openPlace(p); });
+      li.appendChild(edit);
+      var del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = '삭제';
+      del.addEventListener('click', function () {
+        if (busy || !confirm('"' + p.name + '" 발도장 장소를 지울까요?\n이미 찍힌 이 장소의 발도장도 카드·지도에서 사라져요(산책 기록은 그대로).')) return;
+        places = places.filter(function (x) { return x.id !== p.id; });
+        if (placeEditId === p.id) closePlace();
+        save();
+      });
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+    $('place-add').hidden = !!placeEditId;
+  }
+  function openPlace(p) {
+    placeEditId = p ? p.id : '__new__';
+    var c = map.getCenter();
+    placeDraft = p ? JSON.parse(JSON.stringify(p)) : { id: 'place-' + Date.now().toString(36), name: '', lat: round5(c.lat), lng: round5(c.lng), radiusM: 200, kind: 'park' };
+    $('pl-name').value = placeDraft.name; $('pl-kind').value = placeDraft.kind; $('pl-radius').value = placeDraft.radiusM;
+    $('pl-pos').textContent = placeDraft.lat.toFixed(5) + ', ' + placeDraft.lng.toFixed(5);
+    $('place-form').hidden = false;
+    map.setView([placeDraft.lat, placeDraft.lng], 16);
+    renderPlaces();
+    $('pl-name').focus();
+  }
+  function closePlace() { placeEditId = null; placeDraft = null; $('place-form').hidden = true; renderPlaces(); }
+  $('place-add').addEventListener('click', function () { openPlace(null); });
+  $('pl-cancel').addEventListener('click', closePlace);
+  $('pl-radius').addEventListener('input', function () { var r = parseInt($('pl-radius').value, 10); if (placeDraft && r >= 50 && r <= 1000) { placeDraft.radiusM = r; renderPlaces(); } });
+  $('pl-name').addEventListener('input', function () { if (placeDraft) placeDraft.name = $('pl-name').value; });
+  $('pl-kind').addEventListener('change', function () { if (placeDraft) placeDraft.kind = $('pl-kind').value; });
+  function movePlace(latlng) {
+    placeDraft.lat = round5(latlng.lat); placeDraft.lng = round5(latlng.lng);
+    $('pl-pos').textContent = placeDraft.lat.toFixed(5) + ', ' + placeDraft.lng.toFixed(5);
+    renderPlaces();
+  }
+  $('pl-save').addEventListener('click', function () {
+    if (busy || !placeDraft) return;
+    var name = $('pl-name').value.trim();
+    if (!name) { alert('이름을 적어 주세요.'); $('pl-name').focus(); return; }
+    var r = parseInt($('pl-radius').value, 10);
+    if (!(r >= 50 && r <= 1000)) { alert('반경은 50~1000m로 적어 주세요.'); return; }
+    if (places.some(function (x) { return x.id !== placeDraft.id && x.name === name; })) { alert('같은 이름의 장소가 이미 있어요.'); return; }
+    var p = { id: placeDraft.id, name: name, lat: placeDraft.lat, lng: placeDraft.lng, radiusM: r, kind: $('pl-kind').value };
+    var i = places.findIndex(function (x) { return x.id === p.id; });
+    if (i >= 0) places[i] = p; else places.push(p);
+    if (places.length > 6) alert('발도장 장소가 ' + places.length + '곳이에요. 카드 뒷면이 빽빽해질 수 있어요(5곳 안팎 권장).');
+    closePlace();
+    save();
+  });
 
   // ── 시작 ──
   function showSetup(reason) {
@@ -806,19 +1094,22 @@
     spots = JSON.parse(JSON.stringify(st.spots));
     baseCategories = st.categories || [];
     categories = JSON.parse(JSON.stringify(baseCategories));
+    basePlaces = st.stampPlaces || RewardRules.DEFAULT_PLACES.map(placeFromDefault);
+    places = JSON.parse(JSON.stringify(basePlaces));
     // 반영 안 한 편집이 이 컴퓨터에 남아 있으면 이어서
     var draft = null;
     try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { draft = null; }
     if (draft && Array.isArray(draft.spots)) {
       spots = draft.spots;
       if (Array.isArray(draft.categories)) categories = draft.categories;
+      if (Array.isArray(draft.places)) places = draft.places;
       if (draft.baseSha) baseSha = draft.baseSha;
     }
 
     $('layout').hidden = false;
     map = L.map('map').setView(DEFAULT_CENTER, 15);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-    map.on('click', function (e) { setDraft(e.latlng); });
+    map.on('click', function (e) { if (placeDraft) movePlace(e.latlng); else setDraft(e.latlng); });
     applyCategories();
     $('list-filter').addEventListener('change', renderList);
     clearForm();

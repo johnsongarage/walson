@@ -1,4 +1,4 @@
-// 동네 스팟(시설·가게·주의 구역) — town.html([동네]), walk.html(산책 화면), start.html(수호지킴이 카드),
+// 동네 스팟(시설·가게·주의 구역) — town.html([동네]), walk.html(산책 화면), start.html(수호견 카드),
 // spot-editor.html(운영자 스팟 편집)이 같이 쓴다. 전역 window.InfraPins.
 // 고치면 쓰는 화면들의 `infra-pins.js?v=N` 버전을 같이 올릴 것(card-shared.js와 같은 캐시 문제).
 //
@@ -93,8 +93,19 @@
     yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
     red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
   };
-  var GUARDIAN_DISCLAIMER = '사장님 허락을 받고 올린 강아지예요 · 가게·브랜드와 제휴 관계가 아니에요';
-  function hasGuardian(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
+  // ── 수호견 v2(2026-11-15) ──
+  // 켜고 끄는 스위치는 이것 하나. false면 데이터에 수호견이 있어도 지도·목록·카드 어디에도 안 보인다.
+  // 켜기 전에: 사장님 본인 동의, (음식점·카페는) 매장 조리·취식 공간에 두지 않는다는 확인 — 스팟 편집이 등록할 때 받는다.
+  var GUARDIANS_ON = false;
+  // kind: 'home' = 재택 명예 수호견(음식점·카페 — 매장에 없음), 'work' = 출근 수호견(펫샵·미용실 등 비식품 업종)
+  var GUARDIAN_KINDS = {
+    home: { badge: '재택 명예 수호견', line: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견' },
+    work: { badge: '출근 수호견', line: '가게에서 손님을 맞는 사장님네 강아지예요' }
+  };
+  var GUARDIAN_DISCLAIMER = '사장님 동의를 받고 올렸어요 · 가게·브랜드와 제휴 관계가 아니에요';
+  function guardianKind(g) { return GUARDIAN_KINDS[g && g.kind] || GUARDIAN_KINDS.home; }
+  function hasGuardianData(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
+  function hasGuardian(pin) { return GUARDIANS_ON && hasGuardianData(pin); }
   // 지도에 내세울 사진 — 수호지킴이 사진이 먼저, 없으면 가게 사진
   function mainPhoto(pin) {
     if (hasGuardian(pin) && pin.guardian.photo) return pin.guardian.photo;
@@ -166,7 +177,7 @@
         frame.appendChild(el('div', B
           ? 'position:absolute;left:0;top:0;background:#000;color:#F2B833;padding:3px 9px;font-size:11px;font-weight:900;'
           : 'position:absolute;left:8px;top:8px;background:rgba(255,250,243,0.92);color:#b8563a;' +
-            'border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;', '수호지킴이'));
+            'border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;', guardianKind(g).badge));
       }
       wrap.appendChild(frame);
     }
@@ -194,8 +205,11 @@
     if (pin.note) wrap.appendChild(el('div', '', pin.note));
     // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
     wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));
-    // 수호지킴이는 가게·브랜드의 공식 캐릭터가 아니다 — 제휴로 오해하지 않게(2026-11-15, 상표 혼동 방지)
-    if (g) wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', GUARDIAN_DISCLAIMER));
+    // 수호견은 가게·브랜드의 공식 캐릭터가 아니다 — 제휴로 오해하지 않게(2026-11-15, 상표 혼동 방지)
+    if (g) {
+      wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianKind(g).line));
+      wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', GUARDIAN_DISCLAIMER));
+    }
 
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
     var linkCss = B
@@ -234,6 +248,7 @@
     category: category, iconSvg: iconSvg, markerHtml: markerHtml, markerFor: markerFor, sourceText: sourceText,
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
     popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice,
-    setCustomCategories: setCustomCategories, GUARDIAN_DISCLAIMER: GUARDIAN_DISCLAIMER
+    setCustomCategories: setCustomCategories, GUARDIAN_DISCLAIMER: GUARDIAN_DISCLAIMER,
+    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData
   };
 })();
