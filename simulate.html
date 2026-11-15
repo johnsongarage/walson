@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>왈슨 시뮬레이터 (운영자)</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 여러 유저 시뮬레이터(2026-11-15, 운영자 전용). 가짜 사용자 N명이 지난 D일 동안 왈슨을 쓴 것처럼
+     통계 시트(Apps Script)에 "테스트" 기록을 보내고, 시트가 계산한 결과를 정답과 비교한다.
+     - 테스트 기록은 운영 요약에서 빠지고 '요약(테스트)'에만 잡힌다. 지우기: Apps Script에서 deleteTestRows 실행.
+     - 실행마다 유입 코드에 실행 번호(s<번호>_…)를 붙여, 비교는 이번 실행 것만 한다.
+     - 위치·이름·사진은 만들지 않는다(통계에 원래 없는 것). 이 화면은 메뉴에 없고, 스팟 편집 토큰이 있는 브라우저에서만 열린다. */
+  :root { --bg: #f7ede2; --panel: #fffaf3; --line: #e6d6c1; --ink: #4a3f35; --soft: #6b5d4e; --accent: #b8563a; --ok: #3f7d4a; --bad: #b3261e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; font-family: 'Pretendard', -apple-system, "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); font-size: 14px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .lead { color: var(--soft); margin: 0 0 16px; line-height: 1.6; font-size: 13px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--soft); margin-bottom: 4px; }
+  input, select { width: 100%; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  button { font: inherit; font-weight: 800; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .bar { height: 10px; background: #efe0cd; border-radius: 999px; overflow: hidden; margin-top: 10px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .log { font-size: 12px; color: var(--soft); margin-top: 8px; white-space: pre-wrap; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { padding: 6px 5px; border-bottom: 1px solid var(--line); text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  th, td.ok, td.bad { white-space: nowrap; }
+  .note { font-size: 12px; color: var(--soft); margin-top: 8px; line-height: 1.6; }
+  .table-scroll { overflow-x: auto; }
+  .ok { color: var(--ok); font-weight: 800; }
+  .bad { color: var(--bad); font-weight: 800; }
+  .locked { max-width: 520px; margin: 60px auto; background: #fff; padding: 24px; border-radius: 14px; line-height: 1.7; }
+  [hidden] { display: none !important; }
+</style>
+<script src="site-config.js?v=3"></script>
+</head>
+<body>
+<div class="locked" id="locked" hidden>
+  <b>운영자 전용 화면이에요.</b><br>스팟 편집 페이지에 GitHub 토큰을 넣은 브라우저에서만 열려요.
+</div>
+
+<div class="wrap" id="app" hidden>
+  <h1>여러 유저 시뮬레이터</h1>
+  <p class="lead">가짜 사용자들이 지난 며칠 동안 왈슨을 쓴 것처럼 통계 시트에 <b>테스트 기록</b>을 보내고, 시트 계산이 맞는지 정답과 비교해요.
+    테스트 기록은 운영 요약에 섞이지 않고 시트의 <b>요약(테스트)</b>·<b>월간 리포트(테스트)</b>에만 나와요.
+    지우려면 Apps Script에서 <code>deleteTestRows</code>를 실행하세요. 첫 홍보 전에는 log를 통째로 비우는 게 좋아요.</p>
+
+  <div class="card">
+    <h2>1. 시나리오</h2>
+    <div class="grid">
+      <div><label for="n">가짜 사용자 수</label><input id="n" type="number" min="1" max="200" value="30"></div>
+      <div><label for="days">기간(지난 며칠)</label><input id="days" type="number" min="3" max="90" value="30"></div>
+      <div><label for="preset">시나리오</label>
+        <select id="preset">
+          <option value="normal">보통 — 절반이 주민증, 주 2~3회 산책</option>
+          <option value="eager">열심 — 대부분 주민증, 거의 매일</option>
+          <option value="churn">이탈 많음 — 첫 주에 많이 떠남</option>
+        </select></div>
+      <div><label for="conc">동시에 보내기</label><input id="conc" type="number" min="1" max="10" value="4"></div>
+    </div>
+    <div class="row">
+      <button type="button" class="primary" id="run">실행</button>
+      <button type="button" id="verify" disabled>시트 결과와 비교</button>
+      <button type="button" id="load">부하 시험(30명 동시)</button>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card" id="result-card" hidden>
+    <h2>2. 정답 vs 시트(이번 실행만)</h2>
+    <div id="result"></div>
+    <p class="note">산책 = 산책 완료 기기, 7일↑ = 첫 방문 뒤 7일 지난 기기, 재방문 = 그중 7일 안에 다시 온 기기.
+      기기 기준이라 시트와 정확히 같아야 해요. 다르면 Apps Script 계산이나 전송 누락을 의심해요(부하 시험 직후라면 동시 실행 한도로 빠진 것일 수 있어요).
+      재방문율은 오늘 날짜 기준이라, 실행 직후 바로 비교하세요.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var admin = false;
+  try { admin = !!localStorage.getItem('petwalk_admin_token'); } catch (e) { admin = false; }
+  if (!admin) { $('locked').hidden = false; return; }
+  $('app').hidden = false;
+  var URL_ = (window.WALSON_CONFIG && WALSON_CONFIG.trackUrl) || '';
+  if (!URL_) { $('log').textContent = 'site-config.js에 trackUrl이 없어요.'; $('run').disabled = true; $('load').disabled = true; }
+
+  var PRESETS = {
+    normal: { card: 0.5, firstWalk: 0.6, open: 0.35, walkIfOpen: 0.7, weeklyChurn: 0.18 },
+    eager:  { card: 0.85, firstWalk: 0.9, open: 0.7, walkIfOpen: 0.85, weeklyChurn: 0.05 },
+    churn:  { card: 0.4, firstWalk: 0.4, open: 0.25, walkIfOpen: 0.6, weeklyChurn: 0.5 }
+  };
+  var CHANNELS = [['poster', 0.4], ['insta', 0.2], ['kakao', 0.2], ['shop', 0.2]];
+  var SIZES = [['small', 0.35], ['medium', 0.35], ['large', 0.15], ['unknown', 0.15]];
+  var SHOPS = ['simshop-a', 'simshop-b'];
+  var SIGNALS = ['green', 'yellow', 'red'];
+  function pick(list) { var r = Math.random(), a = 0; for (var i = 0; i < list.length; i++) { a += list[i][1]; if (r < a) return list[i][0]; } return list[list.length - 1][0]; }
+  function hex(n) { var s = ''; while (s.length < n) s += Math.floor(Math.random() * 16).toString(16); return s; }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  // 한국 날짜(YYYY-MM-DD) — 시트와 같은 기준
+  function kstDate(ms) { var d = new Date(ms + 9 * 3600e3); return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()); }
+  function daysBetween(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+  function bucket(min) { return min < 10 ? '<10' : min < 30 ? '10-30' : min < 60 ? '30-60' : '60+'; }
+
+  var lastRun = null;
+
+  // ── 가짜 사용자 한 명의 기록(정답도 같이) ──
+  function simulateDevice(run, P, days, now) {
+    var id = 'w' + run + hex(12);
+    var ch = pick(CHANNELS);
+    var code = 's' + run + '_' + ch;
+    var firstAgo = Math.floor(Math.random() * days);          // 며칠 전에 처음 왔나
+    var ev = [], truth = { id: id, code: code, days: {}, card: false, walk: false, size: null, shops: {} };
+    function at(ago, hour) { return now - ago * 86400000 - (12 - hour) * 3600000; }   // 그날 낮 시간대
+    function push(ago, e, x, page) {
+      var t = at(ago, 9 + Math.floor(Math.random() * 10));
+      if (t > now) t = now - 60000;
+      ev.push({ d: id, t: new Date(t).toISOString(), e: e, p: page || 'index', f: code, ff: code, app: 0, s: 0, a: 0, x: x || {}, tt: 1 });
+      truth.days[kstDate(t)] = 1;
+    }
+    var active = true;
+    for (var ago = firstAgo; ago >= 0 && active; ago--) {
+      var first = ago === firstAgo;
+      if (!first && (firstAgo - ago) % 7 === 0 && Math.random() < P.weeklyChurn) { active = false; break; }
+      if (!first && Math.random() > P.open) continue;
+      push(ago, 'page_view', {}, first && ch === 'shop' ? 'visit' : 'index');
+      if (first && Math.random() < P.card) {
+        var size = pick(SIZES);
+        push(ago, 'card_made', { signal: SIGNALS[Math.floor(Math.random() * 3)], size: size }, 'start');
+        truth.card = true; truth.size = size;
+      }
+      var willWalk = truth.card && (first ? Math.random() < P.firstWalk : Math.random() < P.walkIfOpen);
+      if (willWalk) {
+        var gps = Math.random() < 0.4, min = 8 + Math.floor(Math.random() * 50);
+        push(ago, 'walk_start', { mode: gps ? 'gps' : 'time' }, gps ? 'walk' : 'go');
+        push(ago, 'walk_complete', { mode: gps ? 'gps' : 'time', min_bucket: bucket(min), eligible: gps ? 1 : 0 }, gps ? 'walk' : 'go');
+        truth.walk = true;
+        if (gps && Math.random() < 0.15) push(ago, 'stamp_new', { count: 1 }, 'walk');
+      }
+      if (ch === 'shop' && first || Math.random() < 0.04) {
+        var shop = SHOPS[Math.floor(Math.random() * SHOPS.length)];
+        push(ago, 'store_visit', { shop: shop }, 'visit');
+        truth.shops[shop] = 1;
+      }
+    }
+    // 첫 방문일(기기 기준)
+    var ds = Object.keys(truth.days).sort();
+    truth.first = ds[0];
+    return { events: ev, truth: truth };
+  }
+
+  function send(body) {
+    return fetch(URL_, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body) })
+      .then(function () { return true; }, function () { return false; });
+  }
+  function pool(tasks, conc, onEach) {
+    var i = 0, done = 0, okN = 0;
+    return new Promise(function (resolve) {
+      function next() {
+        if (i >= tasks.length) { if (done >= tasks.length) resolve(okN); return; }
+        var t = tasks[i++];
+        t().then(function (ok) { done++; if (ok) okN++; onEach(done, tasks.length); if (done >= tasks.length) resolve(okN); else next(); });
+      }
+      for (var k = 0; k < Math.min(conc, tasks.length); k++) next();
+      if (!tasks.length) resolve(0);
+    });
+  }
+
+  $('run').addEventListener('click', function () {
+    var n = Math.max(1, Math.min(200, Number($('n').value) || 30));
+    var days = Math.max(3, Math.min(90, Number($('days').value) || 30));
+    var conc = Math.max(1, Math.min(10, Number($('conc').value) || 4));
+    var P = PRESETS[$('preset').value];
+    var run = hex(4), now = Date.now();
+    var users = [];
+    for (var i = 0; i < n; i++) users.push(simulateDevice(run, P, days, now));
+    var totalEv = users.reduce(function (a, u) { return a + u.events.length; }, 0);
+    $('run').disabled = true; $('verify').disabled = true;
+    $('log').textContent = '실행 ' + run + ': 사용자 ' + n + '명 · 기록 ' + totalEv + '줄 보내는 중…';
+    var t0 = Date.now();
+    // 기기 하나 = 묶음 하나(300줄 넘으면 나눔)
+    var tasks = [];
+    users.forEach(function (u) {
+      for (var j = 0; j < u.events.length; j += 300) {
+        var chunk = u.events.slice(j, j + 300);
+        tasks.push(function () { return send({ tt: 1, batch: chunk }); });
+      }
+    });
+    pool(tasks, conc, function (d, tot) { $('bar').style.width = Math.round(d / tot * 100) + '%'; }).then(function (ok) {
+      lastRun = { run: run, users: users, now: now };
+      $('log').textContent = '실행 ' + run + ' 끝: 사용자 ' + n + '명 · 기록 ' + totalEv + '줄 · 요청 ' + tasks.length + '개 · ' + Math.round((Date.now() - t0) / 1000) + '초' +
+        (ok < tasks.length ? '\n네트워크 오류 ' + (tasks.length - ok) + '개' : '') + '\n"시트 결과와 비교"를 누르세요(시트에 쓰는 데 몇 초 걸릴 수 있어요).';
+      $('run').disabled = false; $('verify').disabled = false;
+    });
+  });
+
+  // ── 정답 계산(시트와 같은 정의) ──
+  function expected(r) {
+    var today = kstDate(Date.now());
+    var by = {};
+    r.users.forEach(function (u) {
+      var t = u.truth, s = by[t.code] || (by[t.code] = { n: 0, card: 0, walk: 0, old7: 0, back7: 0 });
+      s.n++; if (t.card) s.card++; if (t.walk) s.walk++;
+      if (daysBetween(t.first, today) >= 7) {
+        s.old7++;
+        if (Object.keys(t.days).some(function (d) { var x = daysBetween(t.first, d); return x >= 1 && x <= 7; })) s.back7++;
+      }
+    });
+    return by;
+  }
+  function sectionRows(out, title) {
+    var i = out.findIndex(function (r) { return String(r[0]).indexOf(title) === 0; });
+    if (i < 0) return [];
+    var rows = [];
+    for (var k = i + 2; k < out.length && out[k][0] !== ''; k++) rows.push(out[k]);
+    return rows;
+  }
+  $('verify').addEventListener('click', function () {
+    if (!lastRun) return;
+    $('verify').disabled = true;
+    $('log').textContent = '시트에서 테스트 요약 읽는 중…';
+    fetch(URL_ + (URL_.indexOf('?') < 0 ? '?' : '&') + 'test=summary').then(function (res) { return res.json(); }).then(function (j) {
+      var got = {};
+      sectionRows(j.out, '유입별').forEach(function (r) { got[r[0]] = r; });
+      var exp = expected(lastRun);
+      var html = '<div class="table-scroll"><table><tr><th>유입 코드</th><th>기기</th><th>주민증</th><th>산책</th><th>7일↑</th><th>재방문</th><th>결과</th></tr>';
+      var allOk = true;
+      Object.keys(exp).sort().forEach(function (code) {
+        var e = exp[code], g = got[code] || [];
+        var pairs = [[e.n, g[1]], [e.card, g[2]], [e.walk, g[3]], [e.old7, g[4]], [e.back7, g[5]]];
+        var ok = pairs.every(function (p) { return Number(p[0]) === Number(p[1]); });
+        if (!ok) allOk = false;
+        html += '<tr><td>' + code + '</td>' + pairs.map(function (p) {
+          var same = Number(p[0]) === Number(p[1]);
+          return '<td class="' + (same ? '' : 'bad') + '">' + p[0] + (same ? '' : ' / 시트 ' + (p[1] == null ? '없음' : p[1])) + '</td>';
+        }).join('') + '<td class="' + (ok ? 'ok' : 'bad') + '">' + (ok ? '✓' : '✗') + '</td></tr>';
+      });
+      html += '</table></div>';
+      $('result').innerHTML = (allOk ? '<p class="ok">모두 일치 — 시트 계산이 맞아요.</p>' : '<p class="bad">다른 칸이 있어요(빨간 칸: 정답 / 시트).</p>') + html;
+      $('result-card').hidden = false;
+      $('log').textContent = '비교 끝(실행 ' + lastRun.run + ').';
+    }).catch(function (e) {
+      $('log').textContent = '시트 요약을 읽지 못했어요: ' + e.message + '\nApps Script를 새 버전으로 배포했는지 확인해 주세요.';
+    }).then(function () { $('verify').disabled = false; });
+  });
+
+  // ── 부하 시험: 30명이 동시에 화면을 연 것처럼 30건을 한꺼번에 ──
+  $('load').addEventListener('click', function () {
+    var run = hex(4), code = 's' + run + '_load', now = new Date().toISOString();
+    var tasks = [];
+    for (var i = 0; i < 30; i++) {
+      (function (id) {
+        tasks.push(function () { return send({ d: id, t: now, e: 'page_view', p: 'index', f: code, ff: code, app: 0, s: 0, a: 0, x: {}, tt: 1 }); });
+      })('w' + run + hex(12));
+    }
+    $('load').disabled = true;
+    $('log').textContent = '부하 시험 ' + code + ': 30건 동시에 보내는 중…';
+    var t0 = Date.now();
+    Promise.all(tasks.map(function (t) { return t(); })).then(function () {
+      lastRun = { run: run, users: tasks.map(function () { return null; }), load: true, code: code };
+      $('log').textContent = '부하 시험 보냄(' + Math.round((Date.now() - t0) / 1000) + '초). 몇 초 뒤 확인 중…';
+      setTimeout(function () {
+        fetch(URL_ + (URL_.indexOf('?') < 0 ? '?' : '&') + 'test=summary').then(function (r) { return r.json(); }).then(function (j) {
+          var row = sectionRows(j.out, '유입별').filter(function (r) { return r[0] === code; })[0];
+          var n = row ? Number(row[1]) : 0;
+          $('log').textContent = '부하 시험 결과: 30건 중 ' + n + '건 기록됨' + (n === 30 ? ' — 빠진 것 없음' : ' — ' + (30 - n) + '건 빠짐(동시 실행 한도)');
+        }).catch(function (e) { $('log').textContent = '결과를 읽지 못했어요: ' + e.message; })
+          .then(function () { $('load').disabled = false; });
+      }, 6000);
+    });
+  });
+})();
+</script>
+</body>
+</html>

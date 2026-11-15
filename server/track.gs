@@ -15,41 +15,70 @@ var DASH_SHEET = '요약';
 var TZ = 'Asia/Seoul';
 var EVENTS = ['page_view', 'card_made', 'card_saved', 'walk_start', 'walk_complete', 'stamp_new',
               'keyring_given', 'walk_type_done', 'share_click', 'store_visit'];
-var HEADER = ['받은 시각', '날짜', '기기', '이벤트', '화면', '유입', '첫 유입', '홈화면앱', '샘플', '운영자', '값'];
+var HEADER = ['받은 시각', '날짜', '기기', '이벤트', '화면', '유입', '첫 유입', '홈화면앱', '샘플', '운영자', '값', '테스트'];
+// 시뮬레이터(simulate.html)가 보낸 기록은 '테스트' 칸이 1 — 운영 요약에서 빼고 '요약(테스트)'에서만 센다.
+// 테스트 기록만 보낸 쪽 날짜(m.t)를 쓴다(지난 30일을 몇 초 만에 만들기 위해). 실제 기록은 늘 받은 시각.
 
 function doPost(e) {
   try {
     var raw = (e && e.postData && e.postData.contents) || '';
-    if (raw.length > 2000) return ok_();
+    if (raw.length > 300000) return ok_();
     var m = JSON.parse(raw);
-    if (!m || EVENTS.indexOf(m.e) < 0 || !/^w[0-9a-f]{8,20}$/.test(String(m.d || ''))) return ok_();
-
-    // 한 기기가 1분에 60번 넘게 보내면 버린다(오작동·장난 방지)
+    // 시뮬레이터 묶음 전송(테스트 전용): { tt:1, batch:[이벤트…] } — 한 기기의 몇십 일치를 한 번에
+    if (m && m.tt && Array.isArray(m.batch)) { appendBatch_(m.batch); return ok_(); }
+    if (raw.length > 2000) return ok_();
+    var row = rowOf_(m, false);
+    if (!row) return ok_();
+    // 한 기기가 1분에 60번 넘게 보내면 버린다(오작동·장난 방지). 테스트는 600번까지.
     var cache = CacheService.getScriptCache();
     var key = 'n_' + m.d;
     var n = Number(cache.get(key) || 0) + 1;
     cache.put(key, String(n), 60);
-    if (n > 60) return ok_();
-
-    var now = new Date();
-    var clean = function (v, len) { return String(v == null ? '' : v).replace(/[^0-9A-Za-z_\-가-힣<+.]/g, '').slice(0, len || 30); };
-    var extra = {};
-    if (m.x && typeof m.x === 'object') Object.keys(m.x).slice(0, 5).forEach(function (k) { extra[clean(k, 15)] = clean(m.x[k], 20); });
-
-    sheet_(LOG_SHEET, HEADER).appendRow([
-      now,
-      Utilities.formatDate(now, TZ, 'yyyy-MM-dd'),
-      m.d, m.e, clean(m.p), clean(m.f), clean(m.ff),
-      m.app ? 1 : 0, m.s ? 1 : 0, m.a ? 1 : 0,
-      Object.keys(extra).length ? JSON.stringify(extra) : ''
-    ]);
+    if (n > (row[11] ? 600 : 60)) return ok_();
+    sheet_(LOG_SHEET, HEADER).appendRow(row);
   } catch (err) {
     // 통계는 실패해도 앱에는 영향 없음
   }
   return ok_();
 }
 
-function doGet() { return ok_(); }
+// 이벤트 하나 → log 한 줄(검사에 걸리면 null). forceTest면 테스트 줄로.
+function rowOf_(m, forceTest) {
+  if (!m || EVENTS.indexOf(m.e) < 0 || !/^w[0-9a-f]{8,20}$/.test(String(m.d || ''))) return null;
+  var test = (forceTest || m.tt) ? 1 : 0;
+  var now = new Date(), when = now;
+  if (test && m.t) { var tt = new Date(m.t); if (!isNaN(tt) && tt <= now && now - tt < 400 * 86400000) when = tt; }
+  var clean = function (v, len) { return String(v == null ? '' : v).replace(/[^0-9A-Za-z_\-가-힣<+.]/g, '').slice(0, len || 30); };
+  var extra = {};
+  if (m.x && typeof m.x === 'object') Object.keys(m.x).slice(0, 5).forEach(function (k) { extra[clean(k, 15)] = clean(m.x[k], 20); });
+  return [
+    now,
+    Utilities.formatDate(when, TZ, 'yyyy-MM-dd'),
+    m.d, m.e, clean(m.p), clean(m.f), clean(m.ff),
+    m.app ? 1 : 0, m.s ? 1 : 0, m.a ? 1 : 0,
+    Object.keys(extra).length ? JSON.stringify(extra) : '',
+    test
+  ];
+}
+function appendBatch_(items) {
+  // 한 줄씩 appendRow — 실제 사용자 기록이 같은 순간에 들어와도 줄이 겹치지 않게(원자적). 묶음은 300줄까지.
+  var sh = sheet_(LOG_SHEET, HEADER);
+  items.slice(0, 300).forEach(function (m) { var r = rowOf_(m, true); if (r) sh.appendRow(r); });
+}
+
+// 시뮬레이터가 결과를 읽어 가는 곳: ?test=summary → 테스트 기록만으로 계산한 요약·월간 표(JSON). 실제 기록은 내보내지 않는다.
+function doGet(e) {
+  if (e && e.parameter && e.parameter.test === 'summary') {
+    var b = buildSummary_(allRows_().filter(function (r) { return r[11]; }));
+    return ContentService.createTextOutput(JSON.stringify({ out: b.out, monthly: monthlyRows_(b) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  return ok_();
+}
+function allRows_() {
+  var log = sheet_(LOG_SHEET, HEADER);
+  return log.getLastRow() > 1 ? log.getRange(2, 1, log.getLastRow() - 1, HEADER.length).getValues() : [];
+}
 
 function ok_() { return ContentService.createTextOutput('ok'); }
 
@@ -74,8 +103,29 @@ function refreshDashboard() {
 }
 function refreshDashboard_() {
   var log = sheet_(LOG_SHEET, HEADER);
-  var rows = log.getLastRow() > 1 ? log.getRange(2, 1, log.getLastRow() - 1, HEADER.length).getValues() : [];
-  rows = rows.filter(function (r) { return !r[8] && !r[9]; });
+  if (log.getLastColumn() < HEADER.length) log.getRange(1, 1, 1, HEADER.length).setValues([HEADER]);   // 예전 시트에 '테스트' 칸 이름 붙이기
+  var all = allRows_();
+  // 운영 요약: 샘플·운영자·테스트 빼고
+  var b = buildSummary_(all.filter(function (r) { return !r[8] && !r[9] && !r[11]; }));
+  writeSheet_(DASH_SHEET, b.out, 10);
+  writeSheet_('월간 리포트', monthlyRows_(b), 9);
+  // 테스트 요약: 시뮬레이터 기록만(있을 때만)
+  var tests = all.filter(function (r) { return r[11]; });
+  if (tests.length) {
+    var t = buildSummary_(tests);
+    writeSheet_('요약(테스트)', t.out, 10);
+    writeSheet_('월간 리포트(테스트)', monthlyRows_(t), 9);
+  }
+}
+function writeSheet_(name, out, width) {
+  out = out.map(function (r) { r = r.slice(); while (r.length < width) r.push(''); return r; });
+  var sh = sheet_(name);
+  sh.clearContents();
+  sh.getRange(1, 1, out.length, width).setValues(out);
+}
+
+// rows(이미 거른 줄)로 요약 표(out)와 월간 재료를 만든다 — 운영·테스트가 같은 계산을 쓴다
+function buildSummary_(rows) {
 
   var dev = {};            // 기기 → { first, days:{}, from, card, walk }
   var shops = {};          // 가게(스팟 번호) → { dev:{기기:방문 날 수}, month:{기기:1}, first:{기기:1}, days:{} }
@@ -91,7 +141,9 @@ function refreshDashboard_() {
   function D(d) {
     return day[d] || (day[d] = { visit: {}, fresh: 0, back: {}, card: 0, wstart: {}, wdone: {}, gps: 0, stamp: 0, key: 0 });
   }
-  rows.sort(function (a, b) { return a[0] - b[0]; });
+  // 날짜 순(같은 날은 받은 순) — 시뮬레이터 기록은 받은 시각이 모두 '지금'이라 날짜로 줄 세워야 첫 방문일이 맞다
+  function dkey(r) { return typeof r[1] === 'string' ? r[1] : Utilities.formatDate(new Date(r[1]), TZ, 'yyyy-MM-dd'); }
+  rows.sort(function (a, b) { var x = dkey(a), y = dkey(b); return x < y ? -1 : x > y ? 1 : a[0] - b[0]; });
   rows.forEach(function (r) {
     var date = typeof r[1] === 'string' ? r[1] : Utilities.formatDate(new Date(r[1]), TZ, 'yyyy-MM-dd');
     var id = r[2], ev = r[3], extra = {};
@@ -186,20 +238,15 @@ function refreshDashboard_() {
   if (!sizeTotal) out.push(['아직 없음']);
 
   out.push([''], ['마지막 계산: ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')]);
-
-  var width = 10;
-  out = out.map(function (r) { while (r.length < width) r.push(''); return r; });
-  var dash = sheet_(DASH_SHEET);
-  dash.clearContents();
-  dash.getRange(1, 1, out.length, width).setValues(out);
-  writeMonthly_(months, dev, SIZE_LABEL, daysBetween);
+  return { out: out, months: months, dev: dev };
 }
 
 /**
  * 월간 리포트 시트 — 제휴 가게에 보여 줄 한 달 숫자(합계만, 기기 기준 추정). 최근 달이 위.
  * 다음 달 재방문: 그 달에 처음 온 기기 중 다음 달에도 온 비율.
  */
-function writeMonthly_(months, dev, SIZE_LABEL, daysBetween) {
+function monthlyRows_(b) {
+  var months = b.months;
   var keys = Object.keys(months).sort().reverse();
   var out = [['월간 리포트 (샘플·운영자 기기 제외, 기기 기준 추정 — 제휴 가게에는 이 합계만)'],
     ['달', '방문 기기', '새로 온 기기', '새 주민증', '산책한 기기', '산책 수', '가게 방문(기기·가게)', '다음 달에도 온 비율(새 기기)', '크기: 소/중/대']];
@@ -216,11 +263,26 @@ function writeMonthly_(months, dev, SIZE_LABEL, daysBetween) {
       Object.keys(mo.shopDev).length, ret, (sz.small || 0) + '/' + (sz.medium || 0) + '/' + (sz.large || 0)]);
   });
   if (!keys.length) out.push(['아직 없음']);
-  var width = 9;
-  out = out.map(function (r) { while (r.length < width) r.push(''); return r; });
-  var sh = sheet_('월간 리포트');
-  sh.clearContents();
-  sh.getRange(1, 1, out.length, width).setValues(out);
+  return out;
+}
+
+/** 시뮬레이터가 만든 테스트 기록만 지운다(실제 기록은 그대로). Apps Script 편집기에서 직접 실행. */
+function deleteTestRows() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return;
+  try {
+    var log = sheet_(LOG_SHEET, HEADER);
+    var all = allRows_();
+    var keep = all.filter(function (r) { return !r[11]; });
+    if (keep.length === all.length) return;
+    log.getRange(2, 1, all.length, HEADER.length).clearContent();
+    if (keep.length) log.getRange(2, 1, keep.length, HEADER.length).setValues(keep);
+    if (all.length > keep.length) log.deleteRows(2 + keep.length, all.length - keep.length);
+    ['요약(테스트)', '월간 리포트(테스트)'].forEach(function (n) {
+      var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(n);
+      if (sh) SpreadsheetApp.getActiveSpreadsheet().deleteSheet(sh);
+    });
+  } finally { lock.releaseLock(); }
 }
 
 /** 처음 한 번 실행: 1시간마다 refreshDashboard가 돌게 트리거를 건다 */
