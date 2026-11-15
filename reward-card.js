@@ -17,7 +17,8 @@
   var PHOTO_CX = W / 2, PHOTO_CY = PHOTO_TOP + PHOTO_D / 2;
   var PHOTO_RECT = { x: PHOTO_CX - PHOTO_D / 2, y: PHOTO_TOP, w: PHOTO_D, h: PHOTO_D };
   var MAP_MIN_H = 520;
-  var EMOJI = ['🐾', '⚡', '🌙', '🔒', '🏅'];
+  // 이모지는 쓰지 않는다(2026-11-15 뉴브루탈리즘 정리) — 빈 목록이면 이모지 자리 없이 글자만 그린다
+  var EMOJI = [];
 
   function create(getState) {
     var cartoonCache = { source: null, canvas: null };
@@ -36,140 +37,92 @@
     }
 
     // ── 공통 프레임 ──
-    function frameGradient(ctx, tier, x, y, w, h) {
-      var g = ctx.createLinearGradient(x, y, x + w, y + h);
-      tier.stops.forEach(function (c, i) { g.addColorStop(i / (tier.stops.length - 1), c); });
-      return g;
-    }
+    // 뉴브루탈리즘(2026-11-15): 그라데이션·둥근 모서리·흐린 그림자 대신 등급 색 한 가지 + 굵은 검정 선 +
+    // 딱 떨어지는 검정 그림자. 등급은 테두리 색으로 구분한다(종이 흰색 → 나무 → 은 → 금).
+    var INK = '#000', SOFT = '#3d3d3d';
+    var TIER_FILL = { '종이': '#FFFFFF', '나무': '#C8955E', '은': '#C9D0D6', '금': '#F2B833' };
+    function tierFill(tier) { return TIER_FILL[tier.name] || '#FFFFFF'; }
 
-    function drawBackgroundPattern(ctx, x, y, w, h) {
-      if (!CS.emojiReady('🐾')) return;
-      var img = CS.getEmojiImage('🐾');
-      var step = 74, size = 26;
-      ctx.save();
-      CS.roundRect(ctx, x, y, w, h, 32);
-      ctx.clip();
-      ctx.globalAlpha = 0.07;
-      var row = 0;
-      for (var py = y - step; py < y + h + step; py += step) {
-        var rowOffset = (row % 2) ? step / 2 : 0;
-        for (var px = x - step; px < x + w + step; px += step) {
-          ctx.save();
-          ctx.translate(px + rowOffset, py);
-          ctx.rotate(((px + py) % 7) * 0.09);
-          ctx.drawImage(img, -size / 2, -size / 2, size, size);
-          ctx.restore();
-        }
-        row++;
-      }
-      ctx.restore();
+    function boxWithShadow(ctx, x, y, w, h, fill, line, shadow) {
+      if (shadow) { ctx.fillStyle = INK; ctx.fillRect(x + shadow, y + shadow, w, h); }
+      ctx.fillStyle = fill;
+      ctx.fillRect(x, y, w, h);
+      ctx.lineWidth = line;
+      ctx.strokeStyle = INK;
+      ctx.strokeRect(x + line / 2, y + line / 2, w - line, h - line);
     }
 
     function drawFrame(ctx, H, tier, top) {
-      var x = 14, y = top, w = W - 28, h = H - 14 - top;
-      var body = ctx.createLinearGradient(0, y, 0, y + h);
-      body.addColorStop(0, '#fdf1e3');
-      body.addColorStop(1, '#f6dfd2');
-      ctx.fillStyle = body;
-      CS.roundRect(ctx, x, y, w, h, 32);
-      ctx.fill();
-      drawBackgroundPattern(ctx, x, y, w, h);
+      var sh = 10;
+      var x = 8, y = top, w = W - 16 - sh, h = H - 8 - sh - top;
+      boxWithShadow(ctx, x, y, w, h, tierFill(tier), 6, sh);
+      // 안쪽 흰 판 — 등급 색은 바깥 띠로만 보이게
+      var band = 10 + Math.round(tier.width / 2);
+      boxWithShadow(ctx, x + band, y + band, w - band * 2, h - band * 2, '#FFFFFF', 4, 0);
 
-      var g = frameGradient(ctx, tier, x, y, w, h);
-      ctx.lineWidth = tier.width;
-      ctx.strokeStyle = g;
-      CS.roundRect(ctx, x, y, w, h, 32);
-      ctx.stroke();
-
-      // 은·금은 안쪽 이중 라인과 코너 메달로 "등급이 높다"는 걸 한눈에 보이게 한다
-      var fancy = tier.minWalks >= FRAME_TIERS[2].minWalks;
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#fffaf3';
-      CS.roundRect(ctx, x + 12, y + 12, w - 24, h - 24, 24);
-      ctx.stroke();
-      if (fancy) {
-        [[x + 30, y + 30], [x + w - 30, y + 30], [x + 30, y + h - 30], [x + w - 30, y + h - 30]].forEach(function (c) {
-          ctx.beginPath();
-          ctx.arc(c[0], c[1], 20, 0, Math.PI * 2);
-          ctx.fillStyle = '#fffaf3';
-          ctx.fill();
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = g;
-          ctx.stroke();
-          if (CS.emojiReady('🐾')) ctx.drawImage(CS.getEmojiImage('🐾'), c[0] - 10, c[1] - 10, 20, 20);
+      // 은·금은 네 귀퉁이에 검정 사각 리벳을 박아 "등급이 높다"는 걸 한눈에 보이게 한다
+      if (tier.minWalks >= FRAME_TIERS[2].minWalks) {
+        var c = 14;
+        [[x + band + 12, y + band + 12], [x + w - band - 12 - c, y + band + 12],
+         [x + band + 12, y + h - band - 12 - c], [x + w - band - 12 - c, y + h - band - 12 - c]].forEach(function (p) {
+          ctx.fillStyle = INK;
+          ctx.fillRect(p[0], p[1], c, c);
         });
       }
     }
 
     function drawPhoto(ctx, s, tier) {
-      var r = PHOTO_D / 2;
-      ctx.save();
-      ctx.shadowColor = 'rgba(74, 63, 53, 0.35)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 10;
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(PHOTO_CX, PHOTO_CY, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      var R = PHOTO_RECT;
+      ctx.fillStyle = INK;
+      ctx.fillRect(R.x + 10, R.y + 10, R.w, R.h);
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(PHOTO_CX, PHOTO_CY, r, 0, Math.PI * 2);
+      ctx.rect(R.x, R.y, R.w, R.h);
       ctx.clip();
-      ctx.fillStyle = '#e9dccb';
-      ctx.fillRect(PHOTO_CX - r, PHOTO_CY - r, PHOTO_D, PHOTO_D);
+      ctx.fillStyle = '#F2B833';
+      ctx.fillRect(R.x, R.y, R.w, R.h);
       if (s.petImage) {
         var src = getPhotoDrawSource(s);
         ctx.filter = s.filterKey === 'cartoon' ? 'none' : (CS.FILTER_MAP[s.filterKey] || 'none');
         var fit = CS.computePhotoFit(PHOTO_RECT, src, s.photoZoom);
         ctx.imageSmoothingEnabled = s.filterKey !== 'cartoon';
         ctx.drawImage(src,
-          PHOTO_RECT.x + (PHOTO_RECT.w - fit.dw) / 2 + s.photoOffset.x,
-          PHOTO_RECT.y + (PHOTO_RECT.h - fit.dh) / 2 + s.photoOffset.y, fit.dw, fit.dh);
+          R.x + (R.w - fit.dw) / 2 + s.photoOffset.x,
+          R.y + (R.h - fit.dh) / 2 + s.photoOffset.y, fit.dw, fit.dh);
         ctx.imageSmoothingEnabled = true;
         ctx.filter = 'none';
       } else {
-        ctx.fillStyle = '#a89a86';
-        ctx.font = '18px sans-serif';
+        ctx.fillStyle = INK;
+        ctx.font = '800 20px "Malgun Gothic", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('사진을 선택해주세요', PHOTO_CX, PHOTO_CY);
+        ctx.fillText('사진을 골라 주세요', PHOTO_CX, PHOTO_CY);
       }
       ctx.restore();
 
-      ctx.beginPath();
-      ctx.arc(PHOTO_CX, PHOTO_CY, r, 0, Math.PI * 2);
-      ctx.lineWidth = 10;
-      ctx.strokeStyle = '#fffaf3';
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(PHOTO_CX, PHOTO_CY, r - 6, 0, Math.PI * 2);
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = tier.ring;
-      ctx.stroke();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = INK;
+      ctx.strokeRect(R.x + 3, R.y + 3, R.w - 6, R.h - 6);
     }
 
     function drawLockedSlot(ctx, x, y, w, label, sub) {
       var h = 78;
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      CS.roundRect(ctx, x, y, w, h, 18);
-      ctx.fill();
-      ctx.setLineDash([7, 5]);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#c9b8a3';
-      CS.roundRect(ctx, x, y, w, h, 18);
-      ctx.stroke();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(x, y, w, h);
+      ctx.setLineDash([10, 6]);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = INK;
+      ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
       ctx.setLineDash([]);
-      CS.drawEmojiLine(ctx, {
-        emoji: '🔒', text: label, x: x + 32, y: y + 26, baseline: 'middle',
-        font: '20px "Malgun Gothic", sans-serif', color: '#8a7c6d', size: 20
-      });
-      ctx.font = '15px "Malgun Gothic", sans-serif';
-      ctx.fillStyle = '#a8977f';
-      ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
-      ctx.fillText(sub, x + 32, y + 56);
+      ctx.textBaseline = 'middle';
+      ctx.font = '800 20px "Malgun Gothic", sans-serif';
+      ctx.fillStyle = INK;
+      ctx.fillText('잠김 · ' + label, x + 28, y + 26);
+      ctx.font = '15px "Malgun Gothic", sans-serif';
+      ctx.fillStyle = SOFT;
+      ctx.fillText(sub, x + 28, y + 56);
       ctx.textBaseline = 'top';
       return y + h;
     }
@@ -177,28 +130,39 @@
     function drawBadgeRow(ctx, y, p, showLocked) {
       var items = PLACES.filter(function (pl) { return showLocked || p.visited[pl.id]; });
       if (!items.length) return y;
-      var gap = 10, x0 = 44, total = W - 88;
+      var gap = 12, x0 = 44, total = W - 88 - 4;
       var pillW = (total - gap * (items.length - 1)) / items.length, pillH = 46;
       items.forEach(function (pl, i) {
         var x = x0 + i * (pillW + gap);
         var got = !!p.visited[pl.id];
-        ctx.fillStyle = got ? '#fff3d6' : 'rgba(255,255,255,0.35)';
-        CS.roundRect(ctx, x, y, pillW, pillH, 23);
-        ctx.fill();
-        if (!got) ctx.setLineDash([6, 4]);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = got ? '#e2b45a' : '#c9b8a3';
-        CS.roundRect(ctx, x, y, pillW, pillH, 23);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        CS.drawEmojiLine(ctx, {
-          emoji: got ? '🏅' : '🔒', text: pl.name, x: x + pillW / 2, y: y + pillH / 2,
-          baseline: 'middle', align: 'center', size: 18,
-          font: '16px "Malgun Gothic", sans-serif', color: got ? '#4a3f35' : '#a8977f'
-        });
+        if (got) {
+          boxWithShadow(ctx, x, y, pillW, pillH, '#C8F06A', 3, 4);
+        } else {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(x, y, pillW, pillH);
+          ctx.setLineDash([8, 5]);
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = INK;
+          ctx.strokeRect(x + 1.5, y + 1.5, pillW - 3, pillH - 3);
+          ctx.setLineDash([]);
+        }
+        ctx.font = (got ? '800 ' : '') + '16px "Malgun Gothic", sans-serif';
+        ctx.fillStyle = got ? INK : SOFT;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((got ? '' : '잠김 · ') + pl.name, x + pillW / 2, y + pillH / 2);
       });
+      ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      return y + pillH;
+      return y + pillH + 4;
+    }
+
+    function traitChip(ctx, y, title, desc, fill) {
+      return CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88 - 6, titleText: title, desc: desc,
+        titleColor: INK, titleAlign: 'left',
+        titleFont: '800 23px "Malgun Gothic", sans-serif', titleLH: 28,
+        descFont: '18px "Malgun Gothic", sans-serif',
+        chip: { fill: fill, stroke: INK, lineWidth: 3, radius: 0, shadow: 5 } }) + 5;
     }
 
     // ── 앞면 ──
@@ -209,52 +173,41 @@
       drawFrame(ctx, H, tier, FRAME_TOP);
       drawPhoto(ctx, s, tier);
 
-      var nameY = PHOTO_TOP + PHOTO_D + 22;
-      CS.drawEmojiLine(ctx, {
-        emoji: '🐾', text: s.name, x: W / 2, y: nameY,
-        font: '30px "Black Han Sans", sans-serif', color: '#4a3f35', size: 26, align: 'center'
-      });
-
-      var metaY = nameY + 38;
-      ctx.font = '600 16px "Malgun Gothic", sans-serif';
-      ctx.fillStyle = '#b8542f';
+      var nameY = PHOTO_TOP + PHOTO_D + 26;
+      ctx.font = '34px "Black Han Sans", sans-serif';
+      ctx.fillStyle = INK;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
+      ctx.fillText(s.name, W / 2, nameY);
+
+      var metaY = nameY + 42;
+      ctx.font = '800 16px "Malgun Gothic", sans-serif';
       var meta = (s.tiersOn ? tier.name + ' 등급  ·  ' : '') + '산책 ' + p.walks + '회  ·  ' + p.km.toFixed(1) + 'km';
       ctx.fillText(meta, W / 2, metaY);
       ctx.textAlign = 'left';
 
       var lineY = metaY + 34;
-      ctx.strokeStyle = '#d9c7b3';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(44, lineY);
-      ctx.lineTo(W - 44, lineY);
-      ctx.stroke();
+      ctx.fillStyle = INK;
+      ctx.fillRect(44, lineY - 1.5, W - 88 - 6, 3);
 
-      var descFont = '18px "Malgun Gothic", sans-serif';
       var y = lineY + 22;
       var drewSomething = false;
 
       if (p.walks >= SLOT_RULES.skill) {
-        y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '⚡', titleText: s.skill.title,
-          desc: s.skill.desc, titleColor: '#b8542f', titleAlign: 'left',
-          titleFont: '23px "Malgun Gothic", sans-serif', titleLH: 28, descFont: descFont });
+        y = traitChip(ctx, y, s.skill.title, s.skill.desc, '#FFD6EA');
         drewSomething = true;
       } else if (s.showLocked) {
-        y = drawLockedSlot(ctx, 44, y, W - 88, '스킬 칸', '산책 ' + SLOT_RULES.skill + '회 하면 열려요');
+        y = drawLockedSlot(ctx, 44, y, W - 88 - 6, '스킬 칸', '산책 ' + SLOT_RULES.skill + '회 하면 열려요');
         drewSomething = true;
       }
       if (drewSomething) y += 16;
 
       var drewPassive = false;
       if (p.walks >= SLOT_RULES.passive) {
-        y = CS.drawTraitChip(ctx, { x: 44, y: y, w: W - 88, titleEmoji: '🌙', titleText: s.passive.title,
-          desc: s.passive.desc, titleColor: '#5f4d85', dashed: true, titleAlign: 'left',
-          titleFont: '23px "Malgun Gothic", sans-serif', titleLH: 28, descFont: descFont });
+        y = traitChip(ctx, y, s.passive.title, s.passive.desc, '#EAF8C4');
         drewPassive = true;
       } else if (s.showLocked) {
-        y = drawLockedSlot(ctx, 44, y, W - 88, '특성 칸', '산책 ' + SLOT_RULES.passive + '회 하면 열려요');
+        y = drawLockedSlot(ctx, 44, y, W - 88 - 6, '특성 칸', '산책 ' + SLOT_RULES.passive + '회 하면 열려요');
         drewPassive = true;
       }
       if (drewPassive) y += 16;
@@ -263,8 +216,8 @@
       if (yAfterBadges > y) y = yAfterBadges + 18;
 
       if (s.showLocked) {
-        ctx.font = '15px "Malgun Gothic", sans-serif';
-        ctx.fillStyle = '#8a7c6d';
+        ctx.font = '700 15px "Malgun Gothic", sans-serif';
+        ctx.fillStyle = INK;
         ctx.textAlign = 'center';
         ctx.fillText('다음 보상 · ' + RR.nextGoalText(p), W / 2, y + 2);
         ctx.textAlign = 'left';
@@ -284,22 +237,23 @@
       drawFrame(ctx, H, tier, 14);
 
       var visitedCount = PLACES.filter(function (pl) { return p.visited[pl.id]; }).length;
-      CS.drawEmojiLine(ctx, {
-        emoji: '🐾', text: s.name + '의 다산동 발도장', x: W / 2, y: 70,
-        font: '30px "Black Han Sans", sans-serif', color: '#4a3f35', size: 26, align: 'center'
-      });
-      ctx.font = '600 17px "Malgun Gothic", sans-serif';
-      ctx.fillStyle = '#b8542f';
+      ctx.font = '32px "Black Han Sans", sans-serif';
+      ctx.fillStyle = INK;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
+      ctx.fillText(s.name + '의 다산동 발도장', W / 2, 66);
+      ctx.font = '800 17px "Malgun Gothic", sans-serif';
       ctx.fillText(visitedCount + ' / ' + PLACES.length + ' 곳 방문', W / 2, 116);
 
       var footerH = s.tiersOn ? 124 : 70;
-      var mx = 60, my = 160, mw = W - 120;
+      var mx = 60, my = 160, mw = W - 120 - 10;
       var mh = fillHeight ? Math.max(MAP_MIN_H, H - 14 - 30 - footerH - my) : MAP_MIN_H;
+      ctx.fillStyle = INK;
+      ctx.fillRect(mx + 6, my + 6, mw, mh);
       ctx.save();
-      CS.roundRect(ctx, mx, my, mw, mh, 24);
-      ctx.fillStyle = '#eef3e2';
+      ctx.beginPath();
+      ctx.rect(mx, my, mw, mh);
+      ctx.fillStyle = '#F4F1E6';
       ctx.fill();
       ctx.clip();
 
@@ -315,36 +269,42 @@
       }
 
       // 장식용 도로 — 실제 도로망이 아니라 "지도 같은 느낌"을 내는 그림
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 12;
-      ctx.beginPath();
-      ctx.moveTo(mx, my + mh * 0.58); ctx.lineTo(mx + mw, my + mh * 0.5);
-      ctx.moveTo(mx + mw * 0.32, my); ctx.lineTo(mx + mw * 0.4, my + mh);
-      ctx.stroke();
+      ctx.lineCap = 'butt';
+      [[INK, 16], ['#FFFFFF', 10]].forEach(function (st) {
+        ctx.strokeStyle = st[0];
+        ctx.lineWidth = st[1];
+        ctx.beginPath();
+        ctx.moveTo(mx, my + mh * 0.58); ctx.lineTo(mx + mw, my + mh * 0.5);
+        ctx.moveTo(mx + mw * 0.32, my); ctx.lineTo(mx + mw * 0.4, my + mh);
+        ctx.stroke();
+      });
 
       PLACES.forEach(function (pl) {
         var pt = project(pl.center);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = INK;
         if (pl.kind === 'park') {
-          ctx.fillStyle = '#d3e6bd';
+          ctx.fillStyle = '#C8F06A';
           ctx.beginPath();
           ctx.ellipse(pt[0], pt[1], 110, 80, -0.2, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fill(); ctx.stroke();
         } else if (pl.kind === 'water') {
-          ctx.strokeStyle = '#cfe3ef';
           ctx.lineWidth = 44;
+          ctx.strokeStyle = '#9ED3F0';
           ctx.beginPath();
           ctx.moveTo(pt[0] + 40, my - 20);
           ctx.quadraticCurveTo(pt[0] - 50, pt[1], pt[0] + 60, my + mh + 20);
           ctx.stroke();
-          ctx.fillStyle = '#d3e6bd';
+          ctx.fillStyle = '#C8F06A';
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = INK;
           ctx.beginPath();
           ctx.ellipse(pt[0] - 40, pt[1], 70, 90, 0, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fill(); ctx.stroke();
         } else {
-          ctx.fillStyle = '#ead7c1';
-          CS.roundRect(ctx, pt[0] - 70, pt[1] - 44, 140, 88, 14);
-          ctx.fill();
+          ctx.fillStyle = '#FFD6EA';
+          ctx.fillRect(pt[0] - 70, pt[1] - 44, 140, 88);
+          ctx.strokeRect(pt[0] - 70, pt[1] - 44, 140, 88);
         }
       });
 
@@ -354,58 +314,76 @@
         var r = 46;
         ctx.save();
         ctx.translate(pt[0], pt[1]);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         if (got) {
+          // 찍힌 도장 — 빨간 이중 원 + "방문"
           ctx.rotate([-0.2, 0.15, -0.08][i % 3]);
-          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.fillStyle = '#FFFFFF';
           ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#c8423a';
-          ctx.lineWidth = 5;
+          ctx.strokeStyle = '#E0281B';
+          ctx.lineWidth = 6;
           ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
           ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.arc(0, 0, r - 9, 0, Math.PI * 2); ctx.stroke();
-          if (CS.emojiReady('🐾')) ctx.drawImage(CS.getEmojiImage('🐾'), -20, -20, 40, 40);
+          ctx.beginPath(); ctx.arc(0, 0, r - 10, 0, Math.PI * 2); ctx.stroke();
+          ctx.font = '26px "Black Han Sans", sans-serif';
+          ctx.fillStyle = '#E0281B';
+          ctx.fillText('방문', 0, 2);
         } else {
-          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillStyle = '#FFFFFF';
           ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-          ctx.setLineDash([7, 6]);
-          ctx.strokeStyle = '#a8977f';
+          ctx.setLineDash([8, 6]);
+          ctx.strokeStyle = INK;
           ctx.lineWidth = 3;
           ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
           ctx.setLineDash([]);
           ctx.font = '34px "Black Han Sans", sans-serif';
-          ctx.fillStyle = '#a8977f';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+          ctx.fillStyle = INK;
           ctx.fillText('?', 0, 2);
         }
         ctx.restore();
 
-        ctx.font = (got ? '600 ' : '') + '17px "Malgun Gothic", sans-serif';
-        ctx.fillStyle = got ? '#8b2e2a' : '#8a7c6d';
+        // 장소 이름은 검정 띠 위 흰 글자로 — 지도 색 위에서도 읽히게
+        ctx.font = '800 17px "Malgun Gothic", sans-serif';
+        var tw = ctx.measureText(pl.name).width + 16;
+        ctx.fillStyle = got ? INK : '#FFFFFF';
+        ctx.fillRect(pt[0] - tw / 2, pt[1] + r + 8, tw, 26);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = INK;
+        ctx.strokeRect(pt[0] - tw / 2, pt[1] + r + 8, tw, 26);
+        ctx.fillStyle = got ? '#F2B833' : INK;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(pl.name, pt[0], pt[1] + r + 8);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pl.name, pt[0], pt[1] + r + 22);
       });
       ctx.restore();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = INK;
+      ctx.strokeRect(mx + 2, my + 2, mw - 4, mh - 4);
 
-      var y = my + mh + 28;
+      var y = my + mh + 30;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
       if (s.tiersOn) {
         var nt = RR.nextTier(p.walks);
-        var label = nt ? tier.name + ' → ' + nt.name + ' 테두리까지 산책 ' + (nt.minWalks - p.walks) + '회'
+        var label = nt ? tier.name + ' 다음은 ' + nt.name + ' 테두리, 산책 ' + (nt.minWalks - p.walks) + '회 남음'
                        : '최고 등급 금 테두리 달성';
-        ctx.font = '16px "Malgun Gothic", sans-serif';
-        ctx.fillStyle = '#4a3f35';
+        ctx.font = '800 16px "Malgun Gothic", sans-serif';
+        ctx.fillStyle = INK;
         ctx.fillText(label, W / 2, y);
         var bx = 90, bw = W - 180, by = y + 30, frac = 1;
         if (nt) frac = (p.walks - tier.minWalks) / (nt.minWalks - tier.minWalks);
-        ctx.fillStyle = '#eadfce';
-        CS.roundRect(ctx, bx, by, bw, 14, 7); ctx.fill();
-        ctx.fillStyle = frameGradient(ctx, nt || tier, bx, by, bw, 14);
-        CS.roundRect(ctx, bx, by, Math.max(14, bw * frac), 14, 7); ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(bx, by, bw, 18);
+        ctx.fillStyle = '#FF6BB5';
+        ctx.fillRect(bx, by, Math.max(18, bw * frac), 18);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = INK;
+        ctx.strokeRect(bx, by, bw, 18);
         y = by + 34;
       }
       ctx.font = '13px "Malgun Gothic", sans-serif';
-      ctx.fillStyle = '#a8977f';
+      ctx.fillStyle = SOFT;
       ctx.fillText('공용 장소 도장만 표시돼요 · 실제 산책 경로는 담기지 않아요', W / 2, y);
       ctx.textAlign = 'left';
       return y + 20;

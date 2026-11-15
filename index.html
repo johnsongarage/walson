@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="왈슨">
-<meta name="theme-color" content="#f7ede2">
+<meta name="theme-color" content="#F2B833">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* [오늘] — 첫 화면(2026-11-14, 화면 구조 C안: hq DECISIONS.md 11/13, SPEC_STAGE0.md 4절).
@@ -109,9 +109,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
+<link rel="stylesheet" href="brutal.css?v=2">
 </head>
 <body>
-<div id="splash" role="img" aria-label="왈슨 — 댕댕이 산책 필수앱, 제작 johnsongarage">
+<div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
   <div class="splash-main">
     <img src="icons/walson-logo.webp" alt="" width="900" height="732">
     <div class="splash-name">왈슨</div>
@@ -179,7 +180,7 @@
     PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('index.html'); });
   }
 </script>
-<script src="tabbar.js?v=2" data-tab="today"></script>
+<script src="tabbar.js?v=3" data-tab="today"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';     // walk.html이 산책을 끝낼 때 저장하는 기록
@@ -322,7 +323,7 @@
     if (PetwalkSample.isOn()) { sampleOff(); return; }
     if (!confirm('샘플 데이터로 앱을 채울까요?\n지금 기록은 따로 보관했다가, "샘플 끄기"를 누르면 그대로 돌아와요.')) return;
     sampleBtn.disabled = true;
-    sampleBtn.textContent = '샘플 넣는 중…';
+    sampleBtn.textContent = '샘플 넣는 중';
     PetwalkSample.turnOn().then(function () { location.replace('index.html'); })
       .catch(function (err) { alert('샘플을 넣지 못했어요: ' + err.message); sampleBtn.disabled = false; paintSample(); });
   });

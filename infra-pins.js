@@ -60,9 +60,9 @@
     var c = category(key);
     if (!c) return '';
     px = px || 28;
-    return '<div style="width:' + px + 'px;height:' + px + 'px;border-radius:50%;background:' + c.color +
-      ';color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff;' +
-      'box-shadow:0 2px 6px rgba(74,63,53,0.35);">' + iconSvg(key, Math.round(px * 0.54)) + '</div>';
+    return '<div style="width:' + px + 'px;height:' + px + 'px;border-radius:2px;background:' + c.color +
+      ';color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #000;box-sizing:border-box;' +
+      'box-shadow:2px 2px 0 #000;">' + iconSvg(key, Math.round(px * 0.54)) + '</div>';
   }
 
   function sourceText(pin) {
@@ -100,13 +100,13 @@
       var label = hasGuardian(pin) ? pin.guardian.name : (pin.name || '');
       var html =
         '<div style="position:relative;width:58px;height:58px;">' +
-          '<div style="width:58px;height:58px;border-radius:50%;overflow:hidden;border:4px solid ' + ring + ';' +
-            'background:#f3ddd2;box-shadow:0 4px 12px rgba(74,63,53,0.4);box-sizing:border-box;">' +
+          '<div style="width:58px;height:58px;overflow:hidden;border:4px solid ' + ring + ';outline:3px solid #000;' +
+            'background:#fff;box-shadow:5px 5px 0 #000;box-sizing:border-box;">' +
             '<img src="' + escapeAttr(photo) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">' +
           '</div>' +
           '<div style="position:absolute;left:50%;top:60px;transform:translateX(-50%);white-space:nowrap;' +
-            'background:#fffaf3;color:#4a3f35;border:1px solid #e6d6c1;border-radius:999px;padding:1px 8px;' +
-            'font:800 12px Pretendard,-apple-system,sans-serif;box-shadow:0 2px 6px rgba(74,63,53,0.2);">' +
+            'background:#000;color:#F2B833;padding:1px 8px;' +
+            'font:900 12px Pretendard,-apple-system,sans-serif;">' +
             escapeText(label) + '</div>' +
         '</div>';
       return { icon: { className: '', html: html, iconSize: [58, 58], iconAnchor: [29, 29], popupAnchor: [0, -28] }, zIndexOffset: 1000 };
@@ -135,15 +135,15 @@
     var sig = g ? SIGNALS[g.signal] : null;
 
     if (photo) {
-      var frame = el('div', 'position:relative;margin:-2px -2px 4px;border-radius:14px;overflow:hidden;background:#f3ddd2;' +
+      var frame = el('div', 'position:relative;margin:-2px -2px 4px;overflow:hidden;background:#fff;border:3px solid #000;' +
         'aspect-ratio:4/3;' + (sig ? 'box-shadow:inset 0 -6px 0 ' + sig.color + ';' : ''));
       var img = el('img', 'width:100%;height:100%;object-fit:cover;display:block;');
       img.src = photo;
       img.alt = g ? g.name : (pin.name || '');
       frame.appendChild(img);
       if (g) {
-        frame.appendChild(el('div', 'position:absolute;left:8px;top:8px;background:rgba(255,250,243,0.92);color:#b8563a;' +
-          'border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;', '수호지킴이'));
+        frame.appendChild(el('div', 'position:absolute;left:0;top:0;background:#000;color:#F2B833;' +
+          'padding:3px 9px;font-size:11px;font-weight:900;', '수호지킴이'));
       }
       wrap.appendChild(frame);
     }
@@ -162,7 +162,7 @@
     if (pin.tags && pin.tags.length) {
       var tags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
       pin.tags.forEach(function (t) {
-        tags.appendChild(el('span', 'font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#efe0cd;', t));
+        tags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;border:2px solid #000;background:#C8F06A;', t));
       });
       wrap.appendChild(tags);
     }
@@ -171,7 +171,7 @@
     wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));
 
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
-    var linkCss = 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
+    var linkCss = 'font-size:12px;font-weight:900;color:#000;text-decoration:none;border:2px solid #000;padding:3px 8px;background:#fff;';
     if (g) {
       var card = el('a', linkCss, '주민증 보기');
       card.href = 'start.html?guardian=' + encodeURIComponent(pin.id);

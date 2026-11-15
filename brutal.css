@@ -1,0 +1,140 @@
+/* 왈슨 테마 — 뉴브루탈리즘(2026-11-15 가르시아 결정: 시안 5종 중 2번).
+   각 화면의 <style> 뒤에 불러서 덮어쓴다. 원칙:
+   - 바탕은 로고 노랑(#F2B833), 글자·선은 검정
+   - 테두리 3px 검정, 그림자는 흐리지 않고 딱 떨어지게(4~6px 어긋난 검정)
+   - 모서리는 거의 각지게, 그라데이션·흐린 그림자 없음
+   - 강조: 분홍(주 버튼), 연두(보조), 빨강(빨강불)
+   화면마다 클래스 이름이 달라서 화면별로 묶어 적는다. 고치면 쓰는 화면들의 ?v= 번호를 같이 올릴 것. */
+:root {
+  --bg: #F2B833; --bg-deep: #E8A91E; --panel: #FFFFFF; --panel-border: #000000;
+  --ink: #000000; --ink-soft: #3D3D3D; --accent: #000000; --accent-tint: #FFF1C9; --accent-light: #000000;
+  --shadow-rgb: 0, 0, 0;
+  --b-pink: #FF6BB5; --b-lime: #C8F06A; --b-red: #FF4D3D; --b-yellow: #F2B833;
+  --b-line: 3px solid #000; --b-shadow: 5px 5px 0 #000; --b-shadow-s: 3px 3px 0 #000;
+}
+html, body { background: var(--bg) !important; color: #000; }
+body { font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+
+/* ── 공통 버튼 모양 ── */
+.btn-main, .btn-save, .btn-primary, .sample-btn, .btn-sub, .btn-secondary, .choice, .signal-btn, .photo-btn, .photo-pick {
+  border-radius: 0 !important; box-shadow: var(--b-shadow-s) !important; border: var(--b-line) !important;
+}
+.btn-main, .btn-save, .btn-primary {
+  background: var(--b-pink) !important; color: #000 !important; font-weight: 900 !important;
+}
+.btn-main:active, .btn-save:active, .btn-primary:active, .btn-sub:active, .choice:active, .signal-btn:active {
+  transform: translate(3px, 3px) !important; box-shadow: none !important;
+}
+.btn-sub, .btn-secondary { background: #fff !important; color: #000 !important; font-weight: 800 !important; }
+.btn-text { color: #000 !important; font-weight: 700 !important; }
+
+/* ── 상단 제목줄(기록·카드·프로필·개인정보) ── */
+.topbar a { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important; font-weight: 900; }
+.topbar h1 { font-weight: 900 !important; }
+
+/* ── 카드처럼 생긴 상자들 ── */
+.panel, .card, .q, .walk-card, .summary .tile, .wrap > section:not(.step):not(.view):not(.panel):not(.q), .notice, .star, .empty {
+  border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow) !important; background: #fff;
+}
+.panel h2, .q h2 { color: #000 !important; font-weight: 900 !important; letter-spacing: 0.02em; }
+.notice { background: var(--b-lime) !important; color: #000 !important; }
+.notice strong, .notice a { color: #000 !important; text-decoration: underline; }
+
+/* ── [오늘] ── */
+.who .face { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s); background: #fff !important; }
+.who-name { font-weight: 900 !important; background: #fff; border: var(--b-line); padding: 0 8px; display: inline-block; }
+.who-sub { font-weight: 800 !important; color: #000 !important; }
+.today-num { font-weight: 900 !important; }
+.today-sub, .week-sum, .btn-note { color: #000 !important; font-weight: 700; }
+.week .bar { border-radius: 0 !important; border: 2px solid #000; box-sizing: border-box; background: var(--b-yellow) !important; }
+.week .day.is-today .bar { background: var(--b-pink) !important; }
+.week .day.is-empty .bar { background: #fff !important; }
+.week .lbl, .week .day.is-today .lbl { color: #000 !important; font-weight: 900; }
+.last .go { color: #000 !important; background: var(--b-lime); border: 2px solid #000; padding: 4px 8px; font-weight: 900; }
+.last-photo { border-radius: 0 !important; border: 2px solid #000; }
+.sample-btn { background: #fff !important; color: #000 !important; font-weight: 900 !important; border-style: solid !important; }
+.sample-btn.is-on { background: var(--b-lime) !important; }
+.links a { color: #000 !important; font-weight: 700; }
+
+/* ── 산책 중(go) · 끝 화면(walk-end) ── */
+.choice { background: #fff !important; }
+.choice.is-main { background: var(--b-lime) !important; }
+.choice em { background: #000 !important; color: var(--b-yellow) !important; border-radius: 0 !important; }
+.choice span { color: #000 !important; }
+.clock { font-weight: 900 !important; }
+.who, .since, .note, .lead, .back, .scale-ends, .photo-note { color: #000 !important; }
+.chips button, .opts button, .photo-actions button, .format button {
+  border-radius: 0 !important; border: var(--b-line) !important; background: #fff !important; color: #000 !important; font-weight: 900 !important;
+}
+.opts button[aria-pressed="true"], .format button[aria-pressed="true"] { background: #000 !important; color: var(--b-yellow) !important; }
+.format { border-radius: 0 !important; border: var(--b-line) !important; background: #fff !important; }
+.photo-pick { background: #fff !important; color: #000 !important; }
+.photo, .photo img { border-radius: 0 !important; }
+.sum .num { font-weight: 900 !important; }
+
+/* ── 기록 ── */
+.subtitle { color: #000 !important; font-weight: 800; }
+.summary .tile .num { font-weight: 900 !important; color: #000 !important; }
+.thumb { border-radius: 0 !important; border: 2px solid #000; background: var(--b-yellow) !important; }
+.thumb svg { color: #000 !important; }
+.info .streak { border-radius: 0 !important; background: var(--b-lime) !important; color: #000 !important; border: 2px solid #000; font-weight: 900; }
+.info .stats .no-reward { border-radius: 0 !important; }
+.info .stats { flex-wrap: wrap; column-gap: 8px !important; row-gap: 0; color: #000 !important; }
+.info .stats > * { white-space: nowrap; }
+.walk-card { padding: 10px 12px !important; gap: 12px !important; }
+
+/* ── 카드 ── */
+.side-toggle { border-radius: 0 !important; border: var(--b-line) !important; background: #fff !important; box-shadow: var(--b-shadow-s); }
+.side-toggle button { border-radius: 0 !important; color: #000 !important; font-weight: 900 !important; }
+.side-toggle button.active { background: #000 !important; color: var(--b-yellow) !important; }
+.bar { border-radius: 0 !important; border: 2px solid #000; background: #fff !important; }
+.bar i { border-radius: 0 !important; background: var(--b-pink) !important; }
+.places span { border-radius: 0 !important; border: 2px solid #000 !important; background: #fff !important; color: #000 !important; }
+.places span.got { background: var(--b-lime) !important; }
+.canvas-hint, .hint { color: #000 !important; }
+
+/* ── 프로필 ── */
+.photo-btn { background: #fff !important; }
+.photo-btn .edit-badge { border-radius: 0 !important; background: #000 !important; border: 2px solid #fff !important; }
+.field input, .field select { border-radius: 0 !important; border: var(--b-line) !important; }
+.field label { color: #000 !important; font-weight: 900 !important; }
+.saved-toast { color: #000 !important; }
+
+/* ── 주민증 만들기(start) ── */
+.steps span { border-radius: 0 !important; background: #fff !important; border: 2px solid #000; height: 8px !important; }
+.steps span.is-on { background: #000 !important; }
+.signal-btn { background: #fff !important; }
+.signal-btn .lamp { border-radius: 0 !important; border: var(--b-line); }
+.signal-btn span.desc { color: #000 !important; }
+.card-img { border-radius: 0 !important; box-shadow: var(--b-shadow) !important; border: var(--b-line); }
+.save-hint, .extra, .foot, .foot a { color: #000 !important; }
+
+/* ── 개인정보 ── */
+.wrap > section h2 { font-weight: 900 !important; }
+
+/* ── 지도 화면 공통(동네·산책) ── */
+.title-chip, .chip, .infra-chip, .menu-btn, .side button, .locate-btn, .leaflet-bar a, .tool-link, .walk-notice, .route-panel, .reward-panel, .menu-dropdown {
+  border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important;
+}
+.leaflet-bar { border: none !important; box-shadow: none !important; }
+.title-chip { font-weight: 900 !important; }
+.chip, .infra-chip { font-weight: 900 !important; }
+.chip[aria-pressed="true"], .infra-chip[aria-pressed="true"] { background: var(--b-lime) !important; }
+.chip .dot, .infra-chip .dot { border-radius: 0 !important; border: 1.5px solid #000; }
+.chip .count, .infra-chip .count { color: #000 !important; }
+.caveat, .infra-caveat { color: #000 !important; font-weight: 900 !important; text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 8px #fff !important; }
+.tool-link { background: #000 !important; color: var(--b-yellow) !important; }
+.star img { border-radius: 0 !important; border: var(--b-line) !important; }
+.star .t1 { color: #000 !important; background: var(--b-yellow); padding: 0 4px; align-self: flex-start; display: inline-block !important; }
+.menu-dropdown a { color: #000 !important; font-weight: 800; }
+.menu-dropdown a .icon { color: #000 !important; }
+.bottom-bar .btn { border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; border-radius: 0 !important; }
+.btn-primary { background: var(--b-pink) !important; }
+.btn:active { transform: translate(3px, 3px) !important; box-shadow: none !important; }
+.leaflet-popup-content-wrapper { border-radius: 0 !important; border: var(--b-line); box-shadow: var(--b-shadow) !important; }
+.leaflet-popup-tip { border: none; box-shadow: none !important; }
+.route-panel select { border-radius: 0 !important; border: var(--b-line) !important; }
+.reward-panel .reward-close { border-radius: 0 !important; }
+/* 내가 꽂은 핀 — 물방울 모양은 유지하되 분홍 + 검정 테두리 + 딱 떨어지는 그림자 */
+.pin-marker, .my-pin { background: var(--b-pink) !important; border: 3px solid #000 !important; box-shadow: 2px -2px 0 #000 !important; box-sizing: border-box; }
+.pin-delete-btn { border-radius: 0 !important; border: 2px solid #000 !important; }

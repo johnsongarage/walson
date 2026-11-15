@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="왈슨">
-<meta name="theme-color" content="#f7ede2">
+<meta name="theme-color" content="#F2B833">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   :root {
@@ -79,21 +79,22 @@
   }
   .saved-toast.show { opacity: 1; }
 </style>
+<link rel="stylesheet" href="brutal.css?v=2">
 </head>
 <body>
 
 <div class="wrap">
   <div class="topbar">
     <a href="index.html" title="오늘로 돌아가기">←</a>
-    <h1>🐾 프로필</h1>
+    <h1>프로필</h1>
   </div>
 
   <div class="card">
     <div class="photo-picker">
       <button type="button" class="photo-btn" id="photo-btn">
         <img id="photo-preview" alt="">
-        <span class="placeholder" id="photo-placeholder">🐾</span>
-        <span class="edit-badge">✎</span>
+        <span class="placeholder" id="photo-placeholder" style="font-size:14px;font-weight:900;">사진</span>
+        <span class="edit-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></span>
       </button>
       <input type="file" id="photo-input" accept="image/*">
     </div>
@@ -117,9 +118,9 @@
       <label for="f-signal">산책 신호등 (다른 강아지를 만났을 때)</label>
       <select id="f-signal">
         <option value="">아직 안 골랐어요</option>
-        <option value="green">초록불 — 다가와도 좋아요</option>
-        <option value="yellow">노랑불 — 천천히 인사해요</option>
-        <option value="red">빨강불 — 눈으로만 예뻐해 주세요</option>
+        <option value="green">초록불 · 다가와도 좋아요</option>
+        <option value="yellow">노랑불 · 천천히 인사해요</option>
+        <option value="red">빨강불 · 눈으로만 예뻐해 주세요</option>
       </select>
     </div>
 

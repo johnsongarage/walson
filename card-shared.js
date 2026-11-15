@@ -259,13 +259,22 @@
     var titleLH = opts.titleLH || 24, descLH = 22, midGap = 14;
     var chipH = padY * 2 + titleLines.length * titleLH + midGap + descLines.length * descLH;
 
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    roundRect(ctx, x, y, w, chipH, 18);
+    // opts.chip = { fill, stroke, lineWidth, radius, shadow } — 넘기지 않으면 예전 모양 그대로
+    // (my-card의 뉴브루탈리즘 카드가 각진 검정 테두리 칩을 쓰려고 추가, 2026-11-15)
+    var chip = opts.chip || {};
+    var chipR = chip.radius != null ? chip.radius : 18;
+    if (chip.shadow) {
+      ctx.fillStyle = '#000';
+      roundRect(ctx, x + chip.shadow, y + chip.shadow, w, chipH, chipR);
+      ctx.fill();
+    }
+    ctx.fillStyle = chip.fill || 'rgba(255,255,255,0.6)';
+    roundRect(ctx, x, y, w, chipH, chipR);
     ctx.fill();
-    ctx.strokeStyle = '#e5d9c8';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = chip.stroke || '#e5d9c8';
+    ctx.lineWidth = chip.lineWidth || 2;
     if (opts.dashed) ctx.setLineDash([7, 5]);
-    roundRect(ctx, x, y, w, chipH, 18);
+    roundRect(ctx, x, y, w, chipH, chipR);
     ctx.stroke();
     ctx.setLineDash([]);
 

@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
-<meta name="theme-color" content="#f7ede2">
+<meta name="theme-color" content="#F2B833">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 공원 현장용 30초 흐름(2026-11-14, 기획표 V0-19): QR → 신호등 고르기 → 이름·사진 → 주민증 카드 저장.
@@ -128,9 +128,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
+<link rel="stylesheet" href="brutal.css?v=2">
 </head>
 <body>
-<div id="splash" role="img" aria-label="왈슨 — 댕댕이 산책 필수앱, 제작 johnsongarage">
+<div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
   <div class="splash-main">
     <img src="icons/walson-logo.webp" alt="" width="900" height="732">
     <div class="splash-name">왈슨</div>
@@ -218,7 +219,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=9"></script>
+<script src="infra-pins.js?v=10"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -399,17 +400,20 @@
     var ctx = canvas.getContext('2d');
     var W = canvas.width, H = canvas.height;
     var sig = SIGNALS[profile.signal] || SIGNALS.none;
-    var INK = '#4a3f35', SOFT = '#8a7a68', LINE = '#e6d6c1';
+    // 뉴브루탈리즘(2026-11-15): 검정 테두리, 딱 떨어지는 모서리, 흐린 그림자 없음
+    var INK = '#000000', SOFT = '#3d3d3d', LINE = '#000000';
 
     ctx.clearRect(0, 0, W, H);
 
     // 바탕 + 신호등 색 테두리
-    roundRect(ctx, 0, 0, W, H, 64);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = sig.color;
-    ctx.fill();
-    roundRect(ctx, 26, 26, W - 52, H - 52, 44);
-    ctx.fillStyle = '#fffaf3';
-    ctx.fill();
+    ctx.fillRect(12, 12, W - 24, H - 24);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(34, 34, W - 68, H - 68);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(40, 40, W - 80, H - 80);
 
     // 머리줄
     ctx.fillStyle = INK;
@@ -426,13 +430,12 @@
     // 오른쪽 위 신호등(불 셋 중 하나만 켜짐)
     var lampOrder = ['green', 'yellow', 'red'];
     var lx = W - 96 - 3 * 76, ly = 96;
-    roundRect(ctx, lx - 22, ly - 12, 3 * 76 + 20, 100, 50);
-    ctx.fillStyle = '#4a3f35';
-    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(lx - 22, ly - 12, 3 * 76 + 20, 100);
     lampOrder.forEach(function (key, i) {
       ctx.beginPath();
       ctx.arc(lx + 26 + i * 76, ly + 38, 28, 0, Math.PI * 2);
-      ctx.fillStyle = (key === profile.signal) ? SIGNALS[key].color : '#6f6357';
+      ctx.fillStyle = (key === profile.signal) ? SIGNALS[key].color : '#4a4a4a';
       ctx.fill();
     });
 
@@ -442,19 +445,21 @@
 
     // 사진
     var px = 96, py = 318, pw = 460, ph = 520;
-    roundRect(ctx, px, py, pw, ph, 36);
-    ctx.fillStyle = '#f3ddd2';
-    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(px - 6, py - 6, pw + 12, ph + 12);
+    ctx.fillStyle = '#F2B833';
+    ctx.fillRect(px, py, pw, ph);
     if (img) {
       ctx.save();
-      roundRect(ctx, px, py, pw, ph, 36);
+      ctx.beginPath();
+      ctx.rect(px, py, pw, ph);
       ctx.clip();
       var scale = Math.max(pw / img.width, ph / img.height);
       var dw = img.width * scale, dh = img.height * scale;
       ctx.drawImage(img, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
       ctx.restore();
     } else {
-      ctx.fillStyle = '#b8563a';
+      ctx.fillStyle = '#000';
       ctx.textAlign = 'center';
       ctx.font = font(700, 40);
       ctx.fillText('사진 없음', px + pw / 2, py + ph / 2 + 14);
@@ -472,7 +477,10 @@
     ctx.fillText(profile.name, tx - 4, 482);
 
     // 신호등 문구 띠
-    roundRect(ctx, tx, 532, maxW, 132, 30);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(tx + 8, 540, maxW, 132);
+    ctx.fillRect(tx - 4, 528, maxW + 8, 140);
+    roundRect(ctx, tx, 532, maxW, 132, 0);
     ctx.fillStyle = sig.color;
     ctx.fill();
     ctx.fillStyle = '#ffffff';
@@ -520,10 +528,10 @@
     var cell = Math.floor(size / (n + quiet * 2));
     var real = cell * (n + quiet * 2);
     var ox = x + size - real, oy = y;               // 오른쪽 위에 맞춘다
-    roundRect(ctx, ox, oy, real, real, 14);
+    roundRect(ctx, ox, oy, real, real, 0);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.fillStyle = '#4a3f35';
+    ctx.fillStyle = '#000';
     for (var r = 0; r < n; r++) {
       for (var c = 0; c < n; c++) {
         if (qr.isDark(r, c)) ctx.fillRect(ox + (c + quiet) * cell, oy + (r + quiet) * cell, cell, cell);
@@ -542,28 +550,26 @@
     out.width = W; out.height = H;
     var ctx = out.getContext('2d');
     var sig = SIGNALS[profile.signal] || SIGNALS.none;
-    ctx.fillStyle = '#f7ede2';
+    ctx.fillStyle = '#F2B833';
     ctx.fillRect(0, 0, W, H);
-    // 위아래에 신호등 색 띠를 얇게 — 어떤 신호등인지 멀리서도 보이게
+    // 위아래에 신호등 색 띠 — 어떤 신호등인지 멀리서도 보이게
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, 26);
+    ctx.fillRect(0, H - 26, W, 26);
     ctx.fillStyle = sig.color;
     ctx.fillRect(0, 0, W, 18);
     ctx.fillRect(0, H - 18, W, 18);
     var cw = 960, ch = 600, cx = (W - cw) / 2, cy = Math.round((H - ch) / 2) - (exportFormat === 'story' ? 60 : 30);
-    ctx.save();
-    ctx.shadowColor = 'rgba(74, 63, 53, 0.25)';
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 14;
-    roundRect(ctx, cx, cy, cw, ch, 38);
-    ctx.fillStyle = sig.color;
-    ctx.fill();
-    ctx.restore();
+    // 딱 떨어지는 검정 그림자
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cx + 14, cy + 14, cw, ch);
     ctx.drawImage(canvas, cx, cy, cw, ch);
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#4a3f35';
-    ctx.font = font(800, 44);
+    ctx.fillStyle = '#000';
+    ctx.font = font(900, 44);
     ctx.fillText(profile.name + ' · ' + sig.line, W / 2, cy + ch + 96);
-    ctx.fillStyle = '#8a7a68';
-    ctx.font = font(600, 30);
+    ctx.fillStyle = '#000';
+    ctx.font = font(700, 30);
     ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, W / 2, cy + ch + 150);
     ctx.textAlign = 'left';
     exportCanvas = out;
