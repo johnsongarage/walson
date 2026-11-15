@@ -22,6 +22,8 @@
   var emojiCache = {};
 
   function preloadEmoji(chars, onEachLoaded) {
+    // twemoji를 안 불러온 화면(my-card 등)에서는 이모지 없이 그린다(2026-11-15)
+    if (!global.twemoji) return;
     chars.forEach(function (ch) {
       if (emojiCache[ch]) return;
       var img = new Image();

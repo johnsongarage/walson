@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
-<meta name="theme-color" content="#F2B833">
+<meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 공원 현장용 30초 흐름(2026-11-14, 기획표 V0-19): QR → 신호등 고르기 → 이름·사진 → 주민증 카드 저장.
@@ -128,7 +128,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
-<link rel="stylesheet" href="brutal.css?v=2">
+<script src="theme.js?v=1"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
@@ -219,7 +219,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=10"></script>
+<script src="infra-pins.js?v=11"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -396,7 +396,185 @@
     return weight + ' ' + size + 'px Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   }
 
-  function drawCard(img) {
+  // 화면 테마(theme.js)에 따라 카드 그림도 바꾼다(2026-11-15). 차분: 원래 파스텔 카드, 뉴브루탈: 검정 테두리 카드.
+  function isBrutal() { return !!(window.WalsonTheme && window.WalsonTheme.isBrutal); }
+  function drawCard(img) { return isBrutal() ? drawCardBrutal(img) : drawCardSoft(img); }
+  function composeExport() { return isBrutal() ? composeExportBrutal() : composeExportSoft(); }
+
+  // ── 차분 테마 카드(뉴브루탈 적용 전 그대로) ──
+  function drawCardSoft(img) {
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var sig = SIGNALS[profile.signal] || SIGNALS.none;
+    var INK = '#4a3f35', SOFT = '#8a7a68', LINE = '#e6d6c1';
+
+    ctx.clearRect(0, 0, W, H);
+
+    // 바탕 + 신호등 색 테두리
+    roundRect(ctx, 0, 0, W, H, 64);
+    ctx.fillStyle = sig.color;
+    ctx.fill();
+    roundRect(ctx, 26, 26, W - 52, H - 52, 44);
+    ctx.fillStyle = '#fffaf3';
+    ctx.fill();
+
+    // 머리줄
+    ctx.fillStyle = INK;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.font = font(800, 76);
+    ctx.fillText('댕댕이 주민증', 96, 168);
+    ctx.fillStyle = SOFT;
+    ctx.font = font(600, 34);
+    var subtitle = guardianSpot ? guardianSpot + ' 수호지킴이' : '남양주 다산동 산책 주민';
+    ctx.font = font(600, fitText(ctx, subtitle, 900, 34, 600));
+    ctx.fillText(subtitle, 100, 222);
+
+    // 오른쪽 위 신호등(불 셋 중 하나만 켜짐)
+    var lampOrder = ['green', 'yellow', 'red'];
+    var lx = W - 96 - 3 * 76, ly = 96;
+    roundRect(ctx, lx - 22, ly - 12, 3 * 76 + 20, 100, 50);
+    ctx.fillStyle = '#4a3f35';
+    ctx.fill();
+    lampOrder.forEach(function (key, i) {
+      ctx.beginPath();
+      ctx.arc(lx + 26 + i * 76, ly + 38, 28, 0, Math.PI * 2);
+      ctx.fillStyle = (key === profile.signal) ? SIGNALS[key].color : '#6f6357';
+      ctx.fill();
+    });
+
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(96, 268); ctx.lineTo(W - 96, 268); ctx.stroke();
+
+    // 사진
+    var px = 96, py = 318, pw = 460, ph = 520;
+    roundRect(ctx, px, py, pw, ph, 36);
+    ctx.fillStyle = '#f3ddd2';
+    ctx.fill();
+    if (img) {
+      ctx.save();
+      roundRect(ctx, px, py, pw, ph, 36);
+      ctx.clip();
+      var scale = Math.max(pw / img.width, ph / img.height);
+      var dw = img.width * scale, dh = img.height * scale;
+      ctx.drawImage(img, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#b8563a';
+      ctx.textAlign = 'center';
+      ctx.font = font(700, 40);
+      ctx.fillText('사진 없음', px + pw / 2, py + ph / 2 + 14);
+      ctx.textAlign = 'left';
+    }
+
+    // 오른쪽 정보
+    var tx = 620, maxW = W - 96 - tx;
+    ctx.fillStyle = SOFT;
+    ctx.font = font(600, 32);
+    ctx.fillText('이름', tx, 362);
+    ctx.fillStyle = INK;
+    var nameSize = fitText(ctx, profile.name, maxW, 124, 800);
+    ctx.font = font(800, nameSize);
+    ctx.fillText(profile.name, tx - 4, 482);
+
+    // 신호등 문구 띠
+    roundRect(ctx, tx, 532, maxW, 132, 30);
+    ctx.fillStyle = sig.color;
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = font(700, 34);
+    ctx.fillText(sig.label, tx + 36, 586);
+    var lineSize = fitText(ctx, sig.line, maxW - 72, 50, 800);
+    ctx.font = font(800, lineSize);
+    ctx.fillText(sig.line, tx + 36, 640);
+
+    // 아래 칸
+    var rows = [['발급일', profile.cardIssued || todayText()], ['카드 번호', profile.cardNo || '']];
+    rows.forEach(function (row, i) {
+      var y = 730 + i * 62;
+      ctx.fillStyle = SOFT;
+      ctx.font = font(600, 32);
+      ctx.fillText(row[0], tx, y);
+      ctx.fillStyle = INK;
+      ctx.font = font(700, 36);
+      ctx.fillText(row[1], tx + 190, y);
+    });
+
+    ctx.strokeStyle = LINE;
+    ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
+    // "나도 만들기" QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
+    drawQrSoft(ctx, SHARE_URL, W - 96 - 200, 684, 200);
+
+    ctx.fillStyle = SOFT;
+    var footLeft = '왈슨 · ' + SHARE_URL_TEXT;
+    ctx.font = font(600, fitText(ctx, footLeft, 760, 30, 600));
+    ctx.fillText(footLeft, 96, 934);
+    ctx.font = font(600, 30);
+    ctx.textAlign = 'right';
+    ctx.fillText('재미로 만든 카드예요 · 공식 신분증이 아니에요', W - 96, 934);
+    ctx.textAlign = 'left';
+  }
+
+  // QR을 size×size 칸에 그린다. 라이브러리가 없으면 아무것도 그리지 않는다.
+  function drawQrSoft(ctx, text, x, y, size) {
+    if (typeof qrcode !== 'function') return;
+    var qr;
+    // 오류 정정은 가장 낮은 L — 화면으로 보는 그림이라 긁힐 일이 없고, 칸이 굵어져 작게 줄여도 읽힌다
+    try { qr = qrcode(0, 'L'); qr.addData(text); qr.make(); } catch (e) { return; }
+    var n = qr.getModuleCount();
+    var quiet = 3;                                  // 사방 여백(칸 수)
+    var cell = Math.floor(size / (n + quiet * 2));
+    var real = cell * (n + quiet * 2);
+    var ox = x + size - real, oy = y;               // 오른쪽 위에 맞춘다
+    roundRect(ctx, ox, oy, real, real, 14);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.fillStyle = '#4a3f35';
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        if (qr.isDark(r, c)) ctx.fillRect(ox + (c + quiet) * cell, oy + (r + quiet) * cell, cell, cell);
+      }
+    }
+  }
+
+  function composeExportSoft() {
+    if (exportFormat === 'card') { exportCanvas = canvas; return canvas; }
+    var W = 1080, H = exportFormat === 'story' ? 1920 : 1080;
+    var out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    var ctx = out.getContext('2d');
+    var sig = SIGNALS[profile.signal] || SIGNALS.none;
+    ctx.fillStyle = '#f7ede2';
+    ctx.fillRect(0, 0, W, H);
+    // 위아래에 신호등 색 띠를 얇게 — 어떤 신호등인지 멀리서도 보이게
+    ctx.fillStyle = sig.color;
+    ctx.fillRect(0, 0, W, 18);
+    ctx.fillRect(0, H - 18, W, 18);
+    var cw = 960, ch = 600, cx = (W - cw) / 2, cy = Math.round((H - ch) / 2) - (exportFormat === 'story' ? 60 : 30);
+    ctx.save();
+    ctx.shadowColor = 'rgba(74, 63, 53, 0.25)';
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 14;
+    roundRect(ctx, cx, cy, cw, ch, 38);
+    ctx.fillStyle = sig.color;
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(canvas, cx, cy, cw, ch);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = font(800, 44);
+    ctx.fillText(profile.name + ' · ' + sig.line, W / 2, cy + ch + 96);
+    ctx.fillStyle = '#8a7a68';
+    ctx.font = font(600, 30);
+    ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, W / 2, cy + ch + 150);
+    ctx.textAlign = 'left';
+    exportCanvas = out;
+    return out;
+  }
+
+  // ── 뉴브루탈 테마 카드 ──
+  function drawCardBrutal(img) {
     var ctx = canvas.getContext('2d');
     var W = canvas.width, H = canvas.height;
     var sig = SIGNALS[profile.signal] || SIGNALS.none;
@@ -543,7 +721,7 @@
   // 정사각형·스토리용은 파스텔 바탕 가운데에 카드를 올려서, 올렸을 때 양옆이 잘리지 않게 한다.
   var exportFormat = 'card';
   var exportCanvas = null;
-  function composeExport() {
+  function composeExportBrutal() {
     if (exportFormat === 'card') { exportCanvas = canvas; return canvas; }
     var W = 1080, H = exportFormat === 'story' ? 1920 : 1080;
     var out = document.createElement('canvas');

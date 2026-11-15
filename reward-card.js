@@ -427,7 +427,7 @@
     return { sharedHeight: sharedHeight, drawSide: drawSide, drawBoth: drawBoth };
   }
 
-  window.RewardCard = {
+  var brutalCard = {
     W: W,
     PHOTO_D: PHOTO_D,
     PHOTO_CX: PHOTO_CX,
@@ -436,4 +436,7 @@
     EMOJI: EMOJI,
     create: create
   };
+  // 화면 테마(theme.js)가 뉴브루탈일 때만 이 카드를, 아니면 reward-card-soft.js의 원래 카드를 쓴다
+  var brutal = !!(window.WalsonTheme && window.WalsonTheme.isBrutal);
+  window.RewardCard = (!brutal && window.RewardCardSoft) ? window.RewardCardSoft : brutalCard;
 })();

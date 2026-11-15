@@ -20,10 +20,25 @@
   var bandH = sampleOn ? 28 : 0;
 
   var style = document.createElement('style');
-  style.textContent =
+  // 테마(theme.js)에 따라 탭 모양을 고른다 — 차분: 크림색·부드러운 그림자, 뉴브루탈: 검정 칸막이
+  var brutal = !!(window.WalsonTheme && window.WalsonTheme.isBrutal);
+  var common =
     ':root{--tabbar-h:calc(' + (58 + bandH) + 'px + env(safe-area-inset-bottom, 0px));}' +
     'body{padding-bottom:calc(var(--tabbar-h) + 16px) !important;}' +
-    '.tabbar-wrap{position:fixed;left:0;right:0;bottom:0;z-index:1000;}' +
+    '.tabbar-wrap{position:fixed;left:0;right:0;bottom:0;z-index:1000;}';
+  var softCss =
+    '.sample-band{display:flex;align-items:center;justify-content:center;gap:10px;height:28px;background:#4a3f35;color:#fff;' +
+      'font:700 12px Pretendard,-apple-system,"Malgun Gothic",sans-serif;}' +
+    '.sample-band a{color:#ffd9c9;text-decoration:underline;}' +
+    '.tabbar{position:relative;display:flex;justify-content:center;' +
+      'height:calc(58px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);' +
+      'background:#fffaf3;border-top:1px solid #e6d6c1;box-shadow:0 -2px 12px rgba(74,63,53,0.08);}' +
+    '.tabbar a{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
+      'text-decoration:none;color:#8a7a68;font:600 11px Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;' +
+      '-webkit-tap-highlight-color:transparent;}' +
+    '.tabbar a[aria-current="page"]{color:#b8563a;font-weight:800;}' +
+    '.tabbar a:active{transform:scale(0.96);}';
+  var brutalCss =
     '.sample-band{display:flex;align-items:center;justify-content:center;gap:10px;height:28px;background:#000;color:#F2B833;' +
       'font:700 12px Pretendard,-apple-system,"Malgun Gothic",sans-serif;}' +
     '.sample-band a{color:#fff;text-decoration:underline;}' +
@@ -35,7 +50,8 @@
       '-webkit-tap-highlight-color:transparent;}' +
     '.tabbar a+a{border-left:3px solid #000;}' +
     '.tabbar a[aria-current="page"]{background:#000;color:#F2B833;font-weight:900;}' +
-'.tabbar a:active{background:#F2B833;color:#000;}';
+    '.tabbar a:active{background:#F2B833;color:#000;}';
+  style.textContent = common + (brutal ? brutalCss : softCss);
   document.head.appendChild(style);
 
   function build() {
