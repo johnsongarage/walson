@@ -161,7 +161,7 @@
 </div>
 
 <script src="walk-photos.js?v=1"></script>
-<script src="walk-proof.js?v=2"></script>
+<script src="walk-proof.js?v=3"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks'; // index.html과 같은 키 — 같은 오리진이라 localStorage 공유됨
@@ -300,7 +300,7 @@
           if (window.WalkProof) {
             var pb = document.createElement('button');
             pb.type = 'button'; pb.className = 'proof-btn'; pb.textContent = '인증샷';
-            pb.addEventListener('click', function () { WalkProof.open({ src: img.src, walk: w, profile: profileForProof }); });
+            pb.addEventListener('click', function () { WalkProof.open({ img: img, photoKey: w.photoKey, walk: w, profile: profileForProof }); });
             card.appendChild(pb);
           }
         });

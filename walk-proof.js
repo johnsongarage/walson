@@ -119,7 +119,7 @@
     }
     var txt = B ? '#000' : '#fff', soft = B ? '#000' : 'rgba(255,255,255,0.85)';
     var x = pad, y = py + (B ? 70 : 60);
-    var name = (profile && profile.name) || '우리 개';
+    var name = (profile && profile.name) || '';
     ctx.textBaseline = 'alphabetic';
     // 신호등 색 점 + "초코와 산책"
     var sig = SIGNAL[profile && profile.signal];
@@ -128,7 +128,7 @@
       if (B) { ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.stroke(); }
     }
     ctx.fillStyle = soft; ctx.font = font(800, 46);
-    ctx.fillText(withJosa(name) + ' 산책', x + (sig ? 50 : 0), y + 18);
+    ctx.fillText(name ? withJosa(name) + ' 산책' : '오늘의 산책', x + (sig ? 50 : 0), y + 18);
     // 큰 숫자: 걸은 분
     y += 210;
     ctx.fillStyle = txt; ctx.font = bigFont(200);
@@ -237,7 +237,21 @@
     var fontsReady = (document.fonts && document.fonts.load)
       ? Promise.all([document.fonts.load('200px "Black Han Sans"'), document.fonts.load('800 46px Pretendard')]).catch(function () {})
       : Promise.resolve();
-    var assets = Promise.all([loadImg(opts.src), loadImg('icons/walson-logo.webp'), fontsReady]);
+    // 사진: 화면에 이미 떠 있는 <img>(opts.img)를 그대로 쓴다. 기록 화면은 사진을 띄운 뒤 임시 주소(blob:)를
+    // 지워서, 주소로 다시 읽으면 빈 사진이 됐다(2026-11-15). 그다음은 저장된 사진 열쇠, 마지막이 주소.
+    function photoSource() {
+      var el = opts.img;
+      if (el && el.complete && el.naturalWidth) return Promise.resolve(el);
+      if (opts.photoKey && window.WalkPhotos) {
+        return WalkPhotos.get(opts.photoKey).then(function (blob) {
+          if (!blob) return null;
+          var u = URL.createObjectURL(blob);
+          return loadImg(u).then(function (im) { setTimeout(function () { URL.revokeObjectURL(u); }, 1000); return im; });
+        }).catch(function () { return null; });
+      }
+      return loadImg(opts.src || (el && el.src));
+    }
+    var assets = Promise.all([photoSource(), loadImg('icons/walson-logo.webp'), fontsReady]);
     var pending = false;
     function paint() {
       if (!assetsReady) return;

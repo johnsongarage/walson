@@ -153,7 +153,7 @@
 </div>
 
 <script src="walk-photos.js?v=1"></script>
-<script src="walk-proof.js?v=2"></script>
+<script src="walk-proof.js?v=3"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';
@@ -243,7 +243,7 @@
     if (answers.feel) w.feel = answers.feel; else delete w.feel;
     if (answers.sniff) w.sniff = Number(answers.sniff); else delete w.sniff;
     if (answers.poop !== undefined) w.poop = Number(answers.poop); else delete w.poop;
-    WalkProof.open({ src: photoImg.src, walk: w, profile: profile });
+    WalkProof.open({ img: photoImg, photoKey: walk.photoKey, walk: w, profile: profile });
   });
   // 이 산책에 이미 사진이 있으면(끝 화면에 다시 들어온 경우) 보여 준다
   if (walk.photoKey && window.WalkPhotos) {
