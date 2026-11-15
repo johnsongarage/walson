@@ -111,6 +111,11 @@
   }
   .empty .icon { font-size: 34px; margin-bottom: 10px; }
   .empty p { margin: 0; font-size: 13px; line-height: 1.6; }
+  .walk-card .proof-btn {
+    flex-shrink: 0; align-self: center; font-family: inherit; font-size: 12px; font-weight: 800; padding: 7px 10px;
+    border-radius: 999px; border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer;
+  }
+  [data-theme="brutal"] .walk-card .proof-btn { border-radius: 0; border: 2px solid #000; background: var(--b-pink, #FF6BB5); color: #000; }
 </style>
 <script src="theme.js?v=6"></script>
 <script src="site-config.js?v=3"></script>
@@ -155,6 +160,7 @@
 </div>
 
 <script src="walk-photos.js?v=1"></script>
+<script src="walk-proof.js?v=1"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks'; // index.html과 같은 키 — 같은 오리진이라 localStorage 공유됨
@@ -235,6 +241,8 @@
   }
 
   var walks = loadWalks();
+  var profileForProof = {};
+  try { profileForProof = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; } catch (e) { profileForProof = {}; }
   var listEl = document.getElementById('list');
   var emptyEl = document.getElementById('empty');
   var subtitleEl = document.getElementById('subtitle');
@@ -287,6 +295,13 @@
           thumb.innerHTML = '';
           thumb.classList.add('has-photo');
           thumb.appendChild(img);
+          // 사진이 있는 기록은 인증샷을 다시 만들 수 있게(walk-proof.js)
+          if (window.WalkProof) {
+            var pb = document.createElement('button');
+            pb.type = 'button'; pb.className = 'proof-btn'; pb.textContent = '인증샷';
+            pb.addEventListener('click', function () { WalkProof.open({ src: img.src, walk: w, profile: profileForProof }); });
+            card.appendChild(pb);
+          }
         });
       }
     });
