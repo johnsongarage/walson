@@ -23,7 +23,14 @@
   function permissionHelp() {
     if (isIOS()) return '아이폰: 설정 > 개인정보 보호 및 보안 > 위치 서비스 > "Safari 웹사이트"를 "앱을 사용하는 동안"으로, "정확한 위치"도 켜 주세요.' +
       (standalone() ? ' 그래도 안 되면 홈 화면 앱을 지우고 사파리에서 다시 "홈 화면에 추가" 해 주세요.' : '');
-    if (isAndroid()) return '안드로이드: 설정 > 애플리케이션 > Chrome > 권한 > 위치를 "앱 사용 중에만 허용"으로, "정확한 위치 사용"도 켜 주세요. 크롬에서 이 사이트 > 사이트 설정 > 위치도 "허용"인지 확인해 주세요.';
+    if (isAndroid()) {
+      var samsung = /SamsungBrowser/i.test(navigator.userAgent || '');
+      var br = samsung ? '삼성 인터넷' : 'Chrome';
+      return '안드로이드: 홈 화면의 왈슨 앱 정보에는 위치 항목이 없어요(설치한 브라우저의 권한을 써요). ' +
+        '① 설정 > 애플리케이션 > ' + br + ' > 권한 > 위치 "앱 사용 중에만 허용" + "정확한 위치 사용" 켜기 ' +
+        '② ' + br + '에서 이 사이트를 열고 주소창 왼쪽 아이콘 > 권한 > 위치 "허용" ' +
+        '③ 실내라면 설정 > 위치 > 위치 서비스 > Google 위치 정확도 켜기.';
+    }
     return '';
   }
   function inAppBrowser() { return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent || ''); }
