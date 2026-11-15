@@ -5,8 +5,8 @@
 //   - 강아지 프로필: 왈슨(앱 그림 사진·빨강불·주민증 번호)
 //   - 최근 3주 산책 기록: 길 기록 산책(공원 둘레 가짜 경로) + 시간만 잰 산책, 끝 화면 답, 오늘의 한 장 사진
 //   - 산책 중에 찍은 메모 핀 2개
-//   - [동네] 지도의 수호지킴이 한 마리: 다산동 푸라닭 수호신 봄이(가르시아가 준 실제 가게·사진)
-// 사진: 왈슨은 앱 그림, 봄이는 가르시아가 준 사진(icons/sample-*.jpg). 오늘의 한 장도 왈슨 그림.
+//   (가게·수호지킴이는 넣지 않는다 — 봄이는 2026-11-15부터 서비스 데이터 spots-data.js에 있어서 스팟 편집에서 고친다)
+// 사진: 왈슨은 앱 그림(icons/sample-walson.jpg). 오늘의 한 장도 왈슨 그림.
 // 경로는 공용 공원(다산중앙공원·다산수변공원) 둘레를 도는 지어낸 고리다 — 누구의 실제 경로도 아니다.
 //
 // 켜면 지금 기록을 따로 보관해 두고(petwalk_sample_backup), 끄면 샘플을 지우고 그대로 되돌린다.
@@ -14,7 +14,7 @@
 (function () {
   var FLAG = 'petwalk_sample_mode';
   var BACKUP = 'petwalk_sample_backup';
-  var SPOTS = 'petwalk_sample_spots';    // infra-pins.js가 샘플 모드일 때만 읽는다
+  var SPOTS = 'petwalk_sample_spots';    // 예전 샘플 가게 자리 — 이제 쓰지 않고, 남아 있으면 지운다
   // 샘플이 덮어쓰는 열쇠들 — 끌 때 이 값들을 되돌린다
   var KEYS = ['petwalk_walks', 'petwalk_profile', 'petwalk_pins', 'petwalk_reward_card',
               'petwalk_last_walk', 'petwalk_active_walk', 'petwalk_dog_size'];
@@ -71,20 +71,8 @@
     [20, 'time', 18, null, 0, 'enough', 3, 1, -1]
   ];
 
-  // 샘플 사진(2026-11-15 가르시아가 준 것): 왈슨 = 앱 그림, 봄이 = 다산동 푸라닭 수호신 사진.
-  // 파일로 두고 경로로 쓴다(메타데이터 없이 다시 저장한 것).
+  // 샘플 사진: 왈슨 = 앱 그림. 파일로 두고 경로로 쓴다(메타데이터 없이 다시 저장한 것).
   var WALSON_PHOTO = 'icons/sample-walson.jpg';
-  var BOM_PHOTO = 'icons/sample-bom.jpg';
-
-  // 샘플 수호지킴이는 봄이 한 마리(2026-11-15 가르시아가 알려 준 정보).
-  // 같은 가게가 서비스 데이터에도 올라가 있어서(field-1794669441573), 샘플을 보는 동안에는 그 핀 대신 이 핀을 보인다(replaces).
-  var SHOPS = [{
-    id: 'sample-shop-bom', replaces: 'field-1794669441573',
-    cat: 'spot', name: '다산동 푸라닭 수호신', lat: 37.6221, lng: 127.15995,
-    tags: ['가끔 출몰'],
-    note: '계산대 밑에서 손님맞이를 해요. 가게에 가끔 출몰해요.',
-    guardian: { name: '봄이', signal: 'yellow', line: '얌전히 있다가 치킨을 가져가면 짖기 시작해요', photo: BOM_PHOTO }
-  }];
 
   function turnOn() {
     if (isOn()) return Promise.resolve();
@@ -114,13 +102,6 @@
       walks.push(w);
     });
 
-    var spots = SHOPS.map(function (s) {
-      var copy = JSON.parse(JSON.stringify(s));
-      copy.source = 'field';
-      copy.verifiedAt = dateKey(now);
-      return copy;
-    });
-
     try {
       localStorage.setItem('petwalk_walks', JSON.stringify(walks));
       // 샘플 강아지는 왈슨(앱 그림) — 빨강불은 으르렁 얼굴에 맞춘 것
@@ -136,7 +117,7 @@
       localStorage.removeItem('petwalk_last_walk');
       localStorage.removeItem('petwalk_active_walk');
       localStorage.setItem('petwalk_dog_size', 'small');
-      localStorage.setItem(SPOTS, JSON.stringify(spots));
+      localStorage.removeItem(SPOTS);
       localStorage.setItem(FLAG, '1');
     } catch (e) {
       restoreKeys(backup);

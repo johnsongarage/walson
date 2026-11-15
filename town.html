@@ -13,7 +13,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="reward-rules.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=12"></script>
+<script src="infra-pins.js?v=13"></script>
 <script src="demo-geo.js?v=1"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
@@ -197,8 +197,11 @@
   });
 
   // ── 동네 스타: 사진이 있는 동반 스팟을 지도 아래에 줄 세운다 ──
+  // 2026-11-15 가르시아: 일단 내림 — 수호지킴이는 지도 위 핀으로만 보이고, 목록은 나중에 따로 만든다.
+  // 다시 켜려면 SHOW_STAR_LIST를 true로.
+  var SHOW_STAR_LIST = false;
   var starsEl = document.getElementById('stars');
-  var stars = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.mainPhoto(p); });
+  var stars = !SHOW_STAR_LIST ? [] : InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.mainPhoto(p); });
   stars.forEach(function (pin) {
     var g = InfraPins.hasGuardian(pin) ? pin.guardian : null;
     var btn = document.createElement('button');

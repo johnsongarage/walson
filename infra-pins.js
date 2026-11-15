@@ -48,15 +48,9 @@
   setCustomCategories(window.PETWALK_SPOT_CATEGORIES);
 
   // source: 'osm' = OpenStreetMap에서 가져온 것(현장 확인 전), 'field' = 운영자가 직접 가서 확인한 것.
-  // 샘플 데이터로 보는 중이면(sample-data.js) 이 휴대폰에만 있는 샘플 가게를 더한다
-  var sampleSpots = [];
-  try {
-    if (localStorage.getItem('petwalk_sample_mode') === '1') sampleSpots = JSON.parse(localStorage.getItem('petwalk_sample_spots')) || [];
-  } catch (e) { sampleSpots = []; }
-  // 샘플 핀에 replaces가 있으면 같은 가게의 서비스 핀은 샘플을 보는 동안 감춘다(같은 가게가 두 번 뜨지 않게)
-  var replaced = {};
-  sampleSpots.forEach(function (p) { if (p && p.replaces) replaced[p.replaces] = true; });
-  var SEED = (window.PETWALK_SPOTS || []).filter(function (p) { return !(p && replaced[p.id]); }).concat(sampleSpots).filter(function (p) {
+  // 샘플 모드여도 가게·수호지킴이는 서비스 데이터(spots-data.js) 그대로 보인다(2026-11-15).
+  // 예전에는 샘플이 이 휴대폰에 따로 둔 봄이 핀으로 서비스 핀을 가려서(replaces), 스팟 편집에서 고쳐도 지도에 안 바뀌었다.
+  var SEED = (window.PETWALK_SPOTS || []).filter(function (p) {
     return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number';
   });
   function all() { return SEED.slice(); }
