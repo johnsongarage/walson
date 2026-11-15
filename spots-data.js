@@ -19,8 +19,23 @@ window.PETWALK_SPOTS = [
   {"id":"field-1794704113098","cat":"park","name":"다산중앙공원_하","lat":37.61912,"lng":127.16097,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"osm-park-1","cat":"park","name":"다산중앙공원_상","lat":37.6231,"lng":127.16141,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704450497","cat":"spot","name":"현대프리미엄아울렛","lat":37.61636,"lng":127.15352,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"강아지 동반가능"},
-  {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"}
+  {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"},
+  {"id":"field-1794732698033","cat":"toilet","name":"공중화장실","lat":37.62016,"lng":127.16043,"source":"field","verifiedAt":"2026-11-15"}
 ];
 // 운영자가 편집 페이지에서 직접 만든 종류 — { key, label, color }. 아이콘은 별표로 같다.
 window.PETWALK_SPOT_CATEGORIES = [
+];
+// 우리 개 발도장 장소 — { id, name, lat, lng, radiusM, kind: park|water|building }. reward-rules.js가 읽는다.
+window.PETWALK_STAMP_PLACES = [
+  {"id":"outlet","name":"아울렛","lat":37.61633,"lng":127.15268,"radiusM":150,"kind":"building"},
+  {"id":"central","name":"다산 중앙공원","lat":37.6233,"lng":127.15962,"radiusM":250,"kind":"park"},
+  {"id":"waterside","name":"다산수변공원","lat":37.62396,"lng":127.14529,"radiusM":300,"kind":"water"}
+];
+// 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.
+window.PETWALK_MAP_GROUPS = [
+  {"id":"go","label":"갈 곳","layers":[{"key":"spot","zoom":"far"},{"key":"park","zoom":"far"}]},
+  {"id":"dog","label":"우리 개","layers":[{"key":"stamp","zoom":"far"},{"key":"mine","zoom":"far"}]},
+  {"id":"safe","label":"안전","layers":[{"key":"caution","zoom":"far"},{"key":"vet","zoom":"mid"}]},
+  {"id":"handy","label":"편의","layers":[{"key":"bag","zoom":"mid"},{"key":"water","zoom":"mid"},{"key":"toilet","zoom":"mid"}]},
+  {"id":"deco","label":"꾸밈","layers":[{"key":"deco","zoom":"mid"}]}
 ];
