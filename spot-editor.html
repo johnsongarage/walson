@@ -9,11 +9,11 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=15"></script>
+<script src="infra-pins.js?v=16"></script>
 <script src="reward-rules.js?v=5"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
-<script src="spot-github.js?v=3"></script>
+<script src="spot-github.js?v=4"></script>
 <style>
   /* 스팟 편집 — 운영자 전용(2026-11-15 다시 정리, 기획표 V0-18).
      배포된 사이트에 있지만, GitHub 토큰을 넣은 브라우저(= 운영자 컴퓨터)에서만 쓸 수 있다.
@@ -138,6 +138,24 @@
   .crop-actions { display: flex; gap: 8px; }
   .crop-actions button { flex: 1; padding: 10px; font-size: 13px; }
   .crop-actions button.primary { width: auto; }
+
+  /* 지도 묶음·우선순위(2026-11-15) */
+  .grp { border: 1px solid var(--panel-border); border-radius: 10px; background: #fff; margin-bottom: 8px; overflow: hidden; }
+  .grp-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #f3e7d8; }
+  .grp-head .label { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grp button { padding: 3px 7px; font-size: 11px; flex-shrink: 0; }
+  .grp ul { list-style: none; margin: 0; padding: 0; }
+  .grp li { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--panel-border); flex-wrap: wrap; }
+  .grp li .rank { width: 18px; text-align: right; color: var(--ink-soft); font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .grp li .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .grp li .label { flex: 1; min-width: 70px; font-weight: 700; }
+  .grp li select { font-family: inherit; font-size: 11px; padding: 3px; border: 1px solid var(--panel-border); border-radius: 6px; background: #fff; color: var(--ink); }
+  .grp li .controls { flex-basis: 100%; display: flex; align-items: center; gap: 10px; padding-left: 44px; }
+  .grp li .off { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .grp .empty { padding: 8px; color: var(--ink-soft); font-size: 11px; border-top: 1px solid var(--panel-border); }
+  .grp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .grp-actions button, .grp-actions a { flex: 1; text-align: center; white-space: nowrap; }
+  .grp-actions a { font-size: 12px; font-weight: 700; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--panel-border); background: #fff; color: var(--accent); text-decoration: none; }
 
   .place-tip { background: rgba(255,250,243,0.9); border: 1px solid var(--accent); color: var(--accent); font-weight: 800; font-size: 11px; box-shadow: none; padding: 1px 6px; }
   .place-tip::before { display: none; }
@@ -270,13 +288,24 @@
     </div>
 
     <div class="section">
-      <h2>3. 직접 만든 종류</h2>
+      <h2>3. 지도 묶음·우선순위</h2>
+      <p class="hint">[동네] 지도에 올라가는 것을 묶음으로 나누고 순서를 정해요. <b>위에 있을수록 우선</b> — 칩이 앞에 오고, 핀이 겹치면 위에 그려져요. ▲▼로 옮기면 묶음 끝에서 옆 묶음으로 넘어가요. 산책 화면의 핀도 같은 순서·단계를 따라요.</p>
+      <div id="group-list"></div>
+      <div class="grp-actions">
+        <button type="button" id="group-add">+ 새 묶음</button>
+        <button type="button" id="group-reset">기본값으로</button>
+        <a href="town.html?draft=1" target="_blank" title="반영 전 초안으로 동네 지도를 열어 봐요(이 컴퓨터에서만)">지도에서 미리 보기</a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>4. 직접 만든 종류</h2>
       <p class="hint">위 "종류"에서 "+ 새 종류 직접 만들기"로 추가해요. 쓰는 스팟이 없는 종류만 지울 수 있어요.</p>
       <ul id="cat-list"></ul>
     </div>
 
     <div class="section">
-      <h2>4. 우리 개 발도장 장소 (<span id="place-count">0</span>)</h2>
+      <h2>5. 우리 개 발도장 장소 (<span id="place-count">0</span>)</h2>
       <p class="hint">길 기록 산책으로 이 원 안을 지나가면 발도장이 찍히고, [동네] 지도에 우리 개 얼굴이 떠요. 카드 뒷면에 모두 그려지니 5곳 안팎이 좋아요. 지도에 점선 원으로 보여요.</p>
       <ul id="place-list"></ul>
       <div class="newcat" id="place-form" hidden>
@@ -332,6 +361,8 @@
   var baseCategories = []; // 저장소에 올라가 있는 것
   var places = [];         // 우리 개 발도장 장소 { id, name, lat, lng, radiusM, kind } — 편집 중
   var basePlaces = [];     // 저장소에 올라가 있는 것(파일에 아직 없으면 reward-rules.js 기본 세 곳)
+  var groups = [];         // 지도 묶음·우선순위 [{ id, label, layers: [{ key, zoom, off }] }] — 편집 중
+  var baseGroups = [];     // 저장소에 올라가 있는 것(파일에 아직 없으면 infra-pins.js 기본 묶음)
   var busy = false;
 
   function sameSpot(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
@@ -348,11 +379,13 @@
     var plById = {};
     basePlaces.forEach(function (p) { plById[p.id] = p; });
     places.forEach(function (p) { if (!plById[p.id] || !sameSpot(plById[p.id], p)) n++; delete plById[p.id]; });
-    return n + Object.keys(plById).length;
+    n += Object.keys(plById).length;
+    // 지도 묶음·우선순위는 통째로 하나로 센다
+    return n + (sameSpot(baseGroups, groups) ? 0 : 1);
   }
   function saveDraft() {
     try {
-      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots, categories: categories, places: places }));
+      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots, categories: categories, places: places, groups: groups }));
       else localStorage.removeItem(DRAFT_KEY);
       return true;
     } catch (e) { return false; }
@@ -386,16 +419,17 @@
   $('publish-btn').addEventListener('click', function () {
     var n = pendingCount();
     if (!n || busy) return;
-    if (!confirm('바뀐 스팟·종류 ' + n + '개를 저장소에 커밋해서 모든 사람에게 보이게 할까요?\n(반영된 뒤 서비스에 보이기까지 몇 분 걸려요)')) return;
+    if (!confirm('바뀐 스팟·종류·지도 설정 ' + n + '개를 저장소에 커밋해서 모든 사람에게 보이게 할까요?\n(반영된 뒤 서비스에 보이기까지 몇 분 걸려요)')) return;
     busy = true; renderStatus();
     $('status-msg').textContent = 'GitHub에 올리는 중…';
-    SpotGitHub.publish(spots, baseSha, null, categories, places).then(function (res) {
+    SpotGitHub.publish(spots, baseSha, null, categories, places, groups).then(function (res) {
       busy = false;
       baseSha = res.headSha;
       spots = res.spots;                 // 사진이 파일 경로로 바뀐 목록
       baseSpots = JSON.parse(JSON.stringify(res.spots));
       baseCategories = JSON.parse(JSON.stringify(categories));
       basePlaces = JSON.parse(JSON.stringify(places));
+      baseGroups = JSON.parse(JSON.stringify(groups));
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 무시 */ }
       clearForm();
       renderAll();
@@ -732,6 +766,8 @@
   }
   function applyCategories() {
     InfraPins.setCustomCategories(categories);
+    // 새 종류는 '기타' 묶음 끝에 들어가고, 지운 종류는 묶음에서 빠진다
+    groups = InfraPins.normalizeGroups(groups);
     fillCategorySelects();
   }
   fCat.addEventListener('change', function () {
@@ -969,7 +1005,116 @@
         listEl.appendChild(li);
       });
   }
-  function renderAll() { if (map) { renderMarkers(); renderList(); renderCategories(); fillAreaList(); renderPlaces(); } }
+  function renderAll() { if (map) { renderMarkers(); renderList(); renderCategories(); fillAreaList(); renderPlaces(); renderGroups(); } }
+
+  // ── 지도 묶음·우선순위 ──
+  // 저장 모양은 infra-pins.js normalizeGroups와 같다. 여기서 바꾸면 초안에 저장되고, "모두에게 반영"으로 spots-data.js에 올라간다.
+  function button(text, title, onClick, disabled) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = text; b.title = title || '';
+    b.disabled = !!disabled;
+    b.addEventListener('click', function () { if (!busy) onClick(); });
+    return b;
+  }
+  function moveGroup(i, d) {
+    var j = i + d;
+    if (j < 0 || j >= groups.length) return;
+    var t = groups[i]; groups[i] = groups[j]; groups[j] = t;
+    save();
+  }
+  // 레이어를 한 칸 위·아래로. 묶음의 끝에서는 옆 묶음으로 넘어간다(위로 → 앞 묶음의 맨 끝, 아래로 → 다음 묶음의 맨 앞).
+  function moveLayer(gi, li, d) {
+    var layers = groups[gi].layers, j = li + d;
+    if (j >= 0 && j < layers.length) { var t = layers[li]; layers[li] = layers[j]; layers[j] = t; }
+    else if (groups[gi + d]) {
+      var moved = layers.splice(li, 1)[0];
+      if (d < 0) groups[gi + d].layers.push(moved); else groups[gi + d].layers.unshift(moved);
+    } else return;
+    save();
+  }
+  function renderGroups() {
+    var box = $('group-list');
+    box.innerHTML = '';
+    var rank = 0;
+    groups.forEach(function (g, gi) {
+      var card = document.createElement('div'); card.className = 'grp';
+      var head = document.createElement('div'); head.className = 'grp-head';
+      var label = document.createElement('span'); label.className = 'label'; label.textContent = g.label;
+      head.appendChild(label);
+      head.appendChild(button('이름', '묶음 이름 바꾸기', function () {
+        var v = prompt('"' + g.label + '" 묶음의 새 이름 (10자까지)', g.label);
+        if (v == null) return;
+        v = v.trim().replace(/\s+/g, ' ').slice(0, 10);
+        if (!v || v === g.label) return;
+        if (groups.some(function (x) { return x !== g && x.label === v; })) { alert('"' + v + '" 묶음이 이미 있어요.'); return; }
+        g.label = v; save();
+      }));
+      head.appendChild(button('▲', '묶음을 위로', function () { moveGroup(gi, -1); }, gi === 0));
+      head.appendChild(button('▼', '묶음을 아래로', function () { moveGroup(gi, 1); }, gi === groups.length - 1));
+      var del = button('지우기', g.layers.length ? '안에 든 것을 먼저 다른 묶음으로 옮겨 주세요' : '', function () {
+        if (!confirm('"' + g.label + '" 묶음을 지울까요?')) return;
+        groups.splice(gi, 1); save();
+      }, g.layers.length > 0);
+      del.className = 'danger';
+      head.appendChild(del);
+      card.appendChild(head);
+
+      if (!g.layers.length) {
+        var empty = document.createElement('div'); empty.className = 'empty';
+        empty.textContent = '비어 있어요 — 옆 묶음의 것을 ▲▼로 옮겨 넣으세요. 비어 있는 묶음은 지도에 안 나와요.';
+        card.appendChild(empty);
+      }
+      var ul = document.createElement('ul');
+      g.layers.forEach(function (l, li) {
+        var info = InfraPins.layerInfo(l.key);
+        if (!info) return;
+        rank++;
+        var row = document.createElement('li');
+        var r = document.createElement('span'); r.className = 'rank'; r.textContent = rank; row.appendChild(r);
+        var dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = info.color; row.appendChild(dot);
+        var name = document.createElement('span'); name.className = 'label';
+        var used = spots.filter(function (s) { return s.cat === l.key; }).length;
+        name.textContent = info.label;
+        var sub = document.createElement('span'); sub.style.cssText = 'font-weight:500;color:var(--ink-soft);font-size:11px;';
+        sub.textContent = info.system ? ' · 동네 지도 전용' : ' · 스팟 ' + used + '개';
+        name.appendChild(sub);
+        row.appendChild(name);
+        var zoom = document.createElement('select'); zoom.title = '얼마나 넓게 볼 때까지 보일지';
+        Object.keys(InfraPins.ZOOMS).forEach(function (k) {
+          var o = document.createElement('option'); o.value = k; o.textContent = InfraPins.ZOOMS[k].label; zoom.appendChild(o);
+        });
+        zoom.value = l.zoom;
+        zoom.addEventListener('change', function () { if (busy) return; l.zoom = zoom.value; save(); });
+        var offLabel = document.createElement('label'); offLabel.className = 'off';
+        offLabel.title = '처음 온 사람에게는 꺼진 채로 보여요. 칩을 눌러 켜면 보여요.';
+        var off = document.createElement('input'); off.type = 'checkbox'; off.checked = !!l.off;
+        off.addEventListener('change', function () { if (busy) return; if (off.checked) l.off = true; else delete l.off; save(); });
+        offLabel.appendChild(off); offLabel.appendChild(document.createTextNode('처음엔 꺼 둠'));
+        row.appendChild(button('▲', '우선순위 올리기', function () { moveLayer(gi, li, -1); }, gi === 0 && li === 0));
+        row.appendChild(button('▼', '우선순위 내리기', function () { moveLayer(gi, li, 1); }, gi === groups.length - 1 && li === g.layers.length - 1));
+        var controls = document.createElement('div'); controls.className = 'controls';
+        controls.appendChild(zoom); controls.appendChild(offLabel);
+        row.appendChild(controls);
+        ul.appendChild(row);
+      });
+      card.appendChild(ul);
+      box.appendChild(card);
+    });
+  }
+  $('group-add').addEventListener('click', function () {
+    if (busy) return;
+    var v = prompt('새 묶음 이름 (10자까지, 예: 놀 곳)');
+    if (v == null) return;
+    v = v.trim().replace(/\s+/g, ' ').slice(0, 10);
+    if (!v) return;
+    if (groups.some(function (x) { return x.label === v; })) { alert('"' + v + '" 묶음이 이미 있어요.'); return; }
+    groups.push({ id: 'g' + Date.now().toString(36), label: v, layers: [] });
+    save();
+  });
+  $('group-reset').addEventListener('click', function () {
+    if (busy || !confirm('묶음과 순서를 기본값으로 되돌릴까요?\n(갈 곳 · 우리 개 · 안전 · 편의 · 꾸밈 — 직접 만든 종류는 "기타"로)')) return;
+    groups = InfraPins.normalizeGroups(null);
+    save();
+  });
 
   // ── 우리 개 발도장 장소 ──
   var placeLayer = null, placeEditId = null, placeDraft = null;
@@ -1096,6 +1241,10 @@
     categories = JSON.parse(JSON.stringify(baseCategories));
     basePlaces = st.stampPlaces || RewardRules.DEFAULT_PLACES.map(placeFromDefault);
     places = JSON.parse(JSON.stringify(basePlaces));
+    // 직접 만든 종류를 먼저 알려 줘야 묶음에서 그 종류가 빠지지 않는다
+    InfraPins.setCustomCategories(baseCategories);
+    baseGroups = InfraPins.normalizeGroups(st.mapGroups);
+    groups = JSON.parse(JSON.stringify(baseGroups));
     // 반영 안 한 편집이 이 컴퓨터에 남아 있으면 이어서
     var draft = null;
     try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { draft = null; }
@@ -1103,6 +1252,7 @@
       spots = draft.spots;
       if (Array.isArray(draft.categories)) categories = draft.categories;
       if (Array.isArray(draft.places)) places = draft.places;
+      if (Array.isArray(draft.groups)) groups = draft.groups;
       if (draft.baseSha) baseSha = draft.baseSha;
     }
 

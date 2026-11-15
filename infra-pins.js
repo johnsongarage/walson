@@ -36,6 +36,22 @@
   // spots-data.js의 window.PETWALK_SPOT_CATEGORIES = [{ key, label, color }]. 스팟 편집 페이지에서 글자로 추가한다.
   // 아이콘은 모두 같은 별표(Phosphor Star, MIT). 기본 종류와 key가 겹치면 무시한다.
   var CUSTOM_ICON = 'M239.18,97.26A16.38,16.38,0,0,0,224.92,86l-59-4.76L143.14,26.15a16.36,16.36,0,0,0-30.27,0L90.11,81.23,31.08,86a16.46,16.46,0,0,0-9.37,28.86l45,38.83L53,211.75a16.38,16.38,0,0,0,24.5,17.82L128,198.49l50.53,31.08A16.4,16.4,0,0,0,203,211.75l-13.76-58.07,45-38.83A16.43,16.43,0,0,0,239.18,97.26Zm-15.34,5.47-48.7,42a8,8,0,0,0-2.56,7.91l14.88,62.8a.37.37,0,0,1-.17.48c-.18.14-.23.11-.38,0l-54.72-33.65a8,8,0,0,0-8.38,0L69.09,215.94c-.15.09-.19.12-.38,0a.37.37,0,0,1-.17-.48l14.88-62.8a8,8,0,0,0-2.56-7.91l-48.7-42c-.12-.1-.23-.19-.13-.5s.18-.27.33-.29l63.92-5.16A8,8,0,0,0,103,91.86l24.62-59.61c.08-.17.11-.25.35-.25s.27.08.35.25L153,91.86a8,8,0,0,0,6.75,4.92l63.92,5.16c.15,0,.24,0,.33.29S224,102.63,223.84,102.73Z';
+  // ── 초안 미리 보기(2026-11-15) ──
+  // 운영자 기기에서 town.html?draft=1 로 열면, 스팟 편집에서 아직 "모두에게 반영" 안 한 초안(이 브라우저에만 있음)으로
+  // 지도를 그린다 — 묶음·우선순위를 바꾼 결과를 반영 전에 눈으로 확인하려는 것. 다른 사람에게는 아무 영향이 없다.
+  var DRAFT_PREVIEW = false;
+  if (/[?&]draft=1/.test(location.search) && isAdminDevice()) {
+    try {
+      var draft = JSON.parse(localStorage.getItem('petwalk_spot_draft'));
+      if (draft && Array.isArray(draft.spots)) {
+        window.PETWALK_SPOTS = draft.spots;
+        if (Array.isArray(draft.categories)) window.PETWALK_SPOT_CATEGORIES = draft.categories;
+        if (Array.isArray(draft.groups)) window.PETWALK_MAP_GROUPS = draft.groups;
+        DRAFT_PREVIEW = true;
+      }
+    } catch (e) { /* 초안이 없거나 깨졌으면 서비스 내용 그대로 */ }
+  }
+
   var BUILTIN_COUNT = CATEGORIES.length;
   function setCustomCategories(list) {
     CATEGORIES.length = BUILTIN_COUNT;
@@ -58,6 +74,108 @@
   function category(key) {
     for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].key === key) return CATEGORIES[i];
     return null;
+  }
+
+  // ── 지도 묶음·우선순위(2026-11-15 가르시아 "체계적으로 그룹화하고 우선순위를 스팟 편집에서 관리") ──
+  // 지도에 올라가는 것을 "레이어"라 부른다: 스팟 종류(CATEGORIES) + 아래 고정 레이어 셋([동네]에만 있음).
+  // 레이어를 묶음으로 나누고, 위에 있을수록 우선순위가 높다 — 칩이 앞에 오고, 핀이 겹치면 위에 그려진다.
+  // 레이어마다: zoom(얼마나 넓게 볼 때까지 보일지), off(처음엔 꺼 둠 — 사용자가 켜면 보임).
+  // 설정은 spots-data.js의 window.PETWALK_MAP_GROUPS = [{ id, label, layers: [{ key, zoom, off }] }].
+  // 스팟 편집 페이지가 쓴다. 없으면 DEFAULT_GROUPS.
+  var SYSTEM_LAYERS = [
+    { key: 'stamp', label: '우리 개 발도장', color: '#b8563a', system: true },
+    { key: 'mine', label: '내 핀', color: '#b8563a', system: true },
+    { key: 'deco', label: '그림 강아지', color: '#e9c46a', system: true }
+  ];
+  var ZOOMS = {
+    far:  { min: 13, label: '넓게 봐도 보임' },
+    mid:  { min: 15, label: '기본 화면부터 보임' },
+    near: { min: 16, label: '확대해야 보임' }
+  };
+  var ETC_GROUP_ID = 'etc';
+  var DEFAULT_GROUPS = [
+    { id: 'go', label: '갈 곳', layers: [{ key: 'spot', zoom: 'far' }, { key: 'park', zoom: 'far' }] },
+    { id: 'dog', label: '우리 개', layers: [{ key: 'stamp', zoom: 'far' }, { key: 'mine', zoom: 'far' }] },
+    { id: 'safe', label: '안전', layers: [{ key: 'caution', zoom: 'far' }, { key: 'vet', zoom: 'mid' }] },
+    { id: 'handy', label: '편의', layers: [{ key: 'bag', zoom: 'mid' }, { key: 'water', zoom: 'mid' }, { key: 'toilet', zoom: 'mid' }] },
+    { id: 'deco', label: '꾸밈', layers: [{ key: 'deco', zoom: 'mid' }] }
+  ];
+  function layerInfo(key) {
+    var c = category(key);
+    if (c) return c;
+    for (var i = 0; i < SYSTEM_LAYERS.length; i++) if (SYSTEM_LAYERS[i].key === key) return SYSTEM_LAYERS[i];
+    return null;
+  }
+  // 설정을 지금 있는 레이어에 맞춘다: 없어진 종류·겹친 것은 빼고, 어느 묶음에도 없는 레이어(새로 만든 종류)는 '기타' 묶음 끝에.
+  // 돌려주는 값은 저장하는 모양 그대로 [{ id, label, layers: [{ key, zoom, off? }] }] — 편집 페이지도 이걸 쓴다.
+  function normalizeGroups(groups) {
+    var src = Array.isArray(groups) && groups.length ? groups : DEFAULT_GROUPS;
+    var seen = {}, ids = {}, out = [];
+    src.forEach(function (g) {
+      if (!g || !g.id || ids[g.id]) return;
+      ids[g.id] = true;
+      var layers = [];
+      (g.layers || []).forEach(function (l) {
+        if (!l || seen[l.key] || !layerInfo(l.key)) return;
+        seen[l.key] = true;
+        var o = { key: l.key, zoom: ZOOMS[l.zoom] ? l.zoom : 'mid' };
+        if (l.off) o.off = true;
+        layers.push(o);
+      });
+      out.push({ id: g.id, label: String(g.label || '묶음').slice(0, 10), layers: layers });
+    });
+    var missing = CATEGORIES.concat(SYSTEM_LAYERS).filter(function (c) { return !seen[c.key]; });
+    if (missing.length) {
+      var etc = out.filter(function (g) { return g.id === ETC_GROUP_ID; })[0];
+      if (!etc) { etc = { id: ETC_GROUP_ID, label: '기타', layers: [] }; out.push(etc); }
+      missing.forEach(function (c) { etc.layers.push({ key: c.key, zoom: 'mid' }); });
+    }
+    return out;
+  }
+  // 화면이 쓰는 모양: { groups: [{ id, label, layers: [layer] }], list: [layer], byKey }
+  // layer = { key, label, color, system, zoom, minZoom, off, rank(0이 가장 높음), z(Leaflet zIndexOffset 바탕값) }
+  function layout(groups) {
+    var norm = normalizeGroups(groups === undefined ? window.PETWALK_MAP_GROUPS : groups);
+    var list = [], byKey = {};
+    var total = norm.reduce(function (n, g) { return n + g.layers.length; }, 0);
+    var res = norm.map(function (g) {
+      return { id: g.id, label: g.label, layers: g.layers.map(function (l) {
+        var info = layerInfo(l.key);
+        var layer = {
+          key: l.key, label: info.label, color: info.color, system: !!info.system,
+          zoom: l.zoom, minZoom: ZOOMS[l.zoom].min, off: !!l.off,
+          rank: list.length, z: (total - list.length) * 100
+        };
+        list.push(layer); byKey[l.key] = layer;
+        return layer;
+      }) };
+    });
+    return { groups: res, list: list, byKey: byKey };
+  }
+
+  // 사용자가 켜고 끈 상태 — 이 휴대폰에만. town.html과 walk.html이 같이 쓴다.
+  //  petwalk_infra_filter: 사용자가 끈 레이어 / petwalk_infra_shown: "처음엔 꺼 둠"인 레이어 중 사용자가 켠 것
+  function filterState(lay) {
+    var hidden = {}, shown = {};
+    function read(key, into) {
+      try { (JSON.parse(localStorage.getItem(key)) || []).forEach(function (k) { into[k] = true; }); } catch (e) { /* 깨졌으면 기본 상태로 */ }
+    }
+    read('petwalk_infra_filter', hidden);
+    read('petwalk_infra_shown', shown);
+    function save() {
+      try {
+        localStorage.setItem('petwalk_infra_filter', JSON.stringify(Object.keys(hidden)));
+        localStorage.setItem('petwalk_infra_shown', JSON.stringify(Object.keys(shown)));
+      } catch (e) { /* 저장 실패해도 화면엔 반영됨 */ }
+    }
+    function defaultOff(key) { return !!(lay.byKey[key] && lay.byKey[key].off); }
+    function isOff(key) { return !!hidden[key] || (defaultOff(key) && !shown[key]); }
+    function set(key, on) {
+      if (on) { delete hidden[key]; if (defaultOff(key)) shown[key] = true; }
+      else { delete shown[key]; if (!defaultOff(key)) hidden[key] = true; }
+      save();
+    }
+    return { isOff: isOff, set: set, toggle: function (key) { set(key, isOff(key)); } };
   }
 
   function iconSvg(key, size) {
@@ -249,6 +367,9 @@
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
     popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice,
     setCustomCategories: setCustomCategories, GUARDIAN_DISCLAIMER: GUARDIAN_DISCLAIMER,
-    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData
+    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
+    SYSTEM_LAYERS: SYSTEM_LAYERS, ZOOMS: ZOOMS, DEFAULT_GROUPS: DEFAULT_GROUPS, ETC_GROUP_ID: ETC_GROUP_ID,
+    layerInfo: layerInfo, normalizeGroups: normalizeGroups, layout: layout, filterState: filterState,
+    DRAFT_PREVIEW: DRAFT_PREVIEW
   };
 })();
