@@ -215,3 +215,22 @@ body { font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun 
 .shop-extra .walk-line, .shop-extra .walk-line small { color: #000 !important; }
 .reg { border-radius: 0 !important; border: 2px solid #000; background: var(--b-yellow) !important; }
 .reg-top { color: #000 !important; font-weight: 900 !important; }
+
+/* ── 지도 미션 · 급할 때(2026-11-15) ── */
+.mission-card, .mission-bar { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important; }
+.mission-card .mc-flag, .mission-bar .mb-flag { border-radius: 0 !important; background: var(--b-pink) !important; color: #000 !important; border: 2px solid #000; }
+.mission-card.is-done .mc-flag, .mission-bar.is-done .mb-flag { background: var(--b-lime) !important; }
+.mission-card .mc-t1, .mission-card .mc-go, .mission-bar .mb-text small, .mission-bar .mb-dir { color: #000 !important; }
+.mission-card .mc-t3 { color: #000 !important; }
+.mission-pin .mp-ring { border-color: #000 !important; border-radius: 0 !important; }
+.mission-pin .mp-flag { border-radius: 0 !important; background: var(--b-pink) !important; color: #000 !important; border: 3px solid #000 !important; box-shadow: 3px 3px 0 #000 !important; }
+.mission-pin .mp-label { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; }
+.sos-link { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important; font-weight: 900 !important; }
+.sos-link .ic { border-radius: 0 !important; background: var(--b-red) !important; color: #000 !important; }
+.sheet-sec { color: #000 !important; font-weight: 900 !important; }
+.sos-acts a { border-radius: 0 !important; border: 2px solid #000 !important; color: #000 !important; }
+.walk-notice.is-good { border: var(--b-line) !important; background: var(--b-lime) !important; }
+.walk-notice.is-good .icon { color: #000 !important; }
+.choice .mission-line { border-radius: 0 !important; border: 2px solid #000; background: var(--b-lime) !important; color: #000 !important; }
+.choice .mission-line .fl { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; }
+.choice .mission-line small, .choice ul.perks, .choice .why-not { color: #000 !important; }

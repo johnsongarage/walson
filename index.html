@@ -114,7 +114,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
-<script src="theme.js?v=7"></script>
+<script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=4"></script>
 </head>
@@ -159,6 +159,12 @@
     <p class="week-sum" id="week-sum"></p>
   </section>
 
+  <!-- 꾸준함 도장(2026-11-15): 한 주(월~일)에 산책한 날 3·5·7일 — 시간만 잰 산책도 센다(reward-rules.js steady) -->
+  <section class="panel" id="steady-panel">
+    <h2>꾸준함 도장 · 이번 주</h2>
+    <div id="steady-box"></div>
+  </section>
+
   <section class="panel" id="last-panel" hidden>
     <h2>최근 산책</h2>
     <a class="last" href="walk-history.html">
@@ -191,6 +197,8 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
+<script src="reward-rules.js?v=7"></script>
+<script src="steady-stamp.js?v=1"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
   // 오늘의 한 장 사진이 저장되면 한 번 다시 열어 사진까지 보이게 한다. 시작 화면(2초)이 그동안을 가린다.
@@ -321,6 +329,13 @@
   document.getElementById('week-sum').textContent = weekDays
     ? '7일 중 ' + weekDays + '일 산책 · 모두 ' + weekTotal + '분'
     : '최근 7일 동안 기록이 없어요.';
+
+  // ── 꾸준함 도장(2026-11-15) — 모든 산책(5분 이상)을 한 주 단위로 센다 ──
+  if (window.RewardRules && RewardRules.steady && window.SteadyStamp) {
+    document.getElementById('steady-box').appendChild(SteadyStamp.week(RewardRules.steady(walks)));
+  } else {
+    document.getElementById('steady-panel').hidden = true;
+  }
 
   // ── 최근 산책 ──
   var last = walks.length ? walks[walks.length - 1] : null;

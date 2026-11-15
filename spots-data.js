@@ -27,6 +27,7 @@ window.PETWALK_SPOT_CATEGORIES = [
 ];
 // 우리 개 발도장 장소 — { id, name, lat, lng, radiusM, kind: park|water|building }. reward-rules.js가 읽는다.
 window.PETWALK_STAMP_PLACES = [
+  {"id":"campus","name":"프리미어캠퍼스","lat":37.61274,"lng":127.15246,"radiusM":150,"kind":"building"},
   {"id":"outlet","name":"아울렛","lat":37.61633,"lng":127.15268,"radiusM":150,"kind":"building"},
   {"id":"central","name":"다산 중앙공원","lat":37.6233,"lng":127.15962,"radiusM":250,"kind":"park"},
   {"id":"waterside","name":"다산수변공원","lat":37.62396,"lng":127.14529,"radiusM":300,"kind":"water"}
@@ -35,7 +36,7 @@ window.PETWALK_STAMP_PLACES = [
 window.PETWALK_MAP_GROUPS = [
   {"id":"go","label":"갈 곳","layers":[{"key":"spot","zoom":"far"},{"key":"park","zoom":"far"}]},
   {"id":"dog","label":"우리 개","layers":[{"key":"stamp","zoom":"far"},{"key":"mine","zoom":"far"}]},
-  {"id":"safe","label":"안전","layers":[{"key":"caution","zoom":"far"},{"key":"vet","zoom":"mid"}]},
-  {"id":"handy","label":"편의","layers":[{"key":"bag","zoom":"mid"},{"key":"water","zoom":"mid"},{"key":"toilet","zoom":"mid"}]},
+  {"id":"safe","label":"안전","layers":[{"key":"caution","zoom":"far"},{"key":"vet","zoom":"mid","off":true}]},
+  {"id":"handy","label":"편의","layers":[{"key":"bag","zoom":"mid"},{"key":"water","zoom":"mid"},{"key":"toilet","zoom":"mid","off":true}]},
   {"id":"deco","label":"꾸밈","layers":[{"key":"deco","zoom":"mid"}]}
 ];

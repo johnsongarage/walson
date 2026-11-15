@@ -223,7 +223,8 @@
       ctx.fillStyle = '#b8542f';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      var meta = (s.tiersOn ? tier.name + ' 등급  ·  ' : '') + '산책 ' + p.walks + '회  ·  ' + p.km.toFixed(1) + 'km';
+      var meta = (s.tiersOn ? tier.name + ' 등급  ·  ' : '') + '산책 ' + p.walks + '회  ·  ' + p.km.toFixed(1) + 'km' +
+        (p.steady ? '  ·  꾸준함 ' + p.steady : '');   // 꾸준함 도장 수(2026-11-15, 넘겨준 화면만)
       ctx.fillText(meta, W / 2, metaY);
       ctx.textAlign = 'left';
 
