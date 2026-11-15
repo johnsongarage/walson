@@ -145,6 +145,13 @@
     <p class="hint" id="next-goal"></p>
   </div>
 
+  <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다 — 카드 성장(테두리)과는 따로 -->
+  <div class="panel" id="steady-card">
+    <div class="next-label" style="margin-bottom:10px;"><span>꾸준함 도장판</span><small id="steady-count"></small></div>
+    <div id="steady-board"></div>
+    <p class="hint" style="margin-top:10px;">한 주(월~일)에 산책한 날 3·5·7일마다 도장. 시간만 잰 산책도 들어가요(5분 이상).</p>
+  </div>
+
   <div class="actions">
     <button type="button" class="btn btn-secondary" id="reroll-btn">스킬 다시 뽑기</button>
     <button type="button" class="btn btn-primary" id="save-btn">이미지로 저장</button>
@@ -157,9 +164,10 @@
 
 <script src="card-shared.js?v=11"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=6"></script>
-<script src="reward-card-soft.js?v=1"></script>
-<script src="reward-card.js?v=4"></script>
+<script src="reward-rules.js?v=7"></script>
+<script src="steady-stamp.js?v=1"></script>
+<script src="reward-card-soft.js?v=2"></script>
+<script src="reward-card.js?v=5"></script>
 <script>
 (function () {
   var CS = window.CardShared;
@@ -197,6 +205,17 @@
   document.getElementById('profile-notice').hidden = !!(profile.name && profile.photo);
 
   var progress = RR.computeProgress(loadJSON(WALKS_KEY));
+  // 꾸준함 도장(2026-11-15) — 카드 앞면 정보 줄에 받은 도장 수를 같이 적는다(reward-card*.js)
+  if (RR.steady && window.SteadyStamp) {
+    var steadyInfo = RR.steady(loadJSON(WALKS_KEY) || []);
+    progress.steady = steadyInfo.total;
+    document.getElementById('steady-board').appendChild(SteadyStamp.board(steadyInfo, 8));
+    document.getElementById('steady-count').textContent = steadyInfo.total
+      ? '모두 ' + steadyInfo.total + '개 · 3일 ' + steadyInfo.byLevel[0] + ' · 5일 ' + steadyInfo.byLevel[1] + ' · 7일 ' + steadyInfo.byLevel[2]
+      : '아직 없어요';
+  } else {
+    document.getElementById('steady-card').hidden = true;
+  }
   var side = 'front';
 
   var card = RC.create(function () {
