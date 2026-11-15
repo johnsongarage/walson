@@ -158,6 +158,8 @@
   </div>
   <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
   <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden style="display:none;margin-top:12px;text-decoration:none;justify-content:center;">키링 받기</a>
+  <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
+  <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden style="display:none;margin-top:12px;text-decoration:none;justify-content:center;">강아지 도감 · 스친 강아지 (시험판)</a>
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
   5분·200m 미만 산책은 횟수에 들어가지 않아요.</p>
 </div>
@@ -166,6 +168,13 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="steady-stamp.js?v=1"></script>
+<script src="mock-server.js?v=1"></script>
+<script>
+  (function () {
+    if (!window.WalsonApi || !WalsonApi.isOn()) return;
+    var a = document.getElementById('friends-link'); a.hidden = false; a.style.display = 'flex';
+  })();
+</script>
 <script src="reward-card-soft.js?v=2"></script>
 <script src="reward-card.js?v=5"></script>
 <script>

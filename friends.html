@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>강아지 도감</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 강아지 도감 + 오늘 스친 강아지 — 서버 가정 시험판(2026-11-15). 데이터는 mock-server.js의 가짜 서버(이 폰 안)가 준다.
+     입구는 시험판을 켰을 때만 [카드] 탭과 산책 끝 화면에 보인다(?server=mock). */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+    --green: #3f9b5b; --yellow: #dfa21f; --red: #d2493f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 12px;
+    text-decoration: none; background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink); box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; }
+  .mock-badge { font-size: 11px; font-weight: 800; color: #fff; background: #4a3f35; border-radius: 999px; padding: 2px 8px; }
+  .subtitle { margin: 6px 0 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabs button {
+    flex: 1; padding: 10px 4px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel);
+    font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-soft); cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tabs button small { font-weight: 800; margin-left: 2px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; padding: 14px; box-shadow: 0 3px 12px rgba(var(--shadow-rgb), 0.08); margin-bottom: 12px; }
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .switch-row b { font-size: 15px; }
+  .switch-row p { margin: 4px 0 0; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  .toggle { position: relative; flex-shrink: 0; width: 52px; height: 30px; border-radius: 999px; border: none; background: #d6c8b6; cursor: pointer; }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .toggle[aria-checked="true"] { background: var(--green); }
+  .toggle[aria-checked="true"]::after { left: 25px; }
+  .sends { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); font-size: 12px; line-height: 1.6; }
+  .sends b { display: block; margin-bottom: 2px; }
+
+  .day { margin: 16px 2px 8px; font-size: 14px; font-weight: 800; }
+  .day small { font-weight: 600; color: var(--ink-soft); margin-left: 4px; }
+  .enc { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px; margin-bottom: 8px; }
+  .enc .who { flex: 1; min-width: 0; }
+  .enc .who b { display: block; font-size: 15px; }
+  .enc .who span { font-size: 12px; color: var(--ink-soft); }
+  .enc .act { flex-shrink: 0; }
+  .enc .act button { font: inherit; font-size: 12px; font-weight: 800; padding: 8px 10px; border-radius: 10px; border: none; background: var(--accent); color: #fff; cursor: pointer; }
+  .enc .act .state { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .enc .act .state.ok { color: var(--green); }
+
+  .avatar { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #4a3f35; position: relative; border: 3px solid transparent; }
+  .avatar.anon { background: #e9e0d4; color: #9a8a78; }
+  .avatar.lg { width: 72px; height: 72px; font-size: 26px; border-width: 4px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dog { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; padding: 14px 10px 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 3px 12px rgba(var(--shadow-rgb), 0.08); }
+  .dog .name { font-size: 17px; font-weight: 800; margin-top: 4px; }
+  .dog .meta { font-size: 12px; color: var(--ink-soft); }
+  .dog .sig { font-size: 11px; font-weight: 800; }
+  .dog .met { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-tint); border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
+  .dog.slot { border-style: dashed; background: transparent; box-shadow: none; color: #b5a593; justify-content: center; min-height: 150px; font-size: 12px; }
+
+  .count { display: flex; align-items: baseline; gap: 6px; margin: 0 2px 10px; }
+  .count b { font-size: 26px; font-weight: 900; }
+  .count span { font-size: 13px; color: var(--ink-soft); }
+
+  .btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 13px; border-radius: 14px; border: none; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; text-decoration: none; margin-top: 10px; }
+  .btn-main { background: var(--accent); color: #fff; }
+  .btn-sub { background: var(--panel); color: var(--ink); border: 1px solid var(--panel-border); }
+  .btn:disabled { opacity: .5; }
+
+  .empty { text-align: center; padding: 30px 16px; color: var(--ink-soft); background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; font-size: 13px; line-height: 1.6; }
+  .note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 8px 2px 0; }
+  .log { margin-bottom: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; font-size: 12px; }
+  .log b { font-size: 13px; }
+  .log time { float: right; color: var(--ink-soft); }
+  .log pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; font: 11px/1.5 ui-monospace, Menlo, Consolas, monospace; color: #5b4e41; }
+  .foot { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--panel-border); }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 90%; background: #4a3f35; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 10; }
+
+  /* 뉴브루탈 테마 */
+  [data-theme="brutal"] body { background: #F2B833; }
+  [data-theme="brutal"] .panel, [data-theme="brutal"] .enc, [data-theme="brutal"] .dog:not(.slot), [data-theme="brutal"] .empty,
+  [data-theme="brutal"] .log, [data-theme="brutal"] .tabs button, [data-theme="brutal"] .btn-sub, [data-theme="brutal"] .topbar a {
+    background: #fff; border: 3px solid #000; border-radius: 0; box-shadow: 4px 4px 0 #000; color: #000;
+  }
+  [data-theme="brutal"] .tabs button[aria-selected="true"], [data-theme="brutal"] .btn-main, [data-theme="brutal"] .enc .act button {
+    background: #ff6fa8; color: #000; border: 3px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000;
+  }
+  [data-theme="brutal"] .dog.slot { border: 3px dashed #000; border-radius: 0; color: #000; }
+  [data-theme="brutal"] .sends, [data-theme="brutal"] .dog .met { background: #c6f06e; color: #000; border-radius: 0; }
+  [data-theme="brutal"] .avatar { border-color: #000 !important; }
+</style>
+<script src="theme.js?v=7"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=7"></script>
+<script src="mock-server.js?v=1"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="my-card.html" title="카드로 돌아가기">←</a>
+    <h1>강아지 도감</h1>
+    <span class="mock-badge">서버 가정 시험판</span>
+  </div>
+  <p class="subtitle">진짜 서버 없이, 이 폰 안의 가짜 견주 12명과 주고받는 시험판이에요.
+  여기서 해 본 것은 어디로도 나가지 않아요.</p>
+
+  <div id="off" hidden>
+    <div class="empty">시험판이 꺼져 있어요.<br>켜면 [카드] 탭과 산책 끝 화면에 도감 입구가 생겨요.</div>
+    <a class="btn btn-main" href="friends.html?server=mock">시험판 켜기</a>
+  </div>
+
+  <div id="on" hidden>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="dex" aria-selected="true">도감 <small id="n-dex"></small></button>
+      <button type="button" role="tab" data-tab="met" aria-selected="false">스친 강아지 <small id="n-met"></small></button>
+      <button type="button" role="tab" data-tab="log" aria-selected="false">서버로 간 것</button>
+    </div>
+
+    <!-- 도감 -->
+    <section data-pane="dex">
+      <div class="count"><b id="dex-count">0</b><span>마리와 서로 도감을 교환했어요</span></div>
+      <div class="grid" id="dex-grid"></div>
+      <button type="button" class="btn btn-sub" id="qr-btn">공원에서 QR 교환해 보기 (시험)</button>
+      <p class="note">실제로는 공원에서 서로의 주민증 QR을 찍으면 그 자리에서 둘 다 도감에 들어가요.
+      시험판에는 상대 폰이 없어서 아직 안 만난 가짜 강아지 하나를 찍은 걸로 쳐요.</p>
+    </section>
+
+    <!-- 스친 강아지 -->
+    <section data-pane="met" hidden>
+      <div class="panel">
+        <div class="switch-row">
+          <div>
+            <b>스친 강아지</b>
+            <p>켠 사람끼리만 서로 보여요. 산책이 끝난 뒤에 보여서, 지금 누가 근처에 있는지는 알 수 없어요.</p>
+          </div>
+          <button type="button" class="toggle" id="vis-toggle" role="switch" aria-checked="false" aria-label="스친 강아지 켜기"></button>
+        </div>
+        <div class="sends">
+          <b>켜면 서버로 가는 것</b>
+          길 기록 산책이 끝날 때마다 <u>날짜 · 지나간 발도장 장소 이름 · 시간대(아침/낮/저녁/밤)</u>만 보내요.
+          좌표·경로·정확한 시각은 보내지 않아요. 처음 켜면 최근 7일 산책도 같이 보내요.
+        </div>
+      </div>
+      <div id="met-list"></div>
+      <p class="note">모르는 강아지는 신호등 색과 크기만 보여요. 도감 교환을 요청해서 상대가 받아 주면 이름이 보여요.
+      받아 주지 않아도 따로 알리지 않아요("아직 답이 없어요").</p>
+    </section>
+
+    <!-- 서버로 간 것 -->
+    <section data-pane="log" hidden>
+      <p class="note" style="margin-top:0;">진짜 서버가 생기면 이 내용이 그대로 서버로 가요. 시험판은 이 폰 안의 가짜 서버로 가요.</p>
+      <div id="log-list" style="margin-top:10px;"></div>
+    </section>
+
+    <div class="foot">
+      <button type="button" class="btn btn-sub" id="reset-btn">가짜 서버 처음으로</button>
+      <a class="btn btn-sub" href="my-card.html?server=off">시험판 끄기</a>
+      <p class="note">가짜 서버 처음으로: 도감·스친 기록·보낸 기록을 지워요. 내 산책 기록은 그대로예요.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var Api = window.WalsonApi;
+  var S = Api.server;
+  var SIGNAL = {
+    green: { color: 'var(--green)', label: '초록불', desc: '다가와도 좋아요' },
+    yellow: { color: 'var(--yellow)', label: '노랑불', desc: '천천히 인사해요' },
+    red: { color: 'var(--red)', label: '빨강불', desc: '눈으로만 예뻐해 주세요' }
+  };
+  var SIZE = { small: '소형견', medium: '중형견', large: '대형견' };
+
+  if (!Api.isOn()) { document.getElementById('off').hidden = false; return; }
+  document.getElementById('on').hidden = false;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function loadJSON(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
+  function toast(msg) {
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600);
+  }
+  function todayKey(offset) {
+    var d = new Date(); d.setDate(d.getDate() - (offset || 0));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function dayLabel(key) {
+    if (key === todayKey(0)) return '오늘';
+    if (key === todayKey(1)) return '어제';
+    var p = key.split('-'); return Number(p[1]) + '월 ' + Number(p[2]) + '일';
+  }
+  function avatar(dog, big) {
+    var sig = SIGNAL[dog.signal];
+    var ring = sig ? 'border-color:' + sig.color + ';' : '';
+    if (!dog.friend) return '<div class="avatar anon' + (big ? ' lg' : '') + '" style="' + ring + '">?</div>';
+    // 진한 털색이면 글자를 흰색으로
+    var hex = String(dog.color || '#ccc').replace('#', '');
+    var lum = (parseInt(hex.substr(0, 2), 16) * 299 + parseInt(hex.substr(2, 2), 16) * 587 + parseInt(hex.substr(4, 2), 16) * 114) / 1000;
+    var fg = lum < 140 ? '#fff' : '#4a3f35';
+    return '<div class="avatar' + (big ? ' lg' : '') + '" style="background:' + dog.color + ';color:' + fg + ';' + ring + '">' + esc(dog.name.charAt(0)) + '</div>';
+  }
+
+  // 탭
+  var tabs = document.querySelectorAll('.tabs button');
+  function showTab(key) {
+    tabs.forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-tab') === key ? 'true' : 'false'); });
+    document.querySelectorAll('[data-pane]').forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== key; });
+    if (key === 'log') renderLog();
+  }
+  tabs.forEach(function (b) { b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); }); });
+  if (location.hash === '#met') showTab('met');
+
+  // 도감
+  function renderDex() {
+    return S.listCollection().then(function (list) {
+      $('dex-count').textContent = list.length;
+      $('n-dex').textContent = list.length || '';
+      var html = list.map(function (c) {
+        var d = c.dog, sig = SIGNAL[d.signal];
+        var met = c.metCount ? c.metCount + '번 스침 · 마지막 ' + dayLabel(c.lastMet) : (c.via === 'qr' ? 'QR로 교환' : '');
+        return '<div class="dog">' + avatar(d, true) +
+          '<div class="name">' + esc(d.name) + '</div>' +
+          '<div class="meta">' + esc(d.breed) + ' · ' + SIZE[d.size] + '</div>' +
+          (sig ? '<div class="sig" style="color:' + sig.color + '">' + sig.label + ' · ' + sig.desc + '</div>' : '') +
+          (met ? '<div class="met">' + met + '</div>' : '') +
+          '</div>';
+      }).join('');
+      // 빈 칸으로 "모으는 맛"을 보여 준다(가짜 견주 12명 기준)
+      for (var i = list.length; i < Math.max(4, list.length + (list.length % 2 ? 1 : 2)) && i < 12; i++) {
+        html += '<div class="dog slot">아직 비어 있어요</div>';
+      }
+      $('dex-grid').innerHTML = html;
+    });
+  }
+
+  // 스친 강아지
+  var pendingTimer = null;
+  function renderMet() {
+    return Promise.all([S.getSettings(), S.listEncounters()]).then(function (r) {
+      var settings = r[0], list = r[1];
+      $('vis-toggle').setAttribute('aria-checked', settings.visible ? 'true' : 'false');
+      var todayN = list.filter(function (e) { return e.date === todayKey(0); }).length;
+      $('n-met').textContent = todayN || '';
+      var box = $('met-list');
+      if (!settings.visible) {
+        box.innerHTML = '<div class="empty">스친 강아지가 꺼져 있어요.<br>켜면 같은 날 같은 발도장 장소에 같은 시간대로 있던 강아지가 보여요.</div>';
+        return;
+      }
+      if (!list.length) {
+        box.innerHTML = '<div class="empty">아직 스친 강아지가 없어요.<br>' +
+          '<b>길 기록</b>으로 발도장 장소(' + esc(window.RewardRules.PLACES.map(function (p) { return p.name; }).join(', ')) + ')를 산책하면 끝난 뒤 여기 떠요.<br>' +
+          '시간만 잰 산책은 장소를 몰라서 생기지 않아요.</div>';
+        return;
+      }
+      var html = '', lastDay = null, pending = false;
+      list.forEach(function (e) {
+        if (e.date !== lastDay) {
+          var n = list.filter(function (x) { return x.date === e.date; }).length;
+          html += '<div class="day">' + dayLabel(e.date) + '<small>' + n + '마리</small></div>';
+          lastDay = e.date;
+        }
+        var d = e.dog, sig = SIGNAL[d.signal];
+        var title = d.friend ? esc(d.name) : (sig ? sig.label + ' ' : '') + SIZE[d.size];
+        var act;
+        if (d.friend) act = '<span class="state ok">도감에 있어요</span>';
+        else if (e.exchange === 'pending') { act = '<span class="state">답 기다리는 중</span>'; pending = true; }
+        else if (e.exchange === 'quiet') act = '<span class="state">아직 답이 없어요</span>';
+        else act = '<button type="button" data-ask="' + esc(d.id) + '">도감 교환 요청</button>';
+        html += '<div class="enc">' + avatar(d) +
+          '<div class="who"><b>' + title + '</b><span>' + esc(Api.placeName(e.place)) + ' · ' + Api.BUCKETS[e.bucket] +
+          (d.friend ? ' · ' + esc(d.breed) : (sig ? ' · ' + sig.desc : '')) + '</span></div>' +
+          '<div class="act">' + act + '</div></div>';
+      });
+      box.innerHTML = html;
+      // 답을 기다리는 게 있으면 잠깐씩 다시 물어본다(진짜 서버라면 푸시 알림 자리)
+      clearTimeout(pendingTimer);
+      if (pending) pendingTimer = setTimeout(refresh, 5000);
+    });
+  }
+  $('met-list').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-ask]');
+    if (!b) return;
+    b.disabled = true; b.textContent = '보내는 중';
+    S.requestExchange(b.getAttribute('data-ask'), 'met').then(function () {
+      toast('교환 요청을 보냈어요. 상대가 받아 주면 도감에 들어가요.');
+      refresh();
+    });
+  });
+
+  $('vis-toggle').addEventListener('click', function () {
+    var on = this.getAttribute('aria-checked') !== 'true';
+    if (on && !confirm('스친 강아지를 켤까요?\n\n길 기록 산책이 끝날 때마다 날짜 · 지나간 발도장 장소 이름 · 시간대만 서버로 보내요(지금은 이 폰 안의 가짜 서버).\n좌표·경로·정확한 시각은 보내지 않아요.\n최근 7일 산책도 같이 보내요.')) return;
+    S.setVisible(on).then(function () { return on ? Api.syncWalks() : null; }).then(function (r) {
+      if (r && r.found) toast('스친 강아지 ' + r.found + '마리를 찾았어요');
+      else if (on) toast('켰어요. 길 기록 산책이 끝나면 여기 떠요.');
+      refresh();
+    });
+  });
+
+  $('qr-btn').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    S.scanFakeQr().then(function (dog) {
+      btn.disabled = false;
+      if (!dog) { toast('가짜 견주 12명과 모두 교환했어요'); return; }
+      toast(dog.name + '와 도감을 교환했어요');
+      refresh();
+    });
+  });
+
+  $('reset-btn').addEventListener('click', function () {
+    if (!confirm('가짜 서버를 처음으로 되돌릴까요?\n도감·스친 기록·보낸 기록이 지워져요. 내 산책 기록은 그대로예요.')) return;
+    S.reset().then(function () { return S.register(loadJSON('petwalk_profile', null)); }).then(refresh);
+  });
+
+  function renderLog() {
+    S.sentLog().then(function (log) {
+      $('log-list').innerHTML = log.length ? log.map(function (l) {
+        var t = new Date(l.at);
+        return '<div class="log"><b>' + esc(l.what) + '</b><time>' + (t.getMonth() + 1) + '/' + t.getDate() + ' ' +
+          String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + '</time>' +
+          '<pre>' + esc(JSON.stringify(l.body, null, 1)) + '</pre></div>';
+      }).join('') : '<div class="empty">아직 보낸 게 없어요.</div>';
+    });
+  }
+
+  function refresh() {
+    return Promise.all([renderDex(), renderMet()]).then(function () {
+      if (!document.querySelector('[data-pane="log"]').hidden) renderLog();
+    });
+  }
+
+  // 들어올 때: 내 강아지 올리기 → 안 보낸 산책 보내기 → 그리기
+  S.register(loadJSON('petwalk_profile', null))
+    .then(function () { return Api.syncWalks(); })
+    .then(function (r) { if (r && r.found) toast('새로 스친 강아지 ' + r.found + '마리'); })
+    .then(refresh);
+})();
+</script>
+
+</body>
+</html>

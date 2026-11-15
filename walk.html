@@ -1312,7 +1312,9 @@
       route: simplifyRoute(route, 60),
       stampRoute: stampRoute.length ? simplifyRoute(stampRoute, 60) : [],
       rewardEligible: rewardEligible,
-      gapMin: gapMin || 0
+      gapMin: gapMin || 0,
+      // 끝난 시각 — 서버 가정 시험판(mock-server.js)이 시간대(아침/낮/저녁/밤)만 뽑아 쓴다. 이 폰 안에만 있다
+      endedAt: Date.now()
     });
     // 시연 모드(가짜 위치)로 걸은 산책 — 기록·카드 시험엔 쓰되 키링(실제 보상)과 통계에서는 뺀다
     if (isDemo()) walks[walks.length - 1].demo = true;
