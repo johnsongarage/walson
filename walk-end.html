@@ -14,7 +14,9 @@
      오늘 충분했나 · 킁킁 지수 · 응가. 전부 골라도 되고 안 골라도 된다.
      방금 끝난 산책(petwalk_walks의 마지막 기록)에 답을 붙여 저장한다 — feel / sniff / poop.
      go.html(시간만)과 walk.html(길 기록) 둘 다 끝나면 여기로 온다. 서버 없음, 위치 없음.
-     문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 오늘의 한 장은 휴대폰 안에만(walk-photos.js). 가족에게 보내기는 아직 없다. */
+     문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 오늘의 한 장은 휴대폰 안에만(walk-photos.js). 가족에게 보내기는 아직 없다.
+     저장하면 [영수증] 탭(receipt.html?end=1)으로 넘어가 방금 산책의 영수증을 보여 준다(2026-11-15 가르시아 "끝 화면에서 바로 영수증으로").
+     "묻지 않고 넘어가기"는 그대로 [오늘]로 — 아무것도 하기 싫은 사람의 출구. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
@@ -160,7 +162,7 @@
     <p class="photo-note">이 휴대폰에만 저장돼요. 사진에 붙은 위치 정보는 빼고 저장해요.</p>
   </section>
 
-  <button type="button" class="btn-main" id="save-btn">저장하고 오늘로</button>
+  <button type="button" class="btn-main" id="save-btn">저장하고 영수증 받기</button>
   <a class="btn-text" href="index.html">묻지 않고 넘어가기</a>
 </div>
 
@@ -323,7 +325,8 @@
           return;
         }
       }
-      location.replace('index.html');
+      // 방금 산책 영수증으로(receipt.html이 end=1을 보고 맨 마지막 산책을 열고 안내 한 줄을 띄운다)
+      location.replace('receipt.html?end=1');
     });
   });
 })();
