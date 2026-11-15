@@ -112,6 +112,27 @@
     return out;
   }
 
+  // ── 지도 미션(2026-11-15 가르시아: "어디 가야 하는지 목표·미션을 알려 주자", 첫 미션은 프리미어캠퍼스) ──
+  // 미션 = 발도장 장소를 놓인 순서대로 하나씩 안내하는 것. 순서는 스팟 편집의 발도장 장소 목록 순서(1번이 첫 미션).
+  // 안 간 곳 중 맨 앞이 "지금 미션". 판정은 발도장과 똑같다(길 기록 산책의 걷는 속도 점이 반경 안에 들어옴).
+  // 진행은 이 휴대폰의 산책 기록으로만 계산하고 어디로도 보내지 않는다.
+  function missions(progress) {
+    var visited = (progress && progress.visited) || {};
+    return PLACES.filter(function (pl) { return !pl.pending; })
+      .map(function (pl, i) { return { no: i + 1, place: pl, done: !!visited[pl.id] }; });
+  }
+  function currentMission(progress) {
+    return missions(progress).filter(function (m) { return !m.done; })[0] || null;
+  }
+  // 점 [lat, lng]이 들어 있는 발도장 장소(없으면 null) — 산책 중 바로 판정에 쓴다
+  function placeAt(point) {
+    for (var i = 0; i < PLACES.length; i++) {
+      var pl = PLACES[i];
+      if (!pl.pending && distanceKm(point, pl.center) <= pl.radiusKm) return pl;
+    }
+    return null;
+  }
+
   window.RewardRules = {
     FRAME_TIERS: FRAME_TIERS,
     KEYRING: KEYRING,
@@ -122,6 +143,10 @@
     tierFor: tierFor,
     nextTier: nextTier,
     nextGoalText: nextGoalText,
-    newUnlocks: newUnlocks
+    newUnlocks: newUnlocks,
+    missions: missions,
+    currentMission: currentMission,
+    placeAt: placeAt,
+    distanceKm: distanceKm
   };
 })();
