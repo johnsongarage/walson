@@ -82,10 +82,12 @@
       spots: spots,
       categories: parseArray(text, 'window.PETWALK_SPOT_CATEGORIES = [') || [],
       // null = 파일에 아직 없음(편집 페이지가 reward-rules.js의 기본 세 곳으로 시작한다)
-      stampPlaces: parseArray(text, 'window.PETWALK_STAMP_PLACES = [')
+      stampPlaces: parseArray(text, 'window.PETWALK_STAMP_PLACES = ['),
+      // null = 파일에 아직 없음(편집 페이지가 infra-pins.js의 기본 묶음으로 시작한다)
+      mapGroups: parseArray(text, 'window.PETWALK_MAP_GROUPS = [')
     };
   }
-  function buildData(spots, categories, stampPlaces) {
+  function buildData(spots, categories, stampPlaces, mapGroups) {
     var body = spots.map(function (s) { return '  ' + JSON.stringify(s); }).join(',\n');
     var cats = (categories || []).map(function (c) { return '  ' + JSON.stringify(c); }).join(',\n');
     return HEADER + body + (body ? '\n' : '') + '];\n' +
@@ -93,7 +95,10 @@
       'window.PETWALK_SPOT_CATEGORIES = [\n' + cats + (cats ? '\n' : '') + '];\n' +
       (stampPlaces ? '// 우리 개 발도장 장소 — { id, name, lat, lng, radiusM, kind: park|water|building }. reward-rules.js가 읽는다.\n' +
         'window.PETWALK_STAMP_PLACES = [\n' + stampPlaces.map(function (p) { return '  ' + JSON.stringify(p); }).join(',\n') +
-        (stampPlaces.length ? '\n' : '') + '];\n' : '');
+        (stampPlaces.length ? '\n' : '') + '];\n' : '') +
+      (mapGroups ? '// 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.\n' +
+        'window.PETWALK_MAP_GROUPS = [\n' + mapGroups.map(function (g) { return '  ' + JSON.stringify(g); }).join(',\n') +
+        (mapGroups.length ? '\n' : '') + '];\n' : '');
   }
 
   // 토큰 확인: 이 저장소에 쓸 수 있는지
@@ -110,7 +115,7 @@
       var sha = ref.object.sha;
       return gh('GET', '/contents/' + DATA_PATH + '?ref=' + sha).then(function (file) {
         var d = parseData(b64ToUtf8(file.content));
-        return { spots: d.spots, categories: d.categories, stampPlaces: d.stampPlaces, headSha: sha };
+        return { spots: d.spots, categories: d.categories, stampPlaces: d.stampPlaces, mapGroups: d.mapGroups, headSha: sha };
       });
     });
   }
@@ -129,7 +134,8 @@
   //  - baseSha: 편집을 시작할 때 본 커밋. 그 사이 누가(다른 컴퓨터에서) 바꿨으면 멈추고 알린다
   // categories: 직접 만든 종류 목록(spots-data.js에 같이 쓴다)
   // stampPlaces: 우리 개 발도장 장소(넘기지 않으면 파일에 쓰지 않는다)
-  function publish(spots, baseSha, message, categories, stampPlaces) {
+  // mapGroups: 지도 묶음·우선순위(넘기지 않으면 파일에 쓰지 않는다)
+  function publish(spots, baseSha, message, categories, stampPlaces, mapGroups) {
     var work = JSON.parse(JSON.stringify(spots));
     var uploads = [];   // { path, b64 }
     var jobs = [];
@@ -186,7 +192,7 @@
           return { path: u.path, mode: '100644', type: 'blob', sha: b.sha };
         });
       })).then(function (photoEntries) {
-        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories, stampPlaces)), encoding: 'base64' }).then(function (b) {
+        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories, stampPlaces, mapGroups)), encoding: 'base64' }).then(function (b) {
           return photoEntries.concat(deletions, [{ path: DATA_PATH, mode: '100644', type: 'blob', sha: b.sha }]);
         });
       });
@@ -201,6 +207,6 @@
   }
 
   window.SpotGitHub = {
-    OWNER: OWNER, REPO: REPO, hasToken: hasToken, setToken: setToken, check: check, load: load, publish: publish
+    OWNER: OWNER, REPO: REPO, parseData: parseData, buildData: buildData, hasToken: hasToken, setToken: setToken, check: check, load: load, publish: publish
   };
 })();

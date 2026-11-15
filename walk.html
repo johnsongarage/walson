@@ -15,7 +15,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=5"></script>
-<script src="infra-pins.js?v=15"></script>
+<script src="infra-pins.js?v=16"></script>
 <script src="demo-geo.js?v=1"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
@@ -809,27 +809,19 @@
   // 산책을 하기 전에도 앱을 열 이유가 있게, 첫 화면 지도에 공용 시설(공원·화장실·동물병원 등)을
   // 종류별 핀으로 띄운다. 데이터는 infra-pins.js(배포본에 박아둔 것 + 이 기기에서 운영자가 찍은 것)
   // 에서만 읽고, 여기서 외부로 보내는 것은 없다. 위의 "핀 꽂기"(개인 메모 핀)와는 별개 레이어다.
-  var INFRA_FILTER_KEY = 'petwalk_infra_filter'; // 꺼둔 종류 목록 — 다음에 열어도 그대로
-  var INFRA_MIN_ZOOM = 13;                        // 이보다 멀리 보면 핀이 뭉쳐서 지도를 가리므로 숨김
+  // 순서(우선순위)·보이는 확대 단계·처음엔 꺼 둠은 운영자가 스팟 편집에서 정한 것을 [동네]와 같이 쓴다
+  // (infra-pins.js layout, 2026-11-15). 산책 화면은 좁아서 묶음으로 접지 않고 우선순위 순서로 한 줄에 둔다.
   var infraLayers = {};                           // 종류 key → L.layerGroup
-  var infraHidden = {};
-
-  function loadInfraHidden() {
-    try {
-      (JSON.parse(localStorage.getItem(INFRA_FILTER_KEY)) || []).forEach(function (k) { infraHidden[k] = true; });
-    } catch (e) { /* 저장값이 깨졌으면 전부 켠 상태로 시작 */ }
-  }
-  function saveInfraHidden() {
-    try { localStorage.setItem(INFRA_FILTER_KEY, JSON.stringify(Object.keys(infraHidden))); } catch (e) { /* 저장 실패해도 화면엔 반영됨 */ }
-  }
+  var infraLayout = null, infraFilter = null;     // initInfraLayer에서 채운다
 
   // 팝업은 [동네]와 같은 모양(사진 중심) — infra-pins.js가 만든다
   function buildInfraPopup(pin) { return InfraPins.popupEl(pin); }
 
   function syncInfraVisibility() {
-    var zoomOk = map.getZoom() >= INFRA_MIN_ZOOM;
+    var zoom = map.getZoom();
     Object.keys(infraLayers).forEach(function (key) {
-      var show = zoomOk && !infraHidden[key];
+      // 레이어마다 정해 둔 확대 단계부터 보인다(멀리 보면 핀이 뭉쳐서 지도를 가리므로)
+      var show = zoom >= infraLayout.byKey[key].minZoom && !infraFilter.isOff(key);
       if (show && !map.hasLayer(infraLayers[key])) map.addLayer(infraLayers[key]);
       if (!show && map.hasLayer(infraLayers[key])) map.removeLayer(infraLayers[key]);
     });
@@ -838,7 +830,8 @@
   function initInfraLayer() {
     var chipsEl = document.getElementById('infra-chips');
     if (!window.InfraPins || !chipsEl) return;
-    loadInfraHidden();
+    infraLayout = InfraPins.layout();
+    infraFilter = InfraPins.filterState(infraLayout);
 
     var counts = {};
     InfraPins.all().forEach(function (pin) {
@@ -846,18 +839,19 @@
       if (!infraLayers[pin.cat]) infraLayers[pin.cat] = L.layerGroup();
       counts[pin.cat] = (counts[pin.cat] || 0) + 1;
       var m = InfraPins.markerFor(pin); // 동반 스팟은 크게, 나머지는 작게
-      L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: m.zIndexOffset })
+      L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: infraLayout.byKey[pin.cat].z + m.zIndexOffset / 20 })
         .bindPopup(buildInfraPopup(pin), InfraPins.POPUP_OPTS)
         .addTo(infraLayers[pin.cat]);
     });
 
     // 핀이 하나도 없는 종류는 칩을 만들지 않는다(눌러도 아무것도 안 나오는 버튼을 두지 않기 위함).
-    InfraPins.CATEGORIES.forEach(function (cat) {
-      if (!counts[cat.key]) return;
+    infraLayout.list.forEach(function (layer) {
+      var cat = InfraPins.category(layer.key);   // 발도장·내 핀·그림 강아지는 [동네]에만 있다
+      if (!cat || !counts[cat.key]) return;
       var chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'infra-chip';
-      chip.setAttribute('aria-pressed', infraHidden[cat.key] ? 'false' : 'true');
+      chip.setAttribute('aria-pressed', infraFilter.isOff(cat.key) ? 'false' : 'true');
       chip.innerHTML = '<span class="dot" style="background:' + cat.color + '">' + InfraPins.iconSvg(cat.key, 11) + '</span>';
       var label = document.createElement('span');
       label.textContent = cat.label;
@@ -867,9 +861,8 @@
       count.textContent = counts[cat.key];
       chip.appendChild(count);
       chip.addEventListener('click', function () {
-        if (infraHidden[cat.key]) delete infraHidden[cat.key]; else infraHidden[cat.key] = true;
-        chip.setAttribute('aria-pressed', infraHidden[cat.key] ? 'false' : 'true');
-        saveInfraHidden();
+        infraFilter.toggle(cat.key);
+        chip.setAttribute('aria-pressed', infraFilter.isOff(cat.key) ? 'false' : 'true');
         syncInfraVisibility();
       });
       chipsEl.appendChild(chip);
