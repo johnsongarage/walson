@@ -219,7 +219,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=4"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=13"></script>
+<script src="infra-pins.js?v=14"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -827,6 +827,9 @@
       document.getElementById('redo-btn').hidden = true;
       document.querySelector('#step-3 .lead').textContent = g.line || '이 가게를 지키는 강아지예요.';
       document.querySelector('.foot').hidden = true;
+      var disc = document.getElementById('keyring-note');   // 남는 안내 줄을 빌려 쓴다(키링 문구는 수호지킴이 카드에선 안 씀)
+      disc.textContent = InfraPins.GUARDIAN_DISCLAIMER;
+      disc.hidden = false;
       renderCard().then(function () { showStep(3); });
       return;
     }

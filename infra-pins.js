@@ -93,6 +93,7 @@
     yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
     red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
   };
+  var GUARDIAN_DISCLAIMER = '사장님 허락을 받고 올린 강아지예요 · 가게·브랜드와 제휴 관계가 아니에요';
   function hasGuardian(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
   // 지도에 내세울 사진 — 수호지킴이 사진이 먼저, 없으면 가게 사진
   function mainPhoto(pin) {
@@ -193,6 +194,8 @@
     if (pin.note) wrap.appendChild(el('div', '', pin.note));
     // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
     wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));
+    // 수호지킴이는 가게·브랜드의 공식 캐릭터가 아니다 — 제휴로 오해하지 않게(2026-11-15, 상표 혼동 방지)
+    if (g) wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', GUARDIAN_DISCLAIMER));
 
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
     var linkCss = B
@@ -231,6 +234,6 @@
     category: category, iconSvg: iconSvg, markerHtml: markerHtml, markerFor: markerFor, sourceText: sourceText,
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
     popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice,
-    setCustomCategories: setCustomCategories
+    setCustomCategories: setCustomCategories, GUARDIAN_DISCLAIMER: GUARDIAN_DISCLAIMER
   };
 })();
