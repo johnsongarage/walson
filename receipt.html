@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 영수증</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="왈슨">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* [영수증] 탭(2026-11-15 가르시아 "영수증 관련 탭을 새로 넣어 봐") — 산책 한 번에 영수증 한 장.
+     그림은 walk-receipt.js가 그리고, 이 화면은 고르기(어느 산책·사진·특이 사항·모양)와 저장만 한다.
+     위치·경로·산책한 시각·장소 이름은 영수증에 넣지 않는다. 이 휴대폰 안에서만 그린다.
+     [카드] 탭(자라는 카드)은 그대로 둔다 — 없앨지는 재검토로 미룸(같은 날 가르시아). */
+  :root {
+    /* walk-history.html과 같은 색 토큰 */
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --stamp: #d6453a; --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  [hidden] { display: none !important; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 12px; text-decoration: none;
+    background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink);
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .subtitle { margin: 6px 0 16px; font-size: 13px; color: var(--ink-soft); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px;
+    padding: 14px; margin-bottom: 18px; box-shadow: 0 3px 12px rgba(var(--shadow-rgb), 0.08);
+  }
+  .panel h2 { font-size: 15px; font-weight: 800; margin: 0 0 10px; }
+  .panel h2 small { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-left: 4px; }
+
+  .format { display: flex; background: #fff; border: 1px solid var(--panel-border); border-radius: 999px; padding: 3px; margin-bottom: 12px; }
+  .format button {
+    flex: 1; font-family: inherit; font-size: 13px; font-weight: 800; padding: 8px; border: none; border-radius: 999px;
+    background: transparent; color: var(--ink-soft); cursor: pointer;
+  }
+  .format button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+  .canvas-box { display: flex; justify-content: center; background: var(--accent-tint); border-radius: 12px; padding: 10px; }
+  .canvas-box canvas {
+    display: block; max-width: 100%; max-height: 66vh; width: auto; height: auto;
+    border-radius: 6px; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.18);
+  }
+  .which { margin: 8px 0 0; font-size: 12px; color: var(--ink-soft); text-align: center; }
+
+  .row { margin-top: 14px; }
+  .row-label { display: block; font-size: 13px; font-weight: 800; margin-bottom: 7px; }
+  .row-label small { font-weight: 600; color: var(--ink-soft); margin-left: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button {
+    font-family: inherit; font-size: 13px; font-weight: 700; padding: 7px 11px; border-radius: 999px;
+    border: 1px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer;
+  }
+  .chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chips button.more-btn { border-style: dashed; color: var(--ink-soft); }
+  .custom {
+    width: 100%; margin-top: 8px; padding: 10px 12px; font-family: inherit; font-size: 14px;
+    border: 1px solid var(--panel-border); border-radius: 12px; background: #fff; color: var(--ink);
+  }
+  .custom:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .pos { width: 100%; accent-color: var(--accent); }
+
+  .btn-main {
+    display: block; width: 100%; margin-top: 16px; padding: 14px; font-family: inherit; font-size: 16px; font-weight: 800;
+    border: none; border-radius: 999px; color: #fff; cursor: pointer; text-align: center; text-decoration: none;
+    background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.25);
+  }
+  .btn-main:active { transform: scale(0.98); }
+  .btn-main[disabled] { opacity: 0.6; }
+  .note { margin: 10px 2px 0; font-size: 12px; line-height: 1.55; color: var(--ink-soft); }
+
+  /* 영수증철 — 최신이 위 */
+  .month-head { font-size: 12px; font-weight: 800; color: var(--ink-soft); margin: 14px 2px 6px; }
+  .month-head:first-child { margin-top: 0; }
+  .r-row {
+    width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; font-family: inherit;
+    padding: 10px 12px; margin-bottom: 6px; border: 1px dashed var(--panel-border); border-radius: 12px;
+    background: #fff; color: var(--ink); cursor: pointer;
+  }
+  .r-row[aria-current="true"] { border: 2px solid var(--accent); background: var(--accent-tint); padding: 9px 11px; }
+  .r-no { flex-shrink: 0; font-family: "Nanum Gothic Coding", ui-monospace, monospace; font-size: 12px; color: var(--ink-soft); }
+  .r-main { flex: 1; min-width: 0; }
+  .r-date { display: block; font-weight: 800; font-size: 14px; }
+  .r-meta { display: block; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .r-stamp {
+    flex-shrink: 0; font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 13px; color: var(--stamp);
+    border: 2px solid var(--stamp); border-radius: 999px; padding: 2px 8px; transform: rotate(-6deg);
+  }
+  .more {
+    display: block; width: 100%; margin-top: 4px; padding: 10px; font-family: inherit; font-size: 13px; font-weight: 800;
+    border: 1px dashed var(--ink-soft); border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer;
+  }
+
+  .empty { text-align: center; padding: 48px 20px; }
+  .empty p { margin: 0 0 6px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
+  .empty b { color: var(--ink); font-size: 16px; }
+
+  /* 뉴브루탈(brutal.css가 공통 모양을 덮고, 이 화면에만 있는 것만 여기서) */
+  [data-theme="brutal"] .chips button[aria-pressed="true"] { background: #000 !important; color: var(--b-yellow, #F2B833) !important; }
+  [data-theme="brutal"] .chips button.more-btn { border-style: dashed !important; }
+  [data-theme="brutal"] .canvas-box { border-radius: 0; background: #fff; border: 3px solid #000; }
+  [data-theme="brutal"] .canvas-box canvas { border-radius: 0; box-shadow: none; }
+  [data-theme="brutal"] .custom { border-radius: 0; border: 3px solid #000; }
+  [data-theme="brutal"] .custom:focus { outline: 3px solid var(--b-pink, #FF6BB5); }
+  [data-theme="brutal"] .pos { accent-color: #000; }
+  [data-theme="brutal"] .r-row { border-radius: 0; border: 2px solid #000; color: #000; }
+  [data-theme="brutal"] .r-row[aria-current="true"] { background: var(--b-lime, #C8F06A); border: 3px solid #000; padding: 9px 11px; }
+  [data-theme="brutal"] .r-no, [data-theme="brutal"] .r-meta, [data-theme="brutal"] .month-head,
+  [data-theme="brutal"] .which, [data-theme="brutal"] .row-label small, [data-theme="brutal"] .empty p { color: #000; }
+  [data-theme="brutal"] .r-stamp { border-radius: 0; }
+  [data-theme="brutal"] .more { border-radius: 0; border: 2px dashed #000; color: #000; }
+</style>
+<script src="theme.js?v=8"></script>
+<script src="site-config.js?v=3"></script>
+<script src="track.js?v=4"></script>
+<script src="save-image.js?v=1"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html" title="오늘로 돌아가기">←</a>
+    <h1>산책 영수증</h1>
+  </div>
+  <p class="subtitle" id="subtitle">산책 한 번에 한 장씩 나와요.</p>
+
+  <section class="panel" id="viewer" hidden>
+    <div class="format" id="format" role="group" aria-label="이미지 모양">
+      <button type="button" data-fmt="story">스토리 9:16</button>
+      <button type="button" data-fmt="feed">피드 4:5</button>
+    </div>
+    <div class="canvas-box"><canvas id="rc" width="1080" height="1920" role="img" aria-label="산책 영수증 미리 보기"></canvas></div>
+    <p class="which" id="which"></p>
+
+    <div class="row" id="photo-row" hidden>
+      <span class="row-label">사진</span>
+      <div class="chips" id="photo-src" role="group" aria-label="사진 고르기"></div>
+    </div>
+    <div class="row" id="pos-row" hidden>
+      <label class="row-label" for="photo-pos">사진 위치 <small>위·아래로 옮겨요</small></label>
+      <input type="range" class="pos" id="photo-pos" min="0" max="100" value="40">
+    </div>
+
+    <div class="row">
+      <span class="row-label">특이 사항 <small>하나 고르거나 직접 써요</small></span>
+      <div class="chips" id="notes" role="group" aria-label="특이 사항 고르기"></div>
+      <input type="text" class="custom" id="note-custom" maxlength="28" placeholder="직접 쓰기 (28자까지)" autocomplete="off" aria-label="특이 사항 직접 쓰기">
+    </div>
+
+    <button type="button" class="btn-main" id="save-btn">저장·공유</button>
+    <p class="note">사진·이름·날짜·산책 시간과 끝 화면 답만 들어가요. 위치·경로·산책한 시각·장소 이름은 넣지 않아요.
+      이 휴대폰 안에서 만들고, 어디로도 보내지 않아요.</p>
+  </section>
+
+  <section class="panel" id="book" hidden>
+    <h2>영수증철 <small id="book-count"></small></h2>
+    <div id="book-list"></div>
+    <button type="button" class="more" id="book-more" hidden>더 보기</button>
+  </section>
+
+  <section class="panel empty" id="empty" hidden>
+    <p><b>아직 영수증이 없어요</b></p>
+    <p>산책을 다녀오면 한 장씩 나와요.</p>
+    <a class="btn-main" href="go.html">산책 나가기</a>
+  </section>
+</div>
+
+<script src="walk-photos.js?v=1"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=7"></script>
+<script src="walk-receipt.js?v=1"></script>
+<script>
+(function () {
+  var WALKS_KEY = 'petwalk_walks';        // walk.html·go.html이 저장하는 산책 기록
+  var PROFILE_KEY = 'petwalk_profile';
+  var CHOICE_KEY = 'walson_receipts';     // 산책별로 고른 것 { 산책 열쇠: { note, custom, photo, pos } } — 이 휴대폰에만
+  var FMT_KEY = 'walson_receipt_fmt';     // 마지막에 고른 모양(스토리·피드)
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  var PAGE = 30;                          // 영수증철을 한 번에 몇 장씩 보여 줄지
+
+  // 특이 사항 — 가르시아가 쓴 관찰(card-shared.js 스킬·특성)과 산책 유형(walk-type.html)을 영수증 말투로 줄인 것.
+  // 관찰은 그대로 두고 말투만 바꿨다(게임식 수치·확률 표기는 뺌). 앞의 8개를 먼저 보여 준다.
+  var NOTES = [
+    { id: 'pole',    text: '전봇대마다 냄새 정독함' },            // 산책 유형 · 킁킁 탐정형
+    { id: 'grass',   text: '풀숲 앞에서 3분 정차 (냄새 조사)' },   // 스킬 · 3초 멈칫 냄새 탐정
+    { id: 'shop',    text: '간식집 앞 정차 (보호자 설득까지)' },    // 스킬 · 수제간식점 앞 얼음 놀이
+    { id: 'hug',     text: '5분 만에 안아 달라고 함' },           // 특성 · 산책 5분 후 안아라 신호
+    { id: 'ears',    text: "'산책'은 듣고 '기다려'는 못 들음" },    // 특성 · 선택적 귓등 듣기
+    { id: 'hello',   text: '만나는 개마다 인사함' },              // 산책 유형 · 동네 이장님형
+    { id: 'home',    text: '나오자마자 집에 가자고 함' },          // 산책 유형 · 집돌이 귀가형
+    { id: 'pull',    text: '목줄 당기며 직진함' },                // 산책 유형 · 직진 마라토너형
+    { id: 'treat',   text: '한 블록마다 간식 요구' },              // 산책 유형 · 간식 협상가형
+    { id: 'bench',   text: '벤치에서 바람 냄새 감상' },            // 산책 유형 · 감성 산책러형
+    { id: 'eye',     text: '응가하며 보호자와 눈 맞춤' },           // 스킬 · 천사표 얼굴로 배변 포즈
+    { id: 'bike',    text: '배달 오토바이 경보 발령' },             // 스킬 · 배달 오토바이 레이더
+    { id: 'rain',    text: '현관 앞 빗물 보고 안아 달라 함' },       // 특성 · 비 오면 발에 물 묻히기 싫음
+    { id: 'other',   text: '남의 개 간식을 더 오래 쳐다봄' },        // 특성 · 남의 떡이 더 커 보임
+    { id: 'cloth',   text: '새 옷 입고 1초 정지' },                // 특성 · 새 옷 착용 시 1초 멘붕
+    { id: 'outside', text: '밖에서만 순둥이 (집에선 왕)' },         // 특성 · 외부인 한정 순둥이
+    { id: 'paw',     text: '발바닥 옥수수 칩 냄새 진동' }           // 특성 · 발바닥 고소함 MAX
+  ];
+  var FIRST = 8;
+
+  function $(id) { return document.getElementById(id); }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function pad4(n) { var s = String(n); while (s.length < 4) s = '0' + s; return s; }
+  function dk(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function parseDay(s) { var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function mondayKey(s) { var d = parseDay(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return dk(d); }
+  function dayText(s) { var d = parseDay(s); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ')'; }
+  function loadJSON(key, fallback) {
+    try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; }
+  }
+  function noteById(id) { for (var i = 0; i < NOTES.length; i++) if (NOTES[i].id === id) return NOTES[i].text; return ''; }
+
+  var sample = false;
+  try { sample = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sample = false; }
+  var brutal = !!(window.WalsonTheme && WalsonTheme.isBrutal);
+  var R = window.RewardRules;
+
+  var walks = loadJSON(WALKS_KEY, []);
+  if (!Array.isArray(walks)) walks = [];
+  walks = walks.filter(function (w) { return w && typeof w.date === 'string' && w.date.length >= 10; });
+  var profile = loadJSON(PROFILE_KEY, {}) || {};
+  // 샘플을 보는 중에는 고른 것을 저장하지 않는다(샘플을 끄면 산책 기록이 바뀌어서)
+  var choices = sample ? {} : (loadJSON(CHOICE_KEY, {}) || {});
+
+  if (!walks.length) {
+    $('empty').hidden = false;
+    $('subtitle').textContent = '산책 한 번에 한 장씩 나와요.';
+    return;
+  }
+
+  // ── 산책마다 영수증에 들어갈 것 미리 세기(기록 순서 = 영수증 번호) ──
+  var info = [];
+  (function () {
+    var places = (R && R.PLACES) ? R.PLACES.filter(function (p) { return !p.pending; }) : [];
+    var minM = (R && R.STEADY_MIN_MINUTES) || 5;
+    var steps = (R && R.STEADY_STEPS) || [3, 5, 7];
+    // 꾸준함 도장: 주(월~일)마다 5분 넘게 산책한 날 — reward-rules.js steady()와 같은 기준
+    var weekDays = {}, firstOfDay = {};
+    walks.forEach(function (w, i) {
+      if (!(w.durationMin >= minM)) return;
+      var wk = mondayKey(w.date);
+      (weekDays[wk] || (weekDays[wk] = {}))[w.date] = true;
+      if (firstOfDay[w.date] === undefined) firstOfDay[w.date] = i;
+    });
+    var visited = {}, nthOfDay = {};
+    walks.forEach(function (w, i) {
+      // 발도장: 길 기록 산책만, 장소 이름은 영수증에 안 넣고 개수만 — reward-rules.js computeProgress()와 같은 판정
+      var stamps = null;
+      if (w.rewardEligible !== false && w.mode !== 'time' && places.length) {
+        var pts = w.stampRoute || w.route || [], hit = 0, fresh = 0;
+        places.forEach(function (pl) {
+          var inside = pts.some(function (p) { return R.distanceKm(p, pl.center) <= pl.radiusKm; });
+          if (!inside) return;
+          hit++;
+          if (!visited[pl.id]) { fresh++; visited[pl.id] = true; }
+        });
+        stamps = { hit: hit, fresh: fresh };
+      }
+      var set = weekDays[mondayKey(w.date)] || {};
+      var days = Object.keys(set).filter(function (d) { return d <= w.date; }).length;
+      var got = firstOfDay[w.date] === i && steps.indexOf(days) >= 0;
+      // 산책을 가리키는 열쇠 — 길 기록 산책은 끝난 시각, 시간만 잰 산책은 날짜 + 그날 몇 번째
+      var n = nthOfDay[w.date] = (nthOfDay[w.date] || 0) + 1;
+      var key = w.endedAt ? 'e' + w.endedAt : 'd' + w.date + '-' + n;
+      info.push({ stamps: stamps, steady: { days: days, got: got }, key: key });
+    });
+  })();
+
+  // 특이 사항 기본값 — 날마다 다르게(같은 문구만 나오면 금방 질린다), 킁킁을 많이 했으면 냄새 쪽으로
+  function defaultNote(i) {
+    var w = walks[i];
+    if (w.sniff >= 4) return (i % 2) ? 'grass' : 'pole';
+    var pool = NOTES.slice(0, 10);
+    return pool[(i * 7 + 3) % pool.length].id;
+  }
+  function choice(i) { return choices[info[i].key] || {}; }
+  function setChoice(i, patch) {
+    var k = info[i].key, c = choices[k] || (choices[k] = {});
+    Object.keys(patch).forEach(function (p) { if (patch[p] === undefined) delete c[p]; else c[p] = patch[p]; });
+    if (sample) return;
+    try { localStorage.setItem(CHOICE_KEY, JSON.stringify(choices)); } catch (e) { /* 저장 못 해도 지금 화면엔 반영 */ }
+  }
+  function noteText(i) {
+    var c = choice(i);
+    if (c.note === 'none') return '';
+    if (c.note === 'custom' && c.custom && c.custom.trim()) return c.custom.trim();
+    return noteById(c.note && c.note !== 'custom' ? c.note : defaultNote(i));
+  }
+  function receiptData(i) {
+    var w = walks[i];
+    return {
+      no: i + 1, date: w.date, demo: !!w.demo, mode: w.mode === 'time' ? 'time' : 'gps',
+      durationMin: w.durationMin || 0, distanceKm: w.distanceKm || 0,
+      feel: w.feel, sniff: w.sniff, poop: typeof w.poop === 'number' ? w.poop : undefined,
+      stamps: info[i].stamps, steady: info[i].steady, note: noteText(i), name: profile.name || ''
+    };
+  }
+  function stampWord(w) { return w.feel === 'short' ? '일부 상환' : '상환 완료'; }
+
+  // ── 사진: 산책 사진(오늘의 한 장) → 프로필 사진 → 앱 그림 ──
+  function loadImage(src) {
+    return new Promise(function (res) {
+      if (!src) return res(null);
+      var im = new Image();
+      im.onload = function () { res(im); };
+      im.onerror = function () { res(null); };
+      im.src = src;
+    });
+  }
+  var walkPhotoCache = {};
+  function walkPhoto(key) {
+    if (!key || !window.WalkPhotos) return Promise.resolve(null);
+    if (!walkPhotoCache[key]) {
+      walkPhotoCache[key] = WalkPhotos.get(key).then(function (blob) {
+        if (!blob) return null;
+        var url = URL.createObjectURL(blob);
+        return loadImage(url).then(function (im) { URL.revokeObjectURL(url); return im; });
+      }).catch(function () { return null; });
+    }
+    return walkPhotoCache[key];
+  }
+  var logoP = loadImage('icons/walson-logo.webp');
+  var profileP = loadImage(profile.photo || null);
+  var SRC_LABEL = { walk: '산책 사진', profile: '프로필 사진', logo: '왈슨 그림' };
+  function sourcesFor(i) {
+    return Promise.all([walkPhoto(walks[i].photoKey), profileP, logoP]).then(function (a) {
+      return { walk: a[0], profile: a[1], logo: a[2] };
+    });
+  }
+  function pickSource(i, s) {
+    var want = choice(i).photo;
+    if (want && (want === 'logo' || s[want])) return want;
+    return s.walk ? 'walk' : s.profile ? 'profile' : 'logo';
+  }
+
+  // ── 그리기 ──
+  var canvas = $('rc');
+  var state = { i: walks.length - 1, fmt: 'story', shown: PAGE };
+  try { if (localStorage.getItem(FMT_KEY) === 'feed') state.fmt = 'feed'; } catch (e) { /* 기본은 스토리 */ }
+  var m = /[?&]no=(\d+)/.exec(location.search);   // receipt.html?no=12 — 12번째 산책 영수증
+  if (m && +m[1] >= 1 && +m[1] <= walks.length) state.i = +m[1] - 1;
+
+  var token = 0, rafPending = false, lastRender = Promise.resolve();
+  function render() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () { rafPending = false; lastRender = drawNow(); });
+  }
+  function drawNow() {
+    var my = ++token, i = state.i, d = receiptData(i);
+    return Promise.all([sourcesFor(i), WalkReceipt.ensureFonts(WalkReceipt.textOf(d, state.fmt))]).then(function (a) {
+      if (my !== token) return;
+      var s = a[0], pick = pickSource(i, s), c = choice(i);
+      paintPhotoControls(i, s, pick);
+      WalkReceipt.draw(canvas, d, pick === 'logo' ? null : s[pick], {
+        fmt: state.fmt, brutal: brutal, logo: s.logo, photoY: (c.pos != null ? c.pos : 40) / 100
+      });
+    });
+  }
+
+  // ── 모양 ──
+  var fmtButtons = $('format').querySelectorAll('button');
+  function paintFormat() {
+    Array.prototype.forEach.call(fmtButtons, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-fmt') === state.fmt ? 'true' : 'false'); });
+  }
+  Array.prototype.forEach.call(fmtButtons, function (b) {
+    b.addEventListener('click', function () {
+      state.fmt = b.getAttribute('data-fmt');
+      try { localStorage.setItem(FMT_KEY, state.fmt); } catch (e) { /* 이번만 */ }
+      paintFormat(); render();
+    });
+  });
+
+  // ── 사진 고르기 · 위치 ──
+  var photoRow = $('photo-row'), photoSrc = $('photo-src'), posRow = $('pos-row'), pos = $('photo-pos');
+  function paintPhotoControls(i, s, pick) {
+    var avail = ['walk', 'profile', 'logo'].filter(function (k) { return k === 'logo' || s[k]; });
+    photoRow.hidden = avail.length < 2;
+    photoSrc.innerHTML = '';
+    avail.forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = SRC_LABEL[k];
+      b.setAttribute('aria-pressed', k === pick ? 'true' : 'false');
+      b.addEventListener('click', function () { setChoice(state.i, { photo: k }); render(); });
+      photoSrc.appendChild(b);
+    });
+    posRow.hidden = pick === 'logo';
+    var c = choice(i);
+    pos.value = c.pos != null ? c.pos : 40;
+  }
+  pos.addEventListener('input', function () { setChoice(state.i, { pos: +pos.value }); render(); });
+
+  // ── 특이 사항 ──
+  var notesEl = $('notes'), custom = $('note-custom'), showAllNotes = false;
+  function paintNotes() {
+    var i = state.i, c = choice(i);
+    var current = c.note === 'custom' && c.custom && c.custom.trim() ? 'custom' : (c.note || defaultNote(i));
+    notesEl.innerHTML = '';
+    var list = showAllNotes ? NOTES : NOTES.slice(0, FIRST);
+    // 지금 고른 것이 접힌 쪽에 있으면 펼쳐서 보여 준다
+    if (!showAllNotes && NOTES.slice(FIRST).some(function (n) { return n.id === current; })) { showAllNotes = true; list = NOTES; }
+    list.forEach(function (n) { notesEl.appendChild(noteButton(n.id, n.text, current)); });
+    if (!showAllNotes) {
+      var more = document.createElement('button');
+      more.type = 'button'; more.className = 'more-btn'; more.textContent = '더 보기 +' + (NOTES.length - FIRST);
+      more.addEventListener('click', function () { showAllNotes = true; paintNotes(); });
+      notesEl.appendChild(more);
+    }
+    notesEl.appendChild(noteButton('none', '없음', current));
+    custom.value = c.note === 'custom' ? (c.custom || '') : '';
+  }
+  function noteButton(id, text, current) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = text;
+    b.setAttribute('aria-pressed', id === current ? 'true' : 'false');
+    b.addEventListener('click', function () { setChoice(state.i, { note: id, custom: undefined }); paintNotes(); paintBook(); render(); });
+    return b;
+  }
+  custom.addEventListener('input', function () {
+    var v = custom.value;
+    if (v.trim()) setChoice(state.i, { note: 'custom', custom: v });
+    else setChoice(state.i, { note: undefined, custom: undefined });
+    Array.prototype.forEach.call(notesEl.querySelectorAll('button[aria-pressed]'), function (b) {
+      b.setAttribute('aria-pressed', 'false');
+    });
+    if (!v.trim()) paintNotes();
+    render();
+  });
+
+  // ── 영수증철 ──
+  var bookList = $('book-list'), bookMore = $('book-more');
+  function paintBook() {
+    bookList.innerHTML = '';
+    var order = walks.map(function (w, i) { return i; }).reverse();   // 최신이 위
+    var shown = order.slice(0, state.shown), lastMonth = '';
+    var perMonth = {};
+    walks.forEach(function (w) { var ym = w.date.slice(0, 7); perMonth[ym] = (perMonth[ym] || 0) + 1; });
+    shown.forEach(function (i) {
+      var w = walks[i], ym = w.date.slice(0, 7);
+      if (ym !== lastMonth) {
+        lastMonth = ym;
+        var h = document.createElement('div');
+        h.className = 'month-head';
+        h.textContent = ym.slice(0, 4) + '년 ' + (+ym.slice(5, 7)) + '월 · ' + perMonth[ym] + '장';
+        bookList.appendChild(h);
+      }
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'r-row';
+      if (i === state.i) b.setAttribute('aria-current', 'true');
+      var meta = (w.durationMin || 0) + '분 · ' + (w.mode === 'time' ? '시간만' : '길 기록') + (w.demo ? ' · 데모' : '');
+      b.innerHTML = '<span class="r-no"></span><span class="r-main"><span class="r-date"></span><span class="r-meta"></span></span><span class="r-stamp"></span>';
+      b.querySelector('.r-no').textContent = 'No.' + pad4(i + 1);
+      b.querySelector('.r-date').textContent = dayText(w.date);
+      b.querySelector('.r-meta').textContent = meta;
+      b.querySelector('.r-stamp').textContent = stampWord(w);
+      b.addEventListener('click', function () { select(i, true); });
+      bookList.appendChild(b);
+    });
+    bookMore.hidden = order.length <= state.shown;
+    $('book-count').textContent = '모두 ' + walks.length + '장';
+  }
+  bookMore.addEventListener('click', function () { state.shown += PAGE; paintBook(); });
+
+  function paintWhich() {
+    var w = walks[state.i];
+    $('which').textContent = 'No.' + pad4(state.i + 1) + ' · ' + dayText(w.date) + (state.i === walks.length - 1 ? ' · 가장 최근 산책' : '');
+  }
+  function select(i, scroll) {
+    state.i = i;
+    if (i < walks.length - state.shown) state.shown = walks.length - i;   // 고른 줄이 접혀 있지 않게
+    showAllNotes = false;
+    paintWhich(); paintNotes(); paintBook(); render();
+    if (scroll) $('viewer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── 저장 ──
+  var saveBtn = $('save-btn');
+  if (window.WalsonSave) saveBtn.textContent = WalsonSave.label();
+  saveBtn.addEventListener('click', function () {
+    if (!window.WalsonSave) return;
+    saveBtn.disabled = true;
+    // 그리던 중이면 끝난 뒤 저장(미리 보기 캔버스가 곧 1080px 저장본)
+    lastRender.then(function () {
+      var w = walks[state.i];
+      WalsonSave.canvas(canvas, 'walson-receipt-' + w.date + '-' + pad4(state.i + 1) + '.png');
+      window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_receipt', format: state.fmt });
+    }).then(function () { saveBtn.disabled = false; }, function () { saveBtn.disabled = false; });
+  });
+
+  $('subtitle').textContent = '산책 한 번에 한 장씩 나와요 · 지금까지 ' + walks.length + '장';
+  $('viewer').hidden = false;
+  $('book').hidden = false;
+  paintFormat();
+  select(state.i, false);
+})();
+</script>
+<script src="tabbar.js?v=5" data-tab="receipt"></script>
+
+</body>
+</html>
