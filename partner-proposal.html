@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>왈슨 동반 가게 제안서</title>
+<title>왈슨 강아지 손님 단골 도장 제안서</title>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <style>
   /* 가게 사장님께 드리는 한 장짜리 제안서(2026-11-15, ② 방문 연결 · "가게 먼저" 제안).
      A4 한 장으로 인쇄하거나 휴대폰 화면으로 보여 준다. 위쪽 입력칸(가게 이름·연락처)은 인쇄할 때만 쓰고 어디에도 저장하지 않는다.
+     11/15 고침: 동반 가게 안내는 네이버 지도(애견동반 필터)에 이미 있어 앞에 두지 않는다 — 네이버에 없는 "강아지 손님 단골 도장 + 숫자"를 앞에, 지도 표시는 덤.
      약속하는 것은 지금 실제로 있는 기능만: 지도 표시·동반 조건(스팟 편집), 카운터 QR(checkin-qr.html), 방문 숫자(통계 시트 "가게 방문").
      연락처는 이 파일에 적지 않는다(공개 저장소) — 인쇄할 때 칸에 넣거나 손으로 쓴다. */
   :root { --yellow: #F2B833; --ink: #3a2e24; --soft: #6b5d4e; --line: #e6d6c1; --accent: #b8563a; --cream: #fffaf3; }
@@ -98,23 +99,23 @@
     <img src="icons/walson-logo.webp" alt="">
     <div>
       <div class="brand">왈슨</div>
-      <div class="sub">다산동 강아지 산책 · 동네 동반 가게 지도</div>
+      <div class="sub">다산동 강아지 산책 · 강아지 손님 단골 도장</div>
     </div>
   </div>
 
   <p class="to" id="to">사장님께</p>
-  <h1>동네 견주들에게<br>"강아지랑 갈 수 있는 가게"로 알려 드릴게요 — 무료로요</h1>
-  <p class="lead">왈슨은 다산동 견주들이 산책하며 쓰는 앱이에요. 견주들이 가장 자주 묻는 건 <b>"여기 강아지 데리고 들어가도 돼요?"</b>예요.
-    동반 가능한 가게는 드물고 정보가 흩어져 있어서, 알게 되면 산책길에 <b>자주 들르는 단골</b>이 되기 쉬워요.
-    사장님 가게를 왈슨 동네 지도에 올리고, 강아지 손님이 몇 명 왔는지 숫자로 알려 드리고 싶어요.</p>
+  <h1>강아지 손님, 몇 명 오고 몇 명 다시 오나요?<br>세어 드리고 단골로 만들어 드릴게요 — 무료로요</h1>
+  <p class="lead">왈슨은 다산동 견주들이 산책하며 쓰는 앱이에요. 견주는 매일 비슷한 길로 산책해서, 마음에 드는 가게가 생기면 <b>자주 들르는 단골</b>이 되기 쉬워요.
+    그런데 지금은 강아지 손님이 <b>몇 명 왔는지, 다시 왔는지</b> 알 방법이 없죠. 네이버에 "반려동물 동반"을 올려 두셔도 그건 알려 주지 않아요.
+    카운터에 QR 카드 하나만 두시면, 손님 휴대폰에는 <b>단골 도장</b>이 찍히고 사장님께는 <b>강아지 손님 숫자</b>를 알려 드려요.</p>
 
   <div class="cols">
     <div class="box give">
       <h2><span class="tag">무료</span> 왈슨이 드리는 것</h2>
       <ol>
-        <li><b>동네 지도에 "강아지 동반 가능" 표시</b><span>소형견만·테라스만·안고 입장 등 조건은 사장님이 정한 대로 적어요.</span></li>
-        <li><b>카운터에 세우는 QR 카드</b><span>인쇄해서 가져다드려요. 손님이 찍으면 휴대폰에 방문 도장이 찍히고, 자주 올수록 단골 등급이 올라가요.</span></li>
+        <li><b>카운터에 세우는 단골 도장 QR 카드</b><span>인쇄해서 가져다드려요. 손님이 휴대폰 카메라로 찍으면 방문 도장이 찍히고, 자주 올수록 단골 등급이 올라가요. 앱 설치·가입은 필요 없어요.</span></li>
         <li><b>강아지 손님 숫자</b><span>QR을 찍은 손님 수, 두 번 이상 온 손님, 왈슨으로 처음 알고 온 손님을 정리해 알려 드려요.</span></li>
+        <li><b>덤: 왈슨 동네 지도에 표시</b><span>산책하는 견주들이 보는 지도에 "강아지 동반 가능"과 조건(소형견만·테라스만 등)을 사장님이 정한 대로 올려요.</span></li>
       </ol>
     </div>
     <div class="box">
@@ -143,7 +144,7 @@
     <h2>이렇게 시작해요</h2>
     <div class="steps">
       <div class="step"><b>① 조건 정하기</b>어떤 강아지가, 어디까지 들어올 수 있는지 알려 주세요.</div>
-      <div class="step"><b>② 지도에 올리고 QR 드리기</b>며칠 안에 지도에 올리고 카운터 카드를 가져다드려요.</div>
+      <div class="step"><b>② QR 카드 드리기</b>며칠 안에 카운터 카드를 가져다드리고 지도에도 올려요.</div>
       <div class="step"><b>③ 한 달 뒤 숫자 보기</b>강아지 손님이 몇 명 왔는지 보고, 계속할지 정하세요.</div>
     </div>
   </div>
@@ -151,7 +152,7 @@
   <div class="foot">
     <div class="qr" id="qr" aria-label="왈슨 동네 지도 QR"></div>
     <div class="txt">
-      <b>지금 왈슨 동네 지도를 직접 보세요</b> — 휴대폰 카메라로 QR을 찍으면 열려요. 설치·가입 없이 바로 볼 수 있어요.<br>
+      <b>왈슨을 직접 보세요</b> — 휴대폰 카메라로 QR을 찍으면 동네 지도가 열려요. 설치·가입 없이 바로 볼 수 있어요.<br>
       왈슨은 다산동에서 시범 운영 중인 작은 서비스예요. 처음 함께해 주시는 가게를 찾고 있어요.
       <div class="contact">연락처 <span class="blank" id="contact"></span></div>
     </div>
