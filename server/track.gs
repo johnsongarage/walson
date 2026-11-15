@@ -14,7 +14,7 @@ var LOG_SHEET = 'log';
 var DASH_SHEET = '요약';
 var TZ = 'Asia/Seoul';
 var EVENTS = ['page_view', 'card_made', 'card_saved', 'walk_start', 'walk_complete', 'stamp_new',
-              'keyring_given', 'walk_type_done', 'share_click'];
+              'keyring_given', 'walk_type_done', 'share_click', 'store_visit'];
 var HEADER = ['받은 시각', '날짜', '기기', '이벤트', '화면', '유입', '첫 유입', '홈화면앱', '샘플', '운영자', '값'];
 
 function doPost(e) {
@@ -67,11 +67,19 @@ function sheet_(name, header) {
  *  3) 재방문율: 첫 방문 뒤 1일·7일·14일·30일 안에 다른 날 다시 온 기기 비율(그만큼 시간이 지난 기기만)
  */
 function refreshDashboard() {
+  // 자동(1시간)과 손으로 누른 실행이 겹치면 요약을 두 번 지웠다 쓰므로 한 번에 하나만. doPost는 appendRow가 원자적이라 잠그지 않는다.
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  try { refreshDashboard_(); } finally { lock.releaseLock(); }
+}
+function refreshDashboard_() {
   var log = sheet_(LOG_SHEET, HEADER);
   var rows = log.getLastRow() > 1 ? log.getRange(2, 1, log.getLastRow() - 1, HEADER.length).getValues() : [];
   rows = rows.filter(function (r) { return !r[8] && !r[9]; });
 
   var dev = {};            // 기기 → { first, days:{}, from, card, walk }
+  var shops = {};          // 가게(스팟 번호) → { dev:{기기:방문 날 수}, month:{기기:1}, first:{기기:1}, days:{} }
+  var thisMonth = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
   var day = {};            // 날짜 → 집계
   function D(d) {
     return day[d] || (day[d] = { visit: {}, fresh: 0, back: {}, card: 0, wstart: {}, wdone: {}, gps: 0, stamp: 0, key: 0 });
@@ -92,6 +100,13 @@ function refreshDashboard() {
     if (ev === 'walk_complete') { d.wdone[id] = 1; g.walk = true; if (extra.mode === 'gps') d.gps++; }
     if (ev === 'stamp_new') d.stamp += Number(extra.count || 1);
     if (ev === 'keyring_given') d.key++;
+    if (ev === 'store_visit' && extra.shop) {
+      var sp = shops[extra.shop] || (shops[extra.shop] = { dev: {}, month: {}, newcomer: {}, days: {} });
+      sp.dev[id] = (sp.dev[id] || 0) + 1;
+      sp.days[date] = 1;
+      if (date.slice(0, 7) === thisMonth) sp.month[id] = 1;
+      if (String(g.from).indexOf('visit_') === 0) sp.newcomer[id] = 1;   // 이 가게 QR로 왈슨을 처음 알게 됨
+    }
   });
 
   var out = [['일별 (샘플·운영자 기기 제외)'],
@@ -132,6 +147,17 @@ function refreshDashboard() {
     });
     out.push([n + '일', base, back, base ? Math.round(back / base * 100) + '%' : '-', cbase ? Math.round(cback / cbase * 100) + '%' : '-']);
   });
+  // 가게 방문(체크인 QR) — 제휴 가게에 보여 줄 숫자
+  out.push([''], ['가게 방문 (카운터 체크인 QR, 기기 기준 · 같은 기기는 하루 한 번)'],
+    ['가게(스팟 번호)', '방문한 기기', '방문 횟수(기기×날)', '두 번 이상 온 기기', '이번 달 방문 기기', '이 QR로 왈슨을 처음 안 기기', '방문 있었던 날 수']);
+  Object.keys(shops).forEach(function (k) {
+    var sp = shops[k], ids = Object.keys(sp.dev);
+    out.push([k, ids.length, ids.reduce(function (s, i) { return s + sp.dev[i]; }, 0),
+      ids.filter(function (i) { return sp.dev[i] >= 2; }).length, Object.keys(sp.month).length,
+      Object.keys(sp.newcomer).length, Object.keys(sp.days).length]);
+  });
+  if (!Object.keys(shops).length) out.push(['아직 없음']);
+
   out.push([''], ['마지막 계산: ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')]);
 
   var width = 10;
@@ -152,6 +178,11 @@ function installHourlyTrigger() {
 
 /** 보관 기간: 400일이 지난 log 줄을 지운다(개인정보 안내의 보관 기간과 맞춤). 필요하면 월 1회 트리거로 */
 function deleteOldRows() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  try { deleteOldRows_(); } finally { lock.releaseLock(); }
+}
+function deleteOldRows_() {
   var log = sheet_(LOG_SHEET, HEADER);
   var last = log.getLastRow();
   if (last < 2) return;

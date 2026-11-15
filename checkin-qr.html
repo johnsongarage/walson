@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>가게 체크인 QR 인쇄</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  /* 가게 카운터용 체크인 QR(2026-11-15, ② 방문 연결). 스팟 편집의 동반 스팟 "체크인 QR" 버튼으로 연다: checkin-qr.html?s=<스팟 id>
+     A4 한 장에 카운터 세움 카드 2장(A6 정도). QR → visit.html?s=<id>&from=visit_<짧은 번호> (방문 도장 + 유입 코드).
+     가게 이름은 스팟 이름 그대로 — 프랜차이즈 브랜드 이름은 스팟 이름에 넣지 않는 규칙(11/15)을 따른다. */
+  :root { --yellow: #F2B833; --ink: #3a2e24; --soft: #6b5d4e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: #ddd; }
+  .toolbar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; background: #fff; border-bottom: 1px solid #ccc; }
+  .toolbar strong { margin-right: auto; font-size: 15px; }
+  .toolbar button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1px solid #c99a1c; background: var(--yellow); cursor: pointer; }
+  .toolbar p { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--soft); }
+  .toolbar code { font-size: 11px; background: #f3f3f3; padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+  .sheet { width: 210mm; height: 297mm; margin: 16px auto; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.2); display: grid; grid-template-rows: 1fr 1fr; }
+  .card { border-bottom: 0.3mm dashed #999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10mm; background: var(--yellow); }
+  .card:last-child { border-bottom: none; }
+  .card .top { display: flex; align-items: center; gap: 3mm; }
+  .card .top img { width: 18mm; height: auto; }
+  .card .top b { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 12mm; line-height: 1; }
+  .card h1 { font-size: 10mm; font-weight: 900; margin: 5mm 0 2mm; letter-spacing: -0.02em; }
+  .card .shop { font-size: 5.5mm; font-weight: 800; background: #fff; padding: 1mm 4mm; border-radius: 3mm; }
+  .card .qr { width: 62mm; height: 62mm; background: #fff; padding: 3mm; border-radius: 4mm; margin: 6mm 0 4mm; border: 0.8mm solid var(--ink); }
+  .card .qr svg { width: 100%; height: 100%; display: block; }
+  .card p { font-size: 4.2mm; font-weight: 700; margin: 0; line-height: 1.5; }
+  .card small { font-size: 3.2mm; color: var(--soft); margin-top: 2mm; display: block; }
+  .bad { max-width: 520px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 12px; line-height: 1.7; }
+  @page { size: A4; margin: 0; }
+  @media print {
+    html, body { background: #fff; }
+    .toolbar { display: none; }
+    .sheet { margin: 0; box-shadow: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media screen and (max-width: 860px) { .sheet { zoom: 0.45; } }
+  [hidden] { display: none !important; }
+</style>
+<script src="spots-data.js"></script>
+<script src="infra-pins.js?v=15"></script>
+</head>
+<body>
+
+<div class="toolbar" id="toolbar" hidden>
+  <strong id="tb-title">가게 체크인 QR</strong>
+  <button type="button" onclick="window.print()">인쇄하기</button>
+  <p>A4 한 장에 2장 — 잘라서 카운터에 세워 두세요. 인쇄 창에서 여백 "없음", "배경 그래픽" 켜기. 인쇄 전에 휴대폰으로 한 번 찍어 보세요.<br>
+    QR 주소: <code id="tb-url"></code></p>
+</div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="bad" id="bad" hidden>
+  <b>가게를 찾지 못했어요.</b><br>스팟 편집에서 동반 스팟을 "모두에게 반영"한 뒤, 목록의 "체크인 QR" 버튼으로 열어 주세요.
+  (반영 전 스팟은 아직 서비스에 없어서 손님 휴대폰에서 도장이 찍히지 않아요.)
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  var BASE = 'https://johnsongarage.co.kr/walson/visit.html';
+  var m = location.search.match(/[?&]s=([^&#]+)/);
+  var id = m ? decodeURIComponent(m[1]) : '';
+  var spot = InfraPins.all().filter(function (p) { return p.id === id && p.cat === 'spot'; })[0];
+  if (!spot) { document.getElementById('bad').hidden = false; return; }
+
+  // 유입 코드: visit_ + 스팟 번호 끝 6자리(통계 "유입별"에서 이 가게 QR로 처음 온 사람을 따로 본다)
+  var code = 'visit_' + String(id).replace(/[^0-9A-Za-z]/g, '').slice(-6);
+  var url = BASE + '?s=' + encodeURIComponent(id) + '&from=' + code;
+  document.getElementById('tb-title').textContent = '가게 체크인 QR — ' + (spot.name || '');
+  document.getElementById('tb-url').textContent = url;
+  document.getElementById('toolbar').hidden = false;
+
+  var svg;
+  if (window.qrcode) { var qr = qrcode(0, 'M'); qr.addData(url); qr.make(); svg = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+  else svg = '<div style="font-size:12px;padding:8px;">QR을 그리지 못했어요(인터넷 연결 확인)</div>';
+
+  var sheet = document.getElementById('sheet');
+  for (var i = 0; i < 2; i++) {
+    var c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML =
+      '<div class="top"><img src="icons/walson-logo.webp" alt=""><b>왈슨</b></div>' +
+      '<h1>강아지랑 왔다면 방문 도장!</h1>' +
+      '<div class="shop"></div>' +
+      '<div class="qr">' + svg + '</div>' +
+      '<p>카메라로 찍으면 도장이 쾅. 앱 설치·로그인 없어요.</p>' +
+      '<small>위치는 읽지 않아요 · 다산동 댕댕이 산책앱 왈슨</small>';
+    c.querySelector('.shop').textContent = spot.name || '';
+    sheet.appendChild(c);
+  }
+  sheet.hidden = false;
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 // 보내는 것: 무작위 기기 번호(이 휴대폰에서 만든 것, 이름·전화번호와 연결 안 됨), 시각, 이벤트 이름, 화면 이름,
 //           유입 코드(?from=), 홈 화면 앱인지, 샘플 모드·운영자 기기 표시, 이벤트별 작은 값(아래 ALLOWED).
 // 보내지 않는 것: 위치·좌표·경로, 발도장 장소 이름, 강아지 이름·사진, 견주 정보, 메모.
+// (가게 체크인 QR을 직접 찍은 경우에만 그 가게의 스팟 번호를 보낸다 — GPS가 아니라 손님이 찍은 QR)
 // 받는 곳: site-config.js의 trackUrl(운영자가 배포한 Apps Script). 비어 있으면 아무것도 보내지 않는다.
 // 고지·거부 방식(2026-11-15 가르시아 결정): 처음부터 보내되, 개인정보 안내 화면에서 "보내지 않기"를 고른 사람과
 //   브라우저의 "추적하지 마세요(GPC)" 신호를 켠 사람은 보내지 않는다. 동의는 나중에 가입 단계에서 한꺼번에 받는다.
@@ -24,7 +25,8 @@
     stamp_new: ['count'],
     keyring_given: [],
     walk_type_done: ['type'],
-    share_click: ['what']
+    share_click: ['what'],
+    store_visit: ['shop']          // 가게 카운터 체크인 QR(visit.html) — 스팟 번호만, 하루 한 번
   };
 
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }

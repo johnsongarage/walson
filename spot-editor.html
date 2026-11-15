@@ -1001,7 +1001,18 @@
           if (editingId === pin.id) clearForm();
           save().catch(function () {});
         });
-        li.appendChild(info); li.appendChild(edit); li.appendChild(del);
+        li.appendChild(info);
+        // 가게 체크인 QR(② 방문 연결) — 동반 스팟만, 모두에게 반영된 스팟만(손님 휴대폰은 반영된 데이터로 도장을 찍으므로)
+        if (pin.cat === 'spot') {
+          var qrBtn = document.createElement('button');
+          qrBtn.type = 'button'; qrBtn.textContent = '체크인 QR';
+          var live = baseSpots.some(function (s) { return s.id === pin.id; });
+          qrBtn.disabled = !live;
+          qrBtn.title = live ? '가게 카운터에 둘 방문 도장 QR 인쇄' : '모두에게 반영한 뒤에 만들 수 있어요';
+          qrBtn.addEventListener('click', function () { window.open('checkin-qr.html?s=' + encodeURIComponent(pin.id), '_blank'); });
+          li.appendChild(qrBtn);
+        }
+        li.appendChild(edit); li.appendChild(del);
         listEl.appendChild(li);
       });
   }
