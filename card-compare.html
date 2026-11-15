@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>카드 비교 — 지금 vs 생활기록부</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Myeongjo:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  /* 보상 카드 톤 비교 도구(2026-11-15). card-*.html처럼 디자인 비교용이고, 앱 어디에도 연결하지 않는다.
+     A = 지금 [카드] 탭 카드(reward-card-soft.js를 그대로 씀), B = 게임 문법 대신 생활 서류를 패러디한 시안
+     (앞면 댕댕이 생활기록부 + 뒷면 도장 수첩). 둘 다 샘플 모드의 왈슨과 같은 기록으로 그린다.
+     사용 통계(track.js)는 넣지 않았다 — 공원에서 보여 줘도 아무것도 보내지 않는다. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 16px 16px 40px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  .eyebrow { font-size: 12px; font-weight: 700; color: var(--accent); margin: 4px 0 6px; }
+  h1 { font-size: 22px; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .lead { font-size: 14px; line-height: 1.65; color: var(--ink-soft); margin: 0 0 16px; }
+
+  .controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .seg {
+    display: flex; gap: 4px; padding: 4px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px;
+  }
+  .seg button {
+    border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
+    padding: 8px 16px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .seg button.active { background: var(--ink); color: #fff; }
+
+  .cards { display: grid; grid-template-columns: 1fr; gap: 18px; justify-items: center; }
+  .card { margin: 0; width: 100%; max-width: 380px; }
+  .card figcaption {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 4px 8px;
+    font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  }
+  .card figcaption b { font-size: 22px; font-weight: 800; color: var(--ink); }
+  .card canvas {
+    display: block; width: 100%; height: auto; cursor: pointer;
+    filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
+  }
+  .cards[data-show="a"] .card-b, .cards[data-show="b"] .card-a { display: none; }
+  .hint { text-align: center; font-size: 12px; color: #a8977f; margin: 10px 0 0; }
+
+  .actions { display: flex; justify-content: center; margin: 14px 0 0; }
+  .btn {
+    border-radius: 999px; padding: 12px 20px; font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer; background: var(--panel); color: var(--ink); border: 1px solid var(--panel-border);
+  }
+  .btn:active { transform: scale(0.98); }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
+    padding: 16px; margin-top: 18px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.08);
+  }
+  .panel h2 { font-size: 17px; font-weight: 800; margin: 0 0 6px; }
+  .panel > p { font-size: 13px; line-height: 1.65; color: var(--ink-soft); margin: 0 0 12px; }
+  .panel h3 { font-size: 14px; font-weight: 800; margin: 16px 0 4px; }
+  .group-label { font-size: 12px; font-weight: 700; color: #a8977f; margin: 10px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1px solid var(--panel-border); background: #fff; color: var(--ink); border-radius: 999px;
+    padding: 7px 12px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .preview {
+    margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: #fff;
+    border: 1px solid var(--panel-border); font-size: 14px; line-height: 1.7;
+  }
+  .preview b { color: var(--accent); }
+
+  .diff { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.55; }
+  .diff th, .diff td { text-align: left; vertical-align: top; padding: 9px 6px; border-top: 1px solid var(--panel-border); }
+  .diff thead th { border-top: none; font-size: 12px; color: var(--ink-soft); padding-top: 0; }
+  .diff tbody th { font-weight: 700; white-space: nowrap; color: var(--ink-soft); font-size: 12px; }
+  .diff td.b { color: var(--ink); font-weight: 600; }
+  .diff td.a { color: var(--ink-soft); }
+
+  details.panel summary { font-size: 15px; font-weight: 800; cursor: pointer; }
+  details.panel ul, details.panel ol { font-size: 13px; line-height: 1.7; color: var(--ink-soft); padding-left: 20px; margin: 10px 0 0; }
+  details.panel li + li { margin-top: 6px; }
+  details.panel strong { color: var(--ink); }
+
+  @media (min-width: 760px) {
+    #which { display: none; }
+    .cards { grid-template-columns: 1fr 1fr; align-items: start; }
+    .cards[data-show] .card { display: block; }
+  }
+  @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="eyebrow">카드 비교 시안 · 디자인 도구(앱 화면 아님)</p>
+  <h1>어느 카드를 저장하고 싶나요?</h1>
+  <p class="lead">같은 왈슨, 같은 기록(산책 15회 · 17.6km · 발도장 2곳), 같은 관찰거리로 그린 두 장이에요.
+  A는 지금 [카드] 탭 그대로, B는 게임 대신 생활 서류(생활기록부·도장 수첩)를 패러디한 시안이에요.</p>
+
+  <div class="controls">
+    <div class="seg" id="which" role="tablist" aria-label="카드 고르기">
+      <button type="button" data-v="a" class="active">A · 지금</button>
+      <button type="button" data-v="b">B · 생활기록부</button>
+    </div>
+    <div class="seg" id="side" role="tablist" aria-label="앞뒷면">
+      <button type="button" data-v="front" class="active">앞면</button>
+      <button type="button" data-v="back">뒷면</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cards" data-show="a">
+    <figure class="card card-a">
+      <figcaption><b>A</b> 지금 카드 · 스킬 · 등급 · 뽑기</figcaption>
+      <canvas id="canvas-a" width="680" height="1000" aria-label="A: 지금 보상 카드"></canvas>
+    </figure>
+    <figure class="card card-b">
+      <figcaption><b>B</b> 시안 · 생활기록부 + 도장 수첩</figcaption>
+      <canvas id="canvas-b" width="680" height="1000" aria-label="B: 생활기록부 카드 시안"></canvas>
+    </figure>
+  </div>
+  <p class="hint">카드를 누르면 두 장이 같이 뒤집혀요</p>
+  <div class="actions">
+    <button type="button" class="btn" id="save-compare">A·B 나란히 이미지로 저장</button>
+  </div>
+
+  <section class="panel">
+    <h2>B 문구 고르기 — 뽑기 대신 고르기</h2>
+    <p>보호자가 두 번만 누르면 돼요. 칭찬할 점 하나, "단," 뒤에 붙는 한 줄 하나.
+    산책 유형 테스트를 했다면 그 유형 줄을 미리 골라 둘 수 있어요(탭 한 번에 완성).
+    스킬·특성에서 온 줄을 고르면 A 카드도 같은 관찰거리로 바뀌어요.</p>
+
+    <h3>칭찬할 점</h3>
+    <div class="group-label">산책 유형 테스트에서</div>
+    <div class="chips" id="praise-type"></div>
+    <div class="group-label">지금 카드의 스킬에서</div>
+    <div class="chips" id="praise-skill"></div>
+
+    <h3>단, … <small style="font-weight:600;color:#a8977f">지금 카드의 특성에서</small></h3>
+    <div class="chips" id="guide"></div>
+
+    <p class="preview" id="preview"></p>
+  </section>
+
+  <section class="panel">
+    <h2>무엇이 바뀌었나</h2>
+    <table class="diff">
+      <thead><tr><th></th><th>A 지금</th><th>B 시안</th></tr></thead>
+      <tbody>
+        <tr><th>카드</th><td class="a">보상 카드(포켓몬 카드에서 출발한 금속 테두리·메달)</td><td class="b">댕댕이 생활기록부 — 주민증과 한 식구</td></tr>
+        <tr><th>우리 개 이야기</th><td class="a">스킬·특성 + 괄호 수치(방어력 +30, 쿨타임 0초)</td><td class="b">칭찬할 점 + "단," 한 줄. 관찰은 그대로, 말투만 담임 선생님</td></tr>
+        <tr><th>정하는 법</th><td class="a">무작위 뽑기 · 다시 뽑기</td><td class="b">보호자가 두 번 눌러 고름(유형 테스트 결과로 미리 채움)</td></tr>
+        <tr><th>쌓이는 것</th><td class="a">테두리 종이→나무→은→금, 산책 1회·3회에 칸이 열림</td><td class="b">출석·거리·킁킁 지수, 수상 경력. 잠긴 칸 없음</td></tr>
+        <tr><th>숫자</th><td class="a">지어낸 스탯(HP·회피율)</td><td class="b">앱에 실제로 쌓이는 기록(산책·km·끝 화면 답)</td></tr>
+        <tr><th>뒷면</th><td class="a">발도장 지도(공용 장소 3곳)</td><td class="b">도장 수첩: 발도장 + 가게 도장(쿠폰판)</td></tr>
+        <tr><th>저장하는 값</th><td class="a">skill, passive 번호</td><td class="b">같음 — 칸 두 개 그대로, 고르는 방식만 바뀜</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <details class="panel">
+    <summary>메모 · 정할 것과 공원에서 물어볼 것</summary>
+    <ul>
+      <li><strong>수상 기준(제안):</strong> 성실상 산책 10회 · 쾌변상 응가 기록 15번 · 탐험상 발도장 3곳 모두 · 단골상 한 가게 도장 5개. 숫자는 정하기 나름이에요.</li>
+      <li><strong>가게 이름을 저장 이미지에 넣을지:</strong> 앞면 단골상과 뒷면 도장에 가게 이름이 들어가요. 가게 홍보에는 좋지만, 이미지를 올리면 자주 가는 곳이 드러나요. 이름 대신 "단골 가게 1곳"처럼 셀 수도 있어요.</li>
+      <li><strong>예시 값:</strong> 가게 이름(동네 카페·수제간식집·애견 미용실)과 도장 수는 예시예요. 샘플 왈슨에는 가게 방문 기록이 없어요.</li>
+      <li><strong>9/24 결정과의 관계:</strong> "카드 한 장이 자란다"는 그대로예요. 자라는 방식만 등급 테두리에서 출석·상·도장으로 바뀌어요. 정하면 DECISIONS에 번복으로 남겨요.</li>
+      <li><strong>테마:</strong> A는 기본(차분) 테마로 그렸어요. 뉴브루탈 테마에서는 검정 테두리라 게임 느낌이 더 세요.</li>
+    </ul>
+    <ol>
+      <li>두 장을 보여 주고 "어느 쪽을 저장하고 싶어요?" — 이유 한마디도 같이.</li>
+      <li>B 문구 목록을 보여 주고 "우리 애는 어떤 거예요?" — 고르는 게 재밌어 보이는지.</li>
+      <li>B 뒷면 도장 수첩을 보여 주고 "이 가게 도장 찍으러 가 볼래요?"</li>
+    </ol>
+  </details>
+</div>
+
+<script src="card-shared.js?v=11"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=5"></script>
+<script src="reward-card-soft.js?v=1"></script>
+<script>
+(function () {
+  var CS = window.CardShared;
+  var RR = window.RewardRules;
+  var RCS = window.RewardCardSoft;
+
+  // ── 비교용 고정 샘플: 샘플 모드(sample-data.js)의 왈슨과 같은 기록 ──
+  // 길 기록 산책 15회(시간만 잰 3회는 빠짐) · 공원 둘레 고리 합계 약 17.6km · 중앙공원·수변공원 발도장.
+  // 끝 화면 킁킁 지수 평균 3.8. 가게 도장은 예시(샘플엔 가게 방문이 없다).
+  var SAMPLE = {
+    name: '왈슨', size: 'small', signal: 'red', photo: 'icons/sample-walson.jpg',
+    progress: { walks: 15, km: 17.6, visited: { central: true, waterside: true } },
+    firstWalk: '2026. 10. 26.', issued: '2026. 11. 15.', sniffAvg: 3.8,
+    placeDates: { central: '10. 27.', waterside: '10. 30.', outlet: '' },
+    awards: [
+      { name: '성실상', what: '산책 10회', date: '2026. 11. 9.' },
+      { name: '쾌변상', what: '응가 기록 15번', date: '2026. 11. 13.' },
+      { name: '단골상', what: '동네 카페 도장 5개', date: '2026. 11. 14.' }
+    ],
+    shops: [
+      { name: '동네 카페', stamps: 5 },
+      { name: '수제간식집', stamps: 2 },
+      { name: '애견 미용실', stamps: 1 }
+    ],
+    // 수상 기준은 제안값(가르시아가 정할 것) — 뒷면 "모으면 받는 상"에 그대로 나온다
+    awardRules: [
+      { name: '탐험상', rule: '공용 장소 3곳 발도장', status: '2 / 3곳', done: false },
+      { name: '단골상', rule: '한 가게 도장 5칸', status: '받음', done: true },
+      { name: '성실상', rule: '산책 10회', status: '받음', done: true },
+      { name: '쾌변상', rule: '응가 기록 15번', status: '받음', done: true }
+    ]
+  };
+
+  // ── B 문구: 관찰은 지금 카탈로그(card-shared.js, 가르시아가 쓴 B급 문구) 그대로, 말투만 생활기록부 ──
+  // 칭찬할 점 = 산책 유형 6(walk-type.html) + 스킬 8(SKILLS 순서), "단," 뒤 한 줄 = 특성 11(PASSIVES 순서).
+  var PRAISE = [
+    { group: 'type', key: 'sniff',  label: '킁킁 탐정형',    text: '전봇대마다 오래 머물며 냄새를 조사하는 등 탐구심이 뛰어남.' },
+    { group: 'type', key: 'run',    label: '직진 마라토너형', text: '목줄을 당기며 앞만 보고 걷는 등 목표 의식이 뚜렷함.' },
+    { group: 'type', key: 'social', label: '동네 이장님형',   text: '마주치는 모든 개와 사람에게 인사하는 등 교우 관계가 매우 원만함.' },
+    { group: 'type', key: 'home',   label: '집돌이 귀가형',   text: '집을 나서자마자 귀가를 제안하는 등 가정에 대한 애착이 깊음.' },
+    { group: 'type', key: 'snack',  label: '간식 협상가형',   text: '한 블록마다 간식을 요구하는 등 협상 능력이 탁월함.' },
+    { group: 'type', key: 'chill',  label: '감성 산책러형',   text: '벤치에 앉아 바람 냄새를 음미하는 등 정서가 풍부함.' },
+    { group: 'skill', skill: 0, label: '식탁 밑 눈빛',   text: '식사 시간마다 보호자 무릎에 턱을 얹고 간절한 눈빛을 보내는 등 협상력이 뛰어남.' },
+    { group: 'skill', skill: 1, label: '비닐 소리 감지', text: '깊이 잠든 중에도 간식 비닐 소리에 0.1초 만에 반응할 만큼 청각이 예민함.' },
+    { group: 'skill', skill: 2, label: '간식집 앞 얼음', text: '단골 간식집 앞에서는 보호자가 설득할 때까지 자리를 지키는 끈기를 보임.' },
+    { group: 'skill', skill: 3, label: '배변 중 눈맞춤', text: '배변 중에도 보호자와 끝까지 눈을 맞추는 등 유대감이 매우 깊음.' },
+    { group: 'skill', skill: 4, label: '냄새 탐정',      text: '마음에 드는 풀숲 앞에서는 3분 넘게 탐구에 몰두하는 등 학구열이 남다름.' },
+    { group: 'skill', skill: 5, label: '오토바이 경보',  text: '배달 오토바이가 단지에 들어오면 가장 먼저 알리는 등 경비 업무에 책임감이 강함.' },
+    { group: 'skill', skill: 6, label: '빗질 탈출',      text: '빗질 시간에는 뼈가 없는 듯 몸을 비틀어 빠져나가는 등 유연성이 뛰어남.' },
+    { group: 'skill', skill: 7, label: '소파 밑 대피',   text: '발톱깎이 소리가 나면 소파 밑으로 재빨리 대피하는 등 위기 대처 능력이 우수함.' }
+  ];
+  var GUIDE = [
+    { passive: 0,  label: '선택적 귓등',  text: "'안 돼'와 '기다려'에는 청력이 일시적으로 떨어지는 경향을 보임." },
+    { passive: 1,  label: '목욕 후 질주',  text: '목욕 후에는 거실 이불 위를 전력 질주하며 슬라이딩함. 가정에서의 지도 바람.' },
+    { passive: 2,  label: '남의 간식',    text: '같은 간식을 받아도 친구의 간식을 더 오래 바라봄.' },
+    { passive: 3,  label: '새 옷 얼음',   text: '새 옷을 입으면 그 자리에 굳어 움직이지 않음. 적응 기간이 필요함.' },
+    { passive: 4,  label: '침대 점령',    text: '잘 때는 침대 한가운데를 T자로 차지해 보호자를 구석으로 밀어냄.' },
+    { passive: 5,  label: '비 오는 날',   text: '산책을 졸라 나가 놓고 현관 앞 빗물을 보자마자 안아 달라고 함.' },
+    { passive: 6,  label: '옥수수 칩 발',  text: '발바닥에서 구수한 옥수수 칩 냄새가 남. 가정에서의 지도 바람.' },
+    { passive: 7,  label: '터그 집착',    text: '터그 놀이만 하면 으르렁거리지만 기분은 최고조임.' },
+    { passive: 8,  label: '패드 모서리',   text: '배변 패드 한가운데를 두고 꼭 모서리를 고집함.' },
+    { passive: 9,  label: '5분 후 안아',  text: '산책 5분 만에 앞발로 다리를 긁으며 안아 달라고 함. 체력 보강 바람.' },
+    { passive: 10, label: '밖에서만 순둥', text: '집에서는 왕처럼 지내나 동물병원에서는 세상 순한 양이 됨.' }
+  ];
+  // 왈슨(빨강불, 으르렁 얼굴) 기본값: 오토바이 경보 + 선택적 귓등
+  var pick = { praise: 11, guide: 0 };
+
+  // 주민증(start.html)과 같은 신호등 문구·색
+  var SIGNALS = {
+    green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
+    yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
+    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' },
+    none:   { label: '미정', line: '아직 안 정했어요', color: '#b8563a' }
+  };
+  var SIZE_CLASS = { small: '소형견반', medium: '중형견반', large: '대형견반' };
+
+  // ── B: 생활기록부(앞) + 도장 수첩(뒤) 그리기 ──
+  var LifeCard = (function () {
+    var W = 680, M = 44, R = W - 44;
+    var INK = '#4a3f35', SOFT = '#8a7a68', FAINT = '#a8977f', RULE = '#4a3f35', HEAD = '#f1e5d3',
+        PAPER = '#fffaf3', EDGE = '#d9c7b3', RED = '#c8423a', DASH = '#c9b8a3';
+    var SERIF = '"Nanum Myeongjo", "Noto Serif KR", AppleMyungjo, Batang, serif';
+    var SANS = 'Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    function font(weight, size, fam) { return weight + ' ' + size + 'px ' + (fam || SANS); }
+
+    // 고정 난수 — 다시 그려도 잉크 자국이 바뀌지 않게
+    function rng(seed) {
+      var s = (seed >>> 0) || 1;
+      return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+    }
+
+    function spacedText(ctx, text, cx, y, gap) {
+      var chars = text.split('');
+      var widths = chars.map(function (ch) { return ctx.measureText(ch).width; });
+      var total = widths.reduce(function (a, b) { return a + b; }, 0) + gap * (chars.length - 1);
+      var x = cx - total / 2;
+      ctx.textAlign = 'left';
+      chars.forEach(function (ch, i) { ctx.fillText(ch, x, y); x += widths[i] + gap; });
+    }
+
+    function hLine(ctx, x1, x2, y, w) {
+      ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y);
+      ctx.lineWidth = w || 1.2; ctx.strokeStyle = RULE; ctx.stroke();
+    }
+    function vLine(ctx, x, y1, y2, w) {
+      ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2);
+      ctx.lineWidth = w || 1.2; ctx.strokeStyle = RULE; ctx.stroke();
+    }
+    function box(ctx, x, y, w, h) { ctx.lineWidth = 2; ctx.strokeStyle = RULE; ctx.strokeRect(x, y, w, h); }
+
+    function cellText(ctx, text, x, y, w, h, opt) {
+      opt = opt || {};
+      ctx.fillStyle = opt.color || INK;
+      ctx.font = opt.font || font(600, 19);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = opt.align || 'center';
+      var tx = opt.align === 'left' ? x + 16 : opt.align === 'right' ? x + w - 16 : x + w / 2;
+      ctx.fillText(text, tx, y + h / 2 + 1);
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+    }
+
+    // 고무 도장처럼: 따로 그린 뒤 잉크가 덜 묻은 점을 지우고, 살짝 돌려 곱하기로 찍는다
+    function inked(ctx, cx, cy, size, rot, seed, paint) {
+      var s = Math.ceil(size);
+      var off = document.createElement('canvas');
+      off.width = s; off.height = s;
+      var c = off.getContext('2d');
+      paint(c, s);
+      var r = rng(seed);
+      c.globalCompositeOperation = 'destination-out';
+      for (var i = 0; i < s * 1.4; i++) {
+        c.globalAlpha = 0.2 + r() * 0.6;
+        c.beginPath(); c.arc(r() * s, r() * s, 0.6 + r() * 1.9, 0, Math.PI * 2); c.fill();
+      }
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = 0.92;
+      ctx.translate(cx, cy); ctx.rotate(rot);
+      ctx.drawImage(off, -s / 2, -s / 2);
+      ctx.restore();
+    }
+
+    function paw(c, cx, cy, s, color) {
+      c.fillStyle = color;
+      c.beginPath(); c.ellipse(cx, cy + s * 0.2, s * 0.3, s * 0.24, 0, 0, Math.PI * 2); c.fill();
+      [[-0.37, -0.1, -0.4], [-0.13, -0.32, -0.12], [0.13, -0.32, 0.12], [0.37, -0.1, 0.4]].forEach(function (t) {
+        c.beginPath(); c.ellipse(cx + t[0] * s, cy + t[1] * s, s * 0.11, s * 0.15, t[2], 0, Math.PI * 2); c.fill();
+      });
+    }
+
+    function arcText(c, text, cx, cy, radius, fontStr) {
+      c.font = fontStr; c.textAlign = 'center'; c.textBaseline = 'middle';
+      var chars = text.split('');
+      var widths = chars.map(function (ch) { return c.measureText(ch).width + 1.5; });
+      var total = widths.reduce(function (a, b) { return a + b; }, 0);
+      var angle = -Math.PI / 2 - total / radius / 2;
+      chars.forEach(function (ch, i) {
+        var a = angle + widths[i] / 2 / radius;
+        c.save();
+        c.translate(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius);
+        c.rotate(a + Math.PI / 2);
+        c.fillText(ch, 0, 0);
+        c.restore();
+        angle += widths[i] / radius;
+      });
+    }
+
+    function paper(ctx, H) {
+      ctx.clearRect(0, 0, W, H);
+      CS.roundRect(ctx, 14, 14, W - 28, H - 28, 26);
+      ctx.fillStyle = PAPER; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = EDGE; ctx.stroke();
+    }
+
+    function header(ctx, title) {
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = SOFT; ctx.font = font(600, 17);
+      ctx.textAlign = 'left'; ctx.fillText('2026학년도', M, 58);
+      ctx.textAlign = 'right'; ctx.fillText('다산동 산책학교', R, 58);
+      ctx.fillStyle = INK; ctx.font = font(800, title.length > 9 ? 38 : 44, SERIF);
+      spacedText(ctx, title, W / 2, 110, title.length > 9 ? 3 : 6);
+      ctx.fillStyle = RULE;
+      ctx.fillRect(M, 128, R - M, 3);
+      ctx.fillRect(M, 135, R - M, 1);
+      return 136;
+    }
+
+    function sectionTitle(ctx, text, y, right) {
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = INK; ctx.font = font(800, 21, SERIF); ctx.textAlign = 'left';
+      ctx.fillText(text, M, y);
+      if (right) {
+        ctx.fillStyle = SOFT; ctx.font = font(600, 16); ctx.textAlign = 'right';
+        ctx.fillText(right, R, y);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    function photo(ctx, img, x, y, w, h) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+      ctx.fillStyle = '#efe4d4'; ctx.fillRect(x, y, w, h);
+      if (img) {
+        var fit = CS.computePhotoFit({ x: x, y: y, w: w, h: h }, img, 1);
+        ctx.drawImage(img, x + (w - fit.dw) / 2, y + (h - fit.dh) / 2, fit.dw, fit.dh);
+      } else {
+        cellText(ctx, '사진', x, y, w, h, { color: FAINT });
+      }
+      ctx.restore();
+    }
+
+    function seal(ctx, cx, cy, size, seed) {
+      inked(ctx, cx, cy, size + 12, -0.06, seed, function (c) {
+        var o = 6, w = size;
+        c.strokeStyle = RED;
+        c.lineWidth = 4; c.strokeRect(o, o, w, w);
+        c.lineWidth = 1.5; c.strokeRect(o + 6, o + 6, w - 12, w - 12);
+        c.fillStyle = RED; c.font = font(800, Math.round(size * 0.25), SERIF);
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        // 직인처럼 오른쪽 줄부터 위에서 아래로: 산책학 / 교장인
+        [['산', '책', '학'], ['교', '장', '인']].forEach(function (col, ci) {
+          var x = o + w * (ci === 0 ? 0.7 : 0.3);
+          col.forEach(function (ch, ri) { c.fillText(ch, x, o + w * (0.24 + ri * 0.26)); });
+        });
+      });
+    }
+
+    // ── 앞면: 댕댕이 생활기록부 ── 돌려주는 값은 필요한 캔버스 높이
+    function drawFront(ctx, H, d) {
+      paper(ctx, H);
+      var y = header(ctx, '댕댕이 생활기록부');
+
+      // 1. 인적 사항 + 증명사진. 사진을 A(지름 460 원)의 절반 넓이쯤으로 크게 — 너무 작으면 공원 비교에서
+      //    "말투" 대신 "사진 크기"를 고르게 된다(2026-11-15)
+      sectionTitle(ctx, '1. 인적 사항', y + 38);
+      var top = y + 50, rowH = 84, pw = 260, ph = rowH * 4;
+      var px = R - pw, tw = px - 14 - M, lw = 88;
+      var sig = SIGNALS[d.signal] || SIGNALS.none;
+      ctx.fillStyle = HEAD; ctx.fillRect(M, top, lw, ph);
+      ['이름', '반', '신호등', '입학일'].forEach(function (label, i) {
+        var ry = top + i * rowH;
+        if (i) hLine(ctx, M, M + tw, ry);
+        cellText(ctx, label, M, ry, lw, rowH, { font: font(700, 17), color: SOFT });
+      });
+      var vx = M + lw, vw = tw - lw;
+      var nameSize = 34;
+      do { ctx.font = font(800, nameSize); if (ctx.measureText(d.name).width <= vw - 28) break; nameSize -= 2; } while (nameSize > 18);
+      cellText(ctx, d.name, vx, top, vw, rowH, { font: font(800, nameSize), align: 'left' });
+      cellText(ctx, SIZE_CLASS[d.size] || '산책반', vx, top + rowH, vw, rowH, { align: 'left' });
+      // 신호등: 색 점 + 이름, 아래 작은 글씨로 뜻
+      var sy = top + rowH * 2;
+      ctx.fillStyle = sig.color;
+      ctx.beginPath(); ctx.arc(vx + 24, sy + 31, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = INK; ctx.font = font(700, 20); ctx.textBaseline = 'middle';
+      ctx.fillText(sig.label, vx + 40, sy + 32);
+      ctx.fillStyle = SOFT; ctx.font = font(500, 14);
+      ctx.fillText(sig.line, vx + 16, sy + 58);
+      ctx.textBaseline = 'alphabetic';
+      cellText(ctx, d.firstWalk, vx, top + rowH * 3, vw, rowH, { align: 'left' });
+      vLine(ctx, vx, top, top + ph);
+      box(ctx, M, top, tw, ph);
+      photo(ctx, d.petImage, px, top, pw, ph);
+      box(ctx, px, top, pw, ph);
+      y = top + ph;
+
+      // 2. 출결 상황 — 지어낸 스탯 대신 앱에 쌓이는 기록
+      sectionTitle(ctx, '2. 출결 상황', y + 38);
+      top = y + 50;
+      var cols = [['출석', d.walks + '회'], ['걸은 거리', d.km.toFixed(1) + 'km'], ['킁킁 지수 평균', d.sniffAvg.toFixed(1) + ' / 5']];
+      var cw = (R - M) / cols.length, hh = 36, vh = 50;
+      ctx.fillStyle = HEAD; ctx.fillRect(M, top, R - M, hh);
+      cols.forEach(function (col, i) {
+        var cx = M + i * cw;
+        if (i) vLine(ctx, cx, top, top + hh + vh);
+        cellText(ctx, col[0], cx, top, cw, hh, { font: font(700, 16), color: SOFT });
+        cellText(ctx, col[1], cx, top + hh, cw, vh, { font: font(800, 22) });
+      });
+      hLine(ctx, M, R, top + hh);
+      box(ctx, M, top, R - M, hh + vh);
+      y = top + hh + vh;
+
+      // 3. 수상 경력 — 등급 테두리 대신 쌓이는 것
+      sectionTitle(ctx, '3. 수상 경력', y + 38);
+      top = y + 50;
+      var aw = 112, dw = 150, ah = 44;
+      var awards = d.awards.length ? d.awards : [{ name: '-', what: '산책 10회면 성실상', date: '' }];
+      ctx.fillStyle = HEAD; ctx.fillRect(M, top, aw, ah * awards.length);
+      awards.forEach(function (a, i) {
+        var ry = top + i * ah;
+        if (i) hLine(ctx, M, R, ry);
+        cellText(ctx, a.name, M, ry, aw, ah, { font: font(800, 19, SERIF), color: RED });
+        cellText(ctx, a.what, M + aw, ry, R - M - aw - dw, ah, { font: font(600, 18), align: 'left' });
+        cellText(ctx, a.date, R - dw, ry, dw, ah, { font: font(500, 15), color: SOFT, align: 'right' });
+      });
+      vLine(ctx, M + aw, top, top + ah * awards.length);
+      box(ctx, M, top, R - M, ah * awards.length);
+      y = top + ah * awards.length;
+
+      // 4. 행동 특성 및 종합 의견 — 칭찬 + "단," 한 줄
+      sectionTitle(ctx, '4. 행동 특성 및 종합 의견', y + 38, '담임 · 보호자');
+      top = y + 50;
+      var bodyFont = font(500, 20), lh = 32;
+      var lines = CS.wrapText(ctx, d.praise + ' 단, ' + d.guide, bodyFont, R - M - 36);
+      var bh = lines.length * lh + 28;
+      box(ctx, M, top, R - M, bh);
+      ctx.fillStyle = INK; ctx.font = bodyFont; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+      lines.forEach(function (ln, i) { ctx.fillText(ln, M + 18, top + 16 + i * lh); });
+      ctx.textBaseline = 'alphabetic';
+      y = top + bh;
+
+      // 증명 문구 + 직인
+      var fy = y + 50;
+      ctx.fillStyle = INK; ctx.font = font(700, 19, SERIF); ctx.textAlign = 'left';
+      ctx.fillText('위 사실을 증명함.', M, fy + 14);
+      // 날짜는 직인 왼쪽에 두고, 직인은 진짜 서류처럼 "학교장" 끝 글자에 살짝 걸친다
+      ctx.textAlign = 'right';
+      ctx.fillStyle = SOFT; ctx.font = font(600, 16);
+      ctx.fillText(d.issued, R - 92, fy - 4);
+      ctx.fillStyle = INK; ctx.font = font(800, 23, SERIF);
+      ctx.fillText('다산동 산책학교장', R - 58, fy + 30);
+      ctx.textAlign = 'left';
+      seal(ctx, R - 34, fy + 20, 66, 7);
+
+      ctx.textAlign = 'center'; ctx.fillStyle = FAINT; ctx.font = font(600, 14);
+      ctx.fillText('재미로 만든 카드예요 · 공식 서류가 아니에요 · 왈슨', W / 2, H - 34);
+      ctx.textAlign = 'left';
+      return fy + 32 + 80;
+    }
+
+    function placeStamp(ctx, cx, cy, r, date, seed, rot) {
+      inked(ctx, cx, cy, r * 2 + 14, rot, seed, function (c, s) {
+        var m = s / 2;
+        c.strokeStyle = RED;
+        c.lineWidth = 5; c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke();
+        c.lineWidth = 1.8; c.beginPath(); c.arc(m, m, r - 9, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = RED;
+        arcText(c, '참 잘 걸었어요', m, m, r - 24, font(800, 16));
+        paw(c, m, m + 6, r * 0.62, RED);
+        c.font = font(800, 15); c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(date, m, m + r * 0.6);
+      });
+    }
+
+    function emptySlot(ctx, cx, cy, r, label, fontSize) {
+      ctx.save();
+      ctx.setLineDash([8, 7]); ctx.lineWidth = 2.5; ctx.strokeStyle = DASH;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      if (label) {
+        ctx.fillStyle = '#b3a38e'; ctx.font = font(600, fontSize || 16);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx, cy);
+      }
+      ctx.restore();
+    }
+
+    function shopStamp(ctx, cx, cy, r, seed, rot) {
+      inked(ctx, cx, cy, r * 2 + 10, rot, seed, function (c, s) {
+        var m = s / 2;
+        c.strokeStyle = RED; c.lineWidth = 3;
+        c.beginPath(); c.arc(m, m, r, 0, Math.PI * 2); c.stroke();
+        paw(c, m, m + 1, r * 1.05, RED);
+      });
+    }
+
+    function regularStamp(ctx, cx, cy, w, seed) {
+      var h = 52;
+      inked(ctx, cx, cy, w + 24, -0.12, seed, function (c, s) {
+        var x = (s - w) / 2, y = (s - h) / 2;
+        c.strokeStyle = RED;
+        c.lineWidth = 4; c.strokeRect(x, y, w, h);
+        c.lineWidth = 1.5; c.strokeRect(x + 6, y + 6, w - 12, h - 12);
+        c.fillStyle = RED; c.font = font(800, 24, SERIF); c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText('단골 인증', s / 2, s / 2 + 1);
+      });
+    }
+
+    // ── 뒷면: 도장 수첩 ── extra = 앞면에 맞춘 높이에서 남는 자리를 구역 사이에 나눠 주는 여백
+    function drawBack(ctx, H, d, extra) {
+      extra = extra || 0;
+      paper(ctx, H);
+      var y = header(ctx, d.name + '의 도장 수첩');
+
+      // 1. 발도장 — 공용 장소(지금 카드 뒷면과 같은 판정)
+      var got = RR.PLACES.filter(function (pl) { return d.visited[pl.id]; }).length;
+      sectionTitle(ctx, '1. 발도장 · 공용 장소', y + 38, got + ' / ' + RR.PLACES.length + '곳');
+      var slotR = 80, cy = y + 62 + slotR;
+      RR.PLACES.forEach(function (pl, i) {
+        var cx = M + (R - M) * (i + 0.5) / RR.PLACES.length;
+        var on = !!d.visited[pl.id];
+        if (on) placeStamp(ctx, cx, cy, slotR, d.placeDates[pl.id] || '', 11 + i * 17, [-0.16, 0.12, -0.05][i % 3]);
+        else emptySlot(ctx, cx, cy, slotR, '도장 찍는 곳');
+        ctx.fillStyle = on ? INK : SOFT; ctx.font = font(on ? 800 : 600, 18);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        ctx.fillText(pl.name, cx, cy + slotR + 32);
+      });
+      ctx.textAlign = 'left';
+      y = cy + slotR + 44 + extra;
+
+      // 2. 가게 도장 — 카페 쿠폰판처럼 가게마다 5칸
+      sectionTitle(ctx, '2. 가게 도장 · 카운터 QR', y + 38, '5칸이면 단골상');
+      var top = y + 50, rowH = 86, slotGap = 58, sr = 23;
+      d.shops.forEach(function (sh, i) {
+        var ry = top + i * rowH, mid = ry + rowH / 2;
+        if (i) hLine(ctx, M, R, ry, 1);
+        ctx.fillStyle = INK; ctx.font = font(800, 20); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.fillText(sh.name, M + 18, mid - 2);
+        var nameEnd = M + 18 + ctx.measureText(sh.name).width;
+        ctx.fillStyle = SOFT; ctx.font = font(600, 15);
+        ctx.fillText('도장 ' + Math.min(sh.stamps, 5) + ' / 5', M + 18, mid + 22);
+        var x0 = R - 18 - sr - slotGap * 4;
+        for (var k = 0; k < 5; k++) {
+          var sx = x0 + k * slotGap;
+          if (k < sh.stamps) shopStamp(ctx, sx, mid, sr, 101 + i * 31 + k * 7, (k % 2 ? 0.18 : -0.14) + i * 0.03);
+          else emptySlot(ctx, sx, mid, sr);
+        }
+        // 다 채우면 가게 이름과 도장 칸 사이에 "단골 인증" — 도장 위에 겹치면 빨강끼리 묻혀서 안 읽힌다
+        if (sh.stamps >= 5) {
+          var gapL = Math.max(nameEnd, M + 120) + 12, gapR = x0 - sr - 10;
+          regularStamp(ctx, (gapL + gapR) / 2, mid, Math.min(150, gapR - gapL), 211 + i);
+        }
+      });
+      box(ctx, M, top, R - M, rowH * d.shops.length);
+      y = top + rowH * d.shops.length;
+
+      ctx.fillStyle = SOFT; ctx.font = font(500, 16); ctx.textAlign = 'left';
+      ctx.fillText('가게 카운터의 체크인 QR을 찍으면 그 가게 칸에 도장이 찍혀요.', M, y + 28);
+      y += 28 + extra;
+
+      // 3. 모으면 받는 상 — 카페 쿠폰 뒷면의 "10개 모으면" 같은 안내. 받은 상은 앞면 수상 경력에 올라간다
+      sectionTitle(ctx, '3. 모으면 받는 상', y + 44, '앞면 수상 경력에 올라가요');
+      top = y + 56;
+      var aw = 112, sw = 120, ah = 40;
+      ctx.fillStyle = HEAD; ctx.fillRect(M, top, aw, ah * d.awardRules.length);
+      d.awardRules.forEach(function (a, i) {
+        var ry = top + i * ah;
+        if (i) hLine(ctx, M, R, ry);
+        cellText(ctx, a.name, M, ry, aw, ah, { font: font(800, 18, SERIF), color: RED });
+        cellText(ctx, a.rule, M + aw, ry, R - M - aw - sw, ah, { font: font(600, 17), align: 'left' });
+        cellText(ctx, a.status, R - sw, ry, sw, ah, { font: font(a.done ? 800 : 600, 15), color: a.done ? RED : SOFT, align: 'right' });
+      });
+      vLine(ctx, M + aw, top, top + ah * d.awardRules.length);
+      box(ctx, M, top, R - M, ah * d.awardRules.length);
+      y = top + ah * d.awardRules.length;
+
+      ctx.textAlign = 'center'; ctx.fillStyle = FAINT; ctx.font = font(600, 14);
+      ctx.fillText('공용 장소와 가게 도장만 표시돼요 · 실제 산책 경로는 담기지 않아요', W / 2, H - 58);
+      ctx.fillText('재미로 만든 카드예요 · 공식 서류가 아니에요 · 왈슨', W / 2, H - 34);
+      ctx.textAlign = 'left';
+      return y + 100;
+    }
+
+    var measureCanvas = document.createElement('canvas');
+    measureCanvas.width = W;
+    measureCanvas.height = 1800;
+
+    // 앞뒷면 높이를 같게(지금 카드처럼 양면 출력 대비)
+    function sharedHeight(d) {
+      var m = measureCanvas.getContext('2d');
+      return Math.ceil(Math.max(drawFront(m, 1800, d), drawBack(m, 1800, d)));
+    }
+    function drawSide(canvas, which, d, H) {
+      canvas.width = W;
+      canvas.height = H;
+      var c = canvas.getContext('2d');
+      if (which === 'front') { drawFront(c, H, d); return; }
+      var need = drawBack(measureCanvas.getContext('2d'), 1800, d, 0);
+      drawBack(c, H, d, Math.max(0, (H - need) / 3));
+    }
+    return { W: W, sharedHeight: sharedHeight, drawSide: drawSide };
+  })();
+
+  // ── A: 지금 카드(reward-card-soft.js 그대로) ──
+  var petImage = null;
+  var stateA = {
+    name: SAMPLE.name, petImage: null, filterKey: 'pastel', photoOffset: { x: 0, y: 0 }, photoZoom: 1,
+    skill: CS.SKILLS[5], passive: CS.PASSIVES[0], showLocked: true, tiersOn: true
+  };
+  var cardA = RCS.create(function () { return stateA; });
+
+  function dataB() {
+    return {
+      name: SAMPLE.name, size: SAMPLE.size, signal: SAMPLE.signal, petImage: petImage,
+      firstWalk: SAMPLE.firstWalk, issued: SAMPLE.issued,
+      walks: SAMPLE.progress.walks, km: SAMPLE.progress.km, sniffAvg: SAMPLE.sniffAvg,
+      visited: SAMPLE.progress.visited, placeDates: SAMPLE.placeDates,
+      awards: SAMPLE.awards, shops: SAMPLE.shops, awardRules: SAMPLE.awardRules,
+      praise: PRAISE[pick.praise].text, guide: GUIDE[pick.guide].text
+    };
+  }
+
+  var canvasA = document.getElementById('canvas-a');
+  var canvasB = document.getElementById('canvas-b');
+  var side = 'front';
+
+  function render() {
+    stateA.petImage = petImage;
+    cardA.drawSide(canvasA, side, SAMPLE.progress, cardA.sharedHeight(SAMPLE.progress));
+    var d = dataB();
+    LifeCard.drawSide(canvasB, side, d, LifeCard.sharedHeight(d));
+  }
+
+  // ── 고르기 ──
+  function chip(label, pressed, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = label;
+    b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function renderPicker() {
+    var typeBox = document.getElementById('praise-type');
+    var skillBox = document.getElementById('praise-skill');
+    var guideBox = document.getElementById('guide');
+    typeBox.innerHTML = ''; skillBox.innerHTML = ''; guideBox.innerHTML = '';
+    PRAISE.forEach(function (p, i) {
+      (p.group === 'type' ? typeBox : skillBox).appendChild(chip(p.label, i === pick.praise, function () {
+        pick.praise = i;
+        if (p.group === 'skill') stateA.skill = CS.SKILLS[p.skill];
+        update();
+      }));
+    });
+    GUIDE.forEach(function (g, i) {
+      guideBox.appendChild(chip(g.label, i === pick.guide, function () {
+        pick.guide = i;
+        stateA.passive = CS.PASSIVES[g.passive];
+        update();
+      }));
+    });
+    var prev = document.getElementById('preview');
+    prev.innerHTML = '';
+    prev.appendChild(document.createTextNode(PRAISE[pick.praise].text + ' '));
+    var b = document.createElement('b'); b.textContent = '단,';
+    prev.appendChild(b);
+    prev.appendChild(document.createTextNode(' ' + GUIDE[pick.guide].text));
+  }
+  function update() { renderPicker(); render(); }
+
+  // ── 보기 전환 ──
+  function setActive(groupId, value) {
+    Array.prototype.forEach.call(document.querySelectorAll('#' + groupId + ' button'), function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-v') === value);
+    });
+  }
+  document.getElementById('which').addEventListener('click', function (e) {
+    var v = e.target.getAttribute && e.target.getAttribute('data-v');
+    if (!v) return;
+    document.getElementById('cards').setAttribute('data-show', v);
+    setActive('which', v);
+  });
+  function setSide(v) { side = v; setActive('side', v); render(); }
+  document.getElementById('side').addEventListener('click', function (e) {
+    var v = e.target.getAttribute && e.target.getAttribute('data-v');
+    if (v) setSide(v);
+  });
+  [canvasA, canvasB].forEach(function (cv) {
+    cv.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
+  });
+
+  // A·B 나란히 한 장 — 지인에게 "어느 쪽?" 물어볼 때. 어느 쪽이 새 시안인지 적지 않는다(A/B만)
+  document.getElementById('save-compare').addEventListener('click', function () {
+    var hA = cardA.sharedHeight(SAMPLE.progress), d = dataB(), hB = LifeCard.sharedHeight(d);
+    var gap = 48, pad = 40, top = 96, W = LifeCard.W;
+    var out = document.createElement('canvas');
+    out.width = pad * 2 + W * 2 + gap;
+    out.height = top + Math.max(hA, hB) + pad;
+    var c = out.getContext('2d');
+    c.fillStyle = '#f7ede2'; c.fillRect(0, 0, out.width, out.height);
+    c.fillStyle = '#4a3f35'; c.font = '800 52px Pretendard, "Malgun Gothic", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    c.fillText('A', pad + W / 2, 72);
+    c.fillText('B', pad + W + gap + W / 2, 72);
+    var tmp = document.createElement('canvas');
+    cardA.drawSide(tmp, side, SAMPLE.progress, hA);
+    c.drawImage(tmp, pad, top);
+    LifeCard.drawSide(tmp, side, d, hB);
+    c.drawImage(tmp, pad + W + gap, top);
+    CS.downloadCanvasPNG(out, '카드비교-AB-' + (side === 'front' ? '앞면' : '뒷면') + '.png');
+  });
+
+  // ── 시작 ──
+  update();
+  var img = new Image();
+  img.onload = function () { petImage = img; render(); };
+  img.src = SAMPLE.photo;
+  if (document.fonts && document.fonts.load) {
+    Promise.all([
+      document.fonts.load('800 44px "Nanum Myeongjo"'),
+      document.fonts.load('700 19px "Nanum Myeongjo"'),
+      document.fonts.load('800 28px Pretendard'),
+      document.fonts.load('600 19px Pretendard'),
+      document.fonts.load('500 20px Pretendard'),
+      document.fonts.load('30px "Black Han Sans"')
+    ].map(function (p) { return p.catch(function () {}); })).then(render);
+  }
+})();
+</script>
+</body>
+</html>

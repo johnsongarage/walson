@@ -65,10 +65,16 @@
     return !!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone);
   }
 
+  // 내 컴퓨터에서 띄워 본 화면(localhost·파일로 열기)은 보내지 않는다 — 개발 중 클릭이 시트에 섞이지 않게
+  function isLocal() {
+    var h = location.hostname;
+    return location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '';
+  }
+
   function send(event, props) {
     var url = endpoint();
     // 카톡 창에서 바깥 브라우저로 넘기는 중이거나(inapp.js) 옮기기 주소로 막 열린 경우엔 보내지 않는다 — 한 사람이 두 기기로 세어지지 않게
-    if (!url || !ALLOWED[event] || isOff() || window.WALSON_TRACK_SKIP) return;
+    if (!url || !ALLOWED[event] || isOff() || isLocal() || window.WALSON_TRACK_SKIP) return;
     var extra = {};
     (ALLOWED[event] || []).forEach(function (k) {
       if (props && props[k] != null) extra[k] = String(props[k]).slice(0, 20);
