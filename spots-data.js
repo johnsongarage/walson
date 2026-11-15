@@ -18,5 +18,5 @@ window.PETWALK_SPOTS = [
   {"id":"osm-vet-1","cat":"vet","name":"부영동물병원","lat":37.60844,"lng":127.16264,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"osm-vet-2","cat":"vet","name":"폭시팻동물병원","lat":37.61297,"lng":127.14099,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"osm-vet-3","cat":"vet","name":"래플즈동물병원","lat":37.60969,"lng":127.13675,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
-  {"id":"field-1794669441573","cat":"spot","name":"다산동 푸라닭 수호신","lat":37.6221,"lng":127.15995,"tags":["가끔 출몰"],"note":"계산대 밑에서 손님맞이를 해요. 가게에 가끔 출몰해요.","source":"field","verifiedAt":"2026-11-15","guardian":{"name":"봄이","signal":"yellow","line":"얌전히 있다가 치킨을 가져가면 짖기 시작해요","photo":"spots/photos/field-1794669441573-g-b9f87cf69e.jpg"}}
+  {"id":"field-1794669441573","cat":"spot","name":"다산동 푸라닭 수호신","lat":37.6221,"lng":127.15995,"source":"field","verifiedAt":"2026-11-15","tags":["가끔 출몰"],"note":"계산대 밑에서 손님맞이를 해요.","guardian":{"name":"봄이","signal":"yellow","line":"치킨 가져가면 힘없이 짖어댐","photo":"spots/photos/field-1794669441573-g-b9f87cf69e.jpg"}}
 ];
