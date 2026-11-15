@@ -50,7 +50,8 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="track.js?v=4"></script>
+<script src="inapp.js?v=1"></script>
+<script src="track.js?v=5"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=18"></script>
 <script src="shop-visits.js?v=2"></script>
@@ -86,6 +87,8 @@
   var now = new Date();
   var today = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
 
+  // 카톡으로 QR을 찍어 바깥 브라우저로 넘기는 중이면 여기(카톡 창)엔 도장을 남기지 않는다 — 넘어간 쪽에서 찍힌다(inapp.js)
+  if (window.WalsonInApp && WalsonInApp.escaped) return;
   var m = location.search.match(/[?&]s=([^&#]+)/);
   var id = m ? decodeURIComponent(m[1]) : '';
   var spot = InfraPins.all().filter(function (p) { return p.id === id && p.cat === 'spot'; })[0];

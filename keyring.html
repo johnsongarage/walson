@@ -69,7 +69,8 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="track.js?v=4"></script>
+<script src="inapp.js?v=1"></script>
+<script src="track.js?v=5"></script>
 </head>
 <body>
 
@@ -192,6 +193,9 @@
   $('t-no').textContent = '주민증 번호 · 산책 ' + p.walks + '번';
   var imported = localStorage.getItem('petwalk_imported_at');
   if (imported) { $('t-imported').hidden = false; $('t-imported').textContent = '기록 불러옴 · ' + imported.split(',')[0]; }
+  // 같은 휴대폰 안에서 카톡 → 크롬으로 옮긴 것(2026-11-15)은 "옮겨 옴"으로 약하게 — 파일로 불러온 표시가 있으면 그쪽이 먼저
+  var moved = localStorage.getItem('petwalk_moved_at');
+  if (moved && !imported) { $('t-imported').hidden = false; $('t-imported').textContent = '카톡에서 옮겨 옴 · ' + moved.split(',')[0]; $('t-imported').style.opacity = '0.6'; }
 
   // 움직이는 시계 — 캡처한 화면을 다시 보여 주면 시각이 멈춰 있어서 알아볼 수 있다
   var DAYS = ['일', '월', '화', '수', '목', '금', '토'];

@@ -67,7 +67,8 @@
 
   function send(event, props) {
     var url = endpoint();
-    if (!url || !ALLOWED[event] || isOff()) return;
+    // 카톡 창에서 바깥 브라우저로 넘기는 중이거나(inapp.js) 옮기기 주소로 막 열린 경우엔 보내지 않는다 — 한 사람이 두 기기로 세어지지 않게
+    if (!url || !ALLOWED[event] || isOff() || window.WALSON_TRACK_SKIP) return;
     var extra = {};
     (ALLOWED[event] || []).forEach(function (k) {
       if (props && props[k] != null) extra[k] = String(props[k]).slice(0, 20);

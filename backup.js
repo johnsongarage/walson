@@ -99,7 +99,8 @@
 
   // 불러오기. merge=true면 산책·핀·방문 도장은 이 기기 것과 합치고(겹치는 건 하나로), 나머지는 파일 값으로.
   // merge=false면 이 기기의 왈슨 기록을 파일 내용으로 바꾼다. 운영자 토큰은 어느 쪽이든 건드리지 않는다.
-  function importAll(obj, merge) {
+  function importAll(obj, merge, opts) {
+    opts = opts || {};
     var data = obj.data || {}, failed = false;
     // 치팅 방지 ①: "키링 받음"은 불러오기로 절대 지워지지 않는다(이 기기·파일 중 한쪽이라도 받았으면 유지)
     var keyringHere = localStorage.getItem('petwalk_keyring');
@@ -128,9 +129,11 @@
     var keep = keyringHere || keyringThere;
     try { if (keep) localStorage.setItem('petwalk_keyring', keep); } catch (e) { failed = true; }
     // 치팅 방지 ③: 기록을 불러온 적이 있음을 남긴다(키링 표에 작게 보인다). 파일에 이미 있던 날짜는 이어 간다.
+    //   같은 휴대폰 안에서 카톡 → 크롬으로 옮긴 것(opts.moved)은 따로 "옮겨 옴"으로 약하게 남긴다.
     try {
-      var prevImports = localStorage.getItem('petwalk_imported_at');
-      localStorage.setItem('petwalk_imported_at', today() + (prevImports && prevImports !== today() ? ',' + prevImports : ''));
+      var markKey = opts.moved ? 'petwalk_moved_at' : 'petwalk_imported_at';
+      var prevImports = localStorage.getItem(markKey);
+      localStorage.setItem(markKey, today() + (prevImports && prevImports !== today() ? ',' + prevImports : ''));
     } catch (e) { /* 표시용이라 실패해도 진행 */ }
     if (failed) return Promise.reject(new Error('이 휴대폰 저장 공간이 부족해서 일부를 불러오지 못했어요.'));
     var photos = obj.photos || {};
@@ -141,5 +144,90 @@
     return Promise.all(jobs);
   }
 
-  window.WalsonBackup = { exportAll: exportAll, read: read, summary: summary, importAll: importAll };
+  // ── 카톡 창 → 크롬·사파리로 한 번에 옮기기(2026-11-15) ──
+  // 기록을 주소의 # 뒷부분에 담아 카톡의 "바깥 브라우저로 열기"로 넘긴다. # 뒷부분은 서버로 가지 않고 이 휴대폰 안에서만 넘어간다.
+  // 주소 길이에 한계가 있어 가벼운 기록만 담는다. 위치는 담지 않는다:
+  //  - 산책의 걸은 길(route)·사진 열쇠는 뺀다. 발도장 판정용 점(stampRoute)은 "도장을 받은 장소의 중심점"(공개된 장소 좌표)으로 바꾼다.
+  //  - 내가 찍은 핀, 진행 중인 산책, 코스 짜기, 서버 가정 시험판 자료는 뺀다.
+  // 기기 번호·처음 유입 코드(walson_*)는 같이 넘겨, 통계에서 같은 사람이 두 기기로 세어지지 않게 한다.
+  var MOVE_SKIP = /^(petwalk_location_explained|petwalk_pins|petwalk_active_walk|petwalk_course_builder_state|petwalk_mock_db|petwalk_mock_server|petwalk_demo_.*|petwalk_infra_shown)$/;
+  var MOVE_PREFIX = '#walson-move=';
+  var MOVE_MAX = 300000;   // 이보다 길면 강아지 사진을 빼고 보낸다
+  function b64urlEncode(str) {
+    var bin = unescape(encodeURIComponent(str));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64urlDecode(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    return decodeURIComponent(escape(atob(s)));
+  }
+  function lightWalks(raw) {
+    var places = (window.RewardRules && RewardRules.PLACES) || [];
+    return JSON.stringify(walksOf(raw).map(function (w) {
+      var o = {};
+      Object.keys(w || {}).forEach(function (k) { if (k !== 'route' && k !== 'stampRoute' && k !== 'photoKey') o[k] = w[k]; });
+      var hit = [];
+      (w.stampRoute || w.route || []).forEach(function (pt) {
+        places.forEach(function (pl) {
+          if (pl.pending || hit.indexOf(pl) >= 0 || !pl.center) return;
+          var dLat = (pt[0] - pl.center[0]) * 111.32, dLng = (pt[1] - pl.center[1]) * 111.32 * Math.cos(pl.center[0] * Math.PI / 180);
+          if (Math.sqrt(dLat * dLat + dLng * dLng) <= pl.radiusKm) hit.push(pl);
+        });
+      });
+      o.route = [];
+      o.stampRoute = hit.map(function (pl) { return [pl.center[0], pl.center[1]]; });
+      return o;
+    }));
+  }
+  // 옮기기 주소 만들기 → { url, walks, photoDropped }
+  function moveLink(baseUrl) {
+    if (localStorage.getItem('petwalk_sample_mode') === '1') {
+      return Promise.reject(new Error('지금은 샘플 기록을 보는 중이에요. [오늘]에서 "샘플 끄기"를 누른 뒤 옮겨 주세요.'));
+    }
+    var data = {};
+    keys().forEach(function (k) { if (!MOVE_SKIP.test(k)) data[k] = localStorage.getItem(k); });
+    if (data.petwalk_walks) data.petwalk_walks = lightWalks(data.petwalk_walks);
+    var photoDropped = false;
+    function build() {
+      var obj = { app: 'walson', kind: 'move', v: 1, at: new Date().toISOString(), data: data, photos: {} };
+      return signOf(obj).then(function (sig) {
+        obj.sig = sig;
+        return (baseUrl || location.href.split('#')[0]) + MOVE_PREFIX + b64urlEncode(JSON.stringify(obj));
+      });
+    }
+    return build().then(function (url) {
+      if (url.length <= MOVE_MAX || !data.petwalk_profile) return url;
+      try {   // 너무 길면 강아지 사진만 빼고 다시
+        var p = JSON.parse(data.petwalk_profile) || {};
+        if (!p.photo) return url;
+        delete p.photo; data.petwalk_profile = JSON.stringify(p); photoDropped = true;
+      } catch (e) { return url; }
+      return build();
+    }).then(function (url) {
+      return { url: url, walks: walksOf(data.petwalk_walks).length, photoDropped: photoDropped };
+    });
+  }
+  // 주소의 #walson-move=… 를 읽어 검증 → 옮겨 담기. 없으면 null
+  function hasMoveLink() { return location.hash.indexOf(MOVE_PREFIX) === 0; }
+  function receiveMove() {
+    if (!hasMoveLink()) return Promise.resolve(null);
+    var obj;
+    try {
+      obj = JSON.parse(b64urlDecode(location.hash.slice(MOVE_PREFIX.length)));
+      if (!obj || obj.app !== 'walson' || obj.kind !== 'move' || !obj.data || !obj.sig) throw new Error('bad');
+    } catch (e) { return Promise.reject(new Error('옮기기 주소가 잘려서 기록을 읽지 못했어요. 카톡 창에서 다시 눌러 주세요.')); }
+    return signOf(obj).then(function (sig) {
+      if (sig !== obj.sig) throw new Error('옮기기 주소 내용이 바뀌어서 불러오지 않았어요.');
+      // 받는 쪽이 샘플을 보는 중이면 샘플부터 끈다(샘플 기록과 섞이지 않게, 샘플 전에 있던 내 기록은 살린다)
+      var off = (window.PetwalkSample && PetwalkSample.isOn()) ? PetwalkSample.turnOff() : Promise.resolve();
+      return off.then(function () {}, function () {});
+    }).then(function () {
+      var mine = walksOf(localStorage.getItem('petwalk_walks'));
+      return importAll(obj, true, { moved: true }).then(function () { return { walks: walksOf(obj.data.petwalk_walks).length, hadOwn: mine.length }; });
+    });
+  }
+
+  window.WalsonBackup = { exportAll: exportAll, read: read, summary: summary, importAll: importAll,
+    moveLink: moveLink, hasMoveLink: hasMoveLink, receiveMove: receiveMove };
 })();

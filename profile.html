@@ -102,10 +102,13 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="track.js?v=4"></script>
+<script src="inapp.js?v=1"></script>
+<script src="track.js?v=5"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="save-image.js?v=1"></script>
-<script src="backup.js?v=2"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=7"></script>
+<script src="backup.js?v=3"></script>
 <script src="sample-data.js?v=5"></script>
 </head>
 <body>
@@ -184,6 +187,8 @@
       <button type="button" class="theme-opt" id="backup-export"><span class="name">내보내기</span><span class="desc">주민증·산책·사진을 파일 하나로</span></button>
       <button type="button" class="theme-opt" id="backup-import"><span class="name">불러오기</span><span class="desc">내보낸 파일에서 가져오기</span></button>
     </div>
+    <!-- 카톡 창에서만: 크롬·사파리로 한 번에 옮기기(2026-11-15, 사진·걸은 길 제외) -->
+    <button type="button" class="theme-opt" id="backup-move" hidden style="width:100%;margin-top:10px;"><span class="name">크롬으로 옮기기</span><span class="desc">파일 없이 한 번에 · 사진·걸은 길은 빼고</span></button>
     <input type="file" id="backup-file" accept=".txt,.json,text/plain,application/json" hidden>
     <p class="sub" id="backup-msg" style="margin:10px 0 0;font-weight:700;"></p>
     <p class="sub" style="margin:6px 0 0;font-size:11px;">파일은 이 휴대폰에서 만들고 어디로도 올리지 않아요. 파일 안에 강아지 사진과 산책 기록(길 기록을 켰다면 걸은 길)이 들어 있으니 아무에게나 보내지 마세요.</p>
@@ -314,6 +319,19 @@
     }).catch(function (e) { msg.textContent = e.message; });
   });
   document.getElementById('backup-import').addEventListener('click', function () { fileEl.click(); });
+  var I = window.WalsonInApp, moveBtn = document.getElementById('backup-move');
+  if (I && I.kakao && B.moveLink) {
+    moveBtn.hidden = false;
+    moveBtn.querySelector('.name').textContent = (I.ios ? '사파리로' : '크롬으로') + ' 옮기기';
+    moveBtn.addEventListener('click', function () {
+      msg.textContent = '옮길 기록 담는 중…';
+      var base = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '') + 'index.html';
+      B.moveLink(base).then(function (r) {
+        msg.textContent = (I.ios ? '사파리' : '크롬') + '에서 열려요(산책 ' + r.walks + '개' + (r.photoDropped ? ', 강아지 사진은 커서 빼고' : '') + ').';
+        I.openExternal(r.url);
+      }).catch(function (e) { msg.textContent = e.message; });
+    });
+  }
   fileEl.addEventListener('change', function () {
     var f = fileEl.files[0]; fileEl.value = '';
     if (!f) return;

@@ -105,6 +105,8 @@
   .inapp-note[hidden] { display: none; }
   .inapp-note b:first-child { display: block; font-size: 14px; }
   .inapp-note a { color: var(--accent); font-weight: 800; }
+  .inapp-move { display: block; width: 100%; margin: 8px 0 4px; padding: 11px; border: none; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
+  .inapp-move[hidden] { display: none; }
   [data-theme="brutal"] .inapp-note { border-radius: 0; border: 3px solid #000; background: var(--b-lime, #C8F06A); box-shadow: 3px 3px 0 #000; color: #000; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
@@ -116,7 +118,8 @@
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="track.js?v=4"></script>
+<script src="inapp.js?v=1"></script>
+<script src="track.js?v=5"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
@@ -178,10 +181,14 @@
   <button type="button" class="sample-btn" id="sample-btn">샘플 데이터로 둘러보기</button>
 
   <!-- 앱 안 브라우저(카톡 등)로 열렸을 때 안내(2026-11-15): 홈 화면 추가는 크롬·사파리에서, 기록은 "기록 옮기기"로 -->
+  <!-- 2026-11-15: 카톡이면 "크롬으로 옮기기" 버튼으로 기록까지 한 번에 넘긴다(inapp.js·backup.js moveLink) -->
   <div class="inapp-note" id="inapp-note" hidden>
     <b>카톡 안에서 열려 있어요</b>
-    홈 화면에 추가하려면 오른쪽 위 메뉴 → <b>다른 브라우저로 열기</b>(크롬·사파리)를 누르세요.
-    여기서 쓴 기록은 <a href="profile.html#backup">기록 옮기기</a>로 가져갈 수 있어요.
+    <span id="inapp-text">여기 기록은 카톡 안에만 남아서, 홈 화면에 추가한 앱으로는 안 넘어가요.</span>
+    <button type="button" class="inapp-move" id="inapp-move" hidden>크롬으로 옮기기(기록 같이)</button>
+    <span id="inapp-other" hidden>홈 화면에 추가하려면 오른쪽 위 메뉴 → <b>다른 브라우저로 열기</b>(크롬·사파리)를 누르세요.
+    여기서 쓴 기록은 <a href="profile.html#backup">기록 옮기기</a>로 가져갈 수 있어요.</span>
+    <span id="inapp-msg" style="display:block;font-weight:800;"></span>
   </div>
 
   <div class="links">
@@ -197,12 +204,16 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
+<script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
+<script src="backup.js?v=3"></script>
 <script src="steady-stamp.js?v=1"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
   // 오늘의 한 장 사진이 저장되면 한 번 다시 열어 사진까지 보이게 한다. 시작 화면(2초)이 그동안을 가린다.
-  if (window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
+  // 카톡에서 바깥 브라우저로 넘기는 중이거나(그 창엔 남기지 않음) 옮기기 주소로 막 열린 경우(옮겨 담기가 먼저)엔 켜지 않는다
+  var inappBusy = window.WalsonInApp && (WalsonInApp.escaped || WalsonInApp.receiving);
+  if (!inappBusy && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
     PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('index.html'); });
   }
 </script>
@@ -211,13 +222,38 @@
   (function () { var u = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel, a = document.getElementById('channel-link'); if (u && a) { a.href = u; a.hidden = false; } })();
 </script>
 <script>
+  // 앱 안 브라우저 안내 + 카톡 → 크롬·사파리 옮기기, 그리고 옮기기 주소로 열렸을 때 받기(2026-11-15)
   (function () {
-    var ua = navigator.userAgent || '';
-    var m = /KAKAOTALK/i.test(ua) ? '카톡' : /NAVER\(inapp/i.test(ua) ? '네이버 앱' : /Instagram/i.test(ua) ? '인스타그램' : /FBAN|FBAV/i.test(ua) ? '페이스북' : /Line\//i.test(ua) ? '라인' : '';
-    if (!m) return;
+    var I = window.WalsonInApp, B = window.WalsonBackup;
+    if (!I) return;
+    if (I.receiving && B) {
+      B.receiveMove().then(function (r) {
+        alert('카톡에서 쓰던 기록을 옮겨 왔어요(산책 ' + r.walks + '개).\n이제 여기서 쓰면 되고, 홈 화면에 추가해도 그대로 이어져요.\n\n사진과 걸은 길은 옮기지 않았어요 — 필요하면 카톡 창 [프로필] → 기록 옮기기(파일)로 옮겨 주세요.');
+        location.replace(location.pathname + location.search);   // 기록이 담긴 주소를 지우고 다시 열기(이때부터 통계를 센다)
+      }).catch(function (e) {
+        alert(e.message);
+        history.replaceState(null, '', location.pathname + location.search);
+        window.WALSON_TRACK_SKIP = false;
+        if (window.WalsonTrack) WalsonTrack.send('page_view');
+      });
+      return;
+    }
+    if (!I.name || I.escaped) return;
     var n = document.getElementById('inapp-note');
-    n.querySelector('b').textContent = m + ' 안에서 열려 있어요';
+    n.querySelector('b').textContent = I.name + ' 안에서 열려 있어요';
     n.hidden = false;
+    if (!I.kakao) { document.getElementById('inapp-text').hidden = true; document.getElementById('inapp-other').hidden = false; return; }
+    var btn = document.getElementById('inapp-move'), msg = document.getElementById('inapp-msg');
+    btn.textContent = (I.ios ? '사파리로' : '크롬으로') + ' 옮기기(기록 같이)';
+    btn.hidden = !B;
+    btn.addEventListener('click', function () {
+      msg.textContent = '옮길 기록 담는 중…';
+      var base = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '') + 'index.html';
+      B.moveLink(base).then(function (r) {
+        msg.textContent = (I.ios ? '사파리' : '크롬') + '에서 열려요. 거기서 계속 쓰면 돼요' + (r.photoDropped ? '(강아지 사진은 커서 빼고 옮겨요)' : '') + '.';
+        I.openExternal(r.url);
+      }).catch(function (e) { msg.textContent = e.message; });
+    });
   })();
 </script>
 <script src="tabbar.js?v=4" data-tab="today"></script>
