@@ -16,6 +16,16 @@
   }
   // 카톡·네이버·인스타 같은 앱 안 브라우저는 위치 요청에 아예 답을 안 할 때가 있다(버튼만 계속 돎).
   // 그래서 브라우저 timeout을 믿지 않고 직접 시계를 잰다: 1단계 9초, 2단계 13초가 지나면 다음으로 넘어간다.
+  function isIOS() { var ua = navigator.userAgent || ''; return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
+  function isAndroid() { return /Android/i.test(navigator.userAgent || ''); }
+  function standalone() { return !!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone); }
+  // 홈 화면 앱은 카톡과 달리 사파리·크롬의 위치 권한을 쓴다 — 기기별로 켜는 곳을 알려 준다
+  function permissionHelp() {
+    if (isIOS()) return '아이폰: 설정 > 개인정보 보호 및 보안 > 위치 서비스 > "Safari 웹사이트"를 "앱을 사용하는 동안"으로, "정확한 위치"도 켜 주세요.' +
+      (standalone() ? ' 그래도 안 되면 홈 화면 앱을 지우고 사파리에서 다시 "홈 화면에 추가" 해 주세요.' : '');
+    if (isAndroid()) return '안드로이드: 설정 > 애플리케이션 > Chrome > 권한 > 위치를 "앱 사용 중에만 허용"으로, "정확한 위치 사용"도 켜 주세요. 크롬에서 이 사이트 > 사이트 설정 > 위치도 "허용"인지 확인해 주세요.';
+    return '';
+  }
   function inAppBrowser() { return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent || ''); }
   function attempt(opts, waitMs, done) {
     var finished = false;
@@ -36,7 +46,15 @@
     function failWith(err) {
       fail(function (info) {
         if (inAppBrowser() && info.code !== 1) info.message += ' 카톡 등 앱 안에서 열었다면 오른쪽 위 메뉴의 "다른 브라우저로 열기"(크롬·사파리)로 열면 잘 돼요.';
-        onFail(info);
+        else { var h = permissionHelp(); if (h) info.message += '\n\n' + h; }
+        // 원인 확인용 짧은 표시(운영자에게 알려 줄 때) — 예: [코드 3 · 홈화면앱 · 권한 prompt]
+        var tag = function (perm) {
+          info.message += '\n\n[코드 ' + info.code + ' · ' + (standalone() ? '홈화면앱' : inAppBrowser() ? '앱안브라우저' : '브라우저') + ' · 권한 ' + (perm || '알수없음') + ']';
+          onFail(info);
+        };
+        try {
+          navigator.permissions.query({ name: 'geolocation' }).then(function (p) { tag(p.state); }, function () { tag(); });
+        } catch (e) { tag(); }
       }, err);
     }
     attempt({ enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }, 9000, function (pos, err) {
@@ -47,5 +65,5 @@
       });
     });
   }
-  window.WalsonGeo = { locate: locate, MESSAGES: MESSAGES, inAppBrowser: inAppBrowser };
+  window.WalsonGeo = { locate: locate, MESSAGES: MESSAGES, inAppBrowser: inAppBrowser, standalone: standalone };
 })();

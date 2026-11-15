@@ -7,5 +7,11 @@ self.addEventListener('activate', function (event) { event.waitUntil(self.client
 self.addEventListener('fetch', function (event) {
   // 지도 타일·OSRM 같은 외부 요청은 건드리지 않고 브라우저가 직접 처리하게 둔다
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
+  // 화면(HTML)은 HTTP 캐시를 거르지 않고 항상 새로 확인한다 — 홈 화면 앱이 예전 화면을 붙잡고 있지 않게(2026-11-15).
+  // 스크립트·그림은 화면이 ?v= 번호로 부르므로 보통대로.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request.url, { cache: 'no-cache', credentials: 'same-origin' }).catch(function () { return fetch(event.request); }));
+    return;
+  }
   event.respondWith(fetch(event.request));
 });
