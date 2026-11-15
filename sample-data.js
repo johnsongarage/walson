@@ -178,5 +178,16 @@
     return Promise.all(jobs.map(function (k) { return WalkPhotos.remove(k).catch(function () {}); }));
   }
 
-  window.PetwalkSample = { isOn: isOn, turnOn: turnOn, turnOff: turnOff, shouldAutoStart: shouldAutoStart, autoStart: autoStart, SPOTS_KEY: SPOTS };
+  // 샘플을 보는 동안 내 기록을 남기려 할 때(산책 시작·프로필 저장) 먼저 샘플을 끄게 한다(2026-11-15).
+  // 샘플을 켠 채 남긴 기록은 샘플을 끌 때 같이 사라지기 때문. 끄면 샘플 전에 있던 내 기록이 돌아온다.
+  // 돌려주는 값: Promise<boolean> — true면 진행해도 됨(샘플이 꺼져 있거나 방금 껐음), false면 그만둠.
+  function leaveForRealRecord(what) {
+    if (!isOn()) return Promise.resolve(true);
+    var ok = confirm('지금은 샘플 기록으로 둘러보는 중이에요.\n이대로 ' + what + ' 그 기록은 샘플을 끌 때 같이 지워져요.\n\n' +
+      '샘플을 끄고 내 기록으로 ' + what.replace(/하면$/, '할까요?').replace(/면$/, '까요?') + '\n(확인: 샘플 끄고 계속 · 취소: 그만두기)');
+    if (!ok) return Promise.resolve(false);
+    return turnOff().then(function () { return true; }, function () { return true; });
+  }
+
+  window.PetwalkSample = { isOn: isOn, turnOn: turnOn, turnOff: turnOff, leaveForRealRecord: leaveForRealRecord, shouldAutoStart: shouldAutoStart, autoStart: autoStart, SPOTS_KEY: SPOTS };
 })();

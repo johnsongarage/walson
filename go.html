@@ -75,6 +75,8 @@
   .chips button:active { transform: scale(0.97); }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="walk-photos.js?v=1"></script>
+<script src="sample-data.js?v=5"></script>
 </head>
 <body>
 
@@ -88,7 +90,7 @@
       <strong>시간만 재기 <em>기본</em></strong>
       <span>시작을 누르고 휴대폰은 주머니에 넣으세요. 화면을 꺼도 시간은 계속 가요. 위치는 쓰지 않아요.</span>
     </button>
-    <a class="choice" href="walk.html">
+    <a class="choice" href="walk.html" id="start-gps">
       <strong>길도 기록하기</strong>
       <span>지도에 걸은 길을 남겨요. 켜면 화면을 계속 켜 둬야 하고, 다른 앱을 쓰는 동안은 길이 끊겨요. 발도장과 카드 성장에는 이 기록만 들어가요.</span>
     </a>
@@ -149,7 +151,19 @@
   // 다른 앱에 갔다 돌아오면 바로 시간을 다시 맞춘다(꺼져 있는 동안 타이머는 멈춰 있으므로)
   document.addEventListener('visibilitychange', function () { if (!document.hidden && active) tick(); });
 
+  // 샘플을 보는 중이면 먼저 끄게 한다 — 샘플을 켠 채 한 산책은 샘플을 끌 때 같이 지워지므로(2026-11-15)
+  function guardSample() {
+    return window.PetwalkSample ? PetwalkSample.leaveForRealRecord('산책을 시작하면') : Promise.resolve(true);
+  }
+  document.getElementById('start-gps').addEventListener('click', function (e) {
+    if (!(window.PetwalkSample && PetwalkSample.isOn())) return;
+    e.preventDefault();
+    guardSample().then(function (ok) { if (ok) location.href = 'walk.html'; });
+  });
   document.getElementById('start-time').addEventListener('click', function () {
+    guardSample().then(function (ok) { if (ok) startTimeWalk(); });
+  });
+  function startTimeWalk() {
     active = { startedAt: Date.now() };
     try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(active)); } catch (e) {
       alert('저장 공간이 부족해서 산책을 시작하지 못했어요.');
@@ -157,7 +171,7 @@
       return;
     }
     enterWalking();
-  });
+  }
 
   // 기록 저장 → 끝 화면으로. 시간만 잰 산책은 거리·길이 없고, 보상 횟수(카드 성장·발도장)에는 넣지 않는다
   // — 버튼만 눌러 횟수를 채우는 걸 막기 위함(기획표 V1-22와 같은 기준). 오늘·주간 시간에는 들어간다.
