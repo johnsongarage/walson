@@ -129,7 +129,8 @@
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="theme.js?v=6"></script>
-<script src="site-config.js?v=1"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
@@ -356,12 +357,14 @@
     p.signal = signal;
     p.photo = photoDataUrl || p.photo || null;
     if (!p.size) p.size = 'medium';
+    var isNewCard = !p.cardNo;
     if (!p.cardNo) p.cardNo = makeCardNo();
     if (!p.cardIssued) p.cardIssued = todayText();
     if (!saveProfile(p)) {
       alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요). 카드는 그대로 만들어 드릴게요.');
     }
     profile = p;
+    if (isNewCard) window.WalsonTrack && WalsonTrack.send('card_made', { signal: signal });   // 통계: 처음 만든 주민증만(가입 대신)
     renderCard().then(function () { showStep(3); });
   });
 
@@ -785,6 +788,7 @@
 
   // 저장: 휴대폰은 공유 시트(사진 앱에 저장 가능), 안 되면 파일로 내려받기
   document.getElementById('save-btn').addEventListener('click', function () {
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: exportFormat });
     (exportCanvas || canvas).toBlob(function (blob) {
       if (!blob) return;
       var fileName = (profile.name || 'dog') + '-주민증' + (exportFormat === 'card' ? '' : '-' + exportFormat) + '.png';

@@ -22,6 +22,8 @@
   .toolbar button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1px solid #bbb; background: #fff; cursor: pointer; }
   .toolbar button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
   .toolbar .print { background: var(--yellow); border-color: #c99a1c; }
+  .toolbar .code { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .toolbar .code input { width: 110px; font: inherit; padding: 6px 8px; border: 1px solid #bbb; border-radius: 8px; }
   .toolbar p { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--soft); }
 
   .sheet { width: 210mm; height: 297mm; margin: 16px auto; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.2); overflow: hidden; position: relative; }
@@ -83,8 +85,14 @@
   <strong>공원 홍보물 인쇄</strong>
   <button type="button" data-sheet="poster" aria-pressed="true">A4 포스터</button>
   <button type="button" data-sheet="flyers" aria-pressed="false">전단 8장</button>
+  <label class="code">유입 코드 <input id="from-code" list="from-codes" value="poster" maxlength="30"></label>
+  <datalist id="from-codes">
+    <option value="poster">공원 포스터</option><option value="flyer">전단</option>
+    <option value="shop_a">애견용품점 A</option><option value="shop_b">애견미용실 B</option><option value="vet_a">동물병원 A</option>
+  </datalist>
   <button type="button" class="print" id="print-btn">인쇄하기</button>
-  <p>인쇄 창에서 용지 A4, 여백 "없음", "배경 그래픽" 켜기. QR은 주민증 만들기 화면으로 갑니다 — 인쇄 전에 휴대폰으로 한 번 찍어 보세요.</p>
+  <p>유입 코드는 QR 주소 끝에 ?from=코드로 붙어서, 사용 통계에서 이 인쇄물로 몇 명이 왔는지 볼 수 있어요(가게마다 다른 코드로 뽑기). 영문·숫자·_ 만.
+  인쇄 창에서 용지 A4, 여백 "없음", "배경 그래픽" 켜기. QR은 주민증 만들기 화면으로 갑니다 — 인쇄 전에 휴대폰으로 한 번 찍어 보세요.</p>
 </div>
 
 <!-- A4 포스터 -->
@@ -121,15 +129,22 @@
   var URL_FULL = 'https://johnsongarage.co.kr/walson/start.html';
   var URL_TEXT = 'johnsongarage.co.kr/walson';
 
+  function fromCode() { return (document.getElementById('from-code').value || '').replace(/[^0-9A-Za-z_\-]/g, '').slice(0, 30); }
+  function qrUrl() { var c = fromCode(); return URL_FULL + (c ? '?from=' + c : ''); }
   function qrSvg() {
     if (!window.qrcode) return '<div style="font-size:12px;padding:8px;">QR을 그리지 못했어요(인터넷 연결 확인). 주소: ' + URL_TEXT + '</div>';
     var qr = qrcode(0, 'M');
-    qr.addData(URL_FULL);
+    qr.addData(qrUrl());
     qr.make();
     return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
   }
+  function paintQr() {
+    var svg = qrSvg();
+    document.getElementById('qr-poster').innerHTML = svg;
+    Array.prototype.forEach.call(document.querySelectorAll('.flyer .qr'), function (q) { q.innerHTML = svg; });
+  }
+  document.getElementById('from-code').addEventListener('input', paintQr);
   var svg = qrSvg();
-
   document.getElementById('qr-poster').innerHTML = svg;
   document.getElementById('url-poster').textContent = URL_TEXT;
 
@@ -154,6 +169,10 @@
       var which = b.getAttribute('data-sheet');
       document.getElementById('sheet-poster').hidden = which !== 'poster';
       document.getElementById('sheet-flyers').hidden = which !== 'flyers';
+      // 기본 코드는 인쇄물 종류에 맞춰(직접 바꾼 코드는 그대로)
+      var code = document.getElementById('from-code');
+      if (code.value === 'poster' && which === 'flyers') { code.value = 'flyer'; paintQr(); }
+      else if (code.value === 'flyer' && which === 'poster') { code.value = 'poster'; paintQr(); }
       Array.prototype.forEach.call(buttons, function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
     });
   });

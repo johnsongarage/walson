@@ -386,6 +386,8 @@
   }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 </head>
 <body>
 
@@ -1446,6 +1448,7 @@
       alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
       return;
     }
+    window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
     routeCoords = [];
     routeSamples = [];
     hideRewardPanel();
@@ -1537,7 +1540,14 @@
       if (analysis.fastKm >= 0.05) note += ' · 빠른 이동 ' + analysis.fastKm.toFixed(1) + 'km 제외';
       if (!rewardEligible) note += ' · ' + WALK_RULES.minRewardMinutes + '분·' + (WALK_RULES.minRewardKm * 1000) + 'm 미만이라 보상 제외';
       statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째' + note;
-      showRewardPanel(progressBefore, window.RewardRules.computeProgress(loadWalks()), rewardEligible);
+      var progressAfter = window.RewardRules.computeProgress(loadWalks());
+      showRewardPanel(progressBefore, progressAfter, rewardEligible);
+      // 통계: 걸은 시간은 구간만, 발도장은 새로 찍힌 개수만(어느 장소인지는 보내지 않는다)
+      if (window.WalsonTrack) {
+        WalsonTrack.send('walk_complete', { mode: 'gps', min_bucket: WalsonTrack.minBucket(durationMin), eligible: rewardEligible ? 1 : 0 });
+        var newStamps = Object.keys(progressAfter.visited).filter(function (k) { return !progressBefore.visited[k]; }).length;
+        if (newStamps) WalsonTrack.send('stamp_new', { count: newStamps });
+      }
       cardLinkBtn.style.display = 'flex';
       positionRoutePanel(); // 카드 만들기 버튼이 다시 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     } else {

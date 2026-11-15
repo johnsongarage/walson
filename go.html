@@ -75,6 +75,8 @@
   .chips button:active { transform: scale(0.97); }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 </head>
@@ -170,6 +172,7 @@
       active = null;
       return;
     }
+    window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'time' });
     enterWalking();
   }
 
@@ -188,6 +191,7 @@
       alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.');
       return;
     }
+    window.WalsonTrack && WalsonTrack.send('walk_complete', { mode: 'time', min_bucket: WalsonTrack.minBucket(minutes), eligible: 0 });
     location.replace('walk-end.html');
   }
 

@@ -66,7 +66,8 @@
   [hidden] { display: none !important; }
 </style>
 <script src="theme.js?v=6"></script>
-<script src="site-config.js?v=1"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 </head>
 <body>
 
@@ -211,6 +212,7 @@
     try {
       localStorage.setItem(GIVEN_KEY, JSON.stringify({ givenAt: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) }));
     } catch (e) { alert('저장하지 못했어요. 직원 명단에 적어 주세요.'); return; }
+    window.WalsonTrack && WalsonTrack.send('keyring_given');
     paintGiven();
   });
 })();

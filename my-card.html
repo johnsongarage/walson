@@ -106,6 +106,8 @@
   @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 </head>
 <body>
 
@@ -256,6 +258,7 @@
   });
 
   document.getElementById('save-btn').addEventListener('click', function () {
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'reward_card' });
     CS.downloadCanvasPNG(card.drawBoth(progress), (profile.name || 'walk-card') + '_card.png');
   });
 

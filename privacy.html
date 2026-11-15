@@ -41,8 +41,13 @@
   li { font-size: 14px; line-height: 1.65; margin-bottom: 4px; }
   li strong { font-weight: 700; }
   .date { font-size: 12px; color: var(--ink-soft); margin-top: 16px; }
+  .consent-now { font-size: 13px; font-weight: 700; margin: 6px 0 8px; }
+  .consent-btns { display: flex; gap: 8px; }
+  .consent-btns button { flex: 1; font-family: inherit; font-size: 14px; font-weight: 800; padding: 11px; border-radius: 12px; border: 1px solid var(--panel-border, #e6d6c1); background: #fff; color: inherit; cursor: pointer; }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
@@ -53,7 +58,8 @@
 
   <p class="lead">
     이 앱은 지금 시범 운영 중이고 <strong>서버가 없습니다.</strong> 회원가입도 없습니다.
-    기록은 모두 이 휴대폰(브라우저) 안에만 저장되고, 운영자는 볼 수 없습니다.
+    강아지 프로필과 산책 기록은 모두 이 휴대폰(브라우저) 안에만 저장되고, 운영자는 볼 수 없습니다.
+    동의한 경우에만 <a href="#stats">익명 사용 통계</a>를 운영자에게 보냅니다.
   </p>
 
   <section>
@@ -88,6 +94,25 @@
     </ul>
   </section>
 
+  <section id="stats">
+    <h2>사용 통계 (동의한 경우에만)</h2>
+    <ul>
+      <li><strong>왜</strong>: 몇 명이 써 보고, 다시 오는지, 어느 홍보(포스터·카톡·인스타 등)로 왔는지 알기 위해서예요.</li>
+      <li><strong>보내는 것</strong>: 이 휴대폰에서 만든 무작위 번호(이름·전화번호와 연결되지 않음), 시각, 연 화면, 누른 기능
+        (주민증 만들기, 산책 시작·끝, 카드 저장 등), 걸은 시간의 구간(예: 10~30분), 새로 찍힌 발도장 개수, 들어온 경로(QR 종류),
+        홈 화면 앱으로 열었는지.</li>
+      <li><strong>보내지 않는 것</strong>: 위치·걸은 길·발도장 장소, 강아지 이름·사진, 메모, 견주 정보.</li>
+      <li><strong>받는 곳</strong>: 운영자의 구글 시트(Google Apps Script). 구글 서버에 저장되며 국외 서버일 수 있어요. 운영자만 봅니다.</li>
+      <li><strong>보관</strong>: 400일이 지나면 지웁니다.</li>
+      <li>처음에 "괜찮아요"를 눌렀을 때만 보내고, 그 전에는 아무것도 보내지 않아요. 아래에서 언제든 바꿀 수 있어요.</li>
+    </ul>
+    <p class="consent-now" id="consent-now"></p>
+    <div class="consent-btns">
+      <button type="button" id="consent-yes">통계 보내기</button>
+      <button type="button" id="consent-no">보내지 않기</button>
+    </div>
+  </section>
+
   <section>
     <h2>지우는 방법</h2>
     <ul>
@@ -101,11 +126,26 @@
   <section>
     <h2>앞으로 바뀌면</h2>
     <ul>
-      <li>서버에 무언가를 보내는 기능을 넣게 되면, 무엇을 어디로 보내고 누가 볼 수 있는지 먼저 알리고 따로 동의를 받겠습니다.</li>
+      <li>사용 통계 말고도 서버에 무언가를 보내는 기능을 넣게 되면, 무엇을 어디로 보내고 누가 볼 수 있는지 먼저 알리고 따로 동의를 받겠습니다.</li>
     </ul>
   </section>
 
-  <p class="date">2026년 11월 14일 기준 · 왈슨(시범 운영)</p>
+  <p class="date">2026년 11월 15일 기준 · 왈슨(시범 운영)</p>
 </div>
+<script>
+// 사용 통계 동의 바꾸기(track.js)
+(function () {
+  var T = window.WalsonTrack;
+  var now = document.getElementById('consent-now');
+  function paint() {
+    var c = T ? T.consent() : null;
+    if (!T || !T.enabled()) { now.textContent = '지금은 통계를 받는 곳이 정해지지 않아 아무것도 보내지 않아요.'; }
+    else now.textContent = c === 'yes' ? '지금: 통계를 보내고 있어요.' : c === 'no' ? '지금: 보내지 않아요.' : '지금: 아직 고르지 않았어요(보내지 않는 중).';
+  }
+  document.getElementById('consent-yes').addEventListener('click', function () { if (T) { T.setConsent('yes'); paint(); } });
+  document.getElementById('consent-no').addEventListener('click', function () { if (T) { T.setConsent('no'); paint(); } });
+  paint();
+})();
+</script>
 </body>
 </html>

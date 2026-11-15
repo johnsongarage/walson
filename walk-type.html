@@ -67,6 +67,8 @@
   .fine { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 14px 0 0; line-height: 1.6; }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=2"></script>
+<script src="track.js?v=1"></script>
 </head>
 <body>
 
@@ -204,6 +206,7 @@
   function finish() {
     var type = decide(picks);
     try { localStorage.setItem(RESULT_KEY, JSON.stringify({ type: type, at: new Date().toISOString().slice(0, 10) })); } catch (e) { /* 저장 못 해도 결과는 보여 준다 */ }
+    window.WalsonTrack && WalsonTrack.send('walk_type_done', { type: type });
     showResult(type);
   }
 
@@ -290,6 +293,7 @@
   }
 
   $('save-btn').addEventListener('click', function () {
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_type' });
     if (!resultCanvas) return;
     resultCanvas.toBlob(function (blob) {
       var file = new File([blob], 'walson-walk-type.png', { type: 'image/png' });
@@ -304,6 +308,7 @@
     }, 'image/png');
   });
   $('share-btn').addEventListener('click', function () {
+    window.WalsonTrack && WalsonTrack.send('share_click', { what: 'walk_type' });
     var text = '우리 개는 어떤 산책러일까? 1분 테스트';
     if (navigator.share) { navigator.share({ title: '산책 유형 테스트', text: text, url: TEST_URL }).catch(function () {}); return; }
     if (navigator.clipboard) navigator.clipboard.writeText(TEST_URL).then(function () { alert('테스트 주소를 복사했어요.'); }, function () { prompt('이 주소를 복사해 보내 주세요', TEST_URL); });
