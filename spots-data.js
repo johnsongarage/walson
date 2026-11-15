@@ -19,8 +19,7 @@ window.PETWALK_SPOTS = [
   {"id":"field-1794704113098","cat":"park","name":"다산중앙공원_하","lat":37.61912,"lng":127.16097,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"osm-park-1","cat":"park","name":"다산중앙공원_상","lat":37.6231,"lng":127.16141,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704450497","cat":"spot","name":"현대프리미엄아울렛","lat":37.61636,"lng":127.15352,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"강아지 동반가능"},
-  {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"},
-  {"id":"field-1794709426749","cat":"spot","name":"다산동 치킨집 수호신","lat":37.6221,"lng":127.15995,"source":"field","verifiedAt":"2026-11-15","tags":["가끔 출몰"],"note":"계산대 밑에서 손님맞이를 해요","guardian":{"name":"봄이","signal":"yellow","line":"치킨을 가져가면 짖기 시작해요","photo":"spots/photos/field-1794709426749-g-b3acda936f.jpg"}}
+  {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"}
 ];
 // 운영자가 편집 페이지에서 직접 만든 종류 — { key, label, color }. 아이콘은 별표로 같다.
 window.PETWALK_SPOT_CATEGORIES = [

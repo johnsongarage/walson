@@ -49,7 +49,7 @@
 
   // source: 'osm' = OpenStreetMap에서 가져온 것(현장 확인 전), 'field' = 운영자가 직접 가서 확인한 것.
   // 샘플 모드여도 가게·수호지킴이는 서비스 데이터(spots-data.js) 그대로 보인다(2026-11-15).
-  // 예전에는 샘플이 이 휴대폰에 따로 둔 봄이 핀으로 서비스 핀을 가려서(replaces), 스팟 편집에서 고쳐도 지도에 안 바뀌었다.
+  // 예전에는 샘플이 이 휴대폰에 따로 둔 가게 핀으로 서비스 핀을 가려서(replaces), 스팟 편집에서 고쳐도 지도에 안 바뀌었다.
   var SEED = (window.PETWALK_SPOTS || []).filter(function (p) {
     return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number';
   });

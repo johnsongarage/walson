@@ -616,9 +616,12 @@
     });
   }
 
+  // 가게 수호지킴이 입력은 꺼 둔다(2026-11-15 가르시아 "이 기능은 리스크가 너무 커") — 사장님 동의 없이 올라간 것을 내렸고,
+  // 음식점 위생 기준·브랜드 문제로 방식을 다시 정하기 전까지 새로 넣지 않는다. 다시 켜려면 true.
+  var GUARDIAN_INPUT = false;
   function refreshExtras() {
     var isSpot = fCat.value === 'spot';
-    $('guardian-box').hidden = !isSpot;
+    $('guardian-box').hidden = !isSpot || !GUARDIAN_INPUT;
     $('spot-extra').hidden = !isSpot;
     // 카드는 서비스에 올라간 내용으로 그리므로, 반영된 수호지킴이만 볼 수 있다
     var saved = editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardian(s); });
@@ -692,7 +695,7 @@
     if (pin.cat === 'spot') {
       if (fArea.value.trim()) pin.area = fArea.value.trim().replace(/\s+/g, ' ');
       if (pPhoto) pin.photo = pPhoto;
-      if (gName.value.trim()) {
+      if (GUARDIAN_INPUT && gName.value.trim()) {
         pin.guardian = { name: gName.value.trim() };
         if (gSignal.value) pin.guardian.signal = gSignal.value;
         if (gLine.value.trim()) pin.guardian.line = gLine.value.trim();
