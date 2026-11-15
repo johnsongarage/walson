@@ -420,6 +420,8 @@
       <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
       <a href="privacy.html"><span class="icon" data-icon="warning"></span><span>개인정보 안내</span></a>
       <a href="#" id="install-link" hidden><span class="icon" data-icon="plus"></span><span>홈 화면에 추가</span></a>
+      <!-- 시연 모드(가짜 위치) — 시험·시연용. 데모 산책은 통계로 보내지 않고 키링 조건에서 뺀다(demo-geo.js) -->
+      <a href="#" id="demo-toggle" class="tool-item"><span class="icon" data-icon="play"></span><span id="demo-toggle-label">시연 모드(가짜 위치) 켜기</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
       <a href="course-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
@@ -623,6 +625,19 @@
   var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
   var routeSamples = []; // routeCoords와 같은 점 + GPS 측정 시각 — 구간 속도 계산용
   var routeLine;
+  // 시연 모드면 배속 시계로 잰다(10배속이면 10배 빨리 흐름) — demo-geo.js
+  function isDemo() { return !!(window.PetwalkDemoGeo && PetwalkDemoGeo.on); }
+  function nowMs() { return isDemo() ? PetwalkDemoGeo.now() : Date.now(); }
+  (function () {
+    var t = document.getElementById('demo-toggle'), label = document.getElementById('demo-toggle-label');
+    if (!t || !window.PetwalkDemoGeo) return;
+    label.textContent = isDemo() ? '시연 모드 끄기(진짜 위치로)' : '시연 모드(가짜 위치) 켜기';
+    t.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (walking && !confirm('산책 기록 중이에요. 시연 모드를 바꾸면 지금 산책은 저장되지 않아요. 계속할까요?')) return;
+      if (isDemo()) PetwalkDemoGeo.disable(); else PetwalkDemoGeo.enable();
+    });
+  })();
   var myLocationMarker = null;
   var startMarker = null;   // 산책 출발점(작은 흰 점)
   function setMyLocation(coord) {
@@ -1279,6 +1294,8 @@
       rewardEligible: rewardEligible,
       gapMin: gapMin || 0
     });
+    // 시연 모드(가짜 위치)로 걸은 산책 — 기록·카드 시험엔 쓰되 키링(실제 보상)과 통계에서는 뺀다
+    if (isDemo()) walks[walks.length - 1].demo = true;
     localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
 
     var totalDistanceKm = walks.reduce(function (sum, w) { return sum + w.distanceKm; }, 0);
@@ -1457,7 +1474,7 @@
       alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
       return;
     }
-    window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
+    if (!isDemo()) window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
     routeCoords = [];
     routeSamples = [];
     hideRewardPanel();
@@ -1469,7 +1486,7 @@
     requestWakeLock().then(function (ok) {
       if (!ok && walking) showWalkNotice('화면이 꺼지면 기록이 멈춰요. 산책하는 동안 화면을 켜두세요.');
     });
-    walkStartTime = Date.now();
+    walkStartTime = nowMs();
     walkIcon.innerHTML = svgIcon('stop', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 종료';
     pinBtn.disabled = false;
@@ -1534,14 +1551,14 @@
       var progressBefore = window.RewardRules.computeProgress(loadWalks());
       var analysis = analyzeWalk(routeSamples);
       var distanceKm = analysis.walkKm;
-      var durationMin = Math.max(1, Math.round((Date.now() - walkStartTime) / 60000));
+      var durationMin = Math.max(1, Math.round((nowMs() - walkStartTime) / 60000));
       // 끝내기를 깜빡했을 때(2026-11-15): 마지막으로 움직인 뒤 한 자리에 오래 머물렀으면 그때 끝난 걸로 할지 묻는다
       var restEnd = estimateRestStart(routeSamples);
-      if (restEnd && Date.now() - restEnd >= REST_ASK_MS) {
+      if (restEnd && nowMs() - restEnd >= REST_ASK_MS) {
         var movedMin = Math.max(1, Math.round((restEnd - walkStartTime) / 60000));
         var t = new Date(restEnd);
         if (confirm('끝내기를 깜빡하셨나요?\n' + t.getHours() + '시 ' + pad2w(t.getMinutes()) + '분부터 ' +
-            Math.round((Date.now() - restEnd) / 60000) + '분 동안 같은 자리에 있었어요.\n\n' +
+            Math.round((nowMs() - restEnd) / 60000) + '분 동안 같은 자리에 있었어요.\n\n' +
             '확인: 그때 끝난 걸로 저장(' + movedMin + '분)\n취소: 지금까지(' + durationMin + '분) 그대로 저장')) {
           durationMin = movedMin;
         }
@@ -1557,7 +1574,7 @@
       var progressAfter = window.RewardRules.computeProgress(loadWalks());
       showRewardPanel(progressBefore, progressAfter, rewardEligible);
       // 통계: 걸은 시간은 구간만, 발도장은 새로 찍힌 개수만(어느 장소인지는 보내지 않는다)
-      if (window.WalsonTrack) {
+      if (window.WalsonTrack && !isDemo()) {
         WalsonTrack.send('walk_complete', { mode: 'gps', min_bucket: WalsonTrack.minBucket(durationMin), eligible: rewardEligible ? 1 : 0 });
         var newStamps = Object.keys(progressAfter.visited).filter(function (k) { return !progressBefore.visited[k]; }).length;
         if (newStamps) WalsonTrack.send('stamp_new', { count: newStamps });

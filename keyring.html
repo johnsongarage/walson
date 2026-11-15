@@ -138,7 +138,7 @@
   $('open').hidden = false;
 
   var profile = load('petwalk_profile', {});
-  var p = window.RewardRules.computeProgress(load('petwalk_walks', []));
+  var p = window.RewardRules.computeProgress(load('petwalk_walks', []).filter(function (w) { return !(w && w.demo); }));   // 시연 모드(가짜 위치) 산책은 빼고
   var hasCard = !!(profile.name && profile.cardNo);
   var walksOk = p.walks >= K.minWalks;
 

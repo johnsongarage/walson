@@ -123,6 +123,7 @@
   }
   .report-btn[hidden] { display: none; }
   [data-theme="brutal"] .report-btn { border-radius: 0; border: 3px solid #000; background: var(--b-pink, #FF6BB5); color: #000; box-shadow: 4px 4px 0 #000; }
+  .demo-tag { font-size: 10px; font-weight: 800; color: #fff; background: #6b5d4e; border-radius: 999px; padding: 1px 6px; vertical-align: 2px; }
 </style>
 <script src="theme.js?v=7"></script>
 <script src="site-config.js?v=3"></script>
@@ -292,7 +293,7 @@
       card.innerHTML =
         '<div class="thumb">' + thumbInner + '</div>' +
         '<div class="info">' +
-          '<div class="top-row"><span class="date">' + formatDate(w.date) + '</span>' +
+          '<div class="top-row"><span class="date">' + formatDate(w.date) + (w.demo ? ' <span class="demo-tag">데모</span>' : '') + '</span>' +
           (dayStreak > 1 ? '<span class="streak">연속 ' + dayStreak + '일째</span>' : '') + '</div>' +
           (w.mode === 'time'
             // 시간만 잰 산책 — 거리·길이 없어서 시간만 보여 준다
