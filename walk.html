@@ -353,6 +353,8 @@
 
   /* 내 위치 점 — 살아있는 느낌을 주기 위해 은은한 파동 링을 추가(모션 의도: "지금 여기"라는
      실시간성 전달). prefers-reduced-motion에서는 정적인 점으로만 표시됨. */
+  /* 산책 출발점 — 지금 위치(파란 점)와 헷갈리지 않게 작고 흰 점 */
+  .walk-start-dot { border-radius: 50%; background: #fff; border: 3px solid var(--accent, #b8563a); box-sizing: border-box; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
   .my-location-dot {
     position: relative; border-radius: 50%;
     background: var(--locate); border: 3px solid white;
@@ -622,6 +624,21 @@
   var routeSamples = []; // routeCoords와 같은 점 + GPS 측정 시각 — 구간 속도 계산용
   var routeLine;
   var myLocationMarker = null;
+  var startMarker = null;   // 산책 출발점(작은 흰 점)
+  function setMyLocation(coord) {
+    if (myLocationMarker) myLocationMarker.setLatLng(coord);
+    else myLocationMarker = L.marker(coord, {
+      icon: L.divIcon({ className: 'my-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] }),
+      interactive: false, zIndexOffset: 1000
+    }).addTo(map);
+  }
+  function markStart(coord) {
+    if (startMarker) map.removeLayer(startMarker);
+    startMarker = L.marker(coord, {
+      icon: L.divIcon({ className: 'walk-start-dot', iconSize: [14, 14], iconAnchor: [7, 7] }),
+      interactive: false, zIndexOffset: 500
+    }).addTo(map);
+  }
   // CLAUDE.md 규칙(권한 요청 전 이유 설명 필수)을 지키되, "한 번 동의했는데 새로고침마다
   // 또 물어본다"는 피드백을 받아 localStorage에 저장하는 걸로 바꿈 — 예전엔 이 값이 그냥
   // 메모리 변수(세션당 한 번)라 새로고침/앱 재실행마다 초기화돼서 매번 다시 물어봤었음.
@@ -1446,6 +1463,7 @@
     hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
     resetFootprints();
+    if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
     walkGapMs = 0;
     walking = true;
     requestWakeLock().then(function (ok) {
@@ -1461,8 +1479,12 @@
 
     watchId = navigator.geolocation.watchPosition(
       function (pos) {
-        if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) return;
         var coord = [pos.coords.latitude, pos.coords.longitude];
+        // 파란 점(지금 위치)은 위치를 받을 때마다 옮긴다 — 예전엔 산책 시작 때 찍힌 자리에 그대로 남아
+        // 출발점처럼 보였다(2026-11-15). 정확도가 낮은 점도 점은 옮기되, 길(선)에는 넣지 않는다.
+        setMyLocation(coord);
+        if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) return;
+        if (!routeCoords.length) markStart(coord);
         routeCoords.push(coord);
         routeSamples.push({ c: coord, t: pos.timestamp });
         if (routeSamples.length >= 2) {
