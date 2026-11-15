@@ -40,7 +40,7 @@
 
   .layout { flex: 1; display: flex; min-height: 0; }
   #map { flex: 1; min-height: 260px; }
-  .side { width: 400px; overflow-y: auto; padding: 14px; background: var(--panel); border-left: 1px solid var(--panel-border); }
+  .side { width: 400px; overflow-y: auto; scrollbar-gutter: stable; padding: 14px; background: var(--panel); border-left: 1px solid var(--panel-border); }
   @media (max-width: 860px) {
     .layout { flex-direction: column; }
     #map { flex: none; height: 42vh; }
@@ -99,13 +99,15 @@
   #cat-list button { padding: 4px 7px; font-size: 11px; }
 
   /* 수호지킴이 사진 영역 고르기(2026-11-15) */
-  .crop { position: fixed; inset: 0; z-index: 3000; background: rgba(40, 30, 22, 0.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .crop { position: fixed; inset: 0; z-index: 3000; background: rgba(40, 30, 22, 0.6); display: flex; padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
   .crop[hidden] { display: none; }
-  .crop-box { width: 100%; max-width: 380px; background: var(--panel); border-radius: 16px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
+  .crop-box { margin: auto; width: 100%; max-width: 380px; background: var(--panel); border-radius: 16px; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
   .crop-box h3 { margin: 0 0 4px; font-size: 15px; }
   .crop-view { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #2b241e; border-radius: 10px; overflow: hidden; touch-action: none; cursor: grab; }
   .crop-view.is-dragging { cursor: grabbing; }
   .crop-view canvas { width: 100%; height: 100%; display: block; }
+  /* 지도 팝업 사진은 4:3이라 위아래가 조금 잘린다 — 그 범위 */
+  .crop-popup { position: absolute; left: 0; right: 0; top: 12.5%; bottom: 12.5%; border-top: 2px dashed rgba(255,255,255,0.85); border-bottom: 2px dashed rgba(255,255,255,0.85); pointer-events: none; }
   .crop-ring { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255,255,255,0.85) inset; pointer-events: none; }
   .crop-zoom { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 12px; color: var(--ink-soft); font-weight: 700; }
   .crop-zoom input { flex: 1; }
@@ -160,11 +162,12 @@
 
       <div class="spot-extra" id="spot-extra" hidden>
         <h3>가게 사진 (선택)</h3>
-        <p class="hint">수호지킴이 사진이 없을 때 지도에 이 사진이 크게 나옵니다.</p>
+        <p class="hint">수호지킴이 사진이 없을 때 지도에 이 사진이 크게 나옵니다. 고르면 보여 줄 부분을 고를 수 있어요.</p>
         <div class="photo-row">
           <div class="thumb"><img id="p-preview" alt="" hidden></div>
           <div>
             <button type="button" id="p-pick">사진 고르기</button>
+            <button type="button" id="p-crop" hidden>보여 줄 부분 다시 고르기</button>
             <button type="button" id="p-clear" hidden>사진 빼기</button>
             <input type="file" id="p-input" accept="image/*">
           </div>
@@ -173,7 +176,7 @@
 
       <div class="guardian" id="guardian-box" hidden>
         <h3>수호지킴이 (이 가게를 지키는 강아지)</h3>
-        <p class="hint">사진을 고르면 지도 핀·카드에 보여 줄 부분(정사각형)을 고를 수 있어요.</p>
+        <p class="hint">사진을 고르면 지도 핀·팝업·카드에 보여 줄 부분을 고를 수 있어요.</p>
         <p class="hint">가게 주인이 알려 주고, 올려도 된다고 한 강아지만 넣어 주세요. 이름을 비워 두면 수호지킴이 없이 저장됩니다.</p>
         <div class="photo-row">
           <div class="thumb"><img id="g-preview" alt="" hidden></div>
@@ -220,8 +223,8 @@
 <div class="crop" id="crop" hidden role="dialog" aria-modal="true" aria-labelledby="crop-title">
   <div class="crop-box">
     <h3 id="crop-title">사진에서 보여 줄 부분 고르기</h3>
-    <p class="hint">사진을 끌어서 옮기고, 아래 막대로 키우세요. 네모 안이 카드에, 동그라미 안이 지도 핀에 나와요.</p>
-    <div class="crop-view" id="crop-view"><canvas id="crop-canvas" width="640" height="640"></canvas><div class="crop-ring"></div></div>
+    <p class="hint">사진을 끌어서 옮기고, 아래 막대로 키우세요. 네모 전체는 카드, 점선 안은 지도 팝업, 동그라미 안은 지도 핀에 나와요.</p>
+    <div class="crop-view" id="crop-view"><canvas id="crop-canvas" width="640" height="640"></canvas><div class="crop-popup"></div><div class="crop-ring"></div></div>
     <label class="crop-zoom">작게 <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" aria-label="확대"> 크게</label>
     <div class="crop-actions">
       <button type="button" id="crop-cancel">취소</button>
@@ -497,7 +500,7 @@
     });
   }
   var showGPhoto = photoField('g', function (v) { gPhoto = v; }, true);
-  var showPPhoto = photoField('p', function (v) { pPhoto = v; });
+  var showPPhoto = photoField('p', function (v) { pPhoto = v; }, true);
 
   // ── 직접 만든 종류 ──
   var NEW_CAT = '__new__';

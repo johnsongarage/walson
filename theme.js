@@ -18,6 +18,8 @@
   if (!THEMES[name]) name = DEFAULT;
 
   document.documentElement.setAttribute('data-theme', name);
+  // 스크롤바 자리를 늘 비워 둔다 — 내용이 길어져 스크롤바가 생겨도 가운데 정렬·하단 탭이 옆으로 밀리지 않게(2026-11-15)
+  document.documentElement.style.scrollbarGutter = 'stable';
 
   if (name === 'brutal') {
     var link = document.createElement('link');
