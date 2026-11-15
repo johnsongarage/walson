@@ -116,6 +116,13 @@
     border-radius: 999px; border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer;
   }
   [data-theme="brutal"] .walk-card .proof-btn { border-radius: 0; border: 2px solid #000; background: var(--b-pink, #FF6BB5); color: #000; }
+  .report-btn {
+    display: block; width: 100%; margin: -6px 0 18px; padding: 13px; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
+    border-radius: 999px; border: none; color: #fff; background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%);
+    box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.25);
+  }
+  .report-btn[hidden] { display: none; }
+  [data-theme="brutal"] .report-btn { border-radius: 0; border: 3px solid #000; background: var(--b-pink, #FF6BB5); color: #000; box-shadow: 4px 4px 0 #000; }
 </style>
 <script src="theme.js?v=6"></script>
 <script src="site-config.js?v=3"></script>
@@ -136,6 +143,7 @@
     <div class="tile"><div class="num" id="s-distance">0</div><div class="label">누적 km</div></div>
     <div class="tile"><div class="num" id="s-streak">0</div><div class="label">연속 일수</div></div>
   </div>
+  <button type="button" class="report-btn" id="report-btn" hidden>이번 달 리포트 만들기</button>
 
   <section class="poop-cal" id="poop-cal" aria-label="응가 달력">
     <div class="head">
@@ -162,6 +170,9 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="walk-proof.js?v=3"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=5"></script>
+<script src="month-report.js?v=1"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks'; // index.html과 같은 키 — 같은 오리진이라 localStorage 공유됨
@@ -243,6 +254,12 @@
 
   var walks = loadWalks();
   var profileForProof = {};
+  // 월간 리포트(month-report.js) — 기록이 있을 때만
+  if (walks.length && window.MonthReport) {
+    var rb = document.getElementById('report-btn');
+    rb.hidden = false;
+    rb.addEventListener('click', function () { MonthReport.open({ walks: loadWalks(), profile: profileForProof }); });
+  }
   try { profileForProof = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; } catch (e) { profileForProof = {}; }
   var listEl = document.getElementById('list');
   var emptyEl = document.getElementById('empty');
