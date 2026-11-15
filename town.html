@@ -148,6 +148,10 @@
   .mission-card:active { transform: scale(0.99); }
   .mission-card .mc-flag { flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
   .mission-card.is-done .mc-flag { background: #3f7d4a; }
+  .mission-card.is-here { border-color: #3f7d4a; }
+  .mission-card.is-here .mc-flag { background: #3f7d4a; }
+  .mission-card.is-here .mc-t1, .mission-card.is-here .mc-go { color: #3f7d4a; }
+  .mission-card.is-here .mc-go { background: #e3f1e5; border-radius: 10px; padding: 8px 10px; }
   .mission-card .mc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .mission-card .mc-t1 { font-size: 11px; font-weight: 800; color: var(--accent); }
   .mission-card .mc-t2 { font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -782,6 +786,7 @@
   // ── 다음 미션 카드 ──
   // 지금 미션(순서대로 안 간 첫 곳)을 아래에 한 줄로. 위치를 알면 걸어서 몇 분, 너무 멀면(25분 넘게) 가까운 다른 미션도 같이.
   var missionCard = document.getElementById('mission-card');
+  var missionHere = false;
   function placeDist(pl) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], pl.center) : null; }
   function paintMission() {
     if (!missionAll.length) { missionCard.hidden = true; return; }
@@ -797,10 +802,24 @@
       missionCard.hidden = false;
       return;
     }
+    var d = placeDist(missionNow.place);
+    // 미션 장소 안에 서 있는데 산책 중이 아니면(이 화면은 지도 구경) 발도장이 안 찍힌다 — 그걸 알려 주고 길 기록으로 보낸다
+    // (2026-11-15 가르시아 폰 시험: "미션 장소에 갔는데 달성했는지 알 수가 없었다")
+    missionHere = d != null && d <= missionNow.place.radiusKm * 1000;
+    if (missionHere) {
+      missionCard.className = 'mission-card is-here';
+      body.appendChild(mk('span', 'mc-t1', '미션 ' + missionNow.no + ' · ' + missionNow.place.name));
+      body.appendChild(mk('span', 'mc-t2', '지금 미션 장소에 있어요'));
+      body.appendChild(mk('span', 'mc-t3', '발도장은 길 기록 산책 중에만 찍혀요. 5분·200m를 걸으면 받아요.'));
+      missionCard.appendChild(flag); missionCard.appendChild(body); missionCard.appendChild(mk('span', 'mc-go', '길 기록 시작'));
+      missionCard.hidden = false;
+      if (missionWalkEl) missionWalkEl.textContent = '지금 여기 있어요 · 길 기록 산책 중에만 발도장이 찍혀요';
+      return;
+    }
     missionCard.className = 'mission-card';
     body.appendChild(mk('span', 'mc-t1', '미션 ' + missionNow.no + ' · 발도장 ' + done + '/' + missionAll.length));
     body.appendChild(mk('span', 'mc-t2', missionTarget(missionNow)));
-    var d = placeDist(missionNow.place), t3 = '길 기록 산책으로 지나가면 발도장이 찍혀요';
+    var t3 = '길 기록 산책으로 지나가면 발도장이 찍혀요';
     if (d != null) {
       t3 = '여기서 ' + ShopVisits.walkText(d);
       if (ShopVisits.walkMinutes(d) > 25) {
@@ -817,6 +836,7 @@
   }
   missionCard.addEventListener('click', function () {
     if (!missionNow) return;
+    if (missionHere) { location.href = 'walk.html'; return; }
     var marker = stampMarkers[missionNow.place.id];
     if (!marker) return;
     filter.set('stamp', true);   // 우리 개 발도장을 꺼 두었더라도 다시 켠다
