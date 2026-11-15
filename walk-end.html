@@ -99,6 +99,12 @@
     <p class="sub" id="sum-sub"></p>
   </div>
 
+  <!-- 꾸준함 도장(2026-11-15): 이 산책까지 넣은 이번 주 — 시간만 잰 산책도 들어간다 -->
+  <section class="q" id="steady-end" hidden>
+    <h2>꾸준함 도장 <span>이번 주</span></h2>
+    <div id="steady-end-box"></div>
+  </section>
+
   <section class="q">
     <h2>오늘 산책, 충분했나요?</h2>
     <div class="opts" data-field="feel">
@@ -154,6 +160,8 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="walk-proof.js?v=3"></script>
+<script src="reward-rules.js?v=7"></script>
+<script src="steady-stamp.js?v=1"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';
@@ -178,6 +186,14 @@
   if (walk.distanceKm) sub.push(walk.distanceKm.toFixed(1) + 'km');
   if (todayCount > 1) sub.push('오늘 모두 ' + todayMin + '분 · ' + todayCount + '번째 산책');
   document.getElementById('sum-sub').textContent = sub.join(' · ');
+
+  // 꾸준함 도장 — 이 산책으로 이번 주 단계가 올랐는지(방금 것 빼고 센 것과 비교)
+  if (window.RewardRules && RewardRules.steady && window.SteadyStamp) {
+    var stBefore = RewardRules.steady(walks.slice(0, -1)), stAfter = RewardRules.steady(walks);
+    var justGot = stAfter.thisWeek.level > stBefore.thisWeek.level;
+    document.getElementById('steady-end-box').appendChild(SteadyStamp.week(stAfter, { justGot: justGot }));
+    document.getElementById('steady-end').hidden = false;
+  }
 
   // 답 고르기 — 같은 버튼을 다시 누르면 선택이 풀린다(전부 선택 사항)
   var answers = {};

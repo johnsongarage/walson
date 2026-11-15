@@ -133,6 +133,51 @@
     return null;
   }
 
+  // ── 꾸준함 도장(2026-11-15 가르시아 "꾸준함 도장도 만들어줘") ──
+  // 시간만 잰 산책은 카드 성장·발도장·미션·키링에서 빠지는 대신, 이 도장은 모든 산책을 센다 —
+  // 돈이 안 드는 보상이라 버튼만 눌러 채워도 비용이 0이다(hq notes/petwalk-time-only-rewards.md).
+  // 한 주(월~일)에 산책한 날 수로 찍는다: 3일 · 5일 · 7일. 주마다 새로 시작하고 연속 주는 세지 않는다
+  // (9/2 결정: 연속 기록은 압박 없는 통계로만). 5분 미만 산책은 세지 않는다.
+  var STEADY_STEPS = [3, 5, 7];
+  var STEADY_MIN_MINUTES = 5;
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dayKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function fromKey(k) { var p = String(k).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function steadyLevel(days) {
+    var lv = 0;
+    STEADY_STEPS.forEach(function (s, i) { if (days >= s) lv = i + 1; });
+    return lv;
+  }
+  // 돌려주는 값: { thisWeek: { start, days, level, walked[7](월~일), todayIndex, next, left },
+  //               weeks: [{ start, days, level }](오래된 순), total: 도장 받은 주 수, byLevel: [3일, 5일, 7일] }
+  function steady(walks, today) {
+    today = today || new Date();
+    var byWeek = {};
+    (walks || []).forEach(function (w) {
+      if (!w || !w.date || !(w.durationMin >= STEADY_MIN_MINUTES)) return;
+      var d = fromKey(w.date);
+      if (isNaN(d.getTime())) return;
+      var wk = dayKey(mondayOf(d));
+      (byWeek[wk] || (byWeek[wk] = {}))[w.date] = true;
+    });
+    var start = mondayOf(today), startKey = dayKey(start), cur = byWeek[startKey] || {};
+    var walked = [];
+    for (var i = 0; i < 7; i++) { var d = new Date(start); d.setDate(start.getDate() + i); walked.push(!!cur[dayKey(d)]); }
+    var days = Object.keys(cur).length, next = null;
+    for (var j = 0; j < STEADY_STEPS.length; j++) if (STEADY_STEPS[j] > days) { next = STEADY_STEPS[j]; break; }
+    var weeks = Object.keys(byWeek).sort().map(function (k) {
+      var n = Object.keys(byWeek[k]).length;
+      return { start: k, days: n, level: steadyLevel(n) };
+    });
+    var byLevel = [0, 0, 0], total = 0;
+    weeks.forEach(function (w) { if (w.level) { byLevel[w.level - 1]++; total++; } });
+    return {
+      thisWeek: { start: startKey, days: days, level: steadyLevel(days), walked: walked, todayIndex: (today.getDay() + 6) % 7, next: next, left: next ? next - days : 0 },
+      weeks: weeks, total: total, byLevel: byLevel
+    };
+  }
+
   window.RewardRules = {
     FRAME_TIERS: FRAME_TIERS,
     KEYRING: KEYRING,
@@ -147,6 +192,10 @@
     missions: missions,
     currentMission: currentMission,
     placeAt: placeAt,
-    distanceKm: distanceKm
+    distanceKm: distanceKm,
+    STEADY_STEPS: STEADY_STEPS,
+    STEADY_MIN_MINUTES: STEADY_MIN_MINUTES,
+    steady: steady,
+    steadyLevel: steadyLevel
   };
 })();
