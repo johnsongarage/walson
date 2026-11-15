@@ -13,7 +13,7 @@
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="reward-rules.js?v=2"></script>
+<script src="reward-rules.js?v=3"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=13"></script>
 <script src="demo-geo.js?v=1"></script>
@@ -383,7 +383,7 @@
     .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel, .walk-notice { transition: none; }
   }
 </style>
-<script src="theme.js?v=2"></script>
+<script src="theme.js?v=5"></script>
 </head>
 <body>
 
@@ -1481,6 +1481,18 @@
     );
   }
 
+  // 마지막 점에서 REST_RADIUS_KM 안에 처음 들어온 시각 = 멈춰 선 시각. 한 번도 그 밖에 나간 적이 없으면 null
+  var REST_RADIUS_KM = 0.05, REST_ASK_MS = 20 * 60 * 1000;
+  function pad2w(n) { return n < 10 ? '0' + n : '' + n; }
+  function estimateRestStart(samples) {
+    if (!samples || samples.length < 2) return null;
+    var last = samples[samples.length - 1].c;
+    for (var i = samples.length - 2; i >= 0; i--) {
+      if (haversineKm(samples[i].c, last) > REST_RADIUS_KM) return samples[i + 1].t;
+    }
+    return null;
+  }
+
   function stopWalk() {
     walking = false;
     walkIcon.innerHTML = svgIcon('play', 18);
@@ -1498,6 +1510,17 @@
       var analysis = analyzeWalk(routeSamples);
       var distanceKm = analysis.walkKm;
       var durationMin = Math.max(1, Math.round((Date.now() - walkStartTime) / 60000));
+      // 끝내기를 깜빡했을 때(2026-11-15): 마지막으로 움직인 뒤 한 자리에 오래 머물렀으면 그때 끝난 걸로 할지 묻는다
+      var restEnd = estimateRestStart(routeSamples);
+      if (restEnd && Date.now() - restEnd >= REST_ASK_MS) {
+        var movedMin = Math.max(1, Math.round((restEnd - walkStartTime) / 60000));
+        var t = new Date(restEnd);
+        if (confirm('끝내기를 깜빡하셨나요?\n' + t.getHours() + '시 ' + pad2w(t.getMinutes()) + '분부터 ' +
+            Math.round((Date.now() - restEnd) / 60000) + '분 동안 같은 자리에 있었어요.\n\n' +
+            '확인: 그때 끝난 걸로 저장(' + movedMin + '분)\n취소: 지금까지(' + durationMin + '분) 그대로 저장')) {
+          durationMin = movedMin;
+        }
+      }
       var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
       var gapMin = Math.round(walkGapMs / 60000);
       var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, gapMin);

@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="reward-rules.js?v=2"></script>
+<script src="reward-rules.js?v=3"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=13"></script>
 <script src="demo-geo.js?v=1"></script>
@@ -107,6 +107,14 @@
     box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.25);
   }
   .tool-link[hidden] { display: none; }
+  /* 수호지킴이 모아 보기(2026-11-15) — 목록 화면(guardians.html)으로 */
+  .guard-link {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h, 58px) + 14px); z-index: 1000;
+    font-size: 13px; font-weight: 800; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
+    padding: 9px 16px; border-radius: 999px; text-decoration: none; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.22);
+  }
+  .guard-link[hidden] { display: none; }
   .leaflet-bottom.leaflet-right { margin-bottom: 0; }
 
   .popup { display: flex; flex-direction: column; gap: 4px; min-width: 150px; font-size: 13px; }
@@ -126,7 +134,7 @@
   }
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
-<script src="theme.js?v=2"></script>
+<script src="theme.js?v=5"></script>
 </head>
 <body>
 
@@ -142,6 +150,7 @@
   </button>
 </div>
 <div class="stars" id="stars" hidden aria-label="동네 스타"></div>
+<a class="guard-link" id="guard-link" href="guardians.html" hidden></a>
 <!-- 스팟 편집 버튼 — 운영자 기기(편집 페이지에 GitHub 토큰을 넣은 브라우저)에서만 보인다 -->
 <a class="tool-link" id="tool-link" href="spot-editor.html" hidden>
   <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z"/></svg>
@@ -195,6 +204,14 @@
     spotMarkers[pin.id] = marker;
     addTo(pin.cat, marker);
   });
+
+  // 수호지킴이 모아 보기 — 있을 때만
+  var guardianCount = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); }).length;
+  if (guardianCount) {
+    var gl = document.getElementById('guard-link');
+    gl.textContent = '수호지킴이 ' + guardianCount + '마리 모아 보기';
+    gl.hidden = false;
+  }
 
   // ── 동네 스타: 사진이 있는 동반 스팟을 지도 아래에 줄 세운다 ──
   // 2026-11-15 가르시아: 일단 내림 — 수호지킴이는 지도 위 핀으로만 보이고, 목록은 나중에 따로 만든다.
@@ -317,6 +334,17 @@
   }
   map.on('zoomend', sync);
   sync();
+
+  // 수호지킴이 목록에서 "지도에서 보기"로 오면(town.html?spot=id) 그 스팟으로 가서 팝업을 연다
+  var openId = (location.search.match(/[?&]spot=([^&]+)/) || [])[1];
+  if (openId) openId = decodeURIComponent(openId);
+  if (openId && spotMarkers[openId]) {
+    var target = spotMarkers[openId];
+    if (hidden.spot) { delete hidden.spot; saveHidden(); refreshChips(); }
+    map.setView(target.getLatLng(), 17, { animate: false });
+    sync();
+    target.openPopup();
+  }
 
   // ── 내 위치: 버튼을 눌렀을 때만, 이유를 먼저 설명하고 읽는다. 지도에 점만 찍고 저장하지 않는다. ──
   var myDot = null;

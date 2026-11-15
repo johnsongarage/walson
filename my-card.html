@@ -105,7 +105,7 @@
   .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 14px 2px 0; }
   @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
 </style>
-<script src="theme.js?v=2"></script>
+<script src="theme.js?v=5"></script>
 </head>
 <body>
 
@@ -147,12 +147,14 @@
     <button type="button" class="btn btn-secondary" id="reroll-btn">스킬 다시 뽑기</button>
     <button type="button" class="btn btn-primary" id="save-btn">이미지로 저장</button>
   </div>
+  <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
+  <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden style="display:none;margin-top:12px;text-decoration:none;justify-content:center;">키링 받기</a>
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
   5분·200m 미만 산책은 횟수에 들어가지 않아요.</p>
 </div>
 
 <script src="card-shared.js?v=11"></script>
-<script src="reward-rules.js?v=2"></script>
+<script src="reward-rules.js?v=3"></script>
 <script src="reward-card-soft.js?v=1"></script>
 <script src="reward-card.js?v=4"></script>
 <script>
@@ -269,6 +271,11 @@
     document.fonts.load('30px "Black Han Sans"').catch(function () {}).then(renderCard);
   }
 })();
+</script>
+<script>
+  if (window.RewardRules && RewardRules.KEYRING && RewardRules.KEYRING.open) {
+    var kl = document.getElementById('keyring-link'); kl.hidden = false; kl.style.display = 'flex';
+  }
 </script>
 <script src="tabbar.js?v=4" data-tab="card"></script>
 </body>

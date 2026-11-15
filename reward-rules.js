@@ -22,6 +22,16 @@
     { id: 'waterside', name: '다산수변공원',  badge: '#수변공원_발도장', center: [37.62396, 127.14529], radiusKm: 0.3,  kind: 'water' }
   ];
 
+  // 키링 나눔(2026-11-15, keyring.html). 조건·수량·받는 날은 가르시아가 정한다(hq 남은 일) — 정하기 전에는
+  // open: false로 두어 앱 어디에도 약속하지 않는다(카드 탭의 "키링 받기" 링크도 숨김). 운영자는 keyring.html?preview=1로 미리 본다.
+  // minWalks는 제안값: 길 기록 산책(5분·200m 이상) 5회 = 나무 테두리와 같은 때.
+  var KEYRING = {
+    open: false,
+    minWalks: 5,
+    where: '',   // 예: '다산중앙공원 놀이터 옆'
+    when: ''     // 예: '11월 토요일 오후 2~4시'
+  };
+
   function distanceKm(a, b) {
     var R = 6371, toRad = Math.PI / 180;
     var dLat = (b[0] - a[0]) * toRad, dLng = (b[1] - a[1]) * toRad;
@@ -86,6 +96,7 @@
 
   window.RewardRules = {
     FRAME_TIERS: FRAME_TIERS,
+    KEYRING: KEYRING,
     SLOT_RULES: SLOT_RULES,
     PLACES: PLACES,
     computeProgress: computeProgress,

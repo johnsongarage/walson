@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>왈슨 공원 홍보물 인쇄</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  /* 공원 현장용 인쇄물(2026-11-15, hq 남은 일 "QR 인쇄물"). 운영자가 컴퓨터에서 열어 인쇄한다.
+     - A4 포스터 한 장 / A4에 전단 8장(잘라서 나눠 주기)
+     - QR은 이 브라우저 안에서 그린다(qrcode-generator, MIT). 주소는 주민증 만들기 화면 하나뿐이고
+       누가 찍었는지 세는 장치는 없다(서버 없음).
+     화면 테마(theme.js)와 상관없이 인쇄용 색으로 고정 — 로고 노랑 + 진한 갈색. */
+  :root { --yellow: #F2B833; --ink: #3a2e24; --soft: #6b5d4e; --cream: #fffaf3; --line: #e6d6c1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: #ddd; }
+
+  .toolbar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; background: #fff; border-bottom: 1px solid #ccc; }
+  .toolbar strong { margin-right: auto; font-size: 15px; }
+  .toolbar button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1px solid #bbb; background: #fff; cursor: pointer; }
+  .toolbar button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .toolbar .print { background: var(--yellow); border-color: #c99a1c; }
+  .toolbar p { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--soft); }
+
+  .sheet { width: 210mm; height: 297mm; margin: 16px auto; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.2); overflow: hidden; position: relative; }
+  .sheet[hidden] { display: none; }
+
+  /* ── A4 포스터 ── */
+  .poster { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 16mm 16mm 12mm; background: var(--yellow); }
+  .poster .logo { width: 70mm; height: auto; }
+  .poster .brand { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 20mm; line-height: 1; margin: 2mm 0 0; }
+  .poster .tag { font-size: 5mm; font-weight: 700; margin: 2mm 0 8mm; }
+  .poster h1 { font-size: 13mm; line-height: 1.2; margin: 0; letter-spacing: -0.03em; font-weight: 900; }
+  .poster h1 em { font-style: normal; background: #fff; padding: 0 2mm; }
+  .poster .lead { font-size: 5.2mm; font-weight: 700; margin: 4mm 0 8mm; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; width: 100%; margin-bottom: 8mm; }
+  .step { background: var(--cream); border: 0.8mm solid var(--ink); border-radius: 5mm; padding: 4mm 3mm; }
+  .step b { display: block; font-size: 8mm; font-weight: 900; line-height: 1; }
+  .step span { display: block; font-size: 4.4mm; font-weight: 800; margin-top: 2mm; }
+  .step small { display: block; font-size: 3.4mm; color: var(--soft); margin-top: 1mm; line-height: 1.35; }
+  .lamps { display: flex; justify-content: center; gap: 1.5mm; margin-top: 2mm; }
+  .lamps i { width: 4mm; height: 4mm; border-radius: 50%; display: block; }
+  .qr-row { display: flex; align-items: center; gap: 7mm; background: #fff; border: 0.8mm solid var(--ink); border-radius: 6mm; padding: 5mm 7mm; }
+  .qr-row .qr { width: 52mm; height: 52mm; }
+  .qr-row .qr svg { width: 100%; height: 100%; display: block; }
+  .qr-row .how { text-align: left; }
+  .qr-row .how strong { display: block; font-size: 7mm; font-weight: 900; line-height: 1.2; }
+  .qr-row .how span { display: block; font-size: 4.2mm; color: var(--soft); margin-top: 2mm; }
+  .qr-row .how code { display: block; font-family: inherit; font-size: 4.6mm; font-weight: 800; margin-top: 3mm; }
+  .poster .foot { margin-top: auto; font-size: 3.6mm; font-weight: 700; line-height: 1.6; }
+
+  /* ── A4 전단 8장(2열 × 4행, 잘라 쓰기) ── */
+  .flyers { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); padding: 6mm; gap: 0; }
+  .flyer { border: 0.3mm dashed #999; display: flex; align-items: center; gap: 4mm; padding: 4mm 5mm; background: #fff; }
+  .flyer .left { flex: 1; min-width: 0; }
+  .flyer .top { display: flex; align-items: center; gap: 2mm; }
+  .flyer .top img { width: 13mm; height: auto; }
+  .flyer .top b { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 8mm; line-height: 1; }
+  .flyer h2 { font-size: 5.2mm; line-height: 1.25; margin: 2.5mm 0 1.5mm; font-weight: 900; letter-spacing: -0.02em; }
+  .flyer h2 em { font-style: normal; background: var(--yellow); padding: 0 1mm; }
+  .flyer p { font-size: 3.1mm; color: var(--soft); margin: 0; line-height: 1.45; }
+  .flyer .qr { width: 30mm; height: 30mm; flex-shrink: 0; }
+  .flyer .qr svg { width: 100%; height: 100%; display: block; }
+  .flyer .url { font-size: 2.8mm; font-weight: 800; color: var(--ink); margin-top: 1.5mm; }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    html, body { background: #fff; }
+    .toolbar { display: none; }
+    .sheet { margin: 0; box-shadow: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media screen and (max-width: 860px) {
+    .sheet { zoom: 0.45; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <strong>공원 홍보물 인쇄</strong>
+  <button type="button" data-sheet="poster" aria-pressed="true">A4 포스터</button>
+  <button type="button" data-sheet="flyers" aria-pressed="false">전단 8장</button>
+  <button type="button" class="print" id="print-btn">인쇄하기</button>
+  <p>인쇄 창에서 용지 A4, 여백 "없음", "배경 그래픽" 켜기. QR은 주민증 만들기 화면으로 갑니다 — 인쇄 전에 휴대폰으로 한 번 찍어 보세요.</p>
+</div>
+
+<!-- A4 포스터 -->
+<div class="sheet poster" id="sheet-poster">
+  <img class="logo" src="icons/walson-logo.webp" alt="">
+  <div class="brand">왈슨</div>
+  <div class="tag">댕댕이 산책 필수앱</div>
+  <h1>30초면<br>우리 강아지 <em>주민증</em> 발급</h1>
+  <p class="lead">다산동 댕댕이라면 누구나. 사진 한 장이면 끝!</p>
+  <div class="steps">
+    <div class="step"><b>1</b><span>신호등 고르기</span><small>다른 강아지를<br>만났을 때 우리 애는?</small>
+      <div class="lamps"><i style="background:#3f9b5b"></i><i style="background:#dfa21f"></i><i style="background:#d2493f"></i></div></div>
+    <div class="step"><b>2</b><span>이름·사진</span><small>앨범에서 한 장<br>골라 주세요</small></div>
+    <div class="step"><b>3</b><span>카드 저장</span><small>카톡 프사·스토리용<br>모양도 있어요</small></div>
+  </div>
+  <div class="qr-row">
+    <div class="qr" id="qr-poster"></div>
+    <div class="how">
+      <strong>카메라로<br>찍어 보세요</strong>
+      <span>앱 설치 없음 · 로그인 없음</span>
+      <code id="url-poster"></code>
+    </div>
+  </div>
+  <div class="foot">위치는 묻지 않아요 · 사진과 정보는 내 휴대폰에만 저장돼요<br>재미로 만든 카드예요, 공식 신분증이 아니에요 · 제작 johnsongarage</div>
+</div>
+
+<!-- A4 전단 8장 -->
+<div class="sheet flyers" id="sheet-flyers" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  // start.html의 SHARE_URL과 같은 주소 — 카드 QR과 같은 곳으로 보낸다
+  var URL_FULL = 'https://johnsongarage.co.kr/walson/start.html';
+  var URL_TEXT = 'johnsongarage.co.kr/walson';
+
+  function qrSvg() {
+    if (!window.qrcode) return '<div style="font-size:12px;padding:8px;">QR을 그리지 못했어요(인터넷 연결 확인). 주소: ' + URL_TEXT + '</div>';
+    var qr = qrcode(0, 'M');
+    qr.addData(URL_FULL);
+    qr.make();
+    return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  }
+  var svg = qrSvg();
+
+  document.getElementById('qr-poster').innerHTML = svg;
+  document.getElementById('url-poster').textContent = URL_TEXT;
+
+  var flyers = document.getElementById('sheet-flyers');
+  for (var i = 0; i < 8; i++) {
+    var f = document.createElement('div');
+    f.className = 'flyer';
+    f.innerHTML =
+      '<div class="left">' +
+        '<div class="top"><img src="icons/walson-logo.webp" alt=""><b>왈슨</b></div>' +
+        '<h2>30초면 우리 강아지<br><em>주민증</em> 발급</h2>' +
+        '<p>신호등 고르고 사진 한 장이면 끝.<br>설치·로그인 없음, 위치 안 물어봐요.</p>' +
+        '<div class="url">' + URL_TEXT + '</div>' +
+      '</div>' +
+      '<div class="qr">' + svg + '</div>';
+    flyers.appendChild(f);
+  }
+
+  var buttons = document.querySelectorAll('[data-sheet]');
+  Array.prototype.forEach.call(buttons, function (b) {
+    b.addEventListener('click', function () {
+      var which = b.getAttribute('data-sheet');
+      document.getElementById('sheet-poster').hidden = which !== 'poster';
+      document.getElementById('sheet-flyers').hidden = which !== 'flyers';
+      Array.prototype.forEach.call(buttons, function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    });
+  });
+  document.getElementById('print-btn').addEventListener('click', function () { window.print(); });
+})();
+</script>
+</body>
+</html>

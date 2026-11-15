@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 개 산책 유형 테스트</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  /* 산책 유형 테스트(2026-11-15, hq 차용 후보 B-39 — 0단계 추천). 질문 6개 → 유형 6개 중 하나.
+     공원에서 견주와 말을 트는 소재 + 결과 이미지로 퍼지게. 답과 결과는 이 휴대폰에만 둔다(petwalk_walk_type).
+     재미용이다 — 행동 진단처럼 보이지 않게 문구를 가볍게 유지할 것. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 420px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 12px;
+    text-decoration: none; background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink); box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 18px; margin: 0; }
+  .view[hidden] { display: none; }
+
+  .intro { text-align: center; padding-top: 10px; }
+  .intro img { width: 150px; height: auto; }
+  .intro h2 { font-size: 26px; font-weight: 900; line-height: 1.3; margin: 10px 0 8px; letter-spacing: -0.02em; }
+  .intro p { font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 22px; }
+
+  .progress { height: 8px; border-radius: 999px; background: var(--accent-tint); overflow: hidden; margin-bottom: 18px; }
+  .progress i { display: block; height: 100%; background: var(--accent); transition: width 0.2s ease; }
+  .qnum { font-size: 13px; font-weight: 800; color: var(--accent); margin: 0 0 4px; }
+  .qtext { font-size: 22px; font-weight: 800; line-height: 1.35; margin: 0 0 18px; letter-spacing: -0.01em; }
+  .answers { display: flex; flex-direction: column; gap: 10px; }
+  .answers button {
+    text-align: left; font-family: inherit; font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.4;
+    background: var(--panel); border: 2px solid var(--panel-border); border-radius: 16px; padding: 16px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.08);
+  }
+  .answers button:active { transform: scale(0.99); border-color: var(--accent); }
+  .back-q { display: block; margin: 16px auto 0; background: none; border: none; font-family: inherit; font-size: 13px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; }
+
+  .result-img { width: 100%; height: auto; display: block; border-radius: 18px; box-shadow: 0 6px 20px rgba(var(--shadow-rgb), 0.2); }
+  .card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px; padding: 18px; margin-top: 14px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.1); }
+  .card h3 { font-size: 14px; margin: 0 0 6px; font-weight: 800; color: var(--accent); }
+  .card p { font-size: 14px; line-height: 1.6; margin: 0; }
+  .card p + h3 { margin-top: 14px; }
+  .btn-main {
+    width: 100%; border: none; border-radius: 999px; padding: 16px; margin-top: 16px;
+    background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); color: #fff;
+    font-family: inherit; font-weight: 800; font-size: 17px; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 16px rgba(var(--shadow-rgb), 0.3);
+  }
+  .btn-sub {
+    width: 100%; border-radius: 999px; padding: 14px; margin-top: 10px; background: var(--panel); color: var(--ink);
+    border: 1px solid var(--panel-border); font-family: inherit; font-weight: 800; font-size: 15px; cursor: pointer; text-align: center; text-decoration: none; display: block;
+  }
+  [hidden] { display: none !important; }
+  .fine { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 14px 0 0; line-height: 1.6; }
+</style>
+<script src="theme.js?v=5"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html" title="오늘로 돌아가기">←</a>
+    <h1>산책 유형 테스트</h1>
+  </div>
+
+  <section class="view intro" id="view-intro">
+    <img src="icons/walson-logo.webp" alt="">
+    <h2>우리 개는<br>어떤 산책러일까?</h2>
+    <p>질문 6개, 1분이면 끝나요.<br>재미로 보는 테스트예요.</p>
+    <button type="button" class="btn-main" id="start-btn">시작하기</button>
+    <a class="btn-sub" id="last-result" href="#" hidden></a>
+  </section>
+
+  <section class="view" id="view-q" hidden>
+    <div class="progress"><i id="bar"></i></div>
+    <p class="qnum" id="qnum"></p>
+    <p class="qtext" id="qtext"></p>
+    <div class="answers" id="answers"></div>
+    <button type="button" class="back-q" id="back-q">이전 질문</button>
+  </section>
+
+  <section class="view" id="view-result" hidden>
+    <img class="result-img" id="result-img" alt="">
+    <div class="card">
+      <h3>이런 산책을 좋아해요</h3><p id="r-tip"></p>
+      <h3>잘 맞는 산책 친구</h3><p id="r-friend"></p>
+    </div>
+    <button type="button" class="btn-main" id="save-btn">결과 이미지 저장</button>
+    <button type="button" class="btn-sub" id="share-btn">친구에게 테스트 보내기</button>
+    <a class="btn-sub" href="start.html" id="card-cta">우리 개 주민증도 만들기</a>
+    <button type="button" class="back-q" id="retry-btn">다시 하기</button>
+    <p class="fine">답과 결과는 이 휴대폰에만 저장돼요. 재미로 만든 테스트예요.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  var RESULT_KEY = 'petwalk_walk_type';   // { type, at } — [오늘]에 "우리 개는 ○○형"으로 보인다
+  var URL_TEXT = 'johnsongarage.co.kr/walson';
+  var TEST_URL = 'https://johnsongarage.co.kr/walson/walk-type.html';
+
+  var TYPES = {
+    sniff:  { name: '킁킁 탐정형', color: '#7a5c3a',
+      line: '10m 가는 데 10분. 전봇대마다 사건 수사 중',
+      tip: '거리보다 냄새. 풀숲·나무가 많은 길을 천천히, 실컷 맡게 해 주세요.',
+      friend: '감성 산책러형 — 둘 다 서두르지 않아요.' },
+    run:    { name: '직진 마라토너형', color: '#c2453f',
+      line: '목줄은 거들 뿐. 앞만 보고 달린다',
+      tip: '넓은 공원 둘레길처럼 쭉 뻗은 길. 초반에 힘을 빼면 후반이 편해요.',
+      friend: '동네 이장님형 — 같이 뛰다 친해져요.' },
+    social: { name: '동네 이장님형', color: '#3f9b5b',
+      line: '모든 개와 사람에게 인사해야 산책 끝',
+      tip: '사람 많은 공원 시간대. 인사 전엔 상대 보호자에게 먼저 물어보기!',
+      friend: '누구와도 잘 맞지만, 빨강불 친구에겐 거리 두기.' },
+    home:   { name: '집돌이 귀가형', color: '#6b5d9e',
+      line: '나왔으니 됐지? 이제 집에 가자',
+      tip: '짧게 자주. 집 근처 익숙한 코스부터 조금씩 늘려 가요.',
+      friend: '킁킁 탐정형 — 천천히 같이 걸어 줘요.' },
+    snack:  { name: '간식 협상가형', color: '#d98a1f',
+      line: '한 블록에 간식 하나. 협상은 계속된다',
+      tip: '간식을 주머니에 조금만. 잘 걸으면 보상, 버티면 기다리기.',
+      friend: '직진 마라토너형 — 간식 생각할 틈이 없어요.' },
+    chill:  { name: '감성 산책러형', color: '#3b7dc4',
+      line: '벤치에 앉아 바람 냄새 맡는 게 산책',
+      tip: '쉼터·벤치 있는 코스. 걷는 시간만큼 앉아 있는 시간도 산책이에요.',
+      friend: '집돌이 귀가형 — 조용한 산책 메이트.' }
+  };
+
+  var QUESTIONS = [
+    { q: '현관문이 열리면 우리 개는?', a: [
+      ['문 열리기 전부터 튀어 나간다', 'run'], ['신발장 냄새부터 확인한다', 'sniff'],
+      ['내 손에 간식 있는지 본다', 'snack'], ['일단 버틴다. 꼭 나가야 해?', 'home'] ] },
+    { q: '산책 중에 다른 강아지를 만나면?', a: [
+      ['꼬리 풀가동, 인사하러 돌진', 'social'], ['엉덩이 냄새 정밀 분석', 'sniff'],
+      ['못 본 척 내 갈 길 간다', 'run'], ['내 다리 뒤로 숨는다', 'home'] ] },
+    { q: '전봇대 하나 앞에서 머무는 시간은?', a: [
+      ['1초. 바쁘다 바빠', 'run'], ['1분 넘게 연구한다', 'sniff'],
+      ['다른 개 흔적이 있으면 한참', 'social'], ['그냥 앉아서 지나가는 사람 구경', 'chill'] ] },
+    { q: '제일 좋아하는 산책 코스는?', a: [
+      ['매일 가는 집 앞 그 길', 'home'], ['벤치 있는 조용한 공원', 'chill'],
+      ['사람·강아지 많은 광장', 'social'], ['간식 가게가 있는 길', 'snack'] ] },
+    { q: '집에 갈 시간이 되면?', a: [
+      ['드러누워 버틴다', 'chill'], ['먼저 집 쪽으로 걷는다', 'home'],
+      ['간식 주면 생각해 본다', 'snack'], ['아직 쌩쌩, 한 바퀴 더!', 'run'] ] },
+    { q: '산책 다녀온 뒤 우리 개는?', a: [
+      ['바로 기절해서 잔다', 'run'], ['창밖을 보며 여운을 즐긴다', 'chill'],
+      ['간식 달라고 시위한다', 'snack'], ['내일 또 나가자는 눈빛', 'social'] ] }
+  ];
+  // 동점이면 이 순서로(덜 흔한 답이 이기게)
+  var TIE_ORDER = ['chill', 'snack', 'home', 'social', 'sniff', 'run'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var views = ['intro', 'q', 'result'];
+  function show(v) { views.forEach(function (k) { $('view-' + k).hidden = k !== v; }); window.scrollTo(0, 0); }
+  function load(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
+
+  var picks = [], step = 0;
+
+  function renderQ() {
+    var Q = QUESTIONS[step];
+    $('bar').style.width = Math.round(step / QUESTIONS.length * 100) + '%';
+    $('qnum').textContent = (step + 1) + ' / ' + QUESTIONS.length;
+    $('qtext').textContent = Q.q;
+    var box = $('answers');
+    box.innerHTML = '';
+    Q.a.forEach(function (ans) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = ans[0];
+      b.addEventListener('click', function () {
+        picks[step] = ans[1];
+        step++;
+        if (step >= QUESTIONS.length) finish(); else renderQ();
+      });
+      box.appendChild(b);
+    });
+    $('back-q').style.visibility = step === 0 ? 'hidden' : 'visible';
+  }
+  $('back-q').addEventListener('click', function () { if (step > 0) { step--; renderQ(); } });
+  $('start-btn').addEventListener('click', function () { picks = []; step = 0; show('q'); renderQ(); });
+  $('retry-btn').addEventListener('click', function () { picks = []; step = 0; show('q'); renderQ(); });
+
+  function decide(list) {
+    var score = {};
+    list.forEach(function (k) { score[k] = (score[k] || 0) + 1; });
+    var best = null;
+    TIE_ORDER.forEach(function (k) { if ((score[k] || 0) > (best ? score[best] : 0)) best = k; });
+    return best || 'sniff';
+  }
+
+  function finish() {
+    var type = decide(picks);
+    try { localStorage.setItem(RESULT_KEY, JSON.stringify({ type: type, at: new Date().toISOString().slice(0, 10) })); } catch (e) { /* 저장 못 해도 결과는 보여 준다 */ }
+    showResult(type);
+  }
+
+  // ── 결과 이미지(1080×1350, 인스타 피드 비율) ──
+  var resultCanvas = null;
+  function font(w, s) { return w + ' ' + s + 'px Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif'; }
+  function wrapText(ctx, text, maxW) {
+    var words = text.split(' '), lines = [], line = '';
+    words.forEach(function (w) {
+      var t = line ? line + ' ' + w : w;
+      if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+  function loadImg(src) {
+    return new Promise(function (res) { if (!src) return res(null); var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; });
+  }
+  function drawResult(type, photo, logo) {
+    var T = TYPES[type], W = 1080, H = 1350;
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var ctx = c.getContext('2d');
+    var brutal = !!(window.WalsonTheme && window.WalsonTheme.isBrutal);
+    ctx.fillStyle = brutal ? '#F2B833' : '#f7ede2';
+    ctx.fillRect(0, 0, W, H);
+    // 카드 판
+    var x = 70, y = 70, w = W - 140, h = H - 140;
+    if (brutal) { ctx.fillStyle = '#000'; ctx.fillRect(x + 16, y + 16, w, h); ctx.fillRect(x - 6, y - 6, w + 12, h + 12); }
+    ctx.fillStyle = '#fffaf3';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = T.color;
+    ctx.fillRect(x, y, w, 26);
+    ctx.textAlign = 'center';
+    var profile = load('petwalk_profile', {});
+    ctx.fillStyle = '#6b5d4e';
+    ctx.font = font(700, 40);
+    ctx.fillText((profile.name ? profile.name + '의 ' : '우리 개의 ') + '산책 유형은', W / 2, 190);
+    // 사진(있으면) 또는 로고
+    var img = photo || logo, size = 420, px = (W - size) / 2, py = 240;
+    if (img) {
+      ctx.save();
+      ctx.beginPath();
+      if (brutal) ctx.rect(px, py, size, size); else ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+      var s = Math.max(size / img.width, size / img.height);
+      ctx.drawImage(img, W / 2 - img.width * s / 2, py + size / 2 - img.height * s / 2, img.width * s, img.height * s);
+      ctx.restore();
+      ctx.lineWidth = brutal ? 10 : 12;
+      ctx.strokeStyle = brutal ? '#000' : T.color;
+      ctx.beginPath();
+      if (brutal) ctx.rect(px, py, size, size); else ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = T.color;
+    ctx.font = '96px "Black Han Sans", Pretendard, sans-serif';
+    ctx.fillText(T.name, W / 2, 800);
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = font(800, 46);
+    wrapText(ctx, T.line, w - 120).forEach(function (l, i) { ctx.fillText(l, W / 2, 890 + i * 62); });
+    ctx.fillStyle = '#6b5d4e';
+    ctx.font = font(600, 34);
+    wrapText(ctx, T.tip, w - 160).forEach(function (l, i) { ctx.fillText(l, W / 2, 1040 + i * 48); });
+    ctx.fillStyle = '#4a3f35';
+    ctx.font = font(800, 32);
+    ctx.fillText('나도 해 보기  ' + URL_TEXT + '/walk-type.html', W / 2, H - 120);
+    ctx.textAlign = 'left';
+    return c;
+  }
+
+  function showResult(type) {
+    var T = TYPES[type];
+    $('r-tip').textContent = T.tip;
+    $('r-friend').textContent = T.friend;
+    $('result-img').alt = '산책 유형 결과: ' + T.name;
+    show('result');
+    var profile = load('petwalk_profile', {});
+    var fontsReady = (document.fonts && document.fonts.load)
+      ? Promise.all([document.fonts.load('96px "Black Han Sans"'), document.fonts.load('800 46px Pretendard')]).catch(function () {})
+      : Promise.resolve();
+    Promise.all([loadImg(profile.photo), loadImg('icons/walson-logo.webp'), fontsReady]).then(function (r) {
+      resultCanvas = drawResult(type, r[0], r[1]);
+      $('result-img').src = resultCanvas.toDataURL('image/png');
+    });
+  }
+
+  $('save-btn').addEventListener('click', function () {
+    if (!resultCanvas) return;
+    resultCanvas.toBlob(function (blob) {
+      var file = new File([blob], 'walson-walk-type.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).catch(function () { /* 사용자가 닫음 */ });
+        return;
+      }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    }, 'image/png');
+  });
+  $('share-btn').addEventListener('click', function () {
+    var text = '우리 개는 어떤 산책러일까? 1분 테스트';
+    if (navigator.share) { navigator.share({ title: '산책 유형 테스트', text: text, url: TEST_URL }).catch(function () {}); return; }
+    if (navigator.clipboard) navigator.clipboard.writeText(TEST_URL).then(function () { alert('테스트 주소를 복사했어요.'); }, function () { prompt('이 주소를 복사해 보내 주세요', TEST_URL); });
+    else prompt('이 주소를 복사해 보내 주세요', TEST_URL);
+  });
+
+  // 전에 한 결과가 있으면 바로 다시 볼 수 있게
+  var last = load(RESULT_KEY, null);
+  if (last && TYPES[last.type]) {
+    var lr = $('last-result');
+    lr.hidden = false;
+    lr.textContent = '지난 결과 보기 · ' + TYPES[last.type].name;
+    lr.addEventListener('click', function (e) { e.preventDefault(); showResult(last.type); });
+  }
+  if (load('petwalk_profile', {}).cardNo) $('card-cta').hidden = true;
+  show('intro');
+})();
+</script>
+</body>
+</html>

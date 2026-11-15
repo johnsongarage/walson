@@ -124,6 +124,7 @@
   <h1>스팟 편집 <span style="font-weight:500;color:var(--ink-soft);font-size:12px;">운영자 전용</span></h1>
   <span style="display:flex;gap:14px;align-items:center;">
     <a href="town.html">← 동네 지도</a>
+    <a href="poster.html" target="_blank">공원 홍보물 인쇄</a>
     <button type="button" id="reload-btn" style="padding:5px 9px;">다시 불러오기</button>
     <button type="button" id="logout-btn" style="padding:5px 9px;">토큰 지우기</button>
   </span>
@@ -161,6 +162,7 @@
       <div class="field"><label for="f-phone">전화번호 (가게·병원만, 선택)</label><input id="f-phone" inputmode="tel" maxlength="20"></div>
 
       <div class="spot-extra" id="spot-extra" hidden>
+        <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: 다산1동, 아울렛 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
         <h3>가게 사진 (선택)</h3>
         <p class="hint">수호지킴이 사진이 없을 때 지도에 이 사진이 크게 나옵니다. 고르면 보여 줄 부분을 고를 수 있어요.</p>
         <div class="photo-row">
@@ -339,6 +341,17 @@
   var editingId = null, gPhoto = null, pPhoto = null;
   var fCat = $('f-cat'), fName = $('f-name'), fTags = $('f-tags'), fNote = $('f-note'), fPhone = $('f-phone');
   var gName = $('g-name'), gSignal = $('g-signal'), gLine = $('g-line');
+  var fArea = $('f-area');
+  // 이미 쓴 동네 이름을 골라 쓸 수 있게(같은 동네가 다른 글자로 갈라지지 않게)
+  function fillAreaList() {
+    var seen = {};
+    $('area-list').innerHTML = '';
+    spots.forEach(function (s) {
+      if (!s.area || seen[s.area]) return;
+      seen[s.area] = true;
+      var o = document.createElement('option'); o.value = s.area; $('area-list').appendChild(o);
+    });
+  }
 
   // 사진 경로는 저장소 최상위 기준(spots/photos/…) — 이 페이지도 최상위에 있어 그대로 쓴다
   function src(p) { return p || ''; }
@@ -620,7 +633,7 @@
     editingId = null;
     $('newcat').hidden = true;
     if (fCat.value === NEW_CAT) fCat.value = lastCat;
-    fName.value = ''; fTags.value = ''; fNote.value = ''; fPhone.value = '';
+    fName.value = ''; fTags.value = ''; fNote.value = ''; fPhone.value = ''; fArea.value = '';
     gName.value = ''; gSignal.value = ''; gLine.value = '';
     showGPhoto(null); showPPhoto(null);
     setDraft(null);
@@ -638,6 +651,7 @@
     fTags.value = (pin.tags || []).join(', ');
     fNote.value = pin.note || '';
     fPhone.value = pin.phone || '';
+    fArea.value = pin.area || '';
     var g = pin.guardian || {};
     gName.value = g.name || ''; gSignal.value = g.signal || ''; gLine.value = g.line || '';
     showGPhoto(g.photo || null);
@@ -675,6 +689,7 @@
     if (fNote.value.trim()) pin.note = fNote.value.trim();
     if (fPhone.value.trim()) pin.phone = fPhone.value.trim();
     if (pin.cat === 'spot') {
+      if (fArea.value.trim()) pin.area = fArea.value.trim().replace(/\s+/g, ' ');
       if (pPhoto) pin.photo = pPhoto;
       if (gName.value.trim()) {
         pin.guardian = { name: gName.value.trim() };
@@ -728,7 +743,7 @@
         name.textContent = pin.name || cat.label;
         var meta = document.createElement('div');
         meta.className = 'meta';
-        meta.textContent = cat.label + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardian(pin) ? ' · 수호지킴이 ' + pin.guardian.name : '');
+        meta.textContent = cat.label + (pin.area ? ' · ' + pin.area : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardian(pin) ? ' · 수호지킴이 ' + pin.guardian.name : '');
         info.appendChild(name); info.appendChild(meta);
         info.addEventListener('click', function () { map.setView([pin.lat, pin.lng], 17); });
         var edit = document.createElement('button');
@@ -746,7 +761,7 @@
         listEl.appendChild(li);
       });
   }
-  function renderAll() { if (map) { renderMarkers(); renderList(); renderCategories(); } }
+  function renderAll() { if (map) { renderMarkers(); renderList(); renderCategories(); fillAreaList(); } }
 
   // ── 시작 ──
   function showSetup(reason) {

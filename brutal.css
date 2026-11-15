@@ -146,3 +146,46 @@ body { font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun 
 .theme-opt { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; color: #000 !important; }
 .theme-opt[aria-pressed="true"] { background: var(--b-lime) !important; }
 .theme-opt .name .on { color: #000 !important; background: #fff; border: 2px solid #000; padding: 0 4px; }
+
+/* ── 응가 달력(기록) ── */
+.poop-cal { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow) !important; background: #fff !important; }
+.poop-cal .head h2, .poop-cal .month { color: #000 !important; font-weight: 900 !important; }
+.poop-cal .head button { border-radius: 0 !important; border: var(--b-line) !important; color: #000 !important; }
+.poop-cal .day { border-radius: 0 !important; }
+.poop-cal .day.walked { background: var(--b-yellow) !important; color: #000 !important; border: 2px solid #000; }
+.poop-cal .day.is-today { box-shadow: inset 0 0 0 3px var(--b-pink) !important; }
+.poop-cal .dow, .poop-cal .legend, .poop-cal .sum { color: #000 !important; }
+.poop-cal .dots i { background: #000 !important; }
+.poop-cal .dots i.none { background: none !important; border-color: #000 !important; }
+.poop-cal .dots i.unknown { background: none !important; border-color: #000 !important; }
+
+/* ── 키링 받기 ── */
+.ticket { border: 4px solid #000 !important; }
+.ticket .face { border-radius: 0 !important; border: var(--b-line) !important; }
+.ticket .name, .ticket .clock { color: #000 !important; }
+.given-stamp { border-radius: 0 !important; border-color: #000 !important; color: #000 !important; background: var(--b-lime); }
+.checks .mark { border-radius: 0 !important; border: 2px solid #000; background: #fff !important; color: #000 !important; }
+.checks li.ok .mark { background: var(--b-lime) !important; }
+.preview-band { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; }
+
+/* ── 수호지킴이 목록·모아 보기 ── */
+.dog { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow) !important; background: #fff !important; }
+.dog .ph { border-bottom: var(--b-line); background: var(--b-yellow) !important; }
+.dog .name, .dog .shop, .dog .line { color: #000 !important; }
+.dog .acts a { border-radius: 0 !important; border: 2px solid #000 !important; color: #000 !important; }
+.dog .acts a.map { background: var(--b-pink) !important; }
+.dog .acts a.idcard { background: #fff !important; }
+.area h2 { color: #000 !important; font-weight: 900 !important; }
+.area h2 small { color: #000 !important; background: #fff; border: 2px solid #000; padding: 0 5px; }
+.guard-link { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: var(--b-lime) !important; color: #000 !important; font-weight: 900 !important; }
+
+/* ── 산책 유형 테스트 ── */
+.progress { border-radius: 0 !important; border: 2px solid #000; background: #fff !important; }
+.progress i { border-radius: 0 !important; background: var(--b-pink) !important; }
+.qnum { color: #000 !important; font-weight: 900 !important; }
+.qtext { font-weight: 900 !important; }
+.answers button { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important; font-weight: 800 !important; }
+.answers button:active { transform: translate(3px, 3px) !important; box-shadow: none !important; background: var(--b-lime) !important; }
+.result-img { border-radius: 0 !important; border: var(--b-line); box-shadow: var(--b-shadow) !important; }
+.card h3 { color: #000 !important; font-weight: 900 !important; }
+.back-q { color: #000 !important; font-weight: 700; }

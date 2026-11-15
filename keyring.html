@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>키링 받기</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 키링 받기(2026-11-15). 공원 현장에서 견주가 이 화면을 직원에게 보여 주고 키링을 받는다.
+     서버가 없어서 판정은 이 휴대폰의 산책 기록(reward-rules.js)으로만 한다 — 기록을 지어내는 것까지는 못 막는다.
+     대신 ① 초 단위로 움직이는 시계로 캡처 화면 재사용을 알아보게 하고 ② 직원이 "드렸어요"를 누르면 이 휴대폰에
+     받은 날을 남겨 같은 휴대폰으로 두 번 받지 않게 한다. 직원 쪽 명단(종이)과 함께 쓴다.
+     조건·장소·때는 reward-rules.js의 KEYRING. open이 false면 "준비 중"만 보이고 아무것도 약속하지 않는다. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2; --ok: #3f7d4a;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 420px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 12px;
+    text-decoration: none; background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink); box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; }
+  .card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px; padding: 20px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.1); margin-bottom: 14px; }
+  .card h2 { font-size: 16px; margin: 0 0 10px; font-weight: 800; }
+  .lead { font-size: 14px; line-height: 1.6; color: var(--ink-soft); margin: 0; }
+  .preview-band { background: #4a3f35; color: #fff; font-size: 12px; font-weight: 700; text-align: center; padding: 6px; border-radius: 8px; margin-bottom: 12px; }
+
+  .checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .checks li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; }
+  .checks .mark { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; background: var(--accent-tint); color: var(--ink-soft); }
+  .checks li.ok .mark { background: var(--ok); color: #fff; }
+  .checks small { display: block; font-weight: 500; color: var(--ink-soft); font-size: 12px; }
+  .bar { height: 10px; border-radius: 999px; background: var(--accent-tint); overflow: hidden; margin-top: 12px; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+
+  /* 직원에게 보여 주는 표 */
+  .ticket { text-align: center; border: 4px solid var(--accent); }
+  .ticket .face { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 10px; background: var(--accent-tint); border: 4px solid var(--ok); }
+  .ticket .name { font-size: 28px; font-weight: 900; margin: 0; }
+  .ticket .no { font-size: 13px; color: var(--ink-soft); margin: 4px 0 12px; font-weight: 700; }
+  .ticket .clock { font-size: 40px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+  .ticket .date { font-size: 13px; color: var(--ink-soft); margin-top: 4px; font-weight: 700; }
+  .ticket .say { font-size: 15px; font-weight: 800; margin: 14px 0 0; }
+  .ticket.is-given { border-color: var(--panel-border); }
+  .ticket.is-given .face { filter: grayscale(1); }
+  .given-stamp { display: inline-block; margin-top: 12px; padding: 6px 14px; border: 3px solid var(--ok); color: var(--ok); font-weight: 900; border-radius: 10px; transform: rotate(-4deg); }
+  .btn-main {
+    width: 100%; border: none; border-radius: 999px; padding: 15px; margin-top: 4px;
+    background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); color: #fff;
+    font-family: inherit; font-weight: 800; font-size: 16px; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 16px rgba(var(--shadow-rgb), 0.3);
+  }
+  .btn-main:active { transform: scale(0.98); }
+  .staff-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 8px 0 0; line-height: 1.5; }
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 4px 2px 0; }
+  .hint a { color: var(--accent); font-weight: 700; }
+  [hidden] { display: none !important; }
+</style>
+<script src="theme.js?v=5"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="my-card.html" title="카드로 돌아가기">←</a>
+    <h1>키링 받기</h1>
+  </div>
+
+  <div class="preview-band" id="preview-band" hidden>미리 보기 — 아직 사용자에게는 "준비 중"으로 보여요</div>
+
+  <!-- 아직 나눔 조건이 정해지지 않았을 때 -->
+  <div class="card" id="closed" hidden>
+    <h2>키링 나눔은 준비 중이에요</h2>
+    <p class="lead">정해지면 이 화면과 [카드] 탭에서 알려 드릴게요. 그동안 산책 기록은 그대로 쌓여요.</p>
+  </div>
+
+  <div id="open" hidden>
+    <div class="card">
+      <h2>받는 조건</h2>
+      <ul class="checks">
+        <li id="c-card"><span class="mark">1</span><span>주민증 카드 만들기<small id="c-card-sub"></small></span></li>
+        <li id="c-walks"><span class="mark">2</span><span id="c-walks-label"></span></li>
+      </ul>
+      <div class="bar"><i id="walk-bar" style="width:0"></i></div>
+      <p class="hint" id="where" hidden></p>
+    </div>
+
+    <div class="card ticket" id="ticket" hidden>
+      <img class="face" id="t-face" alt="">
+      <p class="name" id="t-name"></p>
+      <p class="no" id="t-no"></p>
+      <div class="clock" id="t-clock"></div>
+      <div class="date" id="t-date"></div>
+      <p class="say" id="t-say">직원에게 이 화면을 보여 주세요</p>
+      <div class="given-stamp" id="t-given" hidden></div>
+    </div>
+    <div id="staff" hidden>
+      <button type="button" class="btn-main" id="give-btn">드렸어요 (직원이 눌러요)</button>
+      <p class="staff-note">직원이 키링을 건넨 뒤 누르면 이 휴대폰에 받은 날이 남아요.</p>
+    </div>
+  </div>
+
+  <p class="hint">판정은 이 휴대폰의 산책 기록으로만 하고 어디로도 보내지 않아요. 휴대폰 하나에 한 번 받을 수 있어요.</p>
+</div>
+
+<script src="reward-rules.js?v=3"></script>
+<script>
+(function () {
+  var GIVEN_KEY = 'petwalk_keyring';      // { givenAt: 'YYYY-MM-DD HH:MM' } — 받은 뒤에만 있다
+  var K = window.RewardRules.KEYRING;
+  var preview = /[?&]preview=1/.test(location.search);
+  var $ = function (id) { return document.getElementById(id); };
+  function load(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  if (!K.open && !preview) { $('closed').hidden = false; return; }
+  if (!K.open) $('preview-band').hidden = false;
+  $('open').hidden = false;
+
+  var profile = load('petwalk_profile', {});
+  var p = window.RewardRules.computeProgress(load('petwalk_walks', []));
+  var hasCard = !!(profile.name && profile.cardNo);
+  var walksOk = p.walks >= K.minWalks;
+
+  $('c-card').classList.toggle('ok', hasCard);
+  $('c-card').querySelector('.mark').textContent = hasCard ? '✓' : '1';
+  $('c-card-sub').innerHTML = hasCard ? '' : '<a href="start.html">30초면 만들어요</a>';
+  $('c-walks').classList.toggle('ok', walksOk);
+  $('c-walks').querySelector('.mark').textContent = walksOk ? '✓' : '2';
+  $('c-walks-label').innerHTML = '길 기록 산책 ' + K.minWalks + '번 (지금 ' + Math.min(p.walks, K.minWalks) + '번)' +
+    '<small>' + (walksOk ? '다 채웠어요' : (K.minWalks - p.walks) + '번 더 하면 돼요 · 5분·200m 이상만 세요') + '</small>';
+  $('walk-bar').style.width = Math.min(100, Math.round(p.walks / K.minWalks * 100)) + '%';
+  if (K.where || K.when) { $('where').hidden = false; $('where').textContent = '받는 곳 · ' + [K.where, K.when].filter(Boolean).join(' · '); }
+
+  // 샘플 데이터(sample-data.js)로 보는 중이면 받을 수 없다 — 지어낸 기록이므로
+  var sampleOn = false;
+  try { sampleOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sampleOn = false; }
+  if (sampleOn) {
+    $('where').hidden = false;
+    $('where').innerHTML = '지금은 샘플 기록으로 보는 중이라 받을 수 없어요. [오늘]에서 "샘플 끄기"를 누르고 내 산책으로 채워 주세요.';
+    if (!preview) return;
+  }
+  if (!(hasCard && walksOk)) return;
+
+  // 조건을 다 채웠으면 직원에게 보여 줄 표
+  $('ticket').hidden = false;
+  if (profile.photo) $('t-face').src = profile.photo; else $('t-face').hidden = true;
+  var SIG = { green: '#3f9b5b', yellow: '#dfa21f', red: '#d2493f' };
+  if (SIG[profile.signal]) $('t-face').style.borderColor = SIG[profile.signal];
+  $('t-name').textContent = profile.name;
+  $('t-no').textContent = '주민증 ' + profile.cardNo + ' · 산책 ' + p.walks + '번';
+
+  // 움직이는 시계 — 캡처한 화면을 다시 보여 주면 시각이 멈춰 있어서 알아볼 수 있다
+  var DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+  function tick() {
+    var d = new Date();
+    $('t-clock').textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+    $('t-date').textContent = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + DAYS[d.getDay()] + '요일';
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  function paintGiven() {
+    var g = load(GIVEN_KEY, null);
+    var given = !!(g && g.givenAt);
+    $('ticket').classList.toggle('is-given', given);
+    $('t-given').hidden = !given;
+    if (given) $('t-given').textContent = '받음 · ' + g.givenAt;
+    $('t-say').textContent = given ? '이미 키링을 받았어요' : '직원에게 이 화면을 보여 주세요';
+    $('staff').hidden = given;
+  }
+  paintGiven();
+
+  $('give-btn').addEventListener('click', function () {
+    if (!confirm('직원 확인: 키링을 건네셨나요?\n누르면 이 휴대폰에 받은 날이 남고 다시 받을 수 없어요.')) return;
+    var d = new Date();
+    try {
+      localStorage.setItem(GIVEN_KEY, JSON.stringify({ givenAt: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) }));
+    } catch (e) { alert('저장하지 못했어요. 직원 명단에 적어 주세요.'); return; }
+    paintGiven();
+  });
+})();
+</script>
+</body>
+</html>

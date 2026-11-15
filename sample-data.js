@@ -17,7 +17,7 @@
   var SPOTS = 'petwalk_sample_spots';    // 예전 샘플 가게 자리 — 이제 쓰지 않고, 남아 있으면 지운다
   // 샘플이 덮어쓰는 열쇠들 — 끌 때 이 값들을 되돌린다
   var KEYS = ['petwalk_walks', 'petwalk_profile', 'petwalk_pins', 'petwalk_reward_card',
-              'petwalk_last_walk', 'petwalk_active_walk', 'petwalk_dog_size'];
+              'petwalk_last_walk', 'petwalk_active_walk', 'petwalk_dog_size', 'petwalk_keyring'];
   var PHOTO_PREFIX = 'sample-';
 
   function isOn() { try { return localStorage.getItem(FLAG) === '1'; } catch (e) { return false; } }
@@ -114,6 +114,7 @@
         { id: 'sample-pin-2', lat: 37.62428, lng: 127.14460, memo: '그늘 벤치, 물그릇 있음 (샘플)' }
       ]));
       localStorage.removeItem('petwalk_reward_card');
+      localStorage.removeItem('petwalk_keyring');
       localStorage.removeItem('petwalk_last_walk');
       localStorage.removeItem('petwalk_active_walk');
       localStorage.setItem('petwalk_dog_size', 'small');

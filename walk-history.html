@@ -85,6 +85,26 @@
   /* 5분·200m 미만 산책 — index.html WALK_RULES 참고 */
   .info .stats .no-reward { color: var(--ink-soft); background: var(--accent-tint); border-radius: 6px; padding: 0 6px; font-size: 11px; }
 
+  /* 응가 달력(2026-11-15, hq "응가 일기 ①안"): 끝 화면에서 고른 응가 답을 날짜별로. 서버·AI 없음 */
+  .poop-cal { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; padding: 14px; margin-bottom: 20px; box-shadow: 0 3px 12px rgba(var(--shadow-rgb), 0.08); }
+  .poop-cal .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .poop-cal .head h2 { font-size: 15px; font-weight: 800; margin: 0; }
+  .poop-cal .head button { font-family: inherit; font-size: 14px; font-weight: 800; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; }
+  .poop-cal .head button:disabled { opacity: 0.35; cursor: default; }
+  .poop-cal .month { font-size: 14px; font-weight: 800; }
+  .poop-cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .poop-cal .dow { font-size: 11px; font-weight: 700; color: var(--ink-soft); padding-bottom: 2px; }
+  .poop-cal .day { aspect-ratio: 1 / 1.1; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .poop-cal .day.is-today { box-shadow: inset 0 0 0 2px var(--accent); }
+  .poop-cal .day.walked { background: var(--accent-tint); color: var(--ink); font-weight: 700; }
+  .poop-cal .dots { display: flex; gap: 2px; height: 9px; align-items: center; }
+  .poop-cal .dots i { width: 9px; height: 9px; border-radius: 50% 50% 45% 45%; background: #8a5a2b; display: block; }
+  .poop-cal .dots i.none { background: none; border: 1.5px solid #8a5a2b; width: 8px; height: 8px; }
+  .poop-cal .dots i.unknown { background: none; border: 1.5px dashed var(--ink-soft); width: 8px; height: 8px; opacity: 0.6; }
+  .poop-cal .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
+  .poop-cal .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .poop-cal .sum { font-size: 13px; font-weight: 700; margin: 8px 0 0; }
+
   .empty {
     text-align: center; padding: 60px 20px; color: var(--ink-soft);
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px;
@@ -92,7 +112,7 @@
   .empty .icon { font-size: 34px; margin-bottom: 10px; }
   .empty p { margin: 0; font-size: 13px; line-height: 1.6; }
 </style>
-<script src="theme.js?v=2"></script>
+<script src="theme.js?v=5"></script>
 </head>
 <body>
 
@@ -108,6 +128,22 @@
     <div class="tile"><div class="num" id="s-distance">0</div><div class="label">누적 km</div></div>
     <div class="tile"><div class="num" id="s-streak">0</div><div class="label">연속 일수</div></div>
   </div>
+
+  <section class="poop-cal" id="poop-cal" aria-label="응가 달력">
+    <div class="head">
+      <button type="button" id="cal-prev" aria-label="이전 달">‹</button>
+      <div><h2>응가 달력</h2><div class="month" id="cal-month"></div></div>
+      <button type="button" id="cal-next" aria-label="다음 달">›</button>
+    </div>
+    <div class="grid" id="cal-grid"></div>
+    <div class="legend">
+      <span><span class="dots"><i></i></span>1번</span>
+      <span><span class="dots"><i></i><i></i></span>2번 이상</span>
+      <span><span class="dots"><i class="none"></i></span>안 했어요</span>
+      <span><span class="dots"><i class="unknown"></i></span>산책했지만 안 적음</span>
+    </div>
+    <p class="sum" id="cal-sum"></p>
+  </section>
 
   <div class="list" id="list"></div>
   <div class="empty" id="empty" hidden>
@@ -253,6 +289,68 @@
       }
     });
   }
+})();
+
+// ── 응가 달력 ──
+// 끝 화면(walk-end.html)이 산책 기록에 붙인 poop(0 안 함 · 1 한 번 · 2 두 번 이상)을 날짜별로 모은다.
+// 하루에 여러 번 산책했으면 그날 가장 많이 한 답을 보인다. 이 휴대폰 기록만 쓰고 어디로도 보내지 않는다.
+(function () {
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function key(y, m, d) { return y + '-' + pad2(m + 1) + '-' + pad2(d); }
+  var walks = [];
+  try { walks = JSON.parse(localStorage.getItem('petwalk_walks')) || []; } catch (e) { walks = []; }
+  var byDay = {};   // 'YYYY-MM-DD' → { walked: true, poop: 최대값 또는 undefined }
+  walks.forEach(function (w) {
+    if (!w || !w.date) return;
+    var d = byDay[w.date] || (byDay[w.date] = { walked: true });
+    if (typeof w.poop === 'number' && (d.poop === undefined || w.poop > d.poop)) d.poop = w.poop;
+  });
+
+  var today = new Date();
+  var view = new Date(today.getFullYear(), today.getMonth(), 1);
+  var first = walks.reduce(function (min, w) { return w && w.date && w.date < min ? w.date : min; }, key(today.getFullYear(), today.getMonth(), 1));
+  var firstMonth = new Date(Number(first.slice(0, 4)), Number(first.slice(5, 7)) - 1, 1);
+
+  function render() {
+    var y = view.getFullYear(), m = view.getMonth();
+    document.getElementById('cal-month').textContent = y + '년 ' + (m + 1) + '월';
+    var grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+    DOW.forEach(function (d) { var e = document.createElement('div'); e.className = 'dow'; e.textContent = d; grid.appendChild(e); });
+    var lead = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+    for (var i = 0; i < lead; i++) grid.appendChild(document.createElement('div'));
+    var poopDays = 0, walkedDays = 0, answered = 0;
+    for (var d = 1; d <= days; d++) {
+      var k = key(y, m, d), rec = byDay[k];
+      var cell = document.createElement('div');
+      cell.className = 'day';
+      if (y === today.getFullYear() && m === today.getMonth() && d === today.getDate()) cell.classList.add('is-today');
+      var num = document.createElement('span'); num.textContent = d; cell.appendChild(num);
+      var dots = document.createElement('span'); dots.className = 'dots';
+      var label = d + '일';
+      if (rec) {
+        cell.classList.add('walked'); walkedDays++;
+        if (rec.poop === undefined) { dots.innerHTML = '<i class="unknown"></i>'; label += ', 산책함, 응가 안 적음'; }
+        else {
+          answered++;
+          if (rec.poop === 0) { dots.innerHTML = '<i class="none"></i>'; label += ', 응가 안 함'; }
+          else { poopDays++; dots.innerHTML = rec.poop >= 2 ? '<i></i><i></i>' : '<i></i>'; label += rec.poop >= 2 ? ', 응가 2번 이상' : ', 응가 1번'; }
+        }
+      }
+      cell.setAttribute('aria-label', label);
+      cell.appendChild(dots);
+      grid.appendChild(cell);
+    }
+    document.getElementById('cal-sum').textContent = walkedDays
+      ? '산책한 날 ' + walkedDays + '일 · 응가한 날 ' + poopDays + '일' + (walkedDays > answered ? ' · 안 적은 날 ' + (walkedDays - answered) + '일' : '')
+      : '이 달에는 산책 기록이 없어요.';
+    document.getElementById('cal-prev').disabled = view <= firstMonth;
+    document.getElementById('cal-next').disabled = y === today.getFullYear() && m === today.getMonth();
+  }
+  document.getElementById('cal-prev').addEventListener('click', function () { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); });
+  document.getElementById('cal-next').addEventListener('click', function () { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); });
+  render();
 })();
 </script>
 <script src="tabbar.js?v=4" data-tab="history"></script>

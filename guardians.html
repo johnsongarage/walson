@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 동네 수호지킴이</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 지역별 수호지킴이 목록(2026-11-15, 가르시아 "나중에 리스트로 뿌리는 기능"). [동네] 지도의 "모아 보기"에서 온다.
+     동네 이름은 스팟 편집의 "동네 이름" 칸(spot.area) — 비어 있으면 "다산동"으로 묶는다.
+     이름(수호지킴이 / 간판견 등)은 아직 정하는 중이라 화면 문구는 지금 이름 그대로. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 12px;
+    text-decoration: none; background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink); box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; }
+  .subtitle { margin: 6px 0 16px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
+  .area { margin-bottom: 20px; }
+  .area h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; display: flex; align-items: baseline; gap: 6px; }
+  .area h2 small { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dog { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; overflow: hidden; box-shadow: 0 3px 12px rgba(var(--shadow-rgb), 0.08); display: flex; flex-direction: column; }
+  .dog .ph { position: relative; aspect-ratio: 1 / 1; background: var(--accent-tint); }
+  .dog .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dog .ph .sig { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; }
+  .dog .body { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .dog .name { font-size: 17px; font-weight: 800; }
+  .dog .sigtxt { font-size: 11px; font-weight: 700; }
+  .dog .shop { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dog .line { font-size: 12px; line-height: 1.45; margin-top: 2px; }
+  .dog .acts { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .dog .acts a { flex: 1; text-align: center; font-size: 12px; font-weight: 800; text-decoration: none; padding: 7px 4px; border-radius: 10px; }
+  .dog .acts a.map { background: var(--accent); color: #fff; }
+  .dog .acts a.idcard { background: #fff; color: var(--ink); border: 1px solid var(--panel-border); }
+  .empty { text-align: center; padding: 50px 20px; color: var(--ink-soft); background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; font-size: 13px; line-height: 1.6; }
+  .note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 4px 2px 0; }
+</style>
+<script src="theme.js?v=5"></script>
+<script src="spots-data.js"></script>
+<script src="infra-pins.js?v=13"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="town.html" title="동네 지도로 돌아가기">←</a>
+    <h1>우리 동네 수호지킴이</h1>
+  </div>
+  <p class="subtitle">단골 가게를 지키는 강아지들이에요. 만나면 신호등 색을 보고 인사해 주세요.</p>
+  <div id="areas"></div>
+  <div class="empty" id="empty" hidden>아직 등록된 수호지킴이가 없어요.</div>
+  <p class="note">가게 주인이 올려도 된다고 한 강아지만 보여요. 가게에 늘 있는 건 아니에요.</p>
+</div>
+
+<script>
+(function () {
+  var DEFAULT_AREA = '다산동';
+  var list = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); });
+  if (!list.length) { document.getElementById('empty').hidden = false; return; }
+
+  // 동네별로 묶고, 많은 동네부터. 같은 동네 안에서는 강아지 이름순.
+  var groups = {};
+  list.forEach(function (p) { var a = (p.area || '').trim() || DEFAULT_AREA; (groups[a] = groups[a] || []).push(p); });
+  var names = Object.keys(groups).sort(function (a, b) { return groups[b].length - groups[a].length || a.localeCompare(b, 'ko'); });
+
+  var root = document.getElementById('areas');
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  names.forEach(function (area) {
+    var sec = el('section', 'area');
+    var h = el('h2', '', area);
+    h.appendChild(el('small', '', groups[area].length + '마리'));
+    sec.appendChild(h);
+    var grid = el('div', 'grid');
+    groups[area].sort(function (a, b) { return a.guardian.name.localeCompare(b.guardian.name, 'ko'); }).forEach(function (p) {
+      var g = p.guardian, sig = InfraPins.SIGNALS[g.signal];
+      var card = el('article', 'dog');
+      var ph = el('div', 'ph');
+      var photo = InfraPins.mainPhoto(p);
+      if (photo) { var img = el('img'); img.src = photo; img.alt = g.name; img.loading = 'lazy'; ph.appendChild(img); }
+      if (sig) { var bar = el('span', 'sig'); bar.style.background = sig.color; ph.appendChild(bar); }
+      card.appendChild(ph);
+      var body = el('div', 'body');
+      body.appendChild(el('div', 'name', g.name));
+      if (sig) { var st = el('div', 'sigtxt', sig.label + ' · ' + sig.line); st.style.color = sig.color; body.appendChild(st); }
+      body.appendChild(el('div', 'shop', p.name || ''));
+      if (g.line) body.appendChild(el('div', 'line', '“' + g.line + '”'));
+      var acts = el('div', 'acts');
+      var a1 = el('a', 'map', '지도에서'); a1.href = 'town.html?spot=' + encodeURIComponent(p.id);
+      var a2 = el('a', 'idcard', '주민증'); a2.href = 'start.html?guardian=' + encodeURIComponent(p.id);
+      acts.appendChild(a1); acts.appendChild(a2);
+      body.appendChild(acts);
+      card.appendChild(body);
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);
+    root.appendChild(sec);
+  });
+})();
+</script>
+<script src="tabbar.js?v=4" data-tab="town"></script>
+</body>
+</html>
