@@ -45,7 +45,7 @@
   .consent-btns { display: flex; gap: 8px; }
   .consent-btns button { flex: 1; font-family: inherit; font-size: 14px; font-weight: 800; padding: 11px; border-radius: 12px; border: 1px solid var(--panel-border, #e6d6c1); background: #fff; color: inherit; cursor: pointer; }
 </style>
-<script src="theme.js?v=6"></script>
+<script src="theme.js?v=7"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=3"></script>
 </head>
@@ -70,6 +70,7 @@
       <li><strong>산책 뒤에 답한 것</strong>: 충분했는지, 킁킁 지수, 응가</li>
       <li><strong>오늘의 한 장</strong>: 산책 끝 화면에서 남긴 사진. 작게 줄이고 촬영 위치 정보를 뺀 채 이 휴대폰 안에만 저장해요.</li>
       <li><strong>내가 찍은 핀과 메모</strong></li>
+      <li><strong>가게 방문 도장</strong>: 가게 카운터의 왈슨 QR을 찍은 가게와 그 날짜(같은 가게는 하루 한 번). [동네] 지도의 단골 Lv는 이 기록으로 셉니다. 위치는 읽지 않아요.</li>
       <li>사진은 작게 줄여서 저장하고, 이때 사진에 붙어 있던 촬영 위치 정보는 빠집니다.</li>
     </ul>
   </section>
@@ -78,8 +79,9 @@
     <h2>위치 정보</h2>
     <ul>
       <li>첫 화면([오늘])과 기록·카드 화면은 위치를 읽지 않습니다.</li>
-      <li>위치는 산책 화면을 열었을 때와 [동네] 지도에서 "내 위치" 버튼을 눌렀을 때만 읽습니다. 먼저 이유를 설명하고 허락을 구합니다.</li>
-      <li>읽은 위치는 지도에 그리고 이 휴대폰에 저장하는 데만 씁니다.</li>
+      <li>위치는 산책 화면을 열었을 때와 [동네] 지도에서 "내 위치"나 "걸어서 몇 분"을 눌렀을 때만 읽습니다. 먼저 이유를 설명하고 허락을 구합니다.</li>
+      <li>산책 화면에서 읽은 위치는 지도에 그리고 이 휴대폰에 저장하는 데만 씁니다.</li>
+      <li>[동네]에서 읽은 위치는 지도에 점을 찍고 가게까지 걸어서 몇 분인지 계산하는 데만 쓰고 저장하지 않습니다. 계산은 이 휴대폰 안에서 합니다.</li>
       <li>주민증 만들기 화면은 위치를 묻지 않습니다.</li>
     </ul>
   </section>

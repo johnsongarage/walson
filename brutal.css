@@ -195,3 +195,23 @@ body { font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun 
 .dog-face img { border-radius: 0 !important; }
 .dog-face-n { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; border: 2px solid #000; }
 .deco-dog { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.35)) !important; }
+
+/* ── 동네: 동반 가게 목록 · 걸어서 N분 · 방문 도장 단골 Lv(2026-11-15) ── */
+.shop-link { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important; font-weight: 900 !important; }
+.shop-link .ic { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; }
+.shop-sheet { border-radius: 0 !important; border-top: var(--b-line) !important; box-shadow: 0 -5px 0 #000 !important; background: #fff !important; }
+.sheet-head b { font-weight: 900 !important; }
+.sheet-head .sub, .sheet-note, .sheet-empty, .reg-hint, .reg-text, .shop-item .meta { color: #000 !important; }
+.sheet-close, .near-btn, .walk-btn { border-radius: 0 !important; border: 2px solid #000 !important; box-shadow: 2px 2px 0 #000 !important; background: #fff !important; color: #000 !important; font-weight: 900 !important; }
+.sheet-tools .chip[aria-pressed="true"] { color: #000 !important; }
+.shop-item { border-radius: 0 !important; border: var(--b-line) !important; box-shadow: var(--b-shadow-s) !important; background: #fff !important; color: #000 !important; }
+.shop-item .shop-thumb img, .shop-item .shop-thumb .ic { border-radius: 0 !important; border: 2px solid #000; }
+.shop-item .shop-thumb .ic { background: #000 !important; color: var(--b-yellow) !important; }
+.shop-item .shop-thumb .ic svg { color: var(--b-yellow) !important; }
+.shop-item .lv, .reg-lv { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; border-color: #000 !important; }
+.shop-item .walk { color: #000 !important; background: var(--b-yellow); padding: 0 4px; }
+.shop-item .badges span { border-radius: 0 !important; border: 2px solid #000; }
+.shop-extra { border-top: 2px solid #000 !important; }
+.shop-extra .walk-line, .shop-extra .walk-line small { color: #000 !important; }
+.reg { border-radius: 0 !important; border: 2px solid #000; background: var(--b-yellow) !important; }
+.reg-top { color: #000 !important; font-weight: 900 !important; }

@@ -6,7 +6,7 @@
 // 고른 값은 이 기기 localStorage에만 둔다(서버로 보내지 않음).
 (function () {
   var KEY = 'walson_theme';
-  var BRUTAL_CSS = 'brutal.css?v=7';
+  var BRUTAL_CSS = 'brutal.css?v=8';
   var THEMES = {
     soft:   { label: '차분',     desc: '크림색 바탕, 둥근 모서리, 부드러운 그림자', color: '#f7ede2' },
     brutal: { label: '뉴브루탈', desc: '노랑 바탕, 굵은 검정 테두리, 각진 모서리',  color: '#F2B833' }
