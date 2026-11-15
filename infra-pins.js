@@ -203,6 +203,75 @@
     return 'OpenStreetMap 기준 · 현장 확인 전';
   }
 
+  // ── 동반 조건(2026-11-15, 기획표 B-22 · 가르시아 "동반 가게 지도 강화부터") ──
+  // 동반 스팟(가게)에 pet: { indoor: 'ok'|'carrier'|'no', large: 'all'|'small', terrace: true, water: true }로 붙는다.
+  // 빈 칸은 "확인 전"이라 지도에 안 나온다. 운영자가 직접 가서 확인한 것만 스팟 편집에서 넣는다.
+  // 예전 데이터는 자유 태그(실내OK·대형견OK)로만 적혀 있어서, 아는 태그는 칸으로 바꿔 읽는다
+  // (스팟 편집에서 그 가게를 저장하면 태그가 칸으로 옮겨진다).
+  var PET_LABELS = {
+    indoor: { ok: '실내 OK', carrier: '실내는 개모차·안고', no: '실내 안 됨' },
+    large: { all: '대형견 OK', small: '소형견만' }
+  };
+  var PET_TAGS = {   // 띄어쓰기를 빼고 소문자로 맞춘 태그 → [칸, 값]
+    '실내ok': ['indoor', 'ok'], '실내가능': ['indoor', 'ok'], '실내동반': ['indoor', 'ok'], '실내동반가능': ['indoor', 'ok'],
+    '개모차': ['indoor', 'carrier'], '개모차필수': ['indoor', 'carrier'], '안고입장': ['indoor', 'carrier'], '이동장': ['indoor', 'carrier'],
+    '실내불가': ['indoor', 'no'], '야외만': ['indoor', 'no'],
+    '대형견ok': ['large', 'all'], '대형견가능': ['large', 'all'], '소형견만': ['large', 'small'],
+    '테라스': ['terrace', true], '테라스ok': ['terrace', true], '야외석': ['terrace', true],
+    '물그릇': ['water', true], '물그릇있음': ['water', true]
+  };
+  function petTag(t) { return PET_TAGS[String(t).replace(/\s+/g, '').toLowerCase()] || null; }
+  function petInfo(pin) {
+    var info = {};
+    ((pin && pin.tags) || []).forEach(function (t) { var m = petTag(t); if (m) info[m[0]] = m[1]; });
+    var p = pin && pin.pet;
+    if (p) {
+      if (PET_LABELS.indoor[p.indoor]) info.indoor = p.indoor;
+      if (PET_LABELS.large[p.large]) info.large = p.large;
+      if (p.terrace) info.terrace = true;
+      if (p.water) info.water = true;
+    }
+    return info;
+  }
+  // 칸으로 바꿔 읽은 것을 뺀 나머지 태그
+  function extraTags(pin) { return ((pin && pin.tags) || []).filter(function (t) { return !petTag(t); }); }
+  // 칩으로 보여 줄 것 — tone: ok(된다) · warn(조건 있음) · no(안 된다)
+  function petBadges(pin) {
+    var i = petInfo(pin), out = [];
+    if (i.indoor) out.push({ key: 'indoor', text: PET_LABELS.indoor[i.indoor], tone: i.indoor === 'ok' ? 'ok' : (i.indoor === 'carrier' ? 'warn' : 'no') });
+    if (i.terrace) out.push({ key: 'terrace', text: '테라스·야외석', tone: 'ok' });
+    if (i.large) out.push({ key: 'large', text: PET_LABELS.large[i.large], tone: i.large === 'all' ? 'ok' : 'warn' });
+    if (i.water) out.push({ key: 'water', text: '물그릇', tone: 'ok' });
+    return out;
+  }
+  // 우리 개 크기(프로필, 이 휴대폰에만 있음)에 맞지 않거나 아직 모를 때 한 줄로 알려 준다. 맞으면 null.
+  function dogSize() {
+    try { return (JSON.parse(localStorage.getItem('petwalk_profile')) || {}).size || ''; } catch (e) { return ''; }
+  }
+  function fitNote(pin, size) {
+    if (!pin || pin.cat !== 'spot') return null;
+    if (size === undefined) size = dogSize();
+    var large = petInfo(pin).large;
+    if (size === 'large') {
+      if (large === 'small') return { tone: 'no', text: '소형견만 받아요 — 대형견은 들어가기 어려워요' };
+      if (!large) return { tone: 'warn', text: '대형견도 되는지는 아직 확인 전이에요' };
+    }
+    if (size === 'medium' && large === 'small') return { tone: 'warn', text: '소형견만 받아요 — 중형견은 가게에 먼저 물어보세요' };
+    return null;
+  }
+  // 직접 확인한 지 오래됐는지(일) — 동반 조건은 금방 바뀌어서(B-22) 90일이 넘으면 알린다
+  function daysSinceVerified(pin) {
+    if (!pin || !pin.verifiedAt) return null;
+    var d = new Date(pin.verifiedAt + 'T00:00:00');
+    if (isNaN(d)) return null;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+  var TONES = {
+    ok:   { soft: 'background:#e2efdc;color:#2f6b3a;', brutal: 'background:#C8F06A;color:#000;', ink: '#2f6b3a' },
+    warn: { soft: 'background:#f8ebcf;color:#8a5a00;', brutal: 'background:#F2B833;color:#000;', ink: '#8a5a00' },
+    no:   { soft: 'background:#f6dcd8;color:#a33a2f;', brutal: 'background:#FF4D3D;color:#000;', ink: '#a33a2f' }
+  };
+
   // ── 가게 수호지킴이(2026-11-14 가르시아): 단골 가게를 지키는 강아지 ──
   // 동반 스팟에 guardian: { name, signal, photo, line } 으로 붙는다. photo는 spots/photos/의 파일 경로.
   // 가게 주인이 알려 주고 올려도 된다고 한 것만 운영자가 넣는다.
@@ -237,7 +306,17 @@
   //  - 사진 없는 동반 스팟: 큰 종류 아이콘.
   //  - 나머지 시설: 작고 옅게 — 배경 정보로 둔다.
   // 돌려주는 값: { icon: L.divIcon 옵션, zIndexOffset }
-  function markerFor(pin) {
+  // opts.badge: 동반 스팟 마커 오른쪽 위에 붙일 짧은 글자(예: 방문 도장으로 센 단골 "Lv2", 2026-11-15)
+  function badgeHtml(text) {
+    if (!text) return '';
+    return '<div style="position:absolute;right:-8px;top:-8px;z-index:1;white-space:nowrap;padding:0 6px;height:20px;' +
+      'font:900 11px/20px Pretendard,-apple-system,sans-serif;' +
+      (isBrutal() ? 'background:#000;color:#F2B833;border:2px solid #000;line-height:16px;'
+                  : 'background:#4a3f35;color:#fff;border-radius:999px;border:2px solid #fff;line-height:16px;box-shadow:0 2px 6px rgba(74,63,53,0.35);') +
+      '">' + escapeText(text) + '</div>';
+  }
+  function markerFor(pin, opts) {
+    var badge = badgeHtml(opts && opts.badge);
     var photo = mainPhoto(pin);
     if (pin.cat === 'spot' && photo) {
       var sig = hasGuardian(pin) ? SIGNALS[pin.guardian.signal] : null;
@@ -255,18 +334,19 @@
             (B ? 'background:#000;color:#F2B833;padding:1px 8px;font:900 12px Pretendard,-apple-system,sans-serif;'
                : 'background:#fffaf3;color:#4a3f35;border:1px solid #e6d6c1;border-radius:999px;padding:1px 8px;' +
                  'font:800 12px Pretendard,-apple-system,sans-serif;box-shadow:0 2px 6px rgba(74,63,53,0.2);') + '">' +
-            escapeText(label) + '</div>' +
+            escapeText(label) + '</div>' + badge +
         '</div>';
       return { icon: { className: '', html: html, iconSize: [58, 58], iconAnchor: [29, 29], popupAnchor: [0, -28] }, zIndexOffset: 1000 };
     }
     if (pin.cat === 'spot') {
-      return { icon: { className: '', html: markerHtml('spot', 40), iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -18] }, zIndexOffset: 800 };
+      return { icon: { className: '', html: '<div style="position:relative;width:40px;height:40px;">' + markerHtml('spot', 40) + badge + '</div>', iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -18] }, zIndexOffset: 800 };
     }
     return { icon: { className: '', html: '<div style="opacity:0.82">' + markerHtml(pin.cat, 24) + '</div>', iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -10] }, zIndexOffset: 0 };
   }
 
   // 팝업(2026-11-14): 사진이 있으면 사진을 가운데에 크게 세운다. 지도 화면들이 같이 쓴다.
   // 쓰는 법: L.marker(...).bindPopup(InfraPins.popupEl(pin), InfraPins.POPUP_OPTS)
+  // opts.extraEl: 링크 줄 바로 위에 끼울 화면별 칸([동네]의 걸어서 N분·방문 도장, 2026-11-15)
   // 위쪽(제목·칩·편집 버튼)과 아래쪽(동네 스타 줄·탭)에 가리지 않게 여유를 두고 지도를 옮겨 연다
   var POPUP_OPTS = { minWidth: 230, maxWidth: 260, autoPanPaddingTopLeft: [16, 162], autoPanPaddingBottomRight: [16, 190] };
   function el(tag, css, text) {
@@ -275,7 +355,7 @@
     if (text != null) e.textContent = text;
     return e;
   }
-  function popupEl(pin) {
+  function popupEl(pin, opts) {
     var cat = category(pin.cat) || { label: '', color: '#6b5d4e' };
     var wrap = el('div', 'display:flex;flex-direction:column;gap:5px;font:13px/1.45 Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:#4a3f35;');
     var photo = mainPhoto(pin);
@@ -311,14 +391,29 @@
       wrap.appendChild(el('div', 'font-size:11px;font-weight:700;color:' + cat.color + ';', cat.label));
       wrap.appendChild(el('div', 'font-size:' + (photo ? 18 : 14) + 'px;font-weight:800;', pin.name || cat.label));
     }
-    if (pin.tags && pin.tags.length) {
+    // 동반 스팟: 동반 조건 칩(된다·조건 있음·안 된다 색으로) + 나머지 태그. 다른 시설: 태그 그대로.
+    var isShop = pin.cat === 'spot';
+    var badges = isShop ? petBadges(pin) : [];
+    var plainTags = isShop ? extraTags(pin) : (pin.tags || []);
+    if (badges.length || plainTags.length) {
       var tags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
-      pin.tags.forEach(function (t) {
+      badges.forEach(function (b) {
+        tags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' +
+          (B ? 'border:2px solid #000;' + TONES[b.tone].brutal : 'border-radius:999px;' + TONES[b.tone].soft), b.text));
+      });
+      plainTags.forEach(function (t) {
         tags.appendChild(el('span', B
-          ? 'font-size:11px;font-weight:800;padding:1px 7px;border:2px solid #000;background:#C8F06A;'
+          ? 'font-size:11px;font-weight:800;padding:1px 7px;border:2px solid #000;background:#fff;'
           : 'font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#efe0cd;', t));
       });
       wrap.appendChild(tags);
+    }
+    if (isShop) {
+      var fit = fitNote(pin);
+      if (fit) wrap.appendChild(el('div', 'font-size:12px;font-weight:800;color:' + (B ? '#000' : TONES[fit.tone].ink) + ';', fit.text));
+      if (!badges.length) wrap.appendChild(el('div', 'font-size:12px;color:#6b5d4e;', '동반 조건은 아직 확인 전이에요 — 가기 전에 가게에 물어보세요'));
+      var age = daysSinceVerified(pin);
+      if (age != null && age > 90) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:#8a5a00;', '확인한 지 ' + Math.floor(age / 30) + '달이 지났어요 — 조건이 바뀌었을 수 있어요'));
     }
     if (pin.note) wrap.appendChild(el('div', '', pin.note));
     // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
@@ -329,6 +424,7 @@
       wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', GUARDIAN_DISCLAIMER));
     }
 
+    if (opts && opts.extraEl) wrap.appendChild(opts.extraEl);
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
     var linkCss = B
       ? 'font-size:12px;font-weight:900;color:#000;text-decoration:none;border:2px solid #000;padding:3px 8px;background:#fff;'
@@ -370,6 +466,8 @@
     GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
     SYSTEM_LAYERS: SYSTEM_LAYERS, ZOOMS: ZOOMS, DEFAULT_GROUPS: DEFAULT_GROUPS, ETC_GROUP_ID: ETC_GROUP_ID,
     layerInfo: layerInfo, normalizeGroups: normalizeGroups, layout: layout, filterState: filterState,
+    PET_LABELS: PET_LABELS, petTag: petTag, petInfo: petInfo, extraTags: extraTags, petBadges: petBadges,
+    fitNote: fitNote, dogSize: dogSize, daysSinceVerified: daysSinceVerified, TONES: TONES,
     DRAFT_PREVIEW: DRAFT_PREVIEW
   };
 })();

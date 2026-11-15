@@ -48,11 +48,12 @@
   .fine a { color: var(--ink-soft); }
   [hidden] { display: none !important; }
 </style>
-<script src="theme.js?v=6"></script>
+<script src="theme.js?v=7"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=4"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=15"></script>
+<script src="infra-pins.js?v=17"></script>
+<script src="shop-visits.js?v=2"></script>
 </head>
 <body>
 
@@ -106,7 +107,10 @@
   $('stamp-date').textContent = (now.getMonth() + 1) + '.' + now.getDate();
   $('title').textContent = already ? '오늘 도장은 이미 찍었어요' : '방문 도장을 찍었어요';
   $('sub').textContent = '강아지와 함께 들러 주셔서 고마워요.';
-  $('count').textContent = times > 1 ? '이 가게 방문 ' + times + '번째' : '이 가게 첫 방문';
+  // 단골 Lv(2026-11-15) — [동네] 지도의 가게 팝업·목록과 같은 셈(shop-visits.js): 처음 1번 Lv1, 5번마다 Lv↑
+  var lv = window.ShopVisits ? ShopVisits.level(times) : 0;
+  var lvUp = !already && times > 1 && lv > ShopVisits.level(times - 1);
+  $('count').textContent = (times > 1 ? '이 가게 방문 ' + times + '번째' : '이 가게 첫 방문') + (lv ? ' · 단골 Lv' + lv + (lvUp || times === 1 ? ' 달성' : '') : '');
 
   var profile = {};
   try { profile = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; } catch (e) { profile = {}; }

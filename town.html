@@ -13,7 +13,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=5"></script>
-<script src="infra-pins.js?v=16"></script>
+<script src="infra-pins.js?v=17"></script>
+<script src="shop-visits.js?v=2"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="demo-geo.js?v=4"></script>
 <style>
@@ -128,14 +129,74 @@
     box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.25);
   }
   .tool-link[hidden] { display: none; }
+  /* 아래쪽 버튼 줄(2026-11-15): 동반 가게 목록 · 수호견 모아 보기 */
+  .bottom-links {
+    position: fixed; left: 12px; right: 12px; bottom: calc(var(--tabbar-h, 58px) + 14px); z-index: 1000;
+    display: flex; justify-content: center; gap: 8px; pointer-events: none;
+  }
+  .bottom-links > * { pointer-events: auto; }
+  .bottom-links[hidden] { display: none; }
+  .shop-link {
+    display: flex; align-items: center; gap: 7px; font-family: inherit; cursor: pointer;
+    font-size: 13px; font-weight: 800; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
+    padding: 7px 16px 7px 8px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.22);
+  }
+  .shop-link .ic { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .shop-link:active { transform: scale(0.97); }
+  .shop-link[hidden] { display: none; }
   /* 수호지킴이 모아 보기(2026-11-15) — 목록 화면(guardians.html)으로 */
   .guard-link {
-    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h, 58px) + 14px); z-index: 1000;
     font-size: 13px; font-weight: 800; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
     padding: 9px 16px; border-radius: 999px; text-decoration: none; white-space: nowrap;
     box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.22);
   }
   .guard-link[hidden] { display: none; }
+
+  /* 동반 가게 목록(2026-11-15, 기획표 V3-01 중 목록·지도 + B-22·B-49·B-34) — 아래에서 올라오는 판 */
+  .shop-sheet {
+    position: fixed; left: 0; right: 0; bottom: var(--tabbar-h, 58px); z-index: 1001;
+    max-height: 62vh; display: flex; flex-direction: column; word-break: keep-all;
+    background: var(--panel); border-top: 1px solid var(--panel-border); border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 24px rgba(var(--shadow-rgb), 0.22);
+  }
+  .shop-sheet[hidden] { display: none; }
+  .sheet-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 4px; }
+  .sheet-head b { font-size: 16px; font-weight: 800; }
+  .sheet-head .sub { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-soft); }
+  .sheet-close { width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font: 700 18px/1 Pretendard, -apple-system, sans-serif; cursor: pointer; }
+  .sheet-tools { display: flex; gap: 6px; overflow-x: auto; padding: 6px 14px 10px; scrollbar-width: none; flex-shrink: 0; }
+  .sheet-tools::-webkit-scrollbar { display: none; }
+  .sheet-tools .chip { padding: 0 12px; box-shadow: none; }
+  .sheet-tools .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .near-btn { flex-shrink: 0; font-family: inherit; font-size: 12px; font-weight: 800; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer; }
+  .shop-list { list-style: none; margin: 0; padding: 0 14px 4px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .shop-item { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 10px; border-radius: 14px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font-family: inherit; cursor: pointer; }
+  .shop-item:active { transform: scale(0.99); }
+  .shop-item .shop-thumb { position: relative; flex-shrink: 0; width: 46px; height: 46px; }
+  .shop-item .shop-thumb img, .shop-item .shop-thumb .ic { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; }
+  .shop-item .lv { position: absolute; right: -6px; top: -6px; padding: 0 5px; height: 18px; border-radius: 999px; background: var(--ink); color: #fff; border: 2px solid #fff; font: 900 10px/14px Pretendard, -apple-system, sans-serif; }
+  .shop-item .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .shop-item .row1 { display: flex; align-items: baseline; gap: 6px; }
+  .shop-item .name { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shop-item .walk { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--accent); }
+  .shop-item .meta { font-size: 11px; color: var(--ink-soft); }
+  .shop-item .badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .shop-item .badges span { font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
+  .shop-item .fit { font-size: 11px; font-weight: 800; }
+  .sheet-empty { padding: 14px; text-align: center; font-size: 13px; color: var(--ink-soft); }
+  .sheet-note { margin: 0; padding: 8px 14px 12px; font-size: 11px; color: var(--ink-soft); line-height: 1.5; flex-shrink: 0; }
+
+  /* 가게 팝업 아래 칸: 걸어서 N분 · 방문 도장(단골 Lv) */
+  .shop-extra { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; padding-top: 8px; border-top: 1px dashed var(--panel-border); word-break: keep-all; }
+  .shop-extra .walk-line { font-size: 13px; font-weight: 800; color: var(--ink); }
+  .shop-extra .walk-line small { font-size: 11px; font-weight: 500; color: var(--ink-soft); }
+  .walk-btn { align-self: flex-start; font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--panel-border); background: #fff; color: var(--accent); cursor: pointer; }
+  .reg { background: #fdf3ec; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .reg-top { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--ink); }
+  .reg-lv { font-size: 11px; font-weight: 900; padding: 0 7px; border-radius: 999px; background: var(--ink); color: #fff; }
+  .reg-text { font-size: 12px; color: var(--ink-soft); }
+  .reg-hint { font-size: 11px; color: var(--ink-soft); line-height: 1.45; }
   .leaflet-bottom.leaflet-right { margin-bottom: 0; }
 
   .popup { display: flex; flex-direction: column; gap: 4px; min-width: 150px; font-size: 13px; }
@@ -170,7 +231,7 @@
   @media (prefers-reduced-motion: reduce) { .deco-dog { animation: none; } }
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
-<script src="theme.js?v=6"></script>
+<script src="theme.js?v=7"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=4"></script>
 <script src="geo.js?v=4"></script>
@@ -198,7 +259,16 @@
   </button>
 </div>
 <div class="stars" id="stars" hidden aria-label="동네 스타"></div>
-<a class="guard-link" id="guard-link" href="guardians.html" hidden></a>
+<div class="bottom-links" id="bottom-links">
+  <button type="button" class="shop-link" id="shop-link" hidden></button>
+  <a class="guard-link" id="guard-link" href="guardians.html" hidden></a>
+</div>
+<div class="shop-sheet" id="shop-sheet" role="dialog" aria-labelledby="shop-title" hidden>
+  <div class="sheet-head"><b id="shop-title">동반 가게</b><span class="sub" id="shop-sub"></span><button type="button" class="sheet-close" id="shop-close" aria-label="닫기">×</button></div>
+  <div class="sheet-tools" id="shop-tools" role="group" aria-label="조건으로 거르기"></div>
+  <ul class="shop-list" id="shop-list"></ul>
+  <p class="sheet-note">조건은 운영자가 직접 가서 확인한 날 기준이에요. 매장마다 바뀔 수 있으니 들어가기 전에 한 번 더 물어보세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.</p>
+</div>
 
 <script src="tabbar.js?v=4" data-tab="town"></script>
 <script>
@@ -235,14 +305,86 @@
     marker.addTo(layers[key]);
   }
 
+  // ── 동반 가게: 걸어서 N분 · 방문 도장의 단골 Lv(2026-11-15, 기획표 B-49 · B-34) ──
+  // 내 위치는 버튼을 눌렀을 때만 읽고(이유를 먼저 설명), 이 화면 메모리에만 둔다. 저장하거나 보내지 않는다.
+  // 단골 Lv는 가게 카운터 QR로 찍은 방문 도장(visit.html이 남긴 petwalk_visits)으로 센다(shop-visits.js). 이 화면은 읽기만 한다.
+  var brutal = !!(window.WalsonTheme && WalsonTheme.isBrutal);
+  var myPos = null;     // { lat, lng, accuracy } — 이 화면을 닫으면 사라진다
+  var shops = InfraPins.category('spot') ? InfraPins.all().filter(function (p) { return p.cat === 'spot'; }) : [];
+  var shopUi = {};      // 가게 id → { pin, walkEl, regEl }
+  var sheet = document.getElementById('shop-sheet');
+  function lvBadge(id) { var v = ShopVisits.info(id); return v.level ? 'Lv' + v.level : ''; }
+  function shopDist(pin) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], [pin.lat, pin.lng]) : null; }
+  function mk(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function shopExtraEl(pin) {
+    var box = mk('div', 'shop-extra');
+    var walkEl = mk('div'), regEl = mk('div', 'reg');
+    box.appendChild(walkEl);
+    box.appendChild(regEl);
+    shopUi[pin.id] = { pin: pin, walkEl: walkEl, regEl: regEl };
+    paintShopExtra(pin.id);
+    return box;
+  }
+  function paintShopExtra(id) {
+    var ui = shopUi[id];
+    if (!ui) return;
+    var pin = ui.pin, d = shopDist(pin);
+    ui.walkEl.innerHTML = '';
+    if (d != null) {
+      ui.walkEl.className = 'walk-line';
+      ui.walkEl.appendChild(document.createTextNode('여기서 ' + ShopVisits.walkText(d) + ' '));
+      ui.walkEl.appendChild(mk('small', '', '직선 ' + ShopVisits.distText(d) +
+        (myPos.accuracy > 300 ? ' · 내 위치 오차 약 ' + ShopVisits.distText(myPos.accuracy) : '')));
+    } else {
+      ui.walkEl.className = '';
+      var wb = mk('button', 'walk-btn', '내 위치에서 걸어서 몇 분?');
+      wb.type = 'button';
+      wb.addEventListener('click', function () { locate().then(refreshShops, function () {}); });
+      ui.walkEl.appendChild(wb);
+    }
+    var v = ShopVisits.info(id);
+    ui.regEl.innerHTML = '';
+    if (!v.count) {
+      // 아직 없으면 상자 없이 한 줄만 — QR을 둔 가게인지 이 화면은 모르니 약속하지 않는다
+      ui.regEl.className = 'reg-hint';
+      ui.regEl.textContent = '카운터에 왈슨 QR이 있는 가게라면 찍어서 방문 도장을 받아요. 처음 1번 단골 Lv1, ' + ShopVisits.LEVEL_STEP + '번마다 Lv가 올라요.';
+      return;
+    }
+    ui.regEl.className = 'reg';
+    var top = mk('div', 'reg-top', '방문 도장');
+    top.appendChild(mk('span', 'reg-lv', '단골 Lv' + v.level));
+    ui.regEl.appendChild(top);
+    ui.regEl.appendChild(mk('div', 'reg-text', v.count + '번 다녀갔어요 · Lv' + (v.level + 1) + '까지 ' + v.toNext + '번' + (v.today ? ' · 오늘 찍었어요' : '')));
+    ui.regEl.appendChild(mk('div', 'reg-hint', '가게 카운터의 왈슨 QR을 찍으면 하루 한 번 쌓여요.'));
+  }
+  // 위치를 읽은 뒤: 팝업 칸(걸어서 N분)·마커 Lv 배지·목록을 다시 그린다
+  function refreshShops() {
+    Object.keys(shopUi).forEach(function (id) {
+      paintShopExtra(id);
+      var marker = spotMarkers[id];
+      if (!marker) return;
+      marker.setIcon(L.divIcon(InfraPins.markerFor(shopUi[id].pin, { badge: lvBadge(id) }).icon));
+      if (marker.isPopupOpen()) marker.getPopup().update();
+    });
+    if (!sheet.hidden) renderShopList();
+  }
+
   // 마커와 팝업 모양은 infra-pins.js가 정한다: 동반 스팟(특히 사진 있는 가게 강아지)이 크고 앞에,
-  // 나머지 시설은 작고 옅게. 팝업은 사진을 가운데 크게.
-  var spotMarkers = {}; // 스팟 id → 마커(아래 '동네 스타' 줄에서 누르면 그 자리로 가서 연다)
+  // 나머지 시설은 작고 옅게. 팝업은 사진을 가운데 크게. 동반 스팟 팝업엔 걸어서 N분·방문 도장(단골 Lv) 칸을 붙인다.
+  // 아래쪽엔 이제 버튼 줄만 있어서(동네 스타 줄은 내림) 팝업 아래 여백을 줄여 키 큰 가게 팝업도 들어가게 한다.
+  var POPUP_OPTS = L.extend({}, InfraPins.POPUP_OPTS, { autoPanPaddingBottomRight: [16, 84] });
+  var spotMarkers = {}; // 스팟 id → 마커(목록·주소의 ?spot=에서 그 자리로 가서 연다)
   InfraPins.all().forEach(function (pin) {
     if (!InfraPins.category(pin.cat)) return;
-    var m = InfraPins.markerFor(pin);
+    var isShop = pin.cat === 'spot';
+    var m = InfraPins.markerFor(pin, isShop ? { badge: lvBadge(pin.id) } : null);
     var marker = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: zOf(pin.cat, m.zIndexOffset / 20) })
-      .bindPopup(InfraPins.popupEl(pin), InfraPins.POPUP_OPTS);
+      .bindPopup(InfraPins.popupEl(pin, isShop ? { extraEl: shopExtraEl(pin) } : null), POPUP_OPTS);
     spotMarkers[pin.id] = marker;
     addTo(pin.cat, marker);
   });
@@ -464,6 +606,108 @@
   map.on('zoomend', sync);
   sync();
 
+  // ── 동반 가게 목록 ──
+  var SHOP_FILTERS = [
+    { key: 'indoor', label: '실내 OK', test: function (i) { return i.indoor === 'ok'; } },
+    { key: 'large', label: '대형견 OK', test: function (i) { return i.large === 'all'; } },
+    { key: 'water', label: '물그릇', test: function (i) { return !!i.water; } },
+    { key: 'terrace', label: '테라스·야외석', test: function (i) { return !!i.terrace; } }
+  ];
+  var shopFilterOn = {};   // 이 화면에서만(저장하지 않음)
+  var shopLink = document.getElementById('shop-link');
+  var bottomLinks = document.getElementById('bottom-links');
+  if (shops.length) {
+    shopLink.innerHTML = '<span class="ic">' + InfraPins.iconSvg('spot', 14) + '</span>';
+    shopLink.appendChild(document.createTextNode('동반 가게 ' + shops.length + '곳'));
+    shopLink.hidden = false;
+  }
+  shopLink.addEventListener('click', function () { sheet.hidden = false; bottomLinks.hidden = true; renderShopList(); });
+  function closeSheet() { sheet.hidden = true; bottomLinks.hidden = false; }
+  document.getElementById('shop-close').addEventListener('click', closeSheet);
+  map.on('click', function () { if (!sheet.hidden) closeSheet(); });
+  function shortDate(k) { return Number(k.slice(5, 7)) + '월 ' + Number(k.slice(8, 10)) + '일'; }
+  function toneCss(tone) { return InfraPins.TONES[tone][brutal ? 'brutal' : 'soft']; }
+
+  function renderShopList() {
+    var tools = document.getElementById('shop-tools');
+    tools.innerHTML = '';
+    if (!myPos) {
+      var near = mk('button', 'near-btn', '내 위치에서 가까운 순');
+      near.type = 'button';
+      near.addEventListener('click', function () { locate().then(refreshShops, function () {}); });
+      tools.appendChild(near);
+    }
+    SHOP_FILTERS.forEach(function (f) {
+      var c = mk('button', 'chip', f.label);
+      c.type = 'button';
+      c.setAttribute('aria-pressed', shopFilterOn[f.key] ? 'true' : 'false');
+      c.addEventListener('click', function () {
+        if (shopFilterOn[f.key]) delete shopFilterOn[f.key]; else shopFilterOn[f.key] = true;
+        renderShopList();
+      });
+      tools.appendChild(c);
+    });
+
+    var active = SHOP_FILTERS.filter(function (f) { return shopFilterOn[f.key]; });
+    var rows = shops.map(function (pin) {
+      return { pin: pin, info: InfraPins.petInfo(pin), d: shopDist(pin), v: ShopVisits.info(pin.id) };
+    }).filter(function (r) { return active.every(function (f) { return f.test(r.info); }); });
+    // 위치를 알면 가까운 순, 모르면 단골(많이 간 곳) 먼저, 그다음 이름 순
+    rows.sort(myPos
+      ? function (a, b) { return a.d - b.d; }
+      : function (a, b) { return (b.v.count - a.v.count) || String(a.pin.name || '').localeCompare(String(b.pin.name || ''), 'ko'); });
+    document.getElementById('shop-sub').textContent =
+      (active.length ? shops.length + '곳 중 ' + rows.length + '곳' : shops.length + '곳') + ' · ' + (myPos ? '가까운 순' : '단골·이름 순');
+
+    var list = document.getElementById('shop-list');
+    list.innerHTML = '';
+    if (!rows.length) { list.appendChild(mk('li', 'sheet-empty', '이 조건에 맞는 가게는 아직 없어요')); return; }
+    rows.forEach(function (r) {
+      var pin = r.pin;
+      var li = mk('li');
+      var item = mk('button', 'shop-item');
+      item.type = 'button';
+      var thumb = mk('span', 'shop-thumb');
+      var photo = InfraPins.mainPhoto(pin);
+      if (photo) { var img = mk('img'); img.src = photo; img.alt = ''; thumb.appendChild(img); }
+      else { var ic = mk('span', 'ic'); ic.innerHTML = InfraPins.iconSvg('spot', 22); thumb.appendChild(ic); }
+      if (r.v.level) thumb.appendChild(mk('span', 'lv', 'Lv' + r.v.level));
+      var body = mk('span', 'body');
+      var row1 = mk('span', 'row1');
+      row1.appendChild(mk('span', 'name', pin.name || '동반 스팟'));
+      if (r.d != null) row1.appendChild(mk('span', 'walk', ShopVisits.walkText(r.d)));
+      body.appendChild(row1);
+      var meta = [];
+      if (pin.area) meta.push(pin.area);
+      if (r.v.count) meta.push('방문 도장 ' + r.v.count + '번');
+      meta.push(pin.verifiedAt ? shortDate(pin.verifiedAt) + ' 확인' : '현장 확인 전');
+      body.appendChild(mk('span', 'meta', meta.join(' · ')));
+      var badges = InfraPins.petBadges(pin);
+      if (badges.length) {
+        var bs = mk('span', 'badges');
+        badges.forEach(function (b) { var x = mk('span', '', b.text); x.style.cssText = toneCss(b.tone); bs.appendChild(x); });
+        body.appendChild(bs);
+      } else {
+        body.appendChild(mk('span', 'meta', '동반 조건 확인 전'));
+      }
+      var fit = InfraPins.fitNote(pin);
+      if (fit) { var fe = mk('span', 'fit', fit.text); fe.style.color = brutal ? '#000' : InfraPins.TONES[fit.tone].ink; body.appendChild(fe); }
+      item.appendChild(thumb);
+      item.appendChild(body);
+      item.addEventListener('click', function () { closeSheet(); goToShop(pin.id); });
+      li.appendChild(item);
+      list.appendChild(li);
+    });
+  }
+  function goToShop(id) {
+    var marker = spotMarkers[id];
+    if (!marker) return;
+    filter.set('spot', true);   // 동반 스팟을 꺼 두었더라도 다시 켠다
+    map.setView(marker.getLatLng(), Math.max(map.getZoom(), 16), { animate: false });
+    sync();
+    marker.openPopup();
+  }
+
   // 수호지킴이 목록에서 "지도에서 보기"로 오면(town.html?spot=id) 그 스팟으로 가서 팝업을 연다
   var openId = (location.search.match(/[?&]spot=([^&]+)/) || [])[1];
   if (openId) openId = decodeURIComponent(openId);
@@ -476,35 +720,44 @@
   }
 
   // ── 내 위치: 버튼을 눌렀을 때만, 이유를 먼저 설명하고 읽는다. 지도에 점만 찍고 저장하지 않는다. ──
-  var myDot = null, myAcc = null, locating = false;
+  // 위치 버튼과 "가게까지 걸어서 몇 분"이 같이 쓴다. 읽은 위치는 이 화면 메모리(myPos)에만 둔다.
+  // 정밀 위치가 늦으면 대략적인 위치로 다시 찾는다(geo.js). 찾는 동안 위치 버튼을 돌리고, 겹쳐 찾지 않게 한다.
+  var myDot = null, myAcc = null, locating = null;
   var locateBtn = document.getElementById('locate-btn');
-  locateBtn.addEventListener('click', function () {
-    if (!navigator.geolocation) { alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.'); return; }
+  function locate() {
+    if (locating) return locating;   // 찾는 중이면 그 결과를 같이 기다린다
     var explained = false;
     try { explained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 다시 설명 */ }
     if (!explained) {
-      if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 위치는 이 화면에 점으로만 보여 주고 저장하거나 보내지 않아요. 허용할까요?')) return;
+      if (!confirm('내 위치를 지도에 점으로 보여 주고 가게까지 걸어서 몇 분인지 계산하려면 위치 정보 접근 권한이 필요합니다. 위치는 이 화면에서만 쓰고 저장하거나 보내지 않아요. 허용할까요?')) return Promise.reject();
       try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 다음에 다시 설명 */ }
     }
-    // 정밀 위치가 늦으면 대략적인 위치로 다시 찾는다(geo.js). 찾는 동안 버튼을 돌리고 두 번 누르지 않게.
-    if (locating) return;
-    locating = true;
     locateBtn.classList.add('is-busy');
     locateBtn.setAttribute('aria-busy', 'true');
-    WalsonGeo.locate(function (pos) {
-      locating = false; locateBtn.classList.remove('is-busy'); locateBtn.removeAttribute('aria-busy');
-      var coord = [pos.coords.latitude, pos.coords.longitude];
-      if (myDot) myDot.setLatLng(coord);
-      else myDot = L.marker(coord, { icon: L.divIcon({ className: '', html: '<div class="my-dot"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false }).addTo(map);
-      // 대략적인 위치(오차 100m 넘음)면 오차 범위를 옅은 원으로 같이 보여 준다
-      var acc = pos.coords.accuracy || 0;
-      if (myAcc) { map.removeLayer(myAcc); myAcc = null; }
-      if (acc > 100) myAcc = L.circle(coord, { radius: Math.min(acc, 3000), color: '#3b7dc4', weight: 1, fillOpacity: 0.08, interactive: false }).addTo(map);
-      map.setView(coord, acc > 500 ? 15 : 17, { animate: true });
-    }, function (info) {
-      locating = false; locateBtn.classList.remove('is-busy'); locateBtn.removeAttribute('aria-busy');
-      alert(info.message);
+    locating = new Promise(function (resolve, reject) {
+      WalsonGeo.locate(function (pos) {
+        myPos = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy || 0 };
+        var coord = [myPos.lat, myPos.lng];
+        if (myDot) myDot.setLatLng(coord);
+        else myDot = L.marker(coord, { icon: L.divIcon({ className: '', html: '<div class="my-dot"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false, zIndexOffset: 5000 }).addTo(map);
+        // 대략적인 위치(오차 100m 넘음)면 오차 범위를 옅은 원으로 같이 보여 준다
+        if (myAcc) { map.removeLayer(myAcc); myAcc = null; }
+        if (myPos.accuracy > 100) myAcc = L.circle(coord, { radius: Math.min(myPos.accuracy, 3000), color: '#3b7dc4', weight: 1, fillOpacity: 0.08, interactive: false }).addTo(map);
+        resolve(myPos);
+      }, function (info) {
+        alert(info.message);
+        reject();
+      });
     });
+    var done = function () { locating = null; locateBtn.classList.remove('is-busy'); locateBtn.removeAttribute('aria-busy'); };
+    locating.then(done, done);
+    return locating;
+  }
+  locateBtn.addEventListener('click', function () {
+    locate().then(function (p) {
+      map.setView([p.lat, p.lng], p.accuracy > 500 ? 15 : 17, { animate: true });
+      refreshShops();
+    }, function () {});
   });
 })();
 </script>

@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=16"></script>
+<script src="infra-pins.js?v=17"></script>
 <script src="reward-rules.js?v=5"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
@@ -65,6 +65,12 @@
   .field { margin-bottom: 8px; }
   .field label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 3px; font-weight: 700; }
   .field input, .field select { width: 100%; font-family: inherit; font-size: 14px; padding: 8px 9px; border: 1px solid var(--panel-border); border-radius: 8px; color: var(--ink); background: #fff; }
+
+  /* 동반 조건(2026-11-15) */
+  .pet-row { display: flex; gap: 8px; }
+  .pet-row .field { flex: 1; min-width: 0; }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--ink); margin: 0 0 6px; }
+  .check input { width: auto; margin: 0; }
 
   .photo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .photo-row .thumb { width: 72px; height: 72px; border-radius: 12px; background: #f3ddd2; overflow: hidden; flex-shrink: 0; }
@@ -201,11 +207,23 @@
         </div>
       </div>
       <div class="field"><label for="f-name">이름 (예: 다산 수제간식 공방)</label><input id="f-name" maxlength="40"></div>
-      <div class="field"><label for="f-tags">조건 태그 (쉼표로 구분, 예: 실내OK, 대형견OK)</label><input id="f-tags" maxlength="80"></div>
+      <div class="field"><label for="f-tags">태그 (쉼표로 구분, 예: 그늘 있음, 주차 가능)</label><input id="f-tags" maxlength="80"></div>
       <div class="field"><label for="f-note">메모 (예: 봉투가 자주 비어 있음)</label><input id="f-note" maxlength="80"></div>
       <div class="field"><label for="f-phone">전화번호 (가게·병원만, 선택)</label><input id="f-phone" inputmode="tel" maxlength="20"></div>
 
       <div class="spot-extra" id="spot-extra" hidden>
+        <h3>동반 조건</h3>
+        <p class="hint">직접 가서 확인한 것만 고르세요. "확인 전"으로 두면 지도에 안 나와요. 저장하면 확인 날짜가 오늘로 바뀌어요. 동반 조건과 단골 도장은 "동반 스팟" 종류에만 붙어요.</p>
+        <div class="pet-row">
+          <div class="field"><label for="f-indoor">실내 동반</label><select id="f-indoor">
+            <option value="">확인 전</option><option value="ok">실내 OK</option><option value="carrier">개모차·이동장·안고만</option><option value="no">실내 안 됨(야외만)</option>
+          </select></div>
+          <div class="field"><label for="f-large">강아지 크기</label><select id="f-large">
+            <option value="">확인 전</option><option value="all">대형견도 OK</option><option value="small">소형견만</option>
+          </select></div>
+        </div>
+        <label class="check"><input type="checkbox" id="f-terrace"> 테라스·야외석 있음</label>
+        <label class="check"><input type="checkbox" id="f-water"> 물그릇 있음</label>
         <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: 다산1동, 아울렛 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
         <h3>가게 사진 (선택)</h3>
         <p class="hint">수호지킴이 사진이 없을 때 지도에 이 사진이 크게 나옵니다. 고르면 보여 줄 부분을 고를 수 있어요.</p>
@@ -457,6 +475,7 @@
   var fCat = $('f-cat'), fName = $('f-name'), fTags = $('f-tags'), fNote = $('f-note'), fPhone = $('f-phone');
   var gName = $('g-name'), gSignal = $('g-signal'), gLine = $('g-line');
   var fArea = $('f-area');
+  var fIndoor = $('f-indoor'), fLarge = $('f-large'), fTerrace = $('f-terrace'), fWater = $('f-water');
   // 이미 쓴 동네 이름을 골라 쓸 수 있게(같은 동네가 다른 글자로 갈라지지 않게)
   function fillAreaList() {
     var seen = {};
@@ -868,6 +887,7 @@
     $('newcat').hidden = true;
     if (fCat.value === NEW_CAT) fCat.value = lastCat;
     fName.value = ''; fTags.value = ''; fNote.value = ''; fPhone.value = ''; fArea.value = '';
+    fIndoor.value = ''; fLarge.value = ''; fTerrace.checked = false; fWater.checked = false;
     gName.value = ''; gSignal.value = ''; gLine.value = '';
     setRadio('g-kind', 'home'); setRadio('g-style', 'cartoon'); gCoat = 0; $('g-pose').value = 'sit';
     ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = false; });
@@ -885,7 +905,10 @@
     $('newcat').hidden = true;
     fCat.value = pin.cat; lastCat = pin.cat;
     fName.value = pin.name || '';
-    fTags.value = (pin.tags || []).join(', ');
+    // 동반 스팟: 예전에 태그로 적은 조건(실내OK·대형견OK)은 칸으로 옮겨 보여 주고, 태그 칸엔 나머지만
+    var pi = InfraPins.petInfo(pin);
+    fIndoor.value = pi.indoor || ''; fLarge.value = pi.large || ''; fTerrace.checked = !!pi.terrace; fWater.checked = !!pi.water;
+    fTags.value = (pin.cat === 'spot' ? InfraPins.extraTags(pin) : (pin.tags || [])).join(', ');
     fNote.value = pin.note || '';
     fPhone.value = pin.phone || '';
     fArea.value = pin.area || '';
@@ -929,6 +952,17 @@
       pin.source = 'osm'; delete pin.verifiedAt;
     }
     var tags = fTags.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    if (pin.cat === 'spot') {
+      // 동반 조건: 칸이 먼저. 칸은 비었는데 태그로 적었으면(예: 실내OK) 칸으로 옮기고 태그에서는 뺀다
+      var fromTags = InfraPins.petInfo({ tags: tags });
+      var pet = {};
+      if (fIndoor.value || fromTags.indoor) pet.indoor = fIndoor.value || fromTags.indoor;
+      if (fLarge.value || fromTags.large) pet.large = fLarge.value || fromTags.large;
+      if (fTerrace.checked || fromTags.terrace) pet.terrace = true;
+      if (fWater.checked || fromTags.water) pet.water = true;
+      if (Object.keys(pet).length) pin.pet = pet;
+      tags = tags.filter(function (t) { return !InfraPins.petTag(t); });
+    }
     if (tags.length) pin.tags = tags;
     if (fNote.value.trim()) pin.note = fNote.value.trim();
     if (fPhone.value.trim()) pin.phone = fPhone.value.trim();
@@ -987,7 +1021,8 @@
         name.textContent = pin.name || cat.label;
         var meta = document.createElement('div');
         meta.className = 'meta';
-        meta.textContent = cat.label + (pin.area ? ' · ' + pin.area : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
+        var petText = pin.cat === 'spot' ? InfraPins.petBadges(pin).map(function (b) { return b.text; }).join('·') : '';
+        meta.textContent = cat.label + (pin.area ? ' · ' + pin.area : '') + (petText ? ' · ' + petText : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
         info.appendChild(name); info.appendChild(meta);
         info.addEventListener('click', function () { map.setView([pin.lat, pin.lng], 17); });
         var edit = document.createElement('button');
