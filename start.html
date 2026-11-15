@@ -129,6 +129,7 @@
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=1"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
@@ -226,7 +227,7 @@
 
   // ── 운영자가 정하면 채우는 값(비어 있으면 화면에 안 보인다) ──
   // 카카오톡 채널 주소: 채널을 연 뒤 넣는다(기획표 V0-12).
-  var KAKAO_CHANNEL_URL = '';
+  var KAKAO_CHANNEL_URL = (window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel) || '';   // site-config.js
   // 키링 안내 문구: 조건·수량·받는 날이 정해지면 넣는다(기획표 V2-10). 정해지기 전에 약속하지 않는다.
   var KEYRING_NOTE = '';
   // 카드에 찍는 "나도 만들기" 주소(2026-11-14 피드백: 카드를 본 사람이 들어올 입구가 없었다).

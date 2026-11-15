@@ -110,6 +110,7 @@
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=1"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
@@ -165,6 +166,7 @@
   <button type="button" class="sample-btn" id="sample-btn">샘플 데이터로 둘러보기</button>
 
   <div class="links">
+    <a href="#" id="channel-link" target="_blank" rel="noopener" hidden>새 소식 받기(카톡 채널)</a>
     <a href="start.html">주민증 카드</a>
     <a href="walk-type.html">산책 유형 테스트</a>
     <a href="profile.html#theme">화면 테마</a>
@@ -181,6 +183,10 @@
   if (window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
     PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('index.html'); });
   }
+</script>
+<script>
+  // 카톡 채널 — site-config.js에 주소가 있을 때만
+  (function () { var u = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel, a = document.getElementById('channel-link'); if (u && a) { a.href = u; a.hidden = false; } })();
 </script>
 <script src="tabbar.js?v=4" data-tab="today"></script>
 <script>

@@ -66,6 +66,7 @@
   [hidden] { display: none !important; }
 </style>
 <script src="theme.js?v=6"></script>
+<script src="site-config.js?v=1"></script>
 </head>
 <body>
 
@@ -88,7 +89,8 @@
       <h2>받는 조건</h2>
       <ul class="checks">
         <li id="c-card"><span class="mark">1</span><span>주민증 카드 만들기<small id="c-card-sub"></small></span></li>
-        <li id="c-walks"><span class="mark">2</span><span id="c-walks-label"></span></li>
+        <li id="c-stamps" hidden><span class="mark">2</span><span id="c-stamps-label"></span></li>
+        <li id="c-walks" hidden><span class="mark">2</span><span id="c-walks-label"></span></li>
       </ul>
       <div class="bar"><i id="walk-bar" style="width:0"></i></div>
       <p class="hint" id="where" hidden></p>
@@ -109,11 +111,12 @@
     </div>
   </div>
 
+  <a class="btn-main" id="channel-link" href="#" target="_blank" rel="noopener" hidden style="display:block;text-align:center;text-decoration:none;margin-bottom:12px;">나눔 소식 받기(카톡 채널)</a>
   <p class="hint">판정은 이 휴대폰의 산책 기록으로만 하고 어디로도 보내지 않아요. 휴대폰 하나에 한 번 받을 수 있어요.</p>
 </div>
 
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=4"></script>
+<script src="reward-rules.js?v=5"></script>
 <script>
 (function () {
   var GIVEN_KEY = 'petwalk_keyring';      // { givenAt: 'YYYY-MM-DD HH:MM' } — 받은 뒤에만 있다
@@ -123,6 +126,8 @@
   function load(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
+  var ch = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel;
+  if (ch) { $('channel-link').href = ch; $('channel-link').hidden = false; }
   if (!K.open && !preview) { $('closed').hidden = false; return; }
   if (!K.open) $('preview-band').hidden = false;
   $('open').hidden = false;
@@ -135,11 +140,30 @@
   $('c-card').classList.toggle('ok', hasCard);
   $('c-card').querySelector('.mark').textContent = hasCard ? '✓' : '1';
   $('c-card-sub').innerHTML = hasCard ? '' : '<a href="start.html">30초면 만들어요</a>';
-  $('c-walks').classList.toggle('ok', walksOk);
-  $('c-walks').querySelector('.mark').textContent = walksOk ? '✓' : '2';
-  $('c-walks-label').innerHTML = '길 기록 산책 ' + K.minWalks + '번 (지금 ' + Math.min(p.walks, K.minWalks) + '번)' +
-    '<small>' + (walksOk ? '다 채웠어요' : (K.minWalks - p.walks) + '번 더 하면 돼요 · 5분·200m 이상만 세요') + '</small>';
-  $('walk-bar').style.width = Math.min(100, Math.round(p.walks / K.minWalks * 100)) + '%';
+  // 조건 방식(reward-rules.js KEYRING.mode): 발도장 / 산책 횟수 / 둘 중 하나 / 둘 다
+  var mode = K.mode || 'walks';
+  var places = window.RewardRules.PLACES.filter(function (pl) { return !pl.pending; });
+  var needStamps = Math.min(K.minStamps || 3, places.length);
+  var stampCount = places.filter(function (pl) { return p.visited[pl.id]; }).length;
+  var stampsOk = stampCount >= needStamps;
+  var useStamps = mode !== 'walks', useWalks = mode !== 'stamps';
+  var condOk = mode === 'stamps' ? stampsOk : mode === 'walks' ? walksOk : mode === 'either' ? (stampsOk || walksOk) : (stampsOk && walksOk);
+  function mark(id, ok, n) { $(id).hidden = false; $(id).classList.toggle('ok', ok); $(id).querySelector('.mark').textContent = ok ? '✓' : n; }
+  if (useStamps) {
+    mark('c-stamps', stampsOk, '2');
+    var got = places.filter(function (pl) { return p.visited[pl.id]; }).map(function (pl) { return pl.name; });
+    var left = places.filter(function (pl) { return !p.visited[pl.id]; }).map(function (pl) { return pl.name; });
+    $('c-stamps-label').innerHTML = '발도장 ' + needStamps + '곳 모으기 (지금 ' + Math.min(stampCount, needStamps) + '곳)' +
+      '<small>' + (stampsOk ? '다 모았어요' : '남은 곳: ' + left.join(' · ') + ' — 길 기록 산책으로 지나가면 찍혀요') + '</small>';
+  }
+  if (useWalks) {
+    mark('c-walks', walksOk, useStamps ? '3' : '2');
+    $('c-walks-label').innerHTML = (mode === 'either' ? '또는 ' : '') + '길 기록 산책 ' + K.minWalks + '번 (지금 ' + Math.min(p.walks, K.minWalks) + '번)' +
+      '<small>' + (walksOk ? '다 채웠어요' : (K.minWalks - p.walks) + '번 더 하면 돼요 · 5분·200m 이상만 세요') + '</small>';
+  }
+  var ratio = mode === 'walks' ? p.walks / K.minWalks : mode === 'stamps' ? stampCount / needStamps
+    : mode === 'either' ? Math.max(stampCount / needStamps, p.walks / K.minWalks) : Math.min(stampCount / needStamps, p.walks / K.minWalks);
+  $('walk-bar').style.width = Math.min(100, Math.round(ratio * 100)) + '%';
   if (K.where || K.when) { $('where').hidden = false; $('where').textContent = '받는 곳 · ' + [K.where, K.when].filter(Boolean).join(' · '); }
 
   // 샘플 데이터(sample-data.js)로 보는 중이면 받을 수 없다 — 지어낸 기록이므로
@@ -150,7 +174,7 @@
     $('where').innerHTML = '지금은 샘플 기록으로 보는 중이라 받을 수 없어요. [오늘]에서 "샘플 끄기"를 누르고 내 산책으로 채워 주세요.';
     if (!preview) return;
   }
-  if (!(hasCard && walksOk)) return;
+  if (!(hasCard && condOk)) return;
 
   // 조건을 다 채웠으면 직원에게 보여 줄 표
   $('ticket').hidden = false;

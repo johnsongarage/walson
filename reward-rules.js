@@ -38,8 +38,13 @@
   // 키링 나눔(2026-11-15, keyring.html). 조건·수량·받는 날은 가르시아가 정한다(hq 남은 일) — 정하기 전에는
   // open: false로 두어 앱 어디에도 약속하지 않는다(카드 탭의 "키링 받기" 링크도 숨김). 운영자는 keyring.html?preview=1로 미리 본다.
   // minWalks는 제안값: 길 기록 산책(5분·200m 이상) 5회 = 나무 테두리와 같은 때.
+  // mode(11/15 가르시아 임시 결정 "탐방형 3곳"):
+  //   'stamps' = 발도장 장소 minStamps곳 / 'walks' = 산책 minWalks번 / 'either' = 둘 중 하나 / 'both' = 둘 다
+  // 발도장·산책 횟수 모두 길 기록 산책(5분·200m 이상)만 센다 — 시간만 잰 산책은 안 들어감.
   var KEYRING = {
     open: false,
+    mode: 'stamps',
+    minStamps: 3,
     minWalks: 5,
     where: '',   // 예: '다산중앙공원 놀이터 옆'
     when: ''     // 예: '11월 토요일 오후 2~4시'
