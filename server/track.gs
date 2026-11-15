@@ -80,6 +80,13 @@ function refreshDashboard_() {
   var dev = {};            // 기기 → { first, days:{}, from, card, walk }
   var shops = {};          // 가게(스팟 번호) → { dev:{기기:방문 날 수}, month:{기기:1}, first:{기기:1}, days:{} }
   var thisMonth = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+  var SIZE_LABEL = { small: '소형', medium: '중형', large: '대형', unknown: '고르지 않음' };
+  var sizes = {};          // 주민증 만들 때 고른 크기 합계
+  var months = {};         // 'yyyy-MM' → 월간 리포트 재료
+  function M(date) {
+    var k = date.slice(0, 7);
+    return months[k] || (months[k] = { visit: {}, fresh: {}, card: 0, walks: 0, walkers: {}, shopDev: {}, size: {} });
+  }
   var day = {};            // 날짜 → 집계
   function D(d) {
     return day[d] || (day[d] = { visit: {}, fresh: 0, back: {}, card: 0, wstart: {}, wdone: {}, gps: 0, stamp: 0, key: 0 });
@@ -95,7 +102,17 @@ function refreshDashboard_() {
     g.days[date] = 1;
     var d = D(date);
     d.visit[id] = 1;
-    if (ev === 'card_made') { d.card++; g.card = true; }
+    if (ev === 'card_made') {
+      d.card++; g.card = true;
+      var sz = SIZE_LABEL[extra.size] ? extra.size : 'unknown';
+      sizes[sz] = (sizes[sz] || 0) + 1;
+      M(date).card++; M(date).size[sz] = (M(date).size[sz] || 0) + 1;
+    }
+    var mo = M(date);
+    mo.visit[id] = 1;
+    if (ev === 'walk_complete') { mo.walks++; mo.walkers[id] = 1; }
+    if (ev === 'store_visit' && extra.shop) { mo.shopDev[extra.shop + '|' + id] = 1; }
+    if (g.first.slice(0, 7) === date.slice(0, 7)) mo.fresh[id] = 1;
     if (ev === 'walk_start') d.wstart[id] = 1;
     if (ev === 'walk_complete') { d.wdone[id] = 1; g.walk = true; if (extra.mode === 'gps') d.gps++; }
     if (ev === 'stamp_new') d.stamp += Number(extra.count || 1);
@@ -158,6 +175,16 @@ function refreshDashboard_() {
   });
   if (!Object.keys(shops).length) out.push(['아직 없음']);
 
+  // 강아지 크기(주민증 기준)
+  var sizeTotal = Object.keys(sizes).reduce(function (a, k) { return a + sizes[k]; }, 0);
+  out.push([''], ['강아지 크기 (주민증 만들 때 고른 것)'], ['크기', '주민증 수', '비율(고른 것 중)']);
+  var chosen = sizeTotal - (sizes.unknown || 0);
+  ['small', 'medium', 'large', 'unknown'].forEach(function (k) {
+    if (!sizes[k]) return;
+    out.push([SIZE_LABEL[k], sizes[k], k === 'unknown' ? '-' : (chosen ? Math.round(sizes[k] / chosen * 100) + '%' : '-')]);
+  });
+  if (!sizeTotal) out.push(['아직 없음']);
+
   out.push([''], ['마지막 계산: ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')]);
 
   var width = 10;
@@ -165,6 +192,35 @@ function refreshDashboard_() {
   var dash = sheet_(DASH_SHEET);
   dash.clearContents();
   dash.getRange(1, 1, out.length, width).setValues(out);
+  writeMonthly_(months, dev, SIZE_LABEL, daysBetween);
+}
+
+/**
+ * 월간 리포트 시트 — 제휴 가게에 보여 줄 한 달 숫자(합계만, 기기 기준 추정). 최근 달이 위.
+ * 다음 달 재방문: 그 달에 처음 온 기기 중 다음 달에도 온 비율.
+ */
+function writeMonthly_(months, dev, SIZE_LABEL, daysBetween) {
+  var keys = Object.keys(months).sort().reverse();
+  var out = [['월간 리포트 (샘플·운영자 기기 제외, 기기 기준 추정 — 제휴 가게에는 이 합계만)'],
+    ['달', '방문 기기', '새로 온 기기', '새 주민증', '산책한 기기', '산책 수', '가게 방문(기기·가게)', '다음 달에도 온 비율(새 기기)', '크기: 소/중/대']];
+  keys.forEach(function (k) {
+    var mo = months[k];
+    var y = Number(k.slice(0, 4)), m = Number(k.slice(5, 7));
+    var next = (m === 12 ? (y + 1) + '-01' : y + '-' + ('0' + (m + 1)).slice(-2));
+    var fresh = Object.keys(mo.fresh), back = 0;
+    var nextMo = months[next];
+    fresh.forEach(function (id) { if (nextMo && nextMo.visit[id]) back++; });
+    var ret = nextMo ? (fresh.length ? Math.round(back / fresh.length * 100) + '%' : '-') : '(다음 달 전)';
+    var sz = mo.size;
+    out.push([k, Object.keys(mo.visit).length, fresh.length, mo.card, Object.keys(mo.walkers).length, mo.walks,
+      Object.keys(mo.shopDev).length, ret, (sz.small || 0) + '/' + (sz.medium || 0) + '/' + (sz.large || 0)]);
+  });
+  if (!keys.length) out.push(['아직 없음']);
+  var width = 9;
+  out = out.map(function (r) { while (r.length < width) r.push(''); return r; });
+  var sh = sheet_('월간 리포트');
+  sh.clearContents();
+  sh.getRange(1, 1, out.length, width).setValues(out);
 }
 
 /** 처음 한 번 실행: 1시간마다 refreshDashboard가 돌게 트리거를 건다 */

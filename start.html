@@ -120,6 +120,11 @@
 
   .foot { margin-top: 22px; font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
   .foot a { color: var(--ink-soft); }
+  .size-opts { display: flex; gap: 8px; }
+  .size-opts button { flex: 1; font-family: inherit; font-size: 15px; font-weight: 800; padding: 11px 6px; border-radius: 12px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; }
+  .size-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint, #f3ddd2); }
+  [data-theme="brutal"] .size-opts button { border-radius: 0; border: 3px solid #000; color: #000; }
+  [data-theme="brutal"] .size-opts button[aria-pressed="true"] { background: var(--b-lime, #C8F06A); }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -130,7 +135,7 @@
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="theme.js?v=6"></script>
 <script src="site-config.js?v=3"></script>
-<script src="track.js?v=3"></script>
+<script src="track.js?v=4"></script>
 <script src="save-image.js?v=1"></script>
 </head>
 <body>
@@ -170,7 +175,7 @@
   <!-- 2단계 -->
   <section class="step" id="step-2" hidden>
     <h1>이름과 사진을<br>알려 주세요</h1>
-    <p class="lead">이 휴대폰에만 저장돼요. 어디로도 보내지 않아요.</p>
+    <p class="lead">이름과 사진은 이 휴대폰에만 저장돼요. 어디로도 보내지 않아요.</p>
     <div class="panel">
       <div class="photo-picker">
         <button type="button" class="photo-btn" id="photo-btn">
@@ -182,6 +187,15 @@
       <div class="field">
         <label for="f-name">강아지 이름</label>
         <input id="f-name" placeholder="코코" maxlength="10" autocomplete="off">
+      </div>
+      <!-- 크기(선택, 2026-11-15): 산책 추천 시간에 쓰고, 익명 통계로 "소형견 몇 %" 같은 합계만 센다 -->
+      <div class="field">
+        <label>크기 <span style="font-weight:500;">(선택)</span></label>
+        <div class="size-opts" id="size-opts">
+          <button type="button" data-size="small" aria-pressed="false">소형</button>
+          <button type="button" data-size="medium" aria-pressed="false">중형</button>
+          <button type="button" data-size="large" aria-pressed="false">대형</button>
+        </div>
       </div>
       <button type="button" class="btn-main" id="make-btn" disabled>주민증 만들기</button>
     </div>
@@ -255,6 +269,15 @@
 
   var profile = loadProfile();
   var signal = SIGNALS[profile.signal] ? profile.signal : null;
+  // 크기(선택) — 다시 누르면 선택이 풀린다
+  var chosenSize = null;
+  Array.prototype.forEach.call(document.querySelectorAll('#size-opts button'), function (b, i, all) {
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-size');
+      chosenSize = chosenSize === v ? null : v;
+      Array.prototype.forEach.call(all, function (x) { x.setAttribute('aria-pressed', x.getAttribute('data-size') === chosenSize ? 'true' : 'false'); });
+    });
+  });
   // 샘플(왈슨)을 보는 중이면 카드는 보여 주되, 내 카드를 새로 만들 때 샘플 이름·사진이 미리 채워지지 않게 한다
   var sampleShown = !!(window.PetwalkSample && PetwalkSample.isOn());
   var photoDataUrl = sampleShown ? null : (profile.photo || null);
@@ -357,6 +380,7 @@
     p.name = name;
     p.signal = signal;
     p.photo = photoDataUrl || p.photo || null;
+    if (chosenSize) p.size = chosenSize;
     if (!p.size) p.size = 'medium';
     var isNewCard = !p.cardNo;
     if (!p.cardNo) p.cardNo = makeCardNo();
@@ -365,7 +389,7 @@
       alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요). 카드는 그대로 만들어 드릴게요.');
     }
     profile = p;
-    if (isNewCard) window.WalsonTrack && WalsonTrack.send('card_made', { signal: signal });   // 통계: 처음 만든 주민증만(가입 대신)
+    if (isNewCard) window.WalsonTrack && WalsonTrack.send('card_made', { signal: signal, size: chosenSize || 'unknown' });   // 통계: 처음 만든 주민증만(가입 대신), 크기는 고른 경우만
     renderCard().then(function () { showStep(3); });
   });
 

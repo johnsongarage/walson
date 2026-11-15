@@ -18,7 +18,7 @@
   // 이벤트별로 보낼 수 있는 값 — 여기에 없는 값은 버린다(실수로 위치 같은 걸 보내지 않게)
   var ALLOWED = {
     page_view: [],
-    card_made: ['signal'],
+    card_made: ['signal', 'size'],
     card_saved: ['what', 'format'],
     walk_start: ['mode'],
     walk_complete: ['mode', 'min_bucket', 'eligible'],
