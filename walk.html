@@ -14,8 +14,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=5"></script>
-<script src="infra-pins.js?v=17"></script>
+<script src="reward-rules.js?v=6"></script>
+<script src="infra-pins.js?v=18"></script>
 <script src="demo-geo.js?v=4"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
@@ -135,8 +135,24 @@
   .infra-popup-links { display: flex; gap: 12px; margin-top: 2px; }
   .infra-popup-links a { font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none; }
 
+  /* 다음 미션 줄(2026-11-15) — 칩·주의 문구 아래. 길 기록 중엔 남은 거리와 방향(지도 위쪽이 북쪽) */
+  .mission-bar {
+    position: absolute; top: 124px; left: 14px; right: 62px; z-index: 10;
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px;
+    font-size: 13px; font-weight: 700; color: var(--ink); box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.15);
+  }
+  .mission-bar[hidden] { display: none; }
+  .mission-bar .mb-flag { flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .mission-bar .mb-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mission-bar .mb-text small { font-size: 11px; font-weight: 800; color: var(--accent); margin-right: 4px; }
+  .mission-bar .mb-dir { flex-shrink: 0; display: flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 800; color: var(--accent); }
+  .mission-bar .mb-dir svg { transition: transform 0.4s ease; }
+  .mission-bar.is-done .mb-flag { background: #3f7d4a; }
+  .walk-notice.is-good { border-color: var(--accent); }
+  .walk-notice.is-good .icon { color: var(--accent); }
   .walk-notice {
-    position: absolute; top: 126px; left: 14px; z-index: 10; max-width: min(340px, calc(100% - 82px));
+    position: absolute; top: 170px; left: 14px; z-index: 10; max-width: min(340px, calc(100% - 82px));
     display: flex; align-items: flex-start; gap: 8px;
     background: var(--panel); border: 1px solid var(--warn); border-radius: 14px;
     padding: 10px 12px; font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ink);
@@ -387,7 +403,7 @@
     .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel, .walk-notice { transition: none; }
   }
 </style>
-<script src="theme.js?v=7"></script>
+<script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=4"></script>
 <script src="geo.js?v=4"></script>
@@ -434,6 +450,7 @@
 <!-- 상시 주의 문구(기획표 V1-21): 핀이 없는 곳을 "안전하다"고 읽지 않게 지도 위에 늘 띄워 둔다 -->
 <p class="infra-caveat" id="infra-caveat">핀이 없다고 안전한 건 아니에요 · 바닥은 직접 확인</p>
 
+<div class="mission-bar" id="mission-bar" hidden aria-live="polite"></div>
 <div class="walk-notice" id="walk-notice" role="status" aria-live="polite">
   <span class="icon" data-icon="warning"></span><span id="walk-notice-text"></span>
 </div>
@@ -640,7 +657,10 @@
   })();
   var myLocationMarker = null;
   var startMarker = null;   // 산책 출발점(작은 흰 점)
+  var lastFix = null;   // 마지막으로 받은 내 위치(화면 메모리에만) — 다음 미션 줄의 거리·방향에 쓴다
   function setMyLocation(coord) {
+    lastFix = coord;
+    if (window.paintMissionBar) paintMissionBar();
     if (myLocationMarker) myLocationMarker.setLatLng(coord);
     else myLocationMarker = L.marker(coord, {
       icon: L.divIcon({ className: 'my-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] }),
@@ -1416,11 +1436,18 @@
       : (unlocks.length ? '새 보상을 받았어요!' : '산책 ' + after.walks + '회째 기록했어요');
     document.getElementById('reward-next').textContent = !eligible
       ? '5분·200m 이상 걸으면 보상 횟수에 들어가요.'
-      : '다음 보상: ' + window.RewardRules.nextGoalText(after);
+      : nextLine(after);
     rewardPanel.classList.add('is-visible');
     positionRoutePanel();
   }
   function hideRewardPanel() { rewardPanel.classList.remove('is-visible'); }
+  // 다음 미션이 있으면 앞에(장소 목표가 산책 횟수 목표 뒤에 숨지 않게)
+  function nextLine(after) {
+    var R = window.RewardRules, goal = R.nextGoalText(after), m = R.currentMission ? R.currentMission(after) : null;
+    if (!m) return '다음 보상: ' + goal;
+    var target = '다음 미션: ' + m.place.name + (m.place.kind === 'building' ? ' 앞까지' : '까지');
+    return goal.indexOf('발도장') >= 0 ? target : target + ' · 다음 보상: ' + goal;
+  }
   document.getElementById('reward-close').addEventListener('click', hideRewardPanel);
 
   walkBtn.addEventListener('click', function () {
@@ -1442,8 +1469,13 @@
   var wakeLock = null, walkGapMs = 0, noticeTimer = null;
   var walkNotice = document.getElementById('walk-notice');
 
-  function showWalkNotice(text) {
+  var WARN_ICON = null;
+  function showWalkNotice(text, good) {
     document.getElementById('walk-notice-text').textContent = text;
+    var ic = walkNotice.querySelector('.icon');
+    if (WARN_ICON === null) WARN_ICON = ic.innerHTML;
+    ic.innerHTML = good ? FLAG_SVG : WARN_ICON;
+    walkNotice.classList.toggle('is-good', !!good);
     walkNotice.classList.add('is-visible');
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(function () { walkNotice.classList.remove('is-visible'); }, 8000);
@@ -1469,6 +1501,91 @@
     if (walking && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
   });
 
+  // ── 지도 미션(2026-11-15 가르시아: 어디 가야 하는지 알려 주고, 발도장은 산책 중에 바로 판정) ──
+  // 다음 미션 = 발도장 장소 중 순서대로 안 간 첫 곳(reward-rules.js). 위치를 알면 남은 거리와 방향을 보여 준다.
+  // 산책 중 바로 판정: 정확도가 괜찮고(50m 이하) 걷는 속도로 들어온 점이 발도장 반경 안이면 그 자리에서 알린다.
+  // 산책을 마칠 때 저장되는 판정(걷는 속도 점, 5분·200m 이상)과 같은 기준이라, 여기서 받았다고 한 도장은 끝나도 그대로다.
+  // 위치·진행은 이 휴대폰 안에서만 쓰고 보내지 않는다(통계에는 새 발도장 "개수"만 — 산책 끝에 원래대로).
+  var FLAG_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M7 4h11l-2.6 4.2L18 12.4H7z" fill="currentColor"/></svg>';
+  var ARROW_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l6 9h-4v9h-4v-9H6z" fill="currentColor"/></svg>';
+  var liveVisited = {};         // 이번 산책에서 받은(또는 도착한) 발도장 { id: 'got' | 'pending' }
+  var liveKm = 0;               // 이번 산책에서 걷는 속도로 걸은 거리(바로 판정의 200m 기준용)
+  var missionBar = document.getElementById('mission-bar');
+  function missionProgress() {
+    var p = window.RewardRules.computeProgress(loadWalks());
+    Object.keys(liveVisited).forEach(function (id) { if (liveVisited[id] === 'got') p.visited[id] = true; });
+    return p;
+  }
+  function bearingDeg(a, b) {
+    var t = Math.PI / 180, y = Math.sin((b[1] - a[1]) * t) * Math.cos(b[0] * t);
+    var x = Math.cos(a[0] * t) * Math.sin(b[0] * t) - Math.sin(a[0] * t) * Math.cos(b[0] * t) * Math.cos((b[1] - a[1]) * t);
+    return (Math.atan2(y, x) / t + 360) % 360;
+  }
+  function paintMissionBar() {
+    var R = window.RewardRules;
+    if (!R || !R.missions) return;
+    var p = missionProgress();
+    var all = R.missions(p), now = R.currentMission(p);
+    if (!all.length) { missionBar.hidden = true; return; }
+    var done = all.filter(function (m) { return m.done; }).length;
+    missionBar.className = 'mission-bar' + (now ? '' : ' is-done');
+    missionBar.innerHTML = '<span class="mb-flag">' + FLAG_SVG + '</span>';
+    var text = document.createElement('span');
+    text.className = 'mb-text';
+    var small = document.createElement('small');
+    small.textContent = now ? '미션 ' + now.no + ' · ' + done + '/' + all.length : '발도장 ' + done + '/' + all.length;
+    text.appendChild(small);
+    text.appendChild(document.createTextNode(now ? now.place.name + (now.place.kind === 'building' ? ' 앞까지' : '까지') : '미션을 다 했어요'));
+    missionBar.appendChild(text);
+    if (now && lastFix) {
+      var km = R.distanceKm(lastFix, now.place.center);
+      var dir = document.createElement('span');
+      dir.className = 'mb-dir';
+      if (km <= now.place.radiusKm) {
+        dir.textContent = '도착';
+      } else {
+        dir.innerHTML = ARROW_SVG;
+        dir.firstChild.style.transform = 'rotate(' + Math.round(bearingDeg(lastFix, now.place.center)) + 'deg)';
+        dir.appendChild(document.createTextNode(km < 1 ? Math.round(km * 100) * 10 + 'm' : km.toFixed(1) + 'km'));
+      }
+      missionBar.appendChild(dir);
+    }
+    missionBar.hidden = false;
+  }
+  window.paintMissionBar = paintMissionBar;
+  paintMissionBar();
+  // 걷는 속도로 들어온 점 하나를 보고 발도장 장소 안이면 알린다. eligible: 지금까지 5분·200m를 넘었는지
+  function checkLiveStamp(coord, eligible) {
+    var R = window.RewardRules;
+    if (!R || !R.placeAt) return;
+    // 도착했지만 5분·200m 전이라 미뤄 둔 도장 — 기준을 넘는 순간 받는다
+    Object.keys(liveVisited).forEach(function (id) {
+      if (liveVisited[id] === 'pending' && eligible) { liveVisited[id] = 'got'; announceStamp(id); }
+    });
+    var pl = R.placeAt(coord);
+    if (!pl || liveVisited[pl.id]) return;
+    var before = R.computeProgress(loadWalks());
+    if (before.visited[pl.id]) { liveVisited[pl.id] = 'old'; return; }   // 예전에 이미 받은 곳
+    if (eligible) { liveVisited[pl.id] = 'got'; announceStamp(pl.id); }
+    else {
+      liveVisited[pl.id] = 'pending';
+      showWalkNotice(pl.name + ' 도착! ' + WALK_RULES.minRewardMinutes + '분·' + Math.round(WALK_RULES.minRewardKm * 1000) + 'm 넘게 걸으면 발도장이 찍혀요.', true);
+    }
+    paintMissionBar();
+  }
+  function announceStamp(id) {
+    var R = window.RewardRules;
+    var pl = R.PLACES.filter(function (x) { return x.id === id; })[0];
+    if (!pl) return;
+    var p = missionProgress(), all = R.missions(p);
+    var done = all.filter(function (m) { return m.done; }).length;
+    var next = R.currentMission(p);
+    showWalkNotice(pl.name + ' 발도장 받았어요 (' + done + '/' + all.length + ')' +
+      (next ? ' · 다음 미션: ' + next.place.name : ' · 미션을 다 했어요'), true);
+    try { if (navigator.vibrate) navigator.vibrate([90, 60, 90]); } catch (e) { /* 진동 없는 기기(아이폰 등) */ }
+    paintMissionBar();
+  }
+
   function startWalk() {
     if (!navigator.geolocation) {
       alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
@@ -1477,6 +1594,8 @@
     if (!isDemo()) window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
     routeCoords = [];
     routeSamples = [];
+    liveVisited = {};
+    liveKm = 0;
     hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
     resetFootprints();
@@ -1512,6 +1631,12 @@
             showWalkNotice('약 ' + Math.max(1, Math.round(gap / 60000)) + '분 동안 기록이 끊겼어요. 그 구간은 직선으로 이어져요.');
           }
           addFootprints(prev, cur, gap > GAP_MS || isFastSegment(prev, cur));
+          // 산책 중 바로 판정 — 차·자전거 속도 구간과 끊긴 구간은 빼고(산책 끝 판정과 같은 기준)
+          if (gap <= GAP_MS && !isFastSegment(prev, cur)) {
+            liveKm += haversineKm(prev.c, cur.c);
+            var eligibleNow = (nowMs() - walkStartTime) / 60000 >= WALK_RULES.minRewardMinutes && liveKm >= WALK_RULES.minRewardKm;
+            checkLiveStamp(coord, eligibleNow);
+          }
         }
         routeLine.setLatLngs(routeCoords);
         map.panTo(coord, { animate: true, duration: 0.5 });

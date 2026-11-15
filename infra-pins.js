@@ -266,6 +266,14 @@
     if (isNaN(d)) return null;
     return Math.floor((Date.now() - d.getTime()) / 86400000);
   }
+  // ── 동물병원 칸(2026-11-15 가르시아: 화장실·병원은 평소 숨기고 "급할 때"로, 나중에 병원과 협업할 때를 대비) ──
+  // 동물병원 핀에 vet: { hours: '평일 9~21시 · 일 휴진', night: true, partner: true }로 붙는다. 스팟 편집에서 넣는다.
+  // partner(왈슨 제휴)는 표시만 한다 — "급할 때" 목록의 순서는 제휴와 상관없이 거리 순(급할 때 광고가 앞서면 안 됨).
+  // 제휴 문구는 사실만(수의사법 광고 제한: 거짓·치료 효과 오인·다른 병원과 비교 금지 — 기사 기준 확인, 법률 자문 아님).
+  function vetInfo(pin) {
+    var v = (pin && pin.cat === 'vet' && pin.vet) || {};
+    return { hours: v.hours ? String(v.hours) : '', night: !!v.night, partner: !!v.partner };
+  }
   var TONES = {
     ok:   { soft: 'background:#e2efdc;color:#2f6b3a;', brutal: 'background:#C8F06A;color:#000;', ink: '#2f6b3a' },
     warn: { soft: 'background:#f8ebcf;color:#8a5a00;', brutal: 'background:#F2B833;color:#000;', ink: '#8a5a00' },
@@ -408,6 +416,17 @@
       });
       wrap.appendChild(tags);
     }
+    if (pin.cat === 'vet') {
+      var vi = vetInfo(pin);
+      if (vi.night || vi.partner) {
+        var vtags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
+        if (vi.night) vtags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' + (B ? 'border:2px solid #000;' + TONES.ok.brutal : 'border-radius:999px;' + TONES.ok.soft), '야간 진료'));
+        if (vi.partner) vtags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' + (B ? 'border:2px solid #000;background:#fff;' : 'border-radius:999px;background:#efe0cd;'), '왈슨 제휴'));
+        wrap.appendChild(vtags);
+      }
+      if (vi.hours) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;', '진료 시간 ' + vi.hours));
+      if (vi.partner) wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', '왈슨과 제휴한 병원이에요 · 진료 내용과 비용은 병원에 물어보세요'));
+    }
     if (isShop) {
       var fit = fitNote(pin);
       if (fit) wrap.appendChild(el('div', 'font-size:12px;font-weight:800;color:' + (B ? '#000' : TONES[fit.tone].ink) + ';', fit.text));
@@ -415,7 +434,8 @@
       var age = daysSinceVerified(pin);
       if (age != null && age > 90) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:#8a5a00;', '확인한 지 ' + Math.floor(age / 30) + '달이 지났어요 — 조건이 바뀌었을 수 있어요'));
     }
-    if (pin.note) wrap.appendChild(el('div', '', pin.note));
+    // 진료 시간을 넣은 병원은 예전 OSM 안내("진료 시간은 확인 전이에요")를 감춘다 — 서로 어긋나 보이지 않게
+    if (pin.note && !(pin.cat === 'vet' && vetInfo(pin).hours && /진료 시간은 확인 전/.test(pin.note))) wrap.appendChild(el('div', '', pin.note));
     // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
     wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));
     // 수호견은 가게·브랜드의 공식 캐릭터가 아니다 — 제휴로 오해하지 않게(2026-11-15, 상표 혼동 방지)
@@ -467,7 +487,7 @@
     SYSTEM_LAYERS: SYSTEM_LAYERS, ZOOMS: ZOOMS, DEFAULT_GROUPS: DEFAULT_GROUPS, ETC_GROUP_ID: ETC_GROUP_ID,
     layerInfo: layerInfo, normalizeGroups: normalizeGroups, layout: layout, filterState: filterState,
     PET_LABELS: PET_LABELS, petTag: petTag, petInfo: petInfo, extraTags: extraTags, petBadges: petBadges,
-    fitNote: fitNote, dogSize: dogSize, daysSinceVerified: daysSinceVerified, TONES: TONES,
+    fitNote: fitNote, dogSize: dogSize, daysSinceVerified: daysSinceVerified, TONES: TONES, vetInfo: vetInfo,
     DRAFT_PREVIEW: DRAFT_PREVIEW
   };
 })();
