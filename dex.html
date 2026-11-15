@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>강아지 도감</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 강아지 도감 — QR 교환(2026-11-15, 가르시아 "QR 교환 도감으로 만들어줘"). 서버 없음.
+     - 내 카드 QR = 이 화면 주소 + #d=(강아지 이름·크기·신호등·털색·무작위 번호). 위치·사진·견주 정보는 안 담는다.
+     - 상대가 휴대폰 카메라로 찍으면 이 화면이 열리며 "도감에 넣을까요?"를 묻는다(#뒤는 서버로 가지 않음).
+       왈슨 안의 "상대 QR 찍기"(카메라)로 찍어도 같다 — 아이폰 홈 화면 앱은 기록이 사파리와 따로라 이쪽을 권한다.
+     - 저장: petwalk_dex(배열, 기록 옮기기 때 번호로 합침), petwalk_dex_me(내 무작위 번호). 이 폰에만.
+     - 서로 넣으려면 둘 다 찍어야 한다(서버가 없어서 상대에게 알릴 길이 없음). 상대가 나중에 이름을 바꿔도 다시 찍기 전엔 그대로. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+    --green: #3f9b5b; --yellow: #dfa21f; --red: #d2493f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 16px 16px 32px; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 12px;
+    text-decoration: none; background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink); box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; }
+  .subtitle { margin: 6px 0 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 14px 10px; border-radius: 14px; border: none; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; text-decoration: none; }
+  .btn-main { background: var(--accent); color: #fff; }
+  .btn-sub { background: var(--panel); color: var(--ink); border: 1px solid var(--panel-border); }
+  .btn-text { background: none; color: var(--ink-soft); font-weight: 700; text-decoration: underline; }
+
+  .count { display: flex; align-items: baseline; gap: 6px; margin: 0 2px 10px; }
+  .count b { font-size: 26px; font-weight: 900; }
+  .count span { font-size: 13px; color: var(--ink-soft); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dog { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; padding: 14px 10px 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 3px 12px rgba(var(--shadow-rgb), 0.08); cursor: pointer; font: inherit; color: inherit; }
+  .dog .name { font-size: 17px; font-weight: 800; margin-top: 4px; word-break: keep-all; }
+  .dog .meta { font-size: 12px; color: var(--ink-soft); }
+  .dog .sig { font-size: 11px; font-weight: 800; }
+  .dog .met { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-tint); border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
+  .dog.slot { border-style: dashed; background: transparent; box-shadow: none; color: #b5a593; justify-content: center; min-height: 150px; font-size: 12px; cursor: default; }
+  .avatar { flex-shrink: 0; width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 26px; border: 4px solid transparent; }
+  .avatar.xl { width: 96px; height: 96px; font-size: 36px; border-width: 5px; }
+  .note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 12px 2px 0; }
+
+  /* 겹쳐 뜨는 화면(내 카드 · QR 찍기 · 넣을까요 · 자세히) */
+  .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(40, 32, 26, 0.6); display: flex; align-items: flex-end; justify-content: center; }
+  .sheet[hidden] { display: none; }
+  .sheet .card { width: 100%; max-width: 480px; background: var(--panel); border-radius: 22px 22px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px)); text-align: center; max-height: 100%; overflow-y: auto; }
+  .sheet h2 { margin: 10px 0 4px; font-size: 22px; font-weight: 900; }
+  .sheet .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+  .sheet .who { display: flex; flex-direction: column; align-items: center; }
+  .qr { background: #fff; border-radius: 16px; padding: 12px; margin: 6px auto 10px; width: min(78vw, 300px); }
+  .qr svg { display: block; width: 100%; height: auto; }
+  .scan-box { position: relative; width: min(84vw, 340px); aspect-ratio: 1 / 1; margin: 6px auto 10px; border-radius: 18px; overflow: hidden; background: #222; }
+  .scan-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scan-box .frame { position: absolute; inset: 16%; border: 3px solid rgba(255, 255, 255, 0.9); border-radius: 14px; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.25); }
+  .scan-msg { min-height: 20px; font-size: 13px; font-weight: 700; color: var(--accent); }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  .row .btn { flex: 1; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 90%; background: #4a3f35; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 60; }
+
+  [data-theme="brutal"] body { background: #F2B833; }
+  [data-theme="brutal"] .dog:not(.slot), [data-theme="brutal"] .btn-sub, [data-theme="brutal"] .topbar a, [data-theme="brutal"] .sheet .card {
+    background: #fff; border: 3px solid #000; border-radius: 0; box-shadow: 4px 4px 0 #000; color: #000;
+  }
+  [data-theme="brutal"] .btn-main { background: #ff6fa8; color: #000; border: 3px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000; }
+  [data-theme="brutal"] .dog.slot { border: 3px dashed #000; border-radius: 0; color: #000; }
+  [data-theme="brutal"] .dog .met { background: #c6f06e; color: #000; border-radius: 0; }
+  [data-theme="brutal"] .avatar { border-color: #000 !important; }
+</style>
+<script src="theme.js?v=7"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="my-card.html" title="카드로 돌아가기">←</a>
+    <h1>강아지 도감</h1>
+  </div>
+  <p class="subtitle">공원에서 만난 강아지와 서로 QR을 찍으면 도감에 들어가요.
+  서버 없이 이 휴대폰에만 저장돼요.</p>
+
+  <div class="acts">
+    <button type="button" class="btn btn-main" id="show-btn">내 카드 보여 주기</button>
+    <button type="button" class="btn btn-sub" id="scan-btn">상대 QR 찍기</button>
+  </div>
+
+  <div class="count"><b id="dex-count">0</b><span>마리를 만났어요</span></div>
+  <div class="grid" id="grid"></div>
+  <p class="note">QR에 담기는 것: 강아지 이름 · 크기 · 신호등 · 털색(프로필 사진에서 뽑은 색 하나).
+  위치 · 사진 · 견주 정보는 담지 않아요.<br>
+  서로 도감에 넣으려면 둘 다 찍어야 해요. 상대가 나중에 이름을 바꾸면 다시 찍어야 바뀌어요.</p>
+</div>
+
+<!-- 내 카드 -->
+<div class="sheet" id="my-sheet" hidden>
+  <div class="card">
+    <div class="who" id="my-who"></div>
+    <p class="sub">상대 휴대폰 카메라나 왈슨의 "상대 QR 찍기"로 찍으면 돼요.</p>
+    <div class="qr" id="my-qr"></div>
+    <button type="button" class="btn btn-sub" data-close>닫기</button>
+  </div>
+</div>
+
+<!-- QR 찍기 -->
+<div class="sheet" id="scan-sheet" hidden>
+  <div class="card">
+    <h2>상대 QR 찍기</h2>
+    <p class="sub">상대 화면의 도감 QR을 네모 안에 맞춰 주세요.</p>
+    <div class="scan-box"><video id="video" playsinline muted></video><div class="frame"></div></div>
+    <div class="scan-msg" id="scan-msg"></div>
+    <button type="button" class="btn btn-sub" data-close>닫기</button>
+  </div>
+</div>
+
+<!-- 넣을까요 -->
+<div class="sheet" id="add-sheet" hidden>
+  <div class="card">
+    <div class="who" id="add-who"></div>
+    <p class="sub" id="add-sub"></p>
+    <div id="add-actions"></div>
+  </div>
+</div>
+
+<!-- 자세히 -->
+<div class="sheet" id="info-sheet" hidden>
+  <div class="card">
+    <div class="who" id="info-who"></div>
+    <p class="sub" id="info-sub"></p>
+    <div class="row">
+      <button type="button" class="btn btn-sub" id="info-remove">도감에서 빼기</button>
+      <button type="button" class="btn btn-main" data-close>닫기</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  var DEX_KEY = 'petwalk_dex', ME_KEY = 'petwalk_dex_me', PROFILE_KEY = 'petwalk_profile', CAMERA_KEY = 'petwalk_camera_explained';
+  var SIGNAL = {
+    g: { color: 'var(--green)', label: '초록불', desc: '다가와도 좋아요' },
+    y: { color: 'var(--yellow)', label: '노랑불', desc: '천천히 인사해요' },
+    r: { color: 'var(--red)', label: '빨강불', desc: '눈으로만 예뻐해 주세요' }
+  };
+  var SIZE = { s: '소형견', m: '중형견', l: '대형견' };
+  var SIZE_FROM = { small: 's', medium: 'm', large: 'l' };
+  var SIG_FROM = { green: 'g', yellow: 'y', red: 'r' };
+  var PALETTE = ['#e8b77a', '#c98a5a', '#f2d7b6', '#8a6a52', '#f0efe9', '#5a4636', '#d9a066', '#b9b2a8'];
+
+  function $(id) { return document.getElementById(id); }
+  function loadJSON(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
+  function saveJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { alert('저장하지 못했어요. 저장 공간을 확인해 주세요.'); return false; } }
+  function toast(msg) {
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t); setTimeout(function () { t.parentNode && t.parentNode.removeChild(t); }, 2600);
+  }
+  function todayKey() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function dayLabel(k) { return k ? Number(k.slice(5, 7)) + '월 ' + Number(k.slice(8, 10)) + '일' : ''; }
+  // 받침에 따라 을/를(보리를, 별을)
+  function eul(name) { var c = name.charCodeAt(name.length - 1); return name + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? '을' : '를'); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  // ── 내 번호 · 내 카드 내용 ──
+  function myId() {
+    var id = null;
+    try { id = localStorage.getItem(ME_KEY); } catch (e) { id = null; }
+    if (!id || !/^[a-z0-9]{8}$/.test(id)) {
+      id = Math.random().toString(36).slice(2, 10).padEnd(8, '0');
+      try { localStorage.setItem(ME_KEY, id); } catch (e) { /* 이번만 */ }
+    }
+    return id;
+  }
+  function hashColor(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return PALETTE[h % PALETTE.length]; }
+  // 프로필 사진 가운데 색을 하나 뽑아 털색으로 쓴다(사진 자체는 QR에 안 넣는다)
+  function photoColor(src) {
+    return new Promise(function (resolve) {
+      if (!src) { resolve(null); return; }
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var c = document.createElement('canvas'); c.width = c.height = 12;
+          var ctx = c.getContext('2d');
+          var s = Math.min(img.width, img.height) * 0.5;
+          ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 12, 12);
+          var d = ctx.getImageData(0, 0, 12, 12).data, r = 0, g = 0, b = 0, n = d.length / 4;
+          for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+          var hex = function (v) { return Math.round(v / n).toString(16).padStart(2, '0'); };
+          resolve('#' + hex(r) + hex(g) + hex(b));
+        } catch (e) { resolve(null); }
+      };
+      img.onerror = function () { resolve(null); };
+      img.src = src;
+    });
+  }
+  function myCard() {
+    var p = loadJSON(PROFILE_KEY, null);
+    if (!p || !p.name) return Promise.resolve(null);
+    var id = myId();
+    return photoColor(p.photo).then(function (c) {
+      return { v: 1, i: id, n: String(p.name).slice(0, 12), s: SIZE_FROM[p.size] || 'm', g: SIG_FROM[p.signal] || '', c: c || hashColor(id) };
+    });
+  }
+
+  // ── QR 안의 글자 ↔ 강아지 ──
+  function encode(card) {
+    var b = btoa(unescape(encodeURIComponent(JSON.stringify(card))));
+    return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decode(str) {
+    try {
+      var b = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (b.length % 4) b += '=';
+      var o = JSON.parse(decodeURIComponent(escape(atob(b))));
+      // 남이 만든 QR일 수 있으니 모양을 꼼꼼히 확인한다
+      if (!o || o.v !== 1) return null;
+      if (!/^[a-z0-9]{8}$/.test(o.i) || typeof o.n !== 'string' || !o.n.trim() || o.n.length > 12) return null;
+      if (!SIZE[o.s]) return null;
+      if (o.g && !SIGNAL[o.g]) return null;
+      if (!/^#[0-9a-f]{6}$/i.test(o.c)) return null;
+      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase() };
+    } catch (e) { return null; }
+  }
+  function cardUrl(card) { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'dex.html#d=' + encode(card); }
+  function payloadFromText(text) {
+    var m = /dex\.html#d=([A-Za-z0-9_-]+)/.exec(text || '');
+    return m ? m[1] : null;
+  }
+
+  // ── 그리기 ──
+  function avatar(dog, xl) {
+    var a = el('div', 'avatar' + (xl ? ' xl' : ''), dog.n.charAt(0));
+    a.style.background = dog.c;
+    var hex = dog.c.slice(1), lum = (parseInt(hex.substr(0, 2), 16) * 299 + parseInt(hex.substr(2, 2), 16) * 587 + parseInt(hex.substr(4, 2), 16) * 114) / 1000;
+    a.style.color = lum < 140 ? '#fff' : '#4a3f35';
+    if (SIGNAL[dog.g]) a.style.borderColor = SIGNAL[dog.g].color;
+    return a;
+  }
+  function whoBlock(box, dog, title) {
+    box.innerHTML = '';
+    box.appendChild(avatar(dog, true));
+    box.appendChild(el('h2', '', title || dog.n));
+    var meta = SIZE[dog.s] + (SIGNAL[dog.g] ? ' · ' + SIGNAL[dog.g].label + ' · ' + SIGNAL[dog.g].desc : '');
+    var m = el('p', 'sub', meta); m.style.marginBottom = '8px';
+    if (SIGNAL[dog.g]) m.style.color = SIGNAL[dog.g].color;
+    box.appendChild(m);
+  }
+  function loadDex() { var d = loadJSON(DEX_KEY, []); return Array.isArray(d) ? d : []; }
+  function render() {
+    var list = loadDex().slice().sort(function (a, b) { return (b.last || '') < (a.last || '') ? -1 : 1; });
+    $('dex-count').textContent = list.length;
+    var grid = $('grid');
+    grid.innerHTML = '';
+    list.forEach(function (d) {
+      var b = el('button', 'dog'); b.type = 'button';
+      b.appendChild(avatar(d));
+      b.appendChild(el('div', 'name', d.n));
+      b.appendChild(el('div', 'meta', SIZE[d.s]));
+      if (SIGNAL[d.g]) { var s = el('div', 'sig', SIGNAL[d.g].label); s.style.color = SIGNAL[d.g].color; b.appendChild(s); }
+      b.appendChild(el('div', 'met', (d.days > 1 ? d.days + '번 만남 · ' : '') + dayLabel(d.last)));
+      b.addEventListener('click', function () { openInfo(d.i); });
+      grid.appendChild(b);
+    });
+    // 빈 칸으로 모으는 맛을 보여 준다
+    var slots = list.length < 4 ? 4 - list.length : (list.length % 2 ? 1 : 0);
+    for (var i = 0; i < slots; i++) grid.appendChild(el('div', 'dog slot', '아직 비어 있어요'));
+  }
+
+  // ── 겹쳐 뜨는 화면 ──
+  function open(id) { $(id).hidden = false; }
+  function closeAll() { ['my-sheet', 'scan-sheet', 'add-sheet', 'info-sheet'].forEach(function (id) { $(id).hidden = true; }); stopScan(); }
+  document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeAll); });
+  document.querySelectorAll('.sheet').forEach(function (s) { s.addEventListener('click', function (e) { if (e.target === s) closeAll(); }); });
+
+  function showMyCard() {
+    myCard().then(function (card) {
+      closeAll();
+      if (!card) {
+        if (confirm('내 카드를 만들려면 우리 개 이름이 필요해요. 프로필(주민증)을 먼저 만들까요?')) location.href = 'start.html';
+        return;
+      }
+      whoBlock($('my-who'), card);
+      var box = $('my-qr');
+      if (!window.qrcode) { box.textContent = 'QR을 그리지 못했어요(인터넷 연결 확인).'; }
+      else { var qr = qrcode(0, 'M'); qr.addData(cardUrl(card)); qr.make(); box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+      open('my-sheet');
+    });
+  }
+  $('show-btn').addEventListener('click', showMyCard);
+
+  // ── 받은 강아지 넣기 ──
+  function offerAdd(dog) {
+    closeAll();
+    if (dog.i === myId()) {
+      whoBlock($('add-who'), dog, '내 카드예요');
+      $('add-sub').textContent = '이 QR은 다른 강아지 휴대폰에서 찍어 주세요.';
+      var a0 = $('add-actions'); a0.innerHTML = '';
+      var c0 = el('button', 'btn btn-sub', '닫기'); c0.type = 'button'; c0.addEventListener('click', closeAll); a0.appendChild(c0);
+      open('add-sheet');
+      return;
+    }
+    var exist = loadDex().filter(function (d) { return d.i === dog.i; })[0];
+    whoBlock($('add-who'), dog, exist ? dog.n + ' 또 만났어요' : eul(dog.n) + ' 만났어요');
+    $('add-sub').textContent = exist ? '도감에 있는 강아지예요. 오늘 만난 걸로 적을까요?' : '도감에 넣을까요? 이 휴대폰에만 저장돼요.';
+    var acts = $('add-actions'); acts.innerHTML = '';
+    var row = el('div', 'row');
+    var no = el('button', 'btn btn-sub', '안 넣기'); no.type = 'button'; no.addEventListener('click', closeAll);
+    var yes = el('button', 'btn btn-main', exist ? '만난 걸로 적기' : '도감에 넣기'); yes.type = 'button';
+    yes.addEventListener('click', function () { addDog(dog); });
+    row.appendChild(no); row.appendChild(yes); acts.appendChild(row);
+    open('add-sheet');
+  }
+  function addDog(dog) {
+    var list = loadDex(), today = todayKey();
+    var e = list.filter(function (d) { return d.i === dog.i; })[0];
+    if (e) {
+      e.n = dog.n; e.s = dog.s; e.g = dog.g; e.c = dog.c;   // 새로 찍은 내용으로 갱신
+      if (e.last !== today) { e.days = (e.days || 1) + 1; e.last = today; }
+    } else {
+      list.push({ i: dog.i, n: dog.n, s: dog.s, g: dog.g, c: dog.c, first: today, last: today, days: 1 });
+    }
+    if (!saveJSON(DEX_KEY, list)) return;
+    render();
+    // 서로 넣으려면 상대도 내 카드를 찍어야 한다 — 바로 이어서 보여 주게
+    var mine = loadJSON(PROFILE_KEY, null);
+    $('add-sub').textContent = '도감에 넣었어요. ' + dog.n + '도 우리 개를 넣으려면 내 카드를 보여 주세요.';
+    var acts = $('add-actions'); acts.innerHTML = '';
+    var row = el('div', 'row');
+    var close = el('button', 'btn btn-sub', '닫기'); close.type = 'button'; close.addEventListener('click', closeAll);
+    var show;
+    if (mine && mine.name) { show = el('button', 'btn btn-main', '내 카드 보여 주기'); show.type = 'button'; show.addEventListener('click', showMyCard); }
+    else { show = el('a', 'btn btn-main', '우리 개 주민증 만들기'); show.href = 'start.html'; }
+    row.appendChild(close); row.appendChild(show); acts.appendChild(row);
+  }
+
+  // ── 자세히 · 빼기 ──
+  var infoId = null;
+  function openInfo(id) {
+    var d = loadDex().filter(function (x) { return x.i === id; })[0];
+    if (!d) return;
+    infoId = id;
+    whoBlock($('info-who'), d);
+    $('info-sub').textContent = '처음 만난 날 ' + dayLabel(d.first) + (d.days > 1 ? ' · ' + d.days + '번 만남 · 마지막 ' + dayLabel(d.last) : '');
+    open('info-sheet');
+  }
+  $('info-remove').addEventListener('click', function () {
+    var list = loadDex(), d = list.filter(function (x) { return x.i === infoId; })[0];
+    if (!d || !confirm(eul(d.n) + ' 도감에서 뺄까요?')) return;
+    saveJSON(DEX_KEY, list.filter(function (x) { return x.i !== infoId; }));
+    closeAll(); render();
+  });
+
+  // ── QR 찍기(카메라) ──
+  // 크롬 안드로이드는 BarcodeDetector, 없으면(아이폰 등) jsQR(MIT)을 그때 불러온다. 화면에서 QR 글자만 읽고 사진은 저장·전송하지 않는다.
+  var stream = null, scanning = false, detector = null;
+  function loadJsQR() {
+    if (window.jsQR) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+      s.onload = resolve; s.onerror = function () { reject(new Error('jsQR')); };
+      document.head.appendChild(s);
+    });
+  }
+  function stopScan() {
+    scanning = false;
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  }
+  function startScan() {
+    var explained = false;
+    try { explained = localStorage.getItem(CAMERA_KEY) === '1'; } catch (e) { /* 다시 설명 */ }
+    if (!explained) {
+      if (!confirm('상대 QR을 찍으려면 카메라가 필요해요.\n화면에서 QR 글자만 읽고, 사진은 저장하거나 보내지 않아요. 카메라를 켤까요?')) return;
+      try { localStorage.setItem(CAMERA_KEY, '1'); } catch (e) { /* 다음에 다시 설명 */ }
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('이 브라우저에서는 카메라를 쓸 수 없어요. 휴대폰 기본 카메라 앱으로 상대 QR을 찍어 주세요.');
+      return;
+    }
+    closeAll();
+    open('scan-sheet');
+    $('scan-msg').textContent = '카메라를 켜는 중…';
+    var useNative = 'BarcodeDetector' in window;
+    var prep = useNative
+      ? Promise.resolve(window.BarcodeDetector.getSupportedFormats ? BarcodeDetector.getSupportedFormats() : ['qr_code']).then(function (f) {
+          if (f.indexOf('qr_code') < 0) { useNative = false; return loadJsQR(); }
+          detector = new BarcodeDetector({ formats: ['qr_code'] });
+        })
+      : loadJsQR();
+    prep.then(function () {
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    }).then(function (s) {
+      stream = s;
+      var video = $('video');
+      video.srcObject = s;
+      return video.play();
+    }).then(function () {
+      $('scan-msg').textContent = '';
+      scanning = true;
+      loop(useNative);
+    }).catch(function (err) {
+      stopScan();
+      var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+      $('scan-msg').textContent = denied
+        ? '카메라 권한이 꺼져 있어요. 주소창 왼쪽 자물쇠(또는 설정 > 브라우저 > 카메라)에서 허용해 주세요. 휴대폰 기본 카메라로 찍어도 돼요.'
+        : '카메라를 켜지 못했어요. 휴대폰 기본 카메라 앱으로 상대 QR을 찍어 주세요.';
+    });
+  }
+  var canvas = document.createElement('canvas'), ctx2 = canvas.getContext('2d', { willReadFrequently: true });
+  function loop(useNative) {
+    if (!scanning) return;
+    var video = $('video');
+    var next = function () { setTimeout(function () { requestAnimationFrame(function () { loop(useNative); }); }, 120); };
+    if (video.readyState < 2) { next(); return; }
+    var found = useNative
+      ? detector.detect(video).then(function (codes) { return codes.length ? codes[0].rawValue : null; }, function () { return null; })
+      : Promise.resolve((function () {
+          var w = video.videoWidth, h = video.videoHeight, scale = Math.min(1, 480 / Math.max(w, h));
+          canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+          ctx2.drawImage(video, 0, 0, canvas.width, canvas.height);
+          var img = ctx2.getImageData(0, 0, canvas.width, canvas.height);
+          var code = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+          return code ? code.data : null;
+        })());
+    found.then(function (text) {
+      if (!scanning) return;
+      if (!text) { next(); return; }
+      var p = payloadFromText(text), dog = p && decode(p);
+      if (!dog) { $('scan-msg').textContent = '왈슨 도감 QR이 아니에요. 상대에게 "내 카드 보여 주기"를 눌러 달라고 해 주세요.'; next(); return; }
+      try { if (navigator.vibrate) navigator.vibrate(80); } catch (e) { /* 진동 없음 */ }
+      stopScan();
+      offerAdd(dog);
+    });
+  }
+  $('scan-btn').addEventListener('click', startScan);
+
+  // ── 휴대폰 카메라로 찍고 들어온 경우(#d=...) ──
+  function fromHash() {
+    var m = /[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);
+    if (!m) return;
+    // 주소창에 남지 않게 지운다(뒤로 가기·새로고침 때 또 묻지 않게)
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* 무시 */ }
+    var dog = decode(m[1]);
+    if (!dog) { toast('QR 내용을 읽지 못했어요'); return; }
+    offerAdd(dog);
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  render();
+  fromHash();
+})();
+</script>
+
+</body>
+</html>

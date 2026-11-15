@@ -8,7 +8,8 @@
   var ARRAY_MERGE = {   // 합치기 때 겹침을 가리는 기준
     petwalk_walks: function (w) { return [w.date, w.durationMin, w.distanceKm || 0, w.photoKey || ''].join('|'); },
     petwalk_pins: function (p) { return p.id || [p.lat, p.lng, p.memo].join('|'); },
-    petwalk_visits: function (v) { return v.s + '|' + v.d; }
+    petwalk_visits: function (v) { return v.s + '|' + v.d; },
+    petwalk_dex: function (d) { return d.i; }   // 강아지 도감(dex.html) — 같은 강아지는 하나만
   };
   function keys() {
     var out = [];
