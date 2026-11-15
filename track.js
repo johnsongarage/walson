@@ -5,13 +5,12 @@
 //           유입 코드(?from=), 홈 화면 앱인지, 샘플 모드·운영자 기기 표시, 이벤트별 작은 값(아래 ALLOWED).
 // 보내지 않는 것: 위치·좌표·경로, 발도장 장소 이름, 강아지 이름·사진, 견주 정보, 메모.
 // 받는 곳: site-config.js의 trackUrl(운영자가 배포한 Apps Script). 비어 있으면 아무것도 보내지 않는다.
-// 동의(2026-11-15): 개인정보 안내에 "보내는 기능을 넣으면 따로 동의를 받겠다"고 약속했으므로,
-//   처음 오면 아래쪽에 짧은 안내를 띄우고 "괜찮아요"를 누른 뒤에만 보낸다. 그 전 이벤트는 이 탭에만 잠시 모아 두었다가
-//   동의하면 한꺼번에 보내고, "보내지 않기"면 버린다. 개인정보 안내 화면에서 언제든 바꿀 수 있다.
+// 고지·거부 방식(2026-11-15 가르시아 결정): 처음부터 보내되, 개인정보 안내 화면에서 "보내지 않기"를 고른 사람과
+//   브라우저의 "추적하지 마세요(GPC)" 신호를 켠 사람은 보내지 않는다. 동의는 나중에 가입 단계에서 한꺼번에 받는다.
+//   (처음엔 동의제였으나 동의해도 사용자에게 이점이 없어 대부분 거부할 것이라 바꿈 — 개인정보 안내에 변경 이력)
 (function () {
   var ID_KEY = 'walson_device';
-  var CONSENT_KEY = 'walson_track_consent';   // 'yes' | 'no' | 없음(아직 안 물어봄)
-  var QUEUE_KEY = 'walson_track_queue';       // 동의 전 이벤트(sessionStorage)
+  var CONSENT_KEY = 'walson_track_consent';   // 'no' = 보내지 않기를 고름, 'yes' = 보내기를 고름(GPC보다 우선), 없음 = 기본(보냄)
   var FIRST_FROM_KEY = 'walson_from_first';
   var LAST_FROM_KEY = 'walson_from_last';
 
@@ -53,7 +52,8 @@
   })();
 
   function consent() { return get(CONSENT_KEY); }
-  function isOff() { return consent() !== 'yes'; }
+  function gpc() { return navigator.globalPrivacyControl === true; }
+  function isOff() { var c = consent(); return c === 'no' || (c !== 'yes' && gpc()); }
   function endpoint() { return (window.WALSON_CONFIG && WALSON_CONFIG.trackUrl) || ''; }
   function pageName() {
     var p = location.pathname.split('/').pop() || 'index.html';
@@ -65,7 +65,7 @@
 
   function send(event, props) {
     var url = endpoint();
-    if (!url || !ALLOWED[event] || consent() === 'no') return;
+    if (!url || !ALLOWED[event] || isOff()) return;
     var extra = {};
     (ALLOWED[event] || []).forEach(function (k) {
       if (props && props[k] != null) extra[k] = String(props[k]).slice(0, 20);
@@ -78,21 +78,7 @@
       a: get('petwalk_admin_token') ? 1 : 0,             // 운영자 기기 — 대시보드에서 뺀다(토큰 값은 보내지 않음)
       x: extra
     });
-    if (consent() !== 'yes') { queue(body); showBanner(); return; }
     deliver(url, body);
-  }
-  function queue(body) {
-    try {
-      var q = JSON.parse(sessionStorage.getItem(QUEUE_KEY) || '[]');
-      if (q.length < 30) q.push(body);
-      sessionStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-    } catch (e) { /* 못 모으면 버림 */ }
-  }
-  function flush() {
-    var q = [];
-    try { q = JSON.parse(sessionStorage.getItem(QUEUE_KEY) || '[]'); sessionStorage.removeItem(QUEUE_KEY); } catch (e) { q = []; }
-    var url = endpoint();
-    if (url) q.forEach(function (b) { deliver(url, b); });
   }
   function deliver(url, body) {
     // text/plain으로 보내야 Apps Script가 추가 확인(preflight) 없이 받는다. 응답은 기다리지 않는다.
@@ -105,49 +91,13 @@
   // 걸은 분을 구간으로만(정확한 값 대신)
   function minBucket(min) { return min < 10 ? '<10' : min < 30 ? '10-30' : min < 60 ? '30-60' : '60+'; }
 
-  // ── 동의 안내(아래쪽 작은 띠) ── 산책 중·끝 화면에서는 가리지 않게 띄우지 않는다
-  var NO_BANNER = { go: 1, walk: 1, 'walk-end': 1, privacy: 1 };
-  var bannerShown = false;
-  function setConsent(v) {
-    set(CONSENT_KEY, v);
-    if (v === 'yes') flush(); else { try { sessionStorage.removeItem(QUEUE_KEY); } catch (e) { /* 무시 */ } }
-    var b = document.getElementById('walson-consent'); if (b) b.remove();
-  }
-  function showBanner() {
-    if (bannerShown || consent() || NO_BANNER[pageName()] || !endpoint()) return;
-    bannerShown = true;
-    function build() {
-      var css = document.createElement('style');
-      css.textContent =
-        '#walson-consent{position:fixed;left:12px;right:12px;bottom:calc(var(--tabbar-h, 0px) + 12px);z-index:1500;max-width:440px;margin:0 auto;' +
-        'background:#fffaf3;color:#4a3f35;border:1px solid #e6d6c1;border-radius:14px;padding:12px 14px;box-shadow:0 6px 20px rgba(74,63,53,0.25);' +
-        'font:13px/1.5 Pretendard,-apple-system,"Malgun Gothic",sans-serif;}' +
-        '#walson-consent b{display:block;font-size:14px;margin-bottom:2px;}' +
-        '#walson-consent a{color:#b8563a;font-weight:700;}' +
-        '#walson-consent .row{display:flex;gap:8px;margin-top:8px;}' +
-        '#walson-consent button{flex:1;font:800 13px Pretendard,-apple-system,sans-serif;padding:9px;border-radius:10px;border:1px solid #e6d6c1;background:#fff;color:#4a3f35;cursor:pointer;}' +
-        '#walson-consent button.yes{background:#b8563a;border-color:#b8563a;color:#fff;}' +
-        '[data-theme="brutal"] #walson-consent{border:3px solid #000;border-radius:0;box-shadow:5px 5px 0 #000;color:#000;}' +
-        '[data-theme="brutal"] #walson-consent button{border:3px solid #000;border-radius:0;color:#000;}' +
-        '[data-theme="brutal"] #walson-consent button.yes{background:#FF6BB5;}';
-      document.head.appendChild(css);
-      var box = document.createElement('div');
-      box.id = 'walson-consent';
-      box.setAttribute('role', 'dialog');
-      box.innerHTML = '<b>사용 통계를 보내도 될까요?</b>' +
-        '어떤 기능을 눌렀는지만 익명 번호로 운영자에게 보내요. 위치·이름·사진은 보내지 않아요. ' +
-        '<a href="privacy.html#stats">자세히</a>' +
-        '<div class="row"><button type="button" class="no">보내지 않기</button><button type="button" class="yes">괜찮아요</button></div>';
-      box.querySelector('.yes').addEventListener('click', function () { setConsent('yes'); });
-      box.querySelector('.no').addEventListener('click', function () { setConsent('no'); });
-      document.body.appendChild(box);
-    }
-    if (document.body) build(); else document.addEventListener('DOMContentLoaded', build);
-  }
+  function setConsent(v) { set(CONSENT_KEY, v); }
+  // 예전 동의제 때 모아 두던 것은 버린다
+  try { sessionStorage.removeItem('walson_track_queue'); } catch (e) { /* 무시 */ }
 
   window.WalsonTrack = {
     send: send, minBucket: minBucket,
-    consent: consent, isOff: isOff,
+    consent: consent, isOff: isOff, gpc: gpc,
     setConsent: setConsent,
     enabled: function () { return !!endpoint(); }
   };
