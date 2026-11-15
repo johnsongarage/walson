@@ -189,3 +189,9 @@ body { font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun 
 .result-img { border-radius: 0 !important; border: var(--b-line); box-shadow: var(--b-shadow) !important; }
 .card h3 { color: #000 !important; font-weight: 900 !important; }
 .back-q { color: #000 !important; font-weight: 700; }
+
+/* ── 동네 지도 꾸미기: 우리 개 얼굴 발도장 · 그림 강아지 ── */
+.dog-face { border-radius: 0 !important; border-width: 3px !important; outline: 3px solid #000; box-shadow: 4px 4px 0 #000 !important; }
+.dog-face img { border-radius: 0 !important; }
+.dog-face-n { border-radius: 0 !important; background: #000 !important; color: var(--b-yellow) !important; border: 2px solid #000; }
+.deco-dog { filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.35)) !important; }

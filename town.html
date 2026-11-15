@@ -14,6 +14,7 @@
 <script src="reward-rules.js?v=3"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=14"></script>
+<script src="map-deco.js?v=1"></script>
 <script src="demo-geo.js?v=1"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
@@ -132,9 +133,24 @@
     display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%;
     border: 2px dashed var(--ink-soft); color: var(--ink-soft); background: rgba(255, 250, 243, 0.9);
   }
+  /* A. 우리 개 얼굴 발도장 / B. 그림 강아지(2026-11-15, map-deco.js) */
+  .dog-face {
+    position: relative; width: 46px; height: 46px; border-radius: 50%; border: 3px solid var(--accent);
+    background: #fffaf3; box-shadow: 0 3px 10px rgba(var(--shadow-rgb), 0.35); box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dog-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  .dog-face-n {
+    position: absolute; right: -6px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+    background: var(--ink); color: #fff; font: 800 11px/20px Pretendard, -apple-system, sans-serif; text-align: center; box-sizing: border-box;
+  }
+  .deco-dog { width: 40px; height: 40px; animation: deco-bob 3s ease-in-out infinite; transform-origin: 50% 100%; filter: drop-shadow(0 2px 2px rgba(74,63,53,0.25)); }
+  .deco-dog.is-flip svg { transform: scaleX(-1); }
+  @keyframes deco-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3px) rotate(-2deg); } }
+  @media (prefers-reduced-motion: reduce) { .deco-dog { animation: none; } }
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
-<script src="theme.js?v=5"></script>
+<script src="theme.js?v=6"></script>
 </head>
 <body>
 
@@ -166,6 +182,7 @@
   var FILTER_KEY = 'petwalk_infra_filter';                    // 꺼 둔 종류 — walk.html과 같이 쓴다
   var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';  // 위치 쓰는 이유를 이미 설명했는지
   var MIN_ZOOM_FOR_PINS = 13;
+  var DECO_MIN_ZOOM = 15;
 
   // 스팟 편집 버튼은 운영자 기기에서만 — 여기서 고친 내용은 커밋되어 모든 사람에게 반영된다
   document.getElementById('tool-link').hidden = !InfraPins.isAdminDevice();
@@ -248,24 +265,65 @@
   });
   starsEl.hidden = !stars.length;
 
-  // 내 발도장 — 자라는 카드의 장소 도장(reward-rules.js PLACES)과 같은 판정. 지나간 곳은 채워서 보여 준다.
+  // 내 발도장 — 자라는 카드의 장소 도장(reward-rules.js PLACES)과 같은 판정.
+  // A(2026-11-15): 다녀간 곳에는 우리 개 얼굴(프로필 사진)과 다녀간 횟수를 띄운다. 발도장 장소 말고
+  // 공원(spots-data.js의 공원·쉼터)도 다녀가면 얼굴이 뜬다. 아직 안 간 발도장 장소는 예전처럼 회색 도장.
   var STAMP_SVG = '<svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm72,0a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm23.12,60.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72Z"/></svg>';
-  var progress = RewardRules.computeProgress(loadJSON(WALKS_KEY, []));
-  RewardRules.PLACES.forEach(function (pl) {
-    if (pl.pending) return;
-    var done = !!progress.visited[pl.id];
-    var icon = L.divIcon({ className: '', html: '<div class="stamp' + (done ? ' is-done' : '') + '">' + STAMP_SVG + '</div>', iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
+  var myDog = loadJSON('petwalk_profile', {});
+  var dogName = myDog.name || '우리 개';
+  var FACE_RING = { green: '#3f9b5b', yellow: '#dfa21f', red: '#d2493f' }[myDog.signal] || '#b8563a';
+  var stampPlaces = RewardRules.PLACES.filter(function (pl) { return !pl.pending; })
+    .map(function (pl) { return { id: pl.id, name: pl.name, center: pl.center, radiusKm: pl.radiusKm, reward: true }; });
+  InfraPins.all().forEach(function (p) {
+    if (p.cat !== 'park') return;
+    var c = [p.lat, p.lng];
+    var near = stampPlaces.some(function (pl) { return MapDecoKm(pl.center, c) < 0.2; });
+    if (!near) stampPlaces.push({ id: p.id, name: p.name || '공원', center: c, radiusKm: 0.12, reward: false });
+  });
+  function MapDecoKm(a, b) {
+    var t = Math.PI / 180, x = (b[1] - a[1]) * t * Math.cos((a[0] + b[0]) / 2 * t), y = (b[0] - a[0]) * t;
+    return Math.sqrt(x * x + y * y) * 6371;
+  }
+  var visitMap = MapDeco.visits(loadJSON(WALKS_KEY, []), stampPlaces);
+  // 받침에 따라 와/과(왈슨과, 코코와)
+  function withJosa(name) {
+    var c = name.charCodeAt(name.length - 1);
+    if (c < 0xAC00 || c > 0xD7A3) return name + '와(과)';
+    return name + ((c - 0xAC00) % 28 ? '과' : '와');
+  }
+  function shortDate(k) { return k ? Number(k.slice(5, 7)) + '월 ' + Number(k.slice(8, 10)) + '일' : ''; }
+  stampPlaces.forEach(function (pl) {
+    var v = visitMap[pl.id];
+    if (!v && !pl.reward) return;            // 안 간 공원은 비워 둔다(그림 강아지가 채운다)
     var wrap = document.createElement('div');
     wrap.className = 'popup';
     var nameEl = document.createElement('div');
     nameEl.className = 'popup-name';
-    nameEl.textContent = pl.name + ' 발도장';
+    nameEl.textContent = pl.name;
     var stateEl = document.createElement('div');
     stateEl.className = 'popup-source';
-    stateEl.textContent = done ? '산책으로 지나가서 도장을 찍었어요.' : '아직이에요. 산책으로 지나가면 찍혀요.';
     wrap.appendChild(nameEl);
     wrap.appendChild(stateEl);
-    addTo('stamp', L.marker(pl.center, { icon: icon, title: pl.name, zIndexOffset: -100 }).bindPopup(wrap));
+    var icon;
+    if (v) {
+      stateEl.textContent = withJosa(dogName) + ' ' + v.count + '번 다녀갔어요 · 처음 ' + shortDate(v.first) + (pl.reward ? ' · 발도장 받음' : '');
+      icon = L.divIcon({ className: '', html: MapDeco.faceHtml(myDog.photo, FACE_RING, v.count), iconSize: [46, 46], iconAnchor: [23, 23], popupAnchor: [0, -22] });
+    } else {
+      stateEl.textContent = '발도장 장소예요. 아직이에요 — 길 기록 산책으로 지나가면 ' + dogName + ' 얼굴이 찍혀요.';
+      icon = L.divIcon({ className: '', html: '<div class="stamp">' + STAMP_SVG + '</div>', iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
+    }
+    addTo('stamp', L.marker(pl.center, { icon: icon, title: pl.name, zIndexOffset: v ? 600 : -100 }).bindPopup(wrap));
+  });
+
+  // B. 그림 강아지 — 공원마다 1~2마리. 실제 강아지가 아니라 지도 꾸밈 그림이다(누를 수 없음, 확대했을 때만)
+  var decoPlaces = RewardRules.PLACES.filter(function (pl) { return !pl.pending && pl.kind !== 'building'; })
+    .map(function (pl) { return { id: pl.id, center: pl.center }; })
+    .concat(InfraPins.all().filter(function (p) { return p.cat === 'park'; }).map(function (p) { return { id: p.id, center: [p.lat, p.lng] }; }));
+  MapDeco.decoDogs(decoPlaces).forEach(function (d) {
+    addTo('deco', L.marker(d.latlng, {
+      icon: L.divIcon({ className: '', html: d.html, iconSize: [40, 40], iconAnchor: [20, 36] }),
+      interactive: false, keyboard: false, zIndexOffset: -500
+    }));
   });
 
   // 산책 중에 내가 찍어 둔 핀 — 여기서는 보기만 한다(지우기는 산책 화면에서)
@@ -287,7 +345,8 @@
   function sync() {
     var zoomOk = map.getZoom() >= MIN_ZOOM_FOR_PINS;
     Object.keys(layers).forEach(function (key) {
-      var show = zoomOk && !hidden[key];
+      // 그림 강아지는 더 가까이 봤을 때만(멀리서는 점처럼 겹쳐 보여서)
+      var show = (key === 'deco' ? map.getZoom() >= DECO_MIN_ZOOM : zoomOk) && !hidden[key];
       if (show && !map.hasLayer(layers[key])) map.addLayer(layers[key]);
       if (!show && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
     });
@@ -301,7 +360,8 @@
   var chipDefs = orderedCats.map(function (c) {
     return { key: c.key, label: c.label, color: c.color, iconHtml: InfraPins.iconSvg(c.key, 11) };
   }).concat([
-    { key: 'stamp', label: '내 발도장', color: '#b8563a', iconHtml: '' },
+    { key: 'stamp', label: '우리 개 발도장', color: '#b8563a', iconHtml: '' },
+    { key: 'deco', label: '그림 강아지', color: '#e9c46a', iconHtml: '' },
     { key: 'mine', label: '내 핀', color: '#b8563a', iconHtml: '' }
   ]);
   chipDefs.forEach(function (def) {
@@ -316,7 +376,7 @@
     chip.appendChild(label);
     var count = document.createElement('span');
     count.className = 'count';
-    count.textContent = counts[def.key];
+    count.textContent = def.key === 'deco' ? '' : counts[def.key];   // 그림 개수는 의미 없어서 안 보임
     chip.appendChild(count);
     chip.addEventListener('click', function () {
       if (hidden[def.key]) delete hidden[def.key]; else hidden[def.key] = true;
