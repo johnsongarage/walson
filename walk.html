@@ -16,7 +16,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="infra-pins.js?v=18"></script>
-<script src="demo-geo.js?v=4"></script>
+<script src="demo-geo.js?v=5"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 
@@ -1330,6 +1330,8 @@
 
   initMap();
   positionZoomControl();
+  // 시연 모드: 출발점 핀을 끌어 옮긴다(demo-geo.js). 산책 중엔 못 옮기고, 옮기면 내 위치 점도 그리로
+  if (isDemo()) PetwalkDemoGeo.attachStartMarker(map, { busy: function () { return walking; }, onMove: function () { locateMe(true); } });
   restoreSavedPins();
   initInfraLayer();
   showIdleStats();

@@ -8,10 +8,14 @@
 //  - 배속: ×1·×5·×10·×30 — 위치뿐 아니라 시계(PetwalkDemoGeo.now)도 같은 배로 흐른다. 그래서 10배속으로 3분 돌리면
 //    30분·보통 걸음 속도의 산책으로 기록된다(빠른 이동으로 걸러지지 않음). walk.html이 산책 시간을 이 시계로 잰다.
 // 탭을 닫으면 꺼진다(sessionStorage). 경로·배속 고른 것은 기억한다(localStorage). walk.html·town.html에서 먼저 불러야 한다.
+// 출발점(2026-11-15 가르시아 "시작 위치를 내가 드래그해서 옮길 수 있게"): 지도 화면이 PetwalkDemoGeo.attachStartMarker(map)를
+//   부르면 끌 수 있는 "출발점" 핀이 생긴다. 놓은 자리는 이 기기에만 기억(petwalk_demo_start). 산책 중에는 못 옮긴다.
+//   주의: 화면을 캡처·방송할 거면 집 근처에 두지 말 것(CLAUDE.md 개인정보 절) — 기본은 다산중앙공원.
 (function () {
   var KEY = 'petwalk_demo_geo';
   var SPEED_KEY = 'petwalk_demo_speed';
   var PATH_KEY = 'petwalk_demo_path';
+  var START_KEY = 'petwalk_demo_start';
   var SPEEDS = [1, 5, 10, 30];
   var m = /[?&]demo=([01])/.exec(location.search);
   try {
@@ -36,8 +40,9 @@
     return simNow;
   }
 
-  window.PetwalkDemoGeo = {
+  var api = window.PetwalkDemoGeo = {
     on: on, now: function () { return on ? now() : Date.now(); },
+    attachStartMarker: function () { return null; },
     speed: function () { return speed; },
     // 켜기/끄기(다시 불러서 진짜·가짜 위치를 바꾼다)
     enable: function () { try { sessionStorage.setItem(KEY, '1'); } catch (e) { /* 무시 */ } location.reload(); },
@@ -45,8 +50,13 @@
   };
   if (!on || !navigator.geolocation) return;
 
-  // 다산중앙공원(공용 시설, OpenStreetMap 중심점) — 누구의 실제 위치도 아니다.
-  var CENTER = [37.6233046, 127.1596196];
+  // 기본 출발점: 다산중앙공원(공용 시설, OpenStreetMap 중심점) — 누구의 실제 위치도 아니다.
+  var DEFAULT_CENTER = [37.6233046, 127.1596196];
+  var CENTER = DEFAULT_CENTER.slice();
+  try {
+    var saved = JSON.parse(localStorage.getItem(START_KEY));
+    if (saved && typeof saved[0] === 'number' && typeof saved[1] === 'number') CENTER = [saved[0], saved[1]];
+  } catch (e) { /* 기본값 */ }
   var WALK_MPS = 1.2;                         // 강아지 산책 걸음(배속 시계 기준)
   var M_LAT = 111320, M_LNG = 111320 * Math.cos(CENTER[0] * Math.PI / 180);
 
@@ -101,6 +111,39 @@
     },
     clearWatch: function (id) { if (watchers[id]) { clearInterval(watchers[id].timer); delete watchers[id]; } }
   };
+  // 출발점 옮기기 — 가짜 걷기를 새 자리에서 다시 시작하고, 켜 둔 위치 구독에 바로 새 위치를 준다
+  function setStart(lat, lng) {
+    CENTER = [lat, lng];
+    M_LNG = 111320 * Math.cos(CENTER[0] * Math.PI / 180);
+    rw = { x: 0, y: 0, h: Math.random() * Math.PI * 2, t: now() };
+    loopStart = now();
+    try { localStorage.setItem(START_KEY, JSON.stringify(CENTER)); } catch (e) { /* 이번만 */ }
+    Object.keys(watchers).forEach(function (id) { watchers[id].cb(fakePosition()); });
+  }
+  // opts.busy(): true면(산책 중) 못 옮기게 되돌린다 · opts.onMove(lat, lng): 옮긴 뒤 화면이 할 일(내 위치 다시 읽기 등)
+  api.attachStartMarker = function (map, opts) {
+    if (!window.L || !map) return null;
+    opts = opts || {};
+    var html = '<div style="display:flex;flex-direction:column;align-items:center;transform:translateY(-6px);">' +
+      '<div style="background:#4a3f35;color:#fff;font:800 11px Pretendard,-apple-system,sans-serif;padding:3px 7px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);">출발점 · 끌어서 옮기기</div>' +
+      '<div style="width:16px;height:16px;margin-top:3px;border-radius:50%;background:#fff;border:4px solid #4a3f35;box-shadow:0 2px 6px rgba(0,0,0,.35);"></div></div>';
+    var marker = L.marker(CENTER, {
+      draggable: true, zIndexOffset: 6000, autoPan: true,
+      icon: L.divIcon({ className: '', html: html, iconSize: [130, 44], iconAnchor: [65, 40] })
+    }).addTo(map);
+    marker.on('dragend', function () {
+      if (opts.busy && opts.busy()) {
+        marker.setLatLng(CENTER);
+        alert('산책 중에는 출발점을 옮길 수 없어요. 산책을 끝낸 뒤 옮겨 주세요.');
+        return;
+      }
+      var ll = marker.getLatLng();
+      setStart(ll.lat, ll.lng);
+      if (opts.onMove) opts.onMove(ll.lat, ll.lng);
+    });
+    return marker;
+  };
+
   // 브라우저에 따라 메서드가 프로토타입에만 있어 대입이 막힐 수 있으니 defineProperty로 덮는다
   ['getCurrentPosition', 'watchPosition', 'clearWatch'].forEach(function (name) {
     try {
@@ -121,7 +164,7 @@
       'font:700 12px Pretendard,-apple-system,"Malgun Gothic",sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
     var btnCss = 'border:none;border-radius:999px;background:#fff;color:#4a3f35;font:800 12px Pretendard,-apple-system,sans-serif;padding:5px 9px;cursor:pointer;';
     function btn(text, fn) { var b = document.createElement('button'); b.type = 'button'; b.textContent = text; b.style.cssText = btnCss; b.addEventListener('click', fn); return b; }
-    var title = document.createElement('span'); title.textContent = '시연 모드 · 가짜 위치';
+    var title = document.createElement('span'); title.textContent = '시연 모드 · 가짜 위치 · 출발점 핀을 끌어 옮겨요';
     var speedBtn = btn('', function () {
       speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
       now();   // 지금까지의 시간은 예전 배속으로 정산
@@ -133,6 +176,7 @@
       path = path === 'loop' ? 'random' : 'loop';
       set(PATH_KEY, path);
       if (path === 'random') { rw = { x: 0, y: 0, h: Math.random() * Math.PI * 2, t: now() }; } else loopStart = now();
+      Object.keys(watchers).forEach(function (id) { watchers[id].cb(fakePosition()); });
       paint();
     });
     var off = btn('끄기', function () { window.PetwalkDemoGeo.disable(); });
