@@ -51,18 +51,32 @@
     return (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일 ' + DOW[dt.getDay()] + '요일';
   }
 
-  function draw(photo, logo, walk, profile, fmt) {
+  // 사진 배치: 꽉 차게(cover) 놓은 뒤 view.zoom배 키우고 view.ox/oy(캔버스 px)만큼 옮긴다. 빈틈이 생기지 않게 범위를 묶는다.
+  function placePhoto(photo, W, H, view) {
+    var z = Math.max(1, Math.min(4, view.zoom || 1));
+    var s = Math.max(W / photo.width, H / photo.height) * z;
+    var pw = photo.width * s, ph = photo.height * s;
+    var mx = (pw - W) / 2, my = (ph - H) / 2;
+    view.ox = Math.max(-mx, Math.min(mx, view.ox || 0));
+    view.oy = Math.max(-my, Math.min(my, view.oy || 0));
+    return { x: (W - pw) / 2 + view.ox, y: (H - ph) / 2 + view.oy, w: pw, h: ph };
+  }
+
+  function draw(photo, logo, walk, profile, fmt, view, target) {
     var F = FORMATS[fmt] || FORMATS.feed, W = F.w, H = F.h, B = brutal();
-    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var c = target || document.createElement('canvas');
+    if (c.width !== W) c.width = W;
+    if (c.height !== H) c.height = H;
     var ctx = c.getContext('2d');
+    view = view || { zoom: 1, ox: 0, oy: 0 };
     var ink = '#3a2e24';
 
     // 사진(꽉 차게). 없으면 바탕색
     ctx.fillStyle = B ? '#F2B833' : '#f3ddd2';
     ctx.fillRect(0, 0, W, H);
     if (photo) {
-      var s = Math.max(W / photo.width, H / photo.height);
-      ctx.drawImage(photo, (W - photo.width * s) / 2, (H - photo.height * s) / 2, photo.width * s, photo.height * s);
+      var r = placePhoto(photo, W, H, view);
+      ctx.drawImage(photo, r.x, r.y, r.w, r.h);
     }
 
     // 위: 로고 + 날짜
@@ -94,7 +108,7 @@
     }
 
     // 아래: 판(부드러운 그림자 띠 / 뉴브루탈 노랑 판)
-    var panelH = fmt === 'story' ? 640 : 560, py = H - panelH;
+    var panelH = (fmt === 'story' ? 640 : 560) + (chips(walk).length > 3 ? 84 : 0), py = H - panelH;
     if (B) {
       ctx.fillStyle = '#F2B833'; ctx.fillRect(0, py, W, panelH);
       ctx.fillStyle = '#000'; ctx.fillRect(0, py, W, 8);
@@ -133,7 +147,7 @@
     ctx.font = font(800, 36);
     list.forEach(function (t) {
       var w = ctx.measureText(t).width + 48;
-      if (cx + w > W - pad) return;
+      if (cx + w > W - pad && cx > x) { cx = x; y += 84; }   // 넘치면 다음 줄로
       if (B) {
         ctx.fillStyle = '#000'; ctx.fillRect(cx + 6, y + 6, w, 66);
         ctx.fillStyle = '#C8F06A'; ctx.fillRect(cx, y, w, 66);
@@ -162,7 +176,14 @@
       '.wp-sheet{width:100%;max-width:440px;background:#fffaf3;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));margin-top:auto;' +
         'font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:#4a3f35;}' +
       '.wp-sheet h3{margin:0 0 10px;font-size:16px;font-weight:800;}' +
-      '.wp-prev{display:block;max-width:100%;max-height:58vh;margin:0 auto;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);}' +
+      '.wp-prev{display:block;max-width:100%;max-height:52vh;width:auto;height:auto;margin:0 auto;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);touch-action:none;cursor:grab;}' +
+      '.wp-prev.is-drag{cursor:grabbing;}' +
+      '.wp-zoom{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:12px;font-weight:700;color:#6b5d4e;}' +
+      '.wp-zoom input{flex:1;}' +
+      '.wp-zoom button{font:800 12px Pretendard,-apple-system,sans-serif;padding:6px 10px;border-radius:999px;border:1px solid #e6d6c1;background:#fff;color:#4a3f35;cursor:pointer;}' +
+      '.wp-hint{font-size:12px;color:#6b5d4e;margin:0 2px 4px;line-height:1.5;}' +
+      '.wp-zoom[hidden],.wp-hint[hidden]{display:none;}' +
+      '[data-theme="brutal"] .wp-zoom button{border-radius:0;border:2px solid #000;color:#000;}' +
       '.wp-fmt{display:flex;gap:8px;margin:12px 0;}' +
       '.wp-fmt button,.wp-row button{flex:1;font:800 14px Pretendard,-apple-system,sans-serif;padding:11px;border-radius:12px;border:1px solid #e6d6c1;background:#fff;color:#4a3f35;cursor:pointer;}' +
       '.wp-fmt button[aria-pressed="true"]{background:#4a3f35;color:#fff;border-color:#4a3f35;}' +
@@ -194,19 +215,24 @@
 
   function open(opts) {
     addStyle();
-    var fmt = 'feed', canvas = null;
+    var fmt = 'feed', canvas = null, assetsReady = null;
+    // 크기마다 따로 기억(피드에서 맞춘 위치가 스토리에서 어긋나지 않게)
+    var views = { feed: { zoom: 1, ox: 0, oy: 0 }, story: { zoom: 1, ox: 0, oy: 0 } };
     var back = document.createElement('div');
     back.className = 'wp-back';
     back.innerHTML =
       '<div class="wp-sheet" role="dialog" aria-modal="true" aria-label="산책 인증샷">' +
         '<h3>산책 인증샷</h3>' +
-        '<img class="wp-prev" alt="인증샷 미리 보기">' +
+        '<canvas class="wp-prev" aria-label="인증샷 미리 보기 — 끌어서 사진 옮기기"></canvas>' +
+        '<div class="wp-zoom"><span>작게</span><input type="range" min="1" max="4" step="0.01" value="1" aria-label="사진 확대"><span>크게</span><button type="button" class="wp-reset">처음대로</button></div>' +
+        '<p class="wp-hint">사진을 끌어서 옮기고, 막대(또는 두 손가락)로 키워요. 글자가 얼굴을 가리지 않게 맞춰 보세요.</p>' +
         '<div class="wp-fmt"><button type="button" data-f="feed" aria-pressed="true">피드 4:5</button><button type="button" data-f="story" aria-pressed="false">스토리 9:16</button></div>' +
         '<div class="wp-row"><button type="button" class="wp-close">닫기</button><button type="button" class="wp-save">저장·공유</button></div>' +
         '<p class="wp-note">사진·이름·시간만 들어가고 위치·산책 길은 들어가지 않아요. 이 휴대폰에서 만들어요.</p>' +
       '</div>';
     document.body.appendChild(back);
     var prev = back.querySelector('.wp-prev');
+    var zoomEl = back.querySelector('.wp-zoom input');
     function close() { back.remove(); }
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
     back.querySelector('.wp-close').addEventListener('click', close);
@@ -216,20 +242,62 @@
       ? Promise.all([document.fonts.load('200px "Black Han Sans"'), document.fonts.load('800 46px Pretendard')]).catch(function () {})
       : Promise.resolve();
     var assets = Promise.all([loadImg(opts.src), loadImg('icons/walson-logo.webp'), fontsReady]);
-    function render() {
-      assets.then(function (r) {
-        canvas = draw(r[0], r[1], opts.walk || {}, opts.profile || {}, fmt);
-        prev.src = canvas.toDataURL('image/jpeg', 0.85);
-      });
+    var pending = false;
+    function paint() {
+      if (!assetsReady) return;
+      canvas = draw(assetsReady[0], assetsReady[1], opts.walk || {}, opts.profile || {}, fmt, views[fmt], prev);
     }
+    // 끌 때는 화면 한 장에 한 번만 다시 그린다
+    function render() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; paint(); });
+    }
+    assets.then(function (r) {
+      assetsReady = r;
+      if (!r[0]) { back.querySelector('.wp-zoom').hidden = true; back.querySelector('.wp-hint').hidden = true; }
+      paint();
+    });
+    function setZoom(z) { views[fmt].zoom = Math.max(1, Math.min(4, z)); zoomEl.value = views[fmt].zoom; render(); }
+    zoomEl.addEventListener('input', function () { setZoom(parseFloat(zoomEl.value)); });
+    back.querySelector('.wp-reset').addEventListener('click', function () { views[fmt] = { zoom: 1, ox: 0, oy: 0 }; zoomEl.value = 1; render(); });
+    prev.addEventListener('wheel', function (e) { e.preventDefault(); setZoom(views[fmt].zoom * (e.deltaY < 0 ? 1.06 : 1 / 1.06)); }, { passive: false });
+    // 끌기(손가락 하나·마우스) / 두 손가락 벌리기
+    var pts = {}, pinch = null;
+    function dist() { var p = Object.keys(pts).map(function (k) { return pts[k]; }); return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y); }
+    prev.addEventListener('pointerdown', function (e) {
+      prev.setPointerCapture(e.pointerId);
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      prev.classList.add('is-drag');
+      if (Object.keys(pts).length === 2) pinch = { d: dist(), z: views[fmt].zoom };
+    });
+    prev.addEventListener('pointermove', function (e) {
+      var p = pts[e.pointerId];
+      if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      p.x = e.clientX; p.y = e.clientY;
+      var n = Object.keys(pts).length;
+      if (n === 2 && pinch) { setZoom(pinch.z * dist() / pinch.d); return; }
+      if (n !== 1) return;
+      var k = prev.width / prev.getBoundingClientRect().width;   // 화면 px → 그림 px
+      views[fmt].ox += dx * k; views[fmt].oy += dy * k;
+      render();
+    });
+    function up(e) {
+      delete pts[e.pointerId];
+      if (Object.keys(pts).length < 2) pinch = null;
+      if (!Object.keys(pts).length) prev.classList.remove('is-drag');
+    }
+    prev.addEventListener('pointerup', up);
+    prev.addEventListener('pointercancel', up);
     Array.prototype.forEach.call(back.querySelectorAll('.wp-fmt button'), function (b) {
       b.addEventListener('click', function () {
         fmt = b.getAttribute('data-f');
         Array.prototype.forEach.call(back.querySelectorAll('.wp-fmt button'), function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        zoomEl.value = views[fmt].zoom;
         render();
       });
     });
-    render();
   }
 
   window.WalkProof = { open: open, draw: draw };
