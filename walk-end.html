@@ -99,6 +99,12 @@
     <p class="sub" id="sum-sub"></p>
   </div>
 
+  <!-- 스친 강아지(2026-11-15 서버 가정 시험판): ?server=mock으로 켰고 스친 강아지를 켠 경우에만 보인다 -->
+  <a id="met-banner" href="friends.html#met" hidden
+     style="align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:14px 16px;border-radius:18px;text-decoration:none;background:var(--accent-tint);color:var(--ink);font-weight:800;font-size:15px;">
+    <span id="met-text">스친 강아지 찾는 중…</span><span aria-hidden="true">→</span>
+  </a>
+
   <section class="q">
     <h2>오늘 산책, 충분했나요?</h2>
     <div class="opts" data-field="feel">
@@ -152,6 +158,28 @@
   <a class="btn-text" href="index.html">묻지 않고 넘어가기</a>
 </div>
 
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=5"></script>
+<script src="mock-server.js?v=1"></script>
+<script>
+  // 서버 가정 시험판 — 방금 산책을 가짜 서버로 보내고 스친 강아지 수를 띄운다(꺼져 있으면 아무것도 안 함)
+  (function () {
+    if (!window.WalsonApi || !WalsonApi.isOn()) return;
+    var banner = document.getElementById('met-banner'), text = document.getElementById('met-text');
+    var walk = null;
+    try { var ws = JSON.parse(localStorage.getItem('petwalk_walks')) || []; walk = ws[ws.length - 1]; } catch (e) { walk = null; }
+    WalsonApi.server.getSettings().then(function (s) {
+      if (!s.visible) return;
+      banner.hidden = false; banner.style.display = 'flex';
+      return WalsonApi.syncWalks().then(function (r) {
+        var timeOnly = walk && walk.mode === 'time';
+        text.textContent = r.found ? '오늘 스친 강아지 ' + r.found + '마리'
+          : timeOnly ? '스친 강아지는 길 기록 산책에서만 생겨요'
+          : '이번엔 스친 강아지가 없어요 · 도감 보기';
+      });
+    });
+  })();
+</script>
 <script src="walk-photos.js?v=1"></script>
 <script src="walk-proof.js?v=3"></script>
 <script>
