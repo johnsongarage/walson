@@ -35,7 +35,7 @@ function doPost(e) {
     var n = Number(cache.get(key) || 0) + 1;
     cache.put(key, String(n), 60);
     if (n > (row[11] ? 600 : 60)) return ok_();
-    sheet_(LOG_SHEET, HEADER).appendRow(row);
+    withLock_(function () { sheet_(LOG_SHEET, HEADER).appendRow(row); });
   } catch (err) {
     // 통계는 실패해도 앱에는 영향 없음
   }
@@ -61,16 +61,32 @@ function rowOf_(m, forceTest) {
   ];
 }
 function appendBatch_(items) {
-  // 한 줄씩 appendRow — 실제 사용자 기록이 같은 순간에 들어와도 줄이 겹치지 않게(원자적). 묶음은 300줄까지.
-  var sh = sheet_(LOG_SHEET, HEADER);
-  items.slice(0, 300).forEach(function (m) { var r = rowOf_(m, true); if (r) sh.appendRow(r); });
+  // 묶음은 300줄까지, 잠금 안에서 한 번에 쓴다.
+  var rows = items.slice(0, 300).map(function (m) { return rowOf_(m, true); }).filter(Boolean);
+  if (!rows.length) return;
+  withLock_(function () {
+    var sh = sheet_(LOG_SHEET, HEADER);
+    sh.getRange(sh.getLastRow() + 1, 1, rows.length, HEADER.length).setValues(rows);
+  });
+}
+// log에 쓰는 곳은 모두 이 잠금을 거친다(2026-11-15 시뮬레이터로 발견).
+// 잠금 없이 여러 실행이 동시에 appendRow 하면 같은 줄에 덮어써 기록이 사라졌다(주민증 줄이 빠져 '산책 > 주민증'이 됨).
+// 잠금을 못 잡으면(10초) 그 한 건은 버린다 — 남의 줄을 덮어쓰는 것보다 낫다.
+function withLock_(fn) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return false;
+  try { fn(); SpreadsheetApp.flush(); } finally { lock.releaseLock(); }
+  return true;
 }
 
 // 시뮬레이터가 결과를 읽어 가는 곳: ?test=summary → 테스트 기록만으로 계산한 요약·월간 표(JSON). 실제 기록은 내보내지 않는다.
 function doGet(e) {
   if (e && e.parameter && e.parameter.test === 'summary') {
-    var b = buildSummary_(allRows_().filter(function (r) { return r[11]; }));
-    return ContentService.createTextOutput(JSON.stringify({ out: b.out, monthly: monthlyRows_(b) }))
+    var test = allRows_().filter(function (r) { return r[11]; });
+    var lines = {};   // 첫 유입 코드 → 줄 수(시뮬레이터가 보낸 줄 수와 맞춰 빠진 줄을 찾는다)
+    test.forEach(function (r) { var k = r[6] || r[5] || '(없음)'; lines[k] = (lines[k] || 0) + 1; });
+    var b = buildSummary_(test);
+    return ContentService.createTextOutput(JSON.stringify({ out: b.out, monthly: monthlyRows_(b), lines: lines }))
       .setMimeType(ContentService.MimeType.JSON);
   }
   return ok_();
@@ -96,8 +112,9 @@ function sheet_(name, header) {
  *  3) 재방문율: 첫 방문 뒤 1일·7일·14일·30일 안에 다른 날 다시 온 기기 비율(그만큼 시간이 지난 기기만)
  */
 function refreshDashboard() {
-  // 자동(1시간)과 손으로 누른 실행이 겹치면 요약을 두 번 지웠다 쓰므로 한 번에 하나만. doPost는 appendRow가 원자적이라 잠그지 않는다.
-  var lock = LockService.getScriptLock();
+  // 자동(1시간)과 손으로 누른 실행이 겹치면 요약을 두 번 지웠다 쓰므로 한 번에 하나만.
+  // log 쓰기 잠금(스크립트 잠금)과 다른 문서 잠금을 써서, 계산하는 동안에도 기록 받기가 막히지 않게 한다.
+  var lock = LockService.getDocumentLock();
   if (!lock.tryLock(1000)) return;
   try { refreshDashboard_(); } finally { lock.releaseLock(); }
 }

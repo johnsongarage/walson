@@ -79,7 +79,7 @@
   <div class="card" id="result-card" hidden>
     <h2>2. 정답 vs 시트(이번 실행만)</h2>
     <div id="result"></div>
-    <p class="note">산책 = 산책 완료 기기, 7일↑ = 첫 방문 뒤 7일 지난 기기, 재방문 = 그중 7일 안에 다시 온 기기.
+    <p class="note">줄 = 보낸 기록 줄 수(시트에 다 들어왔는지), 산책 = 산책 완료 기기, 7일↑ = 첫 방문 뒤 7일 지난 기기, 재방문 = 그중 7일 안에 다시 온 기기.
       기기 기준이라 시트와 정확히 같아야 해요. 다르면 Apps Script 계산이나 전송 누락을 의심해요(부하 시험 직후라면 동시 실행 한도로 빠진 것일 수 있어요).
       재방문율은 오늘 날짜 기준이라, 실행 직후 바로 비교하세요.</p>
   </div>
@@ -209,7 +209,8 @@
     var today = kstDate(Date.now());
     var by = {};
     r.users.forEach(function (u) {
-      var t = u.truth, s = by[t.code] || (by[t.code] = { n: 0, card: 0, walk: 0, old7: 0, back7: 0 });
+      var t = u.truth, s = by[t.code] || (by[t.code] = { n: 0, card: 0, walk: 0, old7: 0, back7: 0, lines: 0 });
+      s.lines += u.events.length;
       s.n++; if (t.card) s.card++; if (t.walk) s.walk++;
       if (daysBetween(t.first, today) >= 7) {
         s.old7++;
@@ -233,11 +234,11 @@
       var got = {};
       sectionRows(j.out, '유입별').forEach(function (r) { got[r[0]] = r; });
       var exp = expected(lastRun);
-      var html = '<div class="table-scroll"><table><tr><th>유입 코드</th><th>기기</th><th>주민증</th><th>산책</th><th>7일↑</th><th>재방문</th><th>결과</th></tr>';
+      var html = '<div class="table-scroll"><table><tr><th>유입 코드</th><th>줄</th><th>기기</th><th>주민증</th><th>산책</th><th>7일↑</th><th>재방문</th><th>결과</th></tr>';
       var allOk = true;
       Object.keys(exp).sort().forEach(function (code) {
         var e = exp[code], g = got[code] || [];
-        var pairs = [[e.n, g[1]], [e.card, g[2]], [e.walk, g[3]], [e.old7, g[4]], [e.back7, g[5]]];
+        var pairs = [[e.lines, (j.lines || {})[code]], [e.n, g[1]], [e.card, g[2]], [e.walk, g[3]], [e.old7, g[4]], [e.back7, g[5]]];
         var ok = pairs.every(function (p) { return Number(p[0]) === Number(p[1]); });
         if (!ok) allOk = false;
         html += '<tr><td>' + code + '</td>' + pairs.map(function (p) {
@@ -271,8 +272,7 @@
       $('log').textContent = '부하 시험 보냄(' + Math.round((Date.now() - t0) / 1000) + '초). 몇 초 뒤 확인 중…';
       setTimeout(function () {
         fetch(URL_ + (URL_.indexOf('?') < 0 ? '?' : '&') + 'test=summary').then(function (r) { return r.json(); }).then(function (j) {
-          var row = sectionRows(j.out, '유입별').filter(function (r) { return r[0] === code; })[0];
-          var n = row ? Number(row[1]) : 0;
+          var n = Number((j.lines || {})[code] || 0);
           $('log').textContent = '부하 시험 결과: 30건 중 ' + n + '건 기록됨' + (n === 30 ? ' — 빠진 것 없음' : ' — ' + (30 - n) + '건 빠짐(동시 실행 한도)');
         }).catch(function (e) { $('log').textContent = '결과를 읽지 못했어요: ' + e.message; })
           .then(function () { $('load').disabled = false; });
