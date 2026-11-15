@@ -32,6 +32,21 @@
       icon: 'M198.1,62.59a76,76,0,0,0-140.2,0A71.71,71.71,0,0,0,16,127.8C15.9,166,48,199,86.14,200A72.09,72.09,0,0,0,120,192.47V232a8,8,0,0,0,16,0V192.47A72.17,72.17,0,0,0,168,200l1.82,0C208,199,240.11,166,240,127.8A71.71,71.71,0,0,0,198.1,62.59ZM169.45,184a56.08,56.08,0,0,1-33.45-10v-41l43.58-21.78a8,8,0,1,0-7.16-14.32L136,115.06V88a8,8,0,0,0-16,0v51.06L83.58,120.84a8,8,0,1,0-7.16,14.32L120,156.94v17a56,56,0,0,1-33.45,10C56.9,183.23,31.92,157.52,32,127.84A55.77,55.77,0,0,1,67.11,76a8,8,0,0,0,4.53-4.67,60,60,0,0,1,112.72,0A8,8,0,0,0,188.89,76,55.79,55.79,0,0,1,224,127.84C224.08,157.52,199.1,183.23,169.45,184Z' }
   ];
 
+  // ── 운영자가 직접 만든 종류(2026-11-15) ──
+  // spots-data.js의 window.PETWALK_SPOT_CATEGORIES = [{ key, label, color }]. 스팟 편집 페이지에서 글자로 추가한다.
+  // 아이콘은 모두 같은 별표(Phosphor Star, MIT). 기본 종류와 key가 겹치면 무시한다.
+  var CUSTOM_ICON = 'M239.18,97.26A16.38,16.38,0,0,0,224.92,86l-59-4.76L143.14,26.15a16.36,16.36,0,0,0-30.27,0L90.11,81.23,31.08,86a16.46,16.46,0,0,0-9.37,28.86l45,38.83L53,211.75a16.38,16.38,0,0,0,24.5,17.82L128,198.49l50.53,31.08A16.4,16.4,0,0,0,203,211.75l-13.76-58.07,45-38.83A16.43,16.43,0,0,0,239.18,97.26Zm-15.34,5.47-48.7,42a8,8,0,0,0-2.56,7.91l14.88,62.8a.37.37,0,0,1-.17.48c-.18.14-.23.11-.38,0l-54.72-33.65a8,8,0,0,0-8.38,0L69.09,215.94c-.15.09-.19.12-.38,0a.37.37,0,0,1-.17-.48l14.88-62.8a8,8,0,0,0-2.56-7.91l-48.7-42c-.12-.1-.23-.19-.13-.5s.18-.27.33-.29l63.92-5.16A8,8,0,0,0,103,91.86l24.62-59.61c.08-.17.11-.25.35-.25s.27.08.35.25L153,91.86a8,8,0,0,0,6.75,4.92l63.92,5.16c.15,0,.24,0,.33.29S224,102.63,223.84,102.73Z';
+  var BUILTIN_COUNT = CATEGORIES.length;
+  function setCustomCategories(list) {
+    CATEGORIES.length = BUILTIN_COUNT;
+    (list || []).forEach(function (c) {
+      if (!c || !c.key || !c.label) return;
+      for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].key === c.key) return;
+      CATEGORIES.push({ key: c.key, label: c.label, color: c.color || '#7a6a58', icon: CUSTOM_ICON, custom: true });
+    });
+  }
+  setCustomCategories(window.PETWALK_SPOT_CATEGORIES);
+
   // source: 'osm' = OpenStreetMap에서 가져온 것(현장 확인 전), 'field' = 운영자가 직접 가서 확인한 것.
   // 샘플 데이터로 보는 중이면(sample-data.js) 이 휴대폰에만 있는 샘플 가게를 더한다
   var sampleSpots = [];
@@ -221,6 +236,7 @@
     CATEGORIES: CATEGORIES, SEED: SEED, all: all,
     category: category, iconSvg: iconSvg, markerHtml: markerHtml, markerFor: markerFor, sourceText: sourceText,
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
-    popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice
+    popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice,
+    setCustomCategories: setCustomCategories
   };
 })();

@@ -66,16 +66,26 @@
     return new TextDecoder().decode(bytes);
   }
 
-  function parseData(text) {
-    var start = text.indexOf('window.PETWALK_SPOTS = [');
-    if (start < 0) throw new Error('spots-data.js 모양이 예상과 달라요');
-    start += 'window.PETWALK_SPOTS = '.length;
-    var end = text.lastIndexOf(']') + 1;
-    return JSON.parse(text.slice(start, end));
+  // spots-data.js 읽기: 스팟 목록 + (있으면) 직접 만든 종류 목록
+  function parseArray(text, marker) {
+    var start = text.indexOf(marker);
+    if (start < 0) return null;
+    start += marker.length - 1;                 // '[' 위치
+    var end = text.indexOf('\n];', start);
+    if (end < 0) throw new Error('spots-data.js 모양이 예상과 달라요');
+    return JSON.parse(text.slice(start, end + 2));
   }
-  function buildData(spots) {
+  function parseData(text) {
+    var spots = parseArray(text, 'window.PETWALK_SPOTS = [');
+    if (!spots) throw new Error('spots-data.js 모양이 예상과 달라요');
+    return { spots: spots, categories: parseArray(text, 'window.PETWALK_SPOT_CATEGORIES = [') || [] };
+  }
+  function buildData(spots, categories) {
     var body = spots.map(function (s) { return '  ' + JSON.stringify(s); }).join(',\n');
-    return HEADER + body + (body ? '\n' : '') + '];\n';
+    var cats = (categories || []).map(function (c) { return '  ' + JSON.stringify(c); }).join(',\n');
+    return HEADER + body + (body ? '\n' : '') + '];\n' +
+      '// 운영자가 편집 페이지에서 직접 만든 종류 — { key, label, color }. 아이콘은 별표로 같다.\n' +
+      'window.PETWALK_SPOT_CATEGORIES = [\n' + cats + (cats ? '\n' : '') + '];\n';
   }
 
   // 토큰 확인: 이 저장소에 쓸 수 있는지
@@ -91,7 +101,8 @@
     return gh('GET', '/git/ref/heads/' + BRANCH).then(function (ref) {
       var sha = ref.object.sha;
       return gh('GET', '/contents/' + DATA_PATH + '?ref=' + sha).then(function (file) {
-        return { spots: parseData(b64ToUtf8(file.content)), headSha: sha };
+        var d = parseData(b64ToUtf8(file.content));
+        return { spots: d.spots, categories: d.categories, headSha: sha };
       });
     });
   }
@@ -108,7 +119,8 @@
   //  - dataURL 사진은 spots/photos/<id>-<g|p>-<해시>.jpg 파일로 올리고 경로로 바꾼다
   //  - 목록에서 더 안 쓰는 사진 파일은 같은 커밋에서 지운다
   //  - baseSha: 편집을 시작할 때 본 커밋. 그 사이 누가(다른 컴퓨터에서) 바꿨으면 멈추고 알린다
-  function publish(spots, baseSha, message) {
+  // categories: 직접 만든 종류 목록(spots-data.js에 같이 쓴다)
+  function publish(spots, baseSha, message, categories) {
     var work = JSON.parse(JSON.stringify(spots));
     var uploads = [];   // { path, b64 }
     var jobs = [];
@@ -165,7 +177,7 @@
           return { path: u.path, mode: '100644', type: 'blob', sha: b.sha };
         });
       })).then(function (photoEntries) {
-        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work)), encoding: 'base64' }).then(function (b) {
+        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories)), encoding: 'base64' }).then(function (b) {
           return photoEntries.concat(deletions, [{ path: DATA_PATH, mode: '100644', type: 'blob', sha: b.sha }]);
         });
       });
