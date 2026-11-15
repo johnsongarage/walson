@@ -104,6 +104,8 @@
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=3"></script>
 <script src="walk-photos.js?v=1"></script>
+<script src="save-image.js?v=1"></script>
+<script src="backup.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 </head>
 <body>
@@ -170,6 +172,21 @@
         <span class="desc">노랑 바탕, 굵은 검정 테두리</span>
       </button>
     </div>
+  </div>
+
+  <!-- 기록 옮기기(2026-11-15): 카톡·크롬 창 ↔ 홈 화면 앱 ↔ 새 휴대폰. backup.js -->
+  <div class="card theme-card" id="backup">
+    <h2>기록 옮기기</h2>
+    <p class="sub">카톡·크롬에서 쓰던 기록을 홈 화면 앱(또는 새 휴대폰)으로 옮길 때 써요. 카톡 창, 크롬, 홈 화면 앱은 기록이 따로 저장되거든요.<br>
+      ① 기록이 있는 곳에서 <b>내보내기</b> → 파일을 휴대폰에 저장(또는 카톡 "나에게 보내기")<br>
+      ② 옮길 곳에서 <b>불러오기</b> → 그 파일 고르기</p>
+    <div class="theme-opts">
+      <button type="button" class="theme-opt" id="backup-export"><span class="name">내보내기</span><span class="desc">주민증·산책·사진을 파일 하나로</span></button>
+      <button type="button" class="theme-opt" id="backup-import"><span class="name">불러오기</span><span class="desc">내보낸 파일에서 가져오기</span></button>
+    </div>
+    <input type="file" id="backup-file" accept=".txt,.json,text/plain,application/json" hidden>
+    <p class="sub" id="backup-msg" style="margin:10px 0 0;font-weight:700;"></p>
+    <p class="sub" style="margin:6px 0 0;font-size:11px;">파일은 이 휴대폰에서 만들고 어디로도 올리지 않아요. 파일 안에 강아지 사진과 산책 기록(길 기록을 켰다면 걸은 길)이 들어 있으니 아무에게나 보내지 마세요.</p>
   </div>
 
   <p class="hint">
@@ -281,6 +298,42 @@
       alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요): ' + e.message);
     }
   }
+})();
+</script>
+
+<script>
+// 기록 옮기기
+(function () {
+  var B = window.WalsonBackup, msg = document.getElementById('backup-msg'), fileEl = document.getElementById('backup-file');
+  if (!B) return;
+  document.getElementById('backup-export').addEventListener('click', function () {
+    msg.textContent = '파일 만드는 중…';
+    B.exportAll().then(function (r) {
+      msg.textContent = '산책 ' + r.walks + '개 · 사진 ' + r.photos + '장을 담았어요. 저장하거나 "나에게 보내기" 해 두세요.';
+      if (window.WalsonSave) WalsonSave.blob(r.blob, r.name);
+    }).catch(function (e) { msg.textContent = e.message; });
+  });
+  document.getElementById('backup-import').addEventListener('click', function () { fileEl.click(); });
+  fileEl.addEventListener('change', function () {
+    var f = fileEl.files[0]; fileEl.value = '';
+    if (!f) return;
+    B.read(f).then(function (obj) {
+      var s = B.summary(obj);
+      var mine = []; try { mine = JSON.parse(localStorage.getItem('petwalk_walks')) || []; } catch (e) { mine = []; }
+      var sampleOn = localStorage.getItem('petwalk_sample_mode') === '1';
+      if (!confirm((s.at ? s.at + '에 만든 ' : '') + '기록 파일이에요' + (s.name ? ' (' + s.name + ')' : '') + '.\n산책 ' + s.walks + '개 · 사진 ' + s.photos + '장을 불러올까요?')) return;
+      var merge = false;
+      if (mine.length && !sampleOn) {
+        merge = confirm('이 기기에도 산책 ' + mine.length + '개가 있어요.\n\n확인: 둘을 합치기(겹치는 건 하나로)\n취소: 이 기기 기록을 지우고 파일로 바꾸기');
+        if (!merge && !confirm('이 기기의 산책 ' + mine.length + '개가 지워져요. 계속할까요?')) return;
+      }
+      msg.textContent = '불러오는 중…';
+      return B.importAll(obj, merge).then(function () {
+        alert('불러왔어요. 처음 화면으로 갈게요.');
+        location.replace('index.html');
+      });
+    }).catch(function (e) { msg.textContent = e.message; });
+  });
 })();
 </script>
 

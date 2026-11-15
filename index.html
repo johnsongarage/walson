@@ -101,6 +101,11 @@
   .links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 18px 2px 0; }
   .links a { font-size: 13px; color: var(--ink-soft); }
   .links a[hidden] { display: none; }
+  .inapp-note { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: #fff3d6; border: 1px solid #f0d58c; font-size: 13px; line-height: 1.6; color: var(--ink); }
+  .inapp-note[hidden] { display: none; }
+  .inapp-note b:first-child { display: block; font-size: 14px; }
+  .inapp-note a { color: var(--accent); font-weight: 800; }
+  [data-theme="brutal"] .inapp-note { border-radius: 0; border: 3px solid #000; background: var(--b-lime, #C8F06A); box-shadow: 3px 3px 0 #000; color: #000; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -166,11 +171,19 @@
   <!-- 샘플 데이터로 보기(2026-11-14): 버튼 하나로 기록·카드·사진·동네 가게를 채워 둘러본다(sample-data.js) -->
   <button type="button" class="sample-btn" id="sample-btn">샘플 데이터로 둘러보기</button>
 
+  <!-- 앱 안 브라우저(카톡 등)로 열렸을 때 안내(2026-11-15): 홈 화면 추가는 크롬·사파리에서, 기록은 "기록 옮기기"로 -->
+  <div class="inapp-note" id="inapp-note" hidden>
+    <b>카톡 안에서 열려 있어요</b>
+    홈 화면에 추가하려면 오른쪽 위 메뉴 → <b>다른 브라우저로 열기</b>(크롬·사파리)를 누르세요.
+    여기서 쓴 기록은 <a href="profile.html#backup">기록 옮기기</a>로 가져갈 수 있어요.
+  </div>
+
   <div class="links">
     <a href="#" id="channel-link" target="_blank" rel="noopener" hidden>새 소식 받기(카톡 채널)</a>
     <a href="start.html">주민증 카드</a>
     <a href="walk-type.html">산책 유형 테스트</a>
     <a href="profile.html#theme">화면 테마</a>
+    <a href="profile.html#backup">기록 옮기기</a>
     <a href="privacy.html">개인정보 안내</a>
     <a href="#" id="install-link" hidden>홈 화면에 추가</a>
   </div>
@@ -188,6 +201,16 @@
 <script>
   // 카톡 채널 — site-config.js에 주소가 있을 때만
   (function () { var u = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel, a = document.getElementById('channel-link'); if (u && a) { a.href = u; a.hidden = false; } })();
+</script>
+<script>
+  (function () {
+    var ua = navigator.userAgent || '';
+    var m = /KAKAOTALK/i.test(ua) ? '카톡' : /NAVER\(inapp/i.test(ua) ? '네이버 앱' : /Instagram/i.test(ua) ? '인스타그램' : /FBAN|FBAV/i.test(ua) ? '페이스북' : /Line\//i.test(ua) ? '라인' : '';
+    if (!m) return;
+    var n = document.getElementById('inapp-note');
+    n.querySelector('b').textContent = m + ' 안에서 열려 있어요';
+    n.hidden = false;
+  })();
 </script>
 <script src="tabbar.js?v=4" data-tab="today"></script>
 <script>
