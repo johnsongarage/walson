@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=18"></script>
+<script src="infra-pins.js?v=19"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
@@ -225,6 +225,13 @@
       <div class="spot-extra" id="spot-extra" hidden>
         <h3>동반 조건</h3>
         <p class="hint">직접 가서 확인한 것만 고르세요. "확인 전"으로 두면 지도에 안 나와요. 저장하면 확인 날짜가 오늘로 바뀌어요. 동반 조건과 단골 도장은 "동반 스팟" 종류에만 붙어요.</p>
+        <div class="field"><label for="f-kind">가게 종류 (동반 기준이 달라요)</label><select id="f-kind">
+          <option value="">확인 전</option><option value="food">음식·음료를 파는 곳 (음식점·카페·빵집·술집)</option><option value="pet">반려견 가게 (용품·미용·간식·병원)</option><option value="other">음식을 안 파는 가게 (꽃집·옷가게 등)</option>
+        </select></div>
+        <div id="rules-box" hidden>
+          <label class="check"><input type="checkbox" id="f-rules"> 사장님이 "동반출입 음식점 기준을 갖췄다"고 확인함</label>
+          <p class="hint" style="margin:0 0 8px;">음식·음료를 파는 곳은 2026-03-01부터 기준(주방 칸막이, 입구 표지판, 이동 제한 안내, 예방접종 확인, 반려동물 식기 구분, 배설물 통 등)을 갖춰야 실내에 강아지를 들일 수 있어요. 안 갖추고 들이면 사장님이 시정명령·영업정지를 받을 수 있어서, <b>이 확인이 없으면 지도에 실내 동반 표시가 안 나가요</b>(바깥 자리 표시는 나가요). 테라스가 영업장으로 신고된 곳이면 테라스도 기준 대상일 수 있어요 — 모르면 사장님께 여쭤보기.</p>
+        </div>
         <div class="pet-row">
           <div class="field"><label for="f-indoor">실내 동반</label><select id="f-indoor">
             <option value="">확인 전</option><option value="ok">실내 OK</option><option value="carrier">개모차·이동장·안고만</option><option value="no">실내 안 됨(야외만)</option>
@@ -233,7 +240,7 @@
             <option value="">확인 전</option><option value="all">대형견도 OK</option><option value="small">소형견만</option>
           </select></div>
         </div>
-        <label class="check"><input type="checkbox" id="f-terrace"> 테라스·야외석 있음</label>
+        <label class="check"><input type="checkbox" id="f-terrace"> 바깥 자리(테라스·야외석)에서 강아지와 함께 앉을 수 있음</label>
         <label class="check"><input type="checkbox" id="f-water"> 물그릇 있음</label>
         <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: 다산1동, 아울렛 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
         <h3>가게 사진 (선택)</h3>
@@ -487,6 +494,9 @@
   var gName = $('g-name'), gSignal = $('g-signal'), gLine = $('g-line');
   var fArea = $('f-area');
   var fIndoor = $('f-indoor'), fLarge = $('f-large'), fTerrace = $('f-terrace'), fWater = $('f-water');
+  var fKind = $('f-kind'), fRules = $('f-rules');
+  function paintRules() { $('rules-box').hidden = fKind.value !== 'food'; }
+  fKind.addEventListener('change', paintRules);
   var vHours = $('v-hours'), vNight = $('v-night'), vPartner = $('v-partner');
   // 이미 쓴 동네 이름을 골라 쓸 수 있게(같은 동네가 다른 글자로 갈라지지 않게)
   function fillAreaList() {
@@ -900,7 +910,7 @@
     $('newcat').hidden = true;
     if (fCat.value === NEW_CAT) fCat.value = lastCat;
     fName.value = ''; fTags.value = ''; fNote.value = ''; fPhone.value = ''; fArea.value = '';
-    fIndoor.value = ''; fLarge.value = ''; fTerrace.checked = false; fWater.checked = false;
+    fIndoor.value = ''; fLarge.value = ''; fTerrace.checked = false; fWater.checked = false; fKind.value = ''; fRules.checked = false; paintRules();
     vHours.value = ''; vNight.checked = false; vPartner.checked = false;
     gName.value = ''; gSignal.value = ''; gLine.value = '';
     setRadio('g-kind', 'home'); setRadio('g-style', 'cartoon'); gCoat = 0; $('g-pose').value = 'sit';
@@ -920,7 +930,8 @@
     fCat.value = pin.cat; lastCat = pin.cat;
     fName.value = pin.name || '';
     // 동반 스팟: 예전에 태그로 적은 조건(실내OK·대형견OK)은 칸으로 옮겨 보여 주고, 태그 칸엔 나머지만
-    var pi = InfraPins.petInfo(pin);
+    var pi = InfraPins.petInfo(pin, true);
+    fKind.value = pi.kind || ''; fRules.checked = !!pi.rules; paintRules();
     fIndoor.value = pi.indoor || ''; fLarge.value = pi.large || ''; fTerrace.checked = !!pi.terrace; fWater.checked = !!pi.water;
     fTags.value = (pin.cat === 'spot' ? InfraPins.extraTags(pin) : (pin.tags || [])).join(', ');
     fNote.value = pin.note || '';
@@ -976,6 +987,10 @@
       if (fLarge.value || fromTags.large) pet.large = fLarge.value || fromTags.large;
       if (fTerrace.checked || fromTags.terrace) pet.terrace = true;
       if (fWater.checked || fromTags.water) pet.water = true;
+      if (fKind.value) pet.kind = fKind.value;
+      if (fKind.value === 'food' && fRules.checked) pet.rules = true;
+      if (pet.kind === 'food' && (pet.indoor === 'ok' || pet.indoor === 'carrier') && !pet.rules &&
+          !confirm('음식·음료를 파는 곳인데 동반출입 기준 확인이 없어요.\n이대로 저장하면 지도에 "실내 동반" 표시는 나가지 않아요' + (pet.terrace ? '(바깥 자리 표시는 나가요)' : '') + '.\n\n저장할까요?')) return;
       if (Object.keys(pet).length) pin.pet = pet;
       tags = tags.filter(function (t) { return !InfraPins.petTag(t); });
     }

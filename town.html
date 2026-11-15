@@ -13,7 +13,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="infra-pins.js?v=18"></script>
+<script src="infra-pins.js?v=19"></script>
 <script src="shop-visits.js?v=2"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="demo-geo.js?v=5"></script>
@@ -693,7 +693,7 @@
     { key: 'indoor', label: '실내 OK', test: function (i) { return i.indoor === 'ok'; } },
     { key: 'large', label: '대형견 OK', test: function (i) { return i.large === 'all'; } },
     { key: 'water', label: '물그릇', test: function (i) { return !!i.water; } },
-    { key: 'terrace', label: '테라스·야외석', test: function (i) { return !!i.terrace; } }
+    { key: 'terrace', label: '바깥 자리', test: function (i) { return !!i.terrace; } }
   ];
   var shopFilterOn = {};   // 이 화면에서만(저장하지 않음)
   var shopLink = document.getElementById('shop-link');

@@ -221,7 +221,13 @@
     '물그릇': ['water', true], '물그릇있음': ['water', true]
   };
   function petTag(t) { return PET_TAGS[String(t).replace(/\s+/g, '').toLowerCase()] || null; }
-  function petInfo(pin) {
+  // 가게 종류·기준 확인(2026-11-15, 반려동물 동반출입 음식점 제도 — hq notes/petwalk-pet-restaurant-rules.md):
+  //   pet.kind: 'food'(음식점·카페·빵집·술집 = 식품접객업) | 'pet'(반려견 업종) | 'other'(음식을 안 파는 가게)
+  //   pet.rules: true = 사장님이 "동반출입 음식점 기준(칸막이·표지판·예방접종 확인 등)을 갖췄다"고 확인
+  // 음식을 파는 곳은 기준 확인이 없으면 실내 동반 표시를 지도에 내지 않는다 — 기준 없이 강아지를 들이면 사장님이 처분받을 수 있어서.
+  // 바깥 자리(테라스)는 그대로 보여 준다. raw=true면 숨기지 않고 입력한 그대로(스팟 편집용).
+  var PET_KINDS = { food: '음식·음료를 파는 곳', pet: '반려견 가게', other: '음식을 안 파는 가게' };
+  function petInfo(pin, raw) {
     var info = {};
     ((pin && pin.tags) || []).forEach(function (t) { var m = petTag(t); if (m) info[m[0]] = m[1]; });
     var p = pin && pin.pet;
@@ -230,6 +236,12 @@
       if (PET_LABELS.large[p.large]) info.large = p.large;
       if (p.terrace) info.terrace = true;
       if (p.water) info.water = true;
+      if (PET_KINDS[p.kind]) info.kind = p.kind;
+      if (p.rules) info.rules = true;
+    }
+    if (!raw && info.kind === 'food' && (info.indoor === 'ok' || info.indoor === 'carrier') && !info.rules) {
+      info.indoorHeld = info.indoor;   // 기준 확인 전 — 실내 표시는 숨긴다
+      delete info.indoor;
     }
     return info;
   }
@@ -238,8 +250,10 @@
   // 칩으로 보여 줄 것 — tone: ok(된다) · warn(조건 있음) · no(안 된다)
   function petBadges(pin) {
     var i = petInfo(pin), out = [];
-    if (i.indoor) out.push({ key: 'indoor', text: PET_LABELS.indoor[i.indoor], tone: i.indoor === 'ok' ? 'ok' : (i.indoor === 'carrier' ? 'warn' : 'no') });
-    if (i.terrace) out.push({ key: 'terrace', text: '테라스·야외석', tone: 'ok' });
+    if (i.kind === 'pet') out.push({ key: 'kind', text: '반려견 가게', tone: 'ok' });
+    // 음식 파는 곳의 실내 동반은 "사장님 확인"이 붙는다(기준을 갖췄다는 건 사장님 말 — 왈슨이 검사한 게 아님)
+    if (i.indoor) out.push({ key: 'indoor', text: PET_LABELS.indoor[i.indoor] + (i.kind === 'food' && i.indoor !== 'no' ? ' (사장님 확인)' : ''), tone: i.indoor === 'ok' ? 'ok' : (i.indoor === 'carrier' ? 'warn' : 'no') });
+    if (i.terrace) out.push({ key: 'terrace', text: '바깥 자리에서 함께', tone: 'ok' });
     if (i.large) out.push({ key: 'large', text: PET_LABELS.large[i.large], tone: i.large === 'all' ? 'ok' : 'warn' });
     if (i.water) out.push({ key: 'water', text: '물그릇', tone: 'ok' });
     return out;
@@ -486,7 +500,7 @@
     GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
     SYSTEM_LAYERS: SYSTEM_LAYERS, ZOOMS: ZOOMS, DEFAULT_GROUPS: DEFAULT_GROUPS, ETC_GROUP_ID: ETC_GROUP_ID,
     layerInfo: layerInfo, normalizeGroups: normalizeGroups, layout: layout, filterState: filterState,
-    PET_LABELS: PET_LABELS, petTag: petTag, petInfo: petInfo, extraTags: extraTags, petBadges: petBadges,
+    PET_LABELS: PET_LABELS, PET_KINDS: PET_KINDS, petTag: petTag, petInfo: petInfo, extraTags: extraTags, petBadges: petBadges,
     fitNote: fitNote, dogSize: dogSize, daysSinceVerified: daysSinceVerified, TONES: TONES, vetInfo: vetInfo,
     DRAFT_PREVIEW: DRAFT_PREVIEW
   };
