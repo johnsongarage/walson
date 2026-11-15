@@ -14,14 +14,38 @@
     var code = err && err.code;
     cb({ code: code || 0, message: MESSAGES[code] || '위치를 가져오지 못했어요. 잠시 뒤 다시 눌러 주세요.', raw: err && err.message });
   }
+  // 카톡·네이버·인스타 같은 앱 안 브라우저는 위치 요청에 아예 답을 안 할 때가 있다(버튼만 계속 돎).
+  // 그래서 브라우저 timeout을 믿지 않고 직접 시계를 잰다: 1단계 9초, 2단계 13초가 지나면 다음으로 넘어간다.
+  function inAppBrowser() { return /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent || ''); }
+  function attempt(opts, waitMs, done) {
+    var finished = false;
+    var timer = setTimeout(function () { if (!finished) { finished = true; done(null, { code: 3, message: 'no answer' }); } }, waitMs);
+    try {
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        if (finished) return; finished = true; clearTimeout(timer); done(pos, null);
+      }, function (err) {
+        if (finished) return; finished = true; clearTimeout(timer); done(null, err);
+      }, opts);
+    } catch (e) {
+      if (!finished) { finished = true; clearTimeout(timer); done(null, { code: 2, message: String(e) }); }
+    }
+  }
   function locate(ok, onFail) {
     if (!navigator.geolocation) { onFail({ code: -1, message: '이 브라우저에서는 위치 기능을 쓸 수 없어요.' }); return; }
     if (window.isSecureContext === false) { onFail({ code: -2, message: '보안 연결(https)에서만 위치를 쓸 수 있어요.' }); return; }
-    navigator.geolocation.getCurrentPosition(ok, function (err) {
-      if (err && err.code === 1) { fail(onFail, err); return; }   // 권한 거부는 다시 물어도 같다
-      navigator.geolocation.getCurrentPosition(ok, function (err2) { fail(onFail, err2); },
-        { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
-    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+    function failWith(err) {
+      fail(function (info) {
+        if (inAppBrowser() && info.code !== 1) info.message += ' 카톡 등 앱 안에서 열었다면 오른쪽 위 메뉴의 "다른 브라우저로 열기"(크롬·사파리)로 열면 잘 돼요.';
+        onFail(info);
+      }, err);
+    }
+    attempt({ enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }, 9000, function (pos, err) {
+      if (pos) { ok(pos); return; }
+      if (err && err.code === 1) { failWith(err); return; }   // 권한 거부는 다시 물어도 같다
+      attempt({ enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 }, 13000, function (pos2, err2) {
+        if (pos2) ok(pos2); else failWith(err2);
+      });
+    });
   }
-  window.WalsonGeo = { locate: locate, MESSAGES: MESSAGES };
+  window.WalsonGeo = { locate: locate, MESSAGES: MESSAGES, inAppBrowser: inAppBrowser };
 })();
