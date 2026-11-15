@@ -96,6 +96,9 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 14px rgba(var(--shadow-rgb), 0.18);
   }
   .side button:active { transform: scale(0.94); }
+  /* 내 위치 찾는 중 — 아이콘이 천천히 돈다 */
+  .side button.is-busy svg { animation: locate-spin 1s linear infinite; }
+  @keyframes locate-spin { to { transform: rotate(360deg); } }
 
   /* 동네 스타 — 사진이 있는 동반 스팟(가게 수호지킴이)을 지도 아래에 줄 세워 먼저 보여 준다(2026-11-14) */
   .stars {
@@ -170,6 +173,7 @@
 <script src="theme.js?v=6"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=3"></script>
+<script src="geo.js?v=1"></script>
 </head>
 <body>
 
@@ -472,8 +476,9 @@
   }
 
   // ── 내 위치: 버튼을 눌렀을 때만, 이유를 먼저 설명하고 읽는다. 지도에 점만 찍고 저장하지 않는다. ──
-  var myDot = null;
-  document.getElementById('locate-btn').addEventListener('click', function () {
+  var myDot = null, myAcc = null, locating = false;
+  var locateBtn = document.getElementById('locate-btn');
+  locateBtn.addEventListener('click', function () {
     if (!navigator.geolocation) { alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.'); return; }
     var explained = false;
     try { explained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 다시 설명 */ }
@@ -481,14 +486,25 @@
       if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 위치는 이 화면에 점으로만 보여 주고 저장하거나 보내지 않아요. 허용할까요?')) return;
       try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 다음에 다시 설명 */ }
     }
-    navigator.geolocation.getCurrentPosition(function (pos) {
+    // 정밀 위치가 늦으면 대략적인 위치로 다시 찾는다(geo.js). 찾는 동안 버튼을 돌리고 두 번 누르지 않게.
+    if (locating) return;
+    locating = true;
+    locateBtn.classList.add('is-busy');
+    locateBtn.setAttribute('aria-busy', 'true');
+    WalsonGeo.locate(function (pos) {
+      locating = false; locateBtn.classList.remove('is-busy'); locateBtn.removeAttribute('aria-busy');
       var coord = [pos.coords.latitude, pos.coords.longitude];
       if (myDot) myDot.setLatLng(coord);
       else myDot = L.marker(coord, { icon: L.divIcon({ className: '', html: '<div class="my-dot"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false }).addTo(map);
-      map.setView(coord, 17, { animate: true });
-    }, function (err) {
-      alert('현재 위치를 가져오지 못했습니다: ' + err.message);
-    }, { enableHighAccuracy: true, timeout: 10000 });
+      // 대략적인 위치(오차 100m 넘음)면 오차 범위를 옅은 원으로 같이 보여 준다
+      var acc = pos.coords.accuracy || 0;
+      if (myAcc) { map.removeLayer(myAcc); myAcc = null; }
+      if (acc > 100) myAcc = L.circle(coord, { radius: Math.min(acc, 3000), color: '#3b7dc4', weight: 1, fillOpacity: 0.08, interactive: false }).addTo(map);
+      map.setView(coord, acc > 500 ? 15 : 17, { animate: true });
+    }, function (info) {
+      locating = false; locateBtn.classList.remove('is-busy'); locateBtn.removeAttribute('aria-busy');
+      alert(info.message);
+    });
   });
 })();
 </script>

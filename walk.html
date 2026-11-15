@@ -388,6 +388,7 @@
 <script src="theme.js?v=6"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=3"></script>
+<script src="geo.js?v=1"></script>
 </head>
 <body>
 
@@ -1174,7 +1175,7 @@
       markLocationExplained();
     }
     return new Promise(function (resolve) {
-      navigator.geolocation.getCurrentPosition(
+      WalsonGeo.locate(
         function (pos) {
           routeAnchor = [pos.coords.latitude, pos.coords.longitude];
           routeAnchorResolved = true;
@@ -1183,8 +1184,7 @@
         function () {
           routeAnchorResolved = true; // 실패는 매번 재시도하지 않고 다산동 예시로 계속 진행
           resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
+        }
       );
     });
   }
@@ -1338,7 +1338,7 @@
       if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 허용할까요?')) return;
       markLocationExplained();
     }
-    navigator.geolocation.getCurrentPosition(
+    WalsonGeo.locate(
       function (pos) {
         var coord = [pos.coords.latitude, pos.coords.longitude];
         if (myLocationMarker) {
@@ -1358,11 +1358,10 @@
         populateRouteSelect(); // 다산동 지명 → 일반 이름으로 옵션 라벨 갱신
         refreshRecommendedLayer();
       },
-      function (err) {
-        console.warn('현재 위치를 가져오지 못했습니다:', err.message);
-        if (!silent) alert('현재 위치를 가져오지 못했습니다: ' + err.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      function (info) {
+        console.warn('현재 위치를 가져오지 못했습니다:', info.raw || info.message);
+        if (!silent) alert(info.message);
+      }
     );
   }
 

@@ -131,6 +131,7 @@
 <script src="theme.js?v=6"></script>
 <script src="site-config.js?v=3"></script>
 <script src="track.js?v=3"></script>
+<script src="save-image.js?v=1"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 댕댕이 산책 필수앱. 제작 johnsongarage">
@@ -786,25 +787,13 @@
     });
   }
 
-  // 저장: 휴대폰은 공유 시트(사진 앱에 저장 가능), 안 되면 파일로 내려받기
+  // 저장: 휴대폰은 공유 시트(사진 앱에 저장 가능), PC는 파일로 내려받기 — save-image.js
   document.getElementById('save-btn').addEventListener('click', function () {
     window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: exportFormat });
     (exportCanvas || canvas).toBlob(function (blob) {
       if (!blob) return;
       var fileName = (profile.name || 'dog') + '-주민증' + (exportFormat === 'card' ? '' : '-' + exportFormat) + '.png';
-      var file = null;
-      try { file = new File([blob], fileName, { type: 'image/png' }); } catch (e) { file = null; }
-      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file] }).catch(function () { /* 사용자가 닫음 */ });
-        return;
-      }
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      window.WalsonSave.blob(blob, fileName);   // 휴대폰은 공유 창, PC는 내려받기(save-image.js)
     }, 'image/png');
   });
 

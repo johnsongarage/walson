@@ -200,16 +200,11 @@
 
   function saveCanvas(canvas, fmt) {
     if (window.WalsonTrack) WalsonTrack.send('card_saved', { what: 'walk_proof', format: fmt });
+    if (window.WalsonSave) { WalsonSave.canvas(canvas, 'walson-walk-' + fmt + '.png'); return; }   // 휴대폰은 공유 창, PC는 내려받기
     canvas.toBlob(function (blob) {
-      var file = new File([blob], 'walson-walk-' + fmt + '.png', { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file] }).catch(function () { /* 사용자가 닫음 */ });
-        return;
-      }
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a'); a.href = url; a.download = file.name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = 'walson-walk-' + fmt + '.png'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
     }, 'image/png');
   }
 
@@ -232,6 +227,7 @@
       '</div>';
     document.body.appendChild(back);
     var prev = back.querySelector('.wp-prev');
+    if (window.WalsonSave) back.querySelector('.wp-save').textContent = WalsonSave.label();
     var zoomEl = back.querySelector('.wp-zoom input');
     function close() { back.remove(); }
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
