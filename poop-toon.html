@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 애 응가 캐릭터 만들기</title>
+<!-- 카톡·SNS 링크 미리보기. 이미지를 바꾸면 ?v= 번호를 올릴 것 — 카톡이 예전 이미지를 오래 기억한다 -->
+<meta name="description" content="산책 중 찍은 응가 사진에 눈알과 입을 달아 그림으로. 사진은 이 휴대폰 안에서만 바꿔요.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="왈슨">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="왈슨 · 우리 애 응가 캐릭터 만들기">
+<meta property="og:description" content="응가 사진에 눈알과 입을 달아 가족 단톡에. 사진은 이 휴대폰 안에서만 바꿔요.">
+<meta property="og:url" content="https://johnsongarage.co.kr/walson/poop-toon.html">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/poop-toon-og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="눈알과 입이 달린 응가 그림 — 왈슨 응가 캐릭터">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  /* 응가 캐릭터 시험 페이지(2026-11-16, 가르시아 "개똥 사진 실시간 기록해서 눈알이랑 입 달아준 그림체로 변형하고 가족들한테 공유"
+     → Claude 검토 → "응 시험 페이지부터 만들어줘"). 앱과 따로 있는 시험용 — 견맘 몇 명이 실제로 가족방에 보내는지 보려고.
+     11/13 응가 일기 원칙(POOP_DIARY.md)을 지킨다: 사진은 남기지 않는다(그림만), 산책 중엔 휴대폰 기본 카메라로 한 장만,
+     점수는 앱이 매기지 않는다(표정·상태는 보호자가 고름), 위치는 쓰지 않는다.
+     그림으로 바꾸기는 이 휴대폰 안에서만 한다 — 생성 AI·서버 없음. 붓칠처럼 평평하게(쿠와하라 필터) → 색 몇 개로 줄이기(k-평균)
+     → 굵은 테두리, 배경은 동그라미 가장자리에 많은 색을 배경으로 보고 지워 스티커처럼(못 나누면 동그란 스티커로).
+     통계: 화면 열기(page_view)와 보내기 횟수(share_click what=poop_toon / 내려받기 poop_toon_save)만 — 사진·그림은 보내지 않는다. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-ink: #9c4530; --accent-tint: #f3ddd2;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 440px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .brand { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 22px; color: var(--accent-ink); text-decoration: none; }
+  .tag { font-size: 12px; font-weight: 700; color: var(--ink-soft); background: #efe1cf; border-radius: 999px; padding: 5px 10px; }
+  .step[hidden] { display: none; }
+  h1 { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-weight: 400; font-size: 32px; line-height: 1.25; letter-spacing: -0.01em; margin: 6px 0 10px; }
+  h2 { font-size: 20px; font-weight: 800; margin: 4px 0 6px; }
+  .lead { font-size: 15px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 18px; word-break: keep-all; }
+  .hero { display: block; width: 72%; max-width: 280px; margin: 0 auto 18px; aspect-ratio: 1; }
+  .btn-main, .btn-sub { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 54px; border-radius: 999px;
+    font-family: inherit; font-size: 17px; font-weight: 800; cursor: pointer; text-decoration: none; }
+  .btn-main { border: 0; background: var(--accent); color: #fff; box-shadow: 0 6px 16px rgba(var(--shadow-rgb), 0.28); }
+  .btn-sub { border: 1.5px solid #c9b59d; background: var(--panel); color: var(--ink); }
+  .btn-main:active, .btn-sub:active { transform: scale(0.98); }
+  .btn-main[disabled] { opacity: 0.55; }
+  .pick { display: grid; gap: 10px; }
+  .btn-text { display: block; margin: 14px auto 0; padding: 8px 12px; border: 0; background: none; font-family: inherit; font-size: 14px; font-weight: 700;
+    color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .notes { margin: 20px 0 0; padding: 14px 16px 14px 32px; border-radius: 16px; background: var(--panel); border: 1px solid var(--panel-border);
+    font-size: 13px; line-height: 1.65; color: var(--ink-soft); word-break: keep-all; }
+  .notes li + li { margin-top: 4px; }
+  .small { font-size: 12px; }
+
+  /* 자리 맞추기 */
+  .crop-box { position: relative; width: 100%; max-width: 340px; margin: 6px auto 12px; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: #2b2420; touch-action: none; }
+  #crop-canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  .zoom { display: flex; align-items: center; gap: 10px; max-width: 340px; margin: 0 auto 16px; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+  .zoom input { flex: 1; accent-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+
+  /* 꾸미기 */
+  .preview { position: relative; width: 100%; max-width: 340px; margin: 0 auto 6px; }
+  #card { display: block; width: 100%; height: auto; border-radius: 18px; box-shadow: 0 8px 22px rgba(var(--shadow-rgb), 0.18); touch-action: none; cursor: grab; }
+  .busy { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; border-radius: 18px;
+    background: rgba(247, 237, 226, 0.86); font-size: 15px; font-weight: 800; color: var(--ink); }
+  .busy[hidden] { display: none; }
+  .hint { margin: 0 0 14px; text-align: center; font-size: 12px; color: var(--ink-soft); }
+  .group { margin: 0 0 14px; }
+  .g-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
+    font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .chips button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .roll { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: 0 0 14px; padding: 0 14px; border-radius: 999px; border: 1.5px dashed #c9b59d;
+    background: transparent; color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  details.more { margin: 0 0 16px; padding: 12px 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--panel-border); }
+  details.more summary { font-size: 14px; font-weight: 800; cursor: pointer; }
+  details.more[open] summary { margin-bottom: 12px; }
+  .field { display: grid; gap: 6px; margin: 0 0 12px; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+  .field input[type="text"] { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
+    font-family: inherit; font-size: 16px; }
+  .field input[type="range"] { accent-color: var(--accent); }
+  .bg-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: #fbefe0; font-size: 13px; line-height: 1.55; word-break: keep-all; }
+  .bg-note[hidden] { display: none; }
+  .after { margin-top: 10px; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: 90%;
+    padding: 12px 16px; border-radius: 14px; background: var(--ink); color: #fffaf3; font-size: 14px; font-weight: 700; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 20; }
+  .toast[hidden] { display: none; }
+</style>
+<script src="theme.js?v=9"></script>
+<script src="site-config.js?v=4"></script>
+<script src="inapp.js?v=2"></script>
+<script src="track.js?v=6"></script>
+<script src="save-image.js?v=1"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="index.html">왈슨</a>
+    <span class="tag">시험 중인 기능</span>
+  </header>
+
+  <!-- 1. 사진 고르기 -->
+  <section class="step" id="step-pick">
+    <h1>우리 애 응가,<br>캐릭터로 만들어요</h1>
+    <p class="lead">산책 중에 찍은 응가 사진에 눈알과 입을 달아 그림으로 바꿔요. 가족 단톡에 "오늘도 했어요" 대신 보내 보세요.</p>
+    <canvas class="hero" id="hero" width="560" height="560" aria-hidden="true"></canvas>
+    <div class="pick">
+      <label class="btn-main" for="file-camera">사진 찍기</label>
+      <label class="btn-sub" for="file-album">앨범에서 고르기</label>
+    </div>
+    <input type="file" id="file-camera" accept="image/*" capture="environment" hidden>
+    <input type="file" id="file-album" accept="image/*" hidden>
+    <button type="button" class="btn-text" id="demo-btn">사진 없이 예시로 해 보기</button>
+    <ul class="notes">
+      <li>사진은 이 휴대폰 안에서만 그림으로 바꿔요. 원본은 저장하지도, 어디로 보내지도 않아요.</li>
+      <li>산책 중엔 휴대폰 카메라로 한 장만 찍어 두고, 집에 와서 여기서 골라도 돼요.</li>
+      <li>응가가 가운데 오게 가까이 찍으면 잘 나와요. 바닥이 적게 보일수록 좋아요.</li>
+      <li>재미로 만드는 그림이에요. 건강 상태를 판단하지 않아요.</li>
+    </ul>
+  </section>
+
+  <!-- 2. 자리 맞추기 -->
+  <section class="step" id="step-crop" hidden>
+    <h2>응가가 동그라미 가운데 오게</h2>
+    <p class="lead">끌어서 옮기고, 두 손가락이나 아래 막대로 키워요. 동그라미 밖은 잘려요.</p>
+    <div class="crop-box"><canvas id="crop-canvas" width="680" height="680" aria-label="자리 맞추기 — 끌어서 옮기기"></canvas></div>
+    <label class="zoom">작게<input type="range" id="crop-zoom" min="1" max="5" step="0.01" value="1" aria-label="확대">크게</label>
+    <div class="row">
+      <button type="button" class="btn-sub" id="crop-back">다시 고르기</button>
+      <button type="button" class="btn-main" id="crop-next">그림으로 바꾸기</button>
+    </div>
+  </section>
+
+  <!-- 3. 꾸미고 보내기 -->
+  <section class="step" id="step-make" hidden>
+    <div class="preview">
+      <canvas id="card" width="1080" height="1350" aria-label="응가 캐릭터 그림 — 얼굴을 끌어서 옮길 수 있어요"></canvas>
+      <p class="busy" id="busy" hidden>그림으로 바꾸는 중…</p>
+    </div>
+    <p class="hint">그림 위 얼굴을 끌어서 옮길 수 있어요</p>
+    <div class="group"><span class="g-label">표정</span><div class="chips" id="faces"></div></div>
+    <button type="button" class="roll" id="roll">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="12" r="5"/><circle cx="17" cy="12" r="5"/><circle cx="9.5" cy="10.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="13.5" r="1.6" fill="currentColor"/></svg>
+      눈알 굴리기
+    </button>
+    <div class="group"><span class="g-label">오늘 응가</span><div class="chips" id="states"></div></div>
+    <details class="more">
+      <summary>더 꾸미기</summary>
+      <label class="field">강아지 이름<input type="text" id="name" maxlength="10" placeholder="우리 애" autocomplete="off"></label>
+      <label class="field">말풍선 한마디<input type="text" id="say" maxlength="16" autocomplete="off"></label>
+      <div class="group"><span class="g-label">배경</span><div class="chips" id="bgs"></div></div>
+      <label class="field">얼굴 크기<input type="range" id="face-size" min="0.5" max="1.8" step="0.01" value="1"></label>
+    </details>
+    <p class="bg-note" id="bg-note" hidden>배경과 응가를 잘 못 나눠서 동그랗게 잘랐어요. 응가가 가운데 오게 더 가까이 찍으면 배경을 지울 수 있어요.</p>
+    <button type="button" class="btn-main" id="send-btn">가족에게 보내기</button>
+    <div class="after"><button type="button" class="btn-text" id="again">다른 사진으로</button></div>
+    <ul class="notes small">
+      <li>보내는 건 이 그림 한 장뿐이에요. 원본 사진은 이 화면을 닫으면 사라져요.</li>
+      <li>카톡이 바로 안 보이면 공유 창에서 "더보기"를 눌러 보세요.</li>
+    </ul>
+  </section>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var WORK = 560;          // 그림으로 바꾸는 작업 크기(정사각, 동그라미가 꽉 차게)
+  var PAD = 26;            // 스티커 흰 테두리가 들어갈 여백(작업 픽셀)
+  var BORDER = 14;         // 흰 테두리 두께(작업 픽셀)
+  var LINE = 2.6;          // 바깥 테두리 선 두께(작업 픽셀)
+  var CARD_W = 1080, CARD_H = 1350;
+  var STICKER = 900;       // 카드 위 스티커 크기(px)
+  var INK = '#2b1d14';
+  var PROFILE_KEY = 'petwalk_profile';
+  var NAME_KEY = 'petwalk_toon_name';   // 주민증이 없는 사람이 적은 강아지 이름(이 휴대폰에만)
+
+  var FACES = [
+    { id: 'proud', label: '뿌듯', say: '오늘도 해냈다!' },
+    { id: 'tongue', label: '메롱', say: '치우느라 수고해~' },
+    { id: 'wow', label: '깜짝', say: '어머, 이게 다 나야?' },
+    { id: 'worry', label: '걱정', say: '나 오늘 좀 이상해…' },
+    { id: 'sleepy', label: '나른', say: '아 시원하다…' }
+  ];
+  var STATES = [
+    { id: 'usual', label: '평소대로', face: 'proud' },
+    { id: 'diff', label: '평소와 달랐어요', face: 'worry' },
+    { id: 'none', label: '안 적기' }
+  ];
+
+  // ── 상태 ──
+  var src = null;                          // 고른 사진(메모리에만 — 저장하지 않는다)
+  var crop = { zoom: 1, cx: 0, cy: 0 };    // 자리 맞추기: 확대, 가운데(사진 좌표)
+  var art = null;                          // 그림으로 바꾼 결과(작업 데이터)
+  var sticker = null;                      // 지금 배경 방식으로 그린 스티커 캔버스
+  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', size: 1 };
+  var face = { x: 0, y: 0, base: 40, pupils: [[0.3, -0.2], [-0.25, 0.25]] };   // 작업 좌표(여백 포함)
+  var cardBlob = null, cardDirty = true, blobTimer = null;
+
+  // 이름: 주민증 이름 → 전에 적은 이름
+  try {
+    var prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}') || {};
+    opt.name = String(prof.name || localStorage.getItem(NAME_KEY) || '').slice(0, 10);
+  } catch (e) { opt.name = ''; }
+
+  function show(step) {
+    ['pick', 'crop', 'make'].forEach(function (s) { $('step-' + s).hidden = s !== step; });
+    window.scrollTo(0, 0);
+  }
+  var toastTimer = null;
+  function toast(text) {
+    var t = $('toast');
+    t.textContent = text;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 3200);
+  }
+
+  // ════════ 사진 불러오기 ════════
+  // 큰 사진은 긴 변 1600px로 줄여 메모리에만 둔다. 캔버스로 다시 그리면 사진에 붙은 위치 정보(EXIF)는 따라오지 않는다.
+  function loadFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      var k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k));
+      c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      startCrop(c);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); alert('사진을 열지 못했어요. 다른 사진으로 해 주세요.'); };
+    img.src = url;
+  }
+  ['file-camera', 'file-album'].forEach(function (id) {
+    $(id).addEventListener('change', function () { var f = this.files && this.files[0]; this.value = ''; loadFile(f); });
+  });
+  $('demo-btn').addEventListener('click', function () { startCrop(makeSample(1)); });
+
+  // ════════ 예시 사진(지어낸 그림 — 실제 사진이 아님) ════════
+  function rng(seed) {
+    return function () {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function makeSample(seed) {
+    var S = 1200, c = document.createElement('canvas'); c.width = c.height = S;
+    var x = c.getContext('2d'), r = rng(seed * 9973 + 7);
+    // 잔디
+    x.fillStyle = '#4c7536'; x.fillRect(0, 0, S, S);
+    var greens = ['#3a6329', '#5f8f40', '#7aa651', '#2c4f1f', '#6b9a48', '#8fb862'];
+    for (var i = 0; i < 9000; i++) {
+      var gx = r() * S, gy = r() * S, len = 12 + r() * 34, ang = -Math.PI / 2 + (r() - 0.5) * 1.1;
+      x.strokeStyle = greens[(r() * greens.length) | 0]; x.lineWidth = 2 + r() * 2.5; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(gx, gy); x.lineTo(gx + Math.cos(ang) * len, gy + Math.sin(ang) * len); x.stroke();
+    }
+    for (i = 0; i < 40; i++) {
+      x.fillStyle = 'rgba(122,104,74,' + (0.12 + r() * 0.2) + ')';
+      x.beginPath(); x.ellipse(r() * S, r() * S, 10 + r() * 30, 6 + r() * 16, r() * 3, 0, Math.PI * 2); x.fill();
+    }
+    // 그림자
+    var sh = x.createRadialGradient(610, 700, 30, 610, 700, 360);
+    sh.addColorStop(0, 'rgba(10,20,5,0.55)'); sh.addColorStop(1, 'rgba(10,20,5,0)');
+    x.save(); x.translate(610, 700); x.scale(1, 0.42); x.translate(-610, -700);
+    x.fillStyle = sh; x.beginPath(); x.arc(610, 700, 360, 0, Math.PI * 2); x.fill(); x.restore();
+    // 응가 세 토막
+    var logs = [[520, 640, 380, 138, -0.2], [700, 575, 310, 124, 0.5], [598, 492, 230, 108, -0.62]];
+    logs.forEach(function (L) {
+      x.save(); x.translate(L[0], L[1]); x.rotate(L[4]);
+      var w = L[2], h = L[3], rr = h / 2;
+      x.beginPath();
+      x.moveTo(-w / 2 + rr, -h / 2); x.lineTo(w / 2 - rr, -h / 2); x.arc(w / 2 - rr, 0, rr, -Math.PI / 2, Math.PI / 2);
+      x.lineTo(-w / 2 + rr, h / 2); x.arc(-w / 2 + rr, 0, rr, Math.PI / 2, Math.PI * 1.5); x.closePath();
+      var g = x.createLinearGradient(0, -h / 2, 0, h / 2);
+      g.addColorStop(0, '#94622f'); g.addColorStop(0.45, '#6e4420'); g.addColorStop(1, '#3f2410');
+      x.fillStyle = g; x.fill();
+      x.save(); x.clip();
+      for (var k = 0; k < 260; k++) {
+        x.fillStyle = r() < 0.7 ? 'rgba(40,22,8,' + (0.15 + r() * 0.25) + ')' : 'rgba(190,140,80,' + (0.1 + r() * 0.2) + ')';
+        x.beginPath(); x.arc((r() - 0.5) * w, (r() - 0.5) * h, 1.5 + r() * 4, 0, Math.PI * 2); x.fill();
+      }
+      x.strokeStyle = 'rgba(35,18,6,0.55)'; x.lineWidth = 4;
+      for (k = 0; k < 4; k++) {
+        var px = (r() - 0.5) * (w - h);
+        x.beginPath(); x.moveTo(px, -h / 2); x.quadraticCurveTo(px + (r() - 0.5) * 30, 0, px + (r() - 0.5) * 20, h / 2); x.stroke();
+      }
+      x.fillStyle = 'rgba(255,240,215,0.22)';
+      x.beginPath(); x.ellipse(0, -h * 0.26, w * 0.36, h * 0.1, 0, 0, Math.PI * 2); x.fill();
+      x.restore(); x.restore();
+    });
+    return c;
+  }
+
+  // ════════ 2. 자리 맞추기 ════════
+  var cropCv = $('crop-canvas'), cropCtx = cropCv.getContext('2d');
+  var CIRCLE = 0.9;   // 보이는 정사각 중 동그라미 지름 비율
+  function baseSide() { return Math.min(src.width, src.height); }
+  function viewSide() { return baseSide() / crop.zoom; }
+  function clampCrop() {
+    var half = viewSide() / 2;
+    crop.cx = Math.min(Math.max(crop.cx, half * CIRCLE), src.width - half * CIRCLE);
+    crop.cy = Math.min(Math.max(crop.cy, half * CIRCLE), src.height - half * CIRCLE);
+  }
+  function drawCrop() {
+    var W = cropCv.width, side = viewSide();
+    cropCtx.fillStyle = '#2b2420'; cropCtx.fillRect(0, 0, W, W);
+    cropCtx.imageSmoothingQuality = 'high';
+    cropCtx.drawImage(src, crop.cx - side / 2, crop.cy - side / 2, side, side, 0, 0, W, W);
+    // 동그라미 밖은 어둡게
+    cropCtx.save();
+    cropCtx.beginPath(); cropCtx.rect(0, 0, W, W); cropCtx.arc(W / 2, W / 2, W * CIRCLE / 2, 0, Math.PI * 2, true);
+    cropCtx.fillStyle = 'rgba(20,14,10,0.58)'; cropCtx.fill();
+    cropCtx.beginPath(); cropCtx.arc(W / 2, W / 2, W * CIRCLE / 2, 0, Math.PI * 2);
+    cropCtx.lineWidth = 5; cropCtx.strokeStyle = '#fffaf3'; cropCtx.setLineDash([16, 12]); cropCtx.stroke();
+    cropCtx.restore();
+  }
+  function startCrop(canvas) {
+    src = canvas;
+    crop.zoom = 1; crop.cx = src.width / 2; crop.cy = src.height / 2;
+    $('crop-zoom').value = 1;
+    clampCrop();
+    show('crop');
+    drawCrop();
+  }
+  $('crop-zoom').addEventListener('input', function () { crop.zoom = +this.value; clampCrop(); drawCrop(); });
+  (function () {
+    var pts = {}, lastDist = 0;
+    function dist() { var k = Object.keys(pts); if (k.length < 2) return 0; var a = pts[k[0]], b = pts[k[1]]; return Math.hypot(a.x - b.x, a.y - b.y); }
+    cropCv.addEventListener('pointerdown', function (e) { cropCv.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY }; lastDist = dist(); });
+    cropCv.addEventListener('pointermove', function (e) {
+      var p = pts[e.pointerId]; if (!p || !src) return;
+      var n = Object.keys(pts).length, cssW = cropCv.getBoundingClientRect().width || 1;
+      if (n === 1) {
+        var k = viewSide() / cssW;
+        crop.cx -= (e.clientX - p.x) * k; crop.cy -= (e.clientY - p.y) * k;
+      }
+      p.x = e.clientX; p.y = e.clientY;
+      if (n >= 2) {
+        var d = dist();
+        if (lastDist > 0 && d > 0) { crop.zoom = Math.min(5, Math.max(1, crop.zoom * d / lastDist)); $('crop-zoom').value = crop.zoom; }
+        lastDist = d;
+      }
+      clampCrop(); drawCrop();
+    });
+    function up(e) { delete pts[e.pointerId]; lastDist = dist(); }
+    cropCv.addEventListener('pointerup', up); cropCv.addEventListener('pointercancel', up);
+    cropCv.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      crop.zoom = Math.min(5, Math.max(1, crop.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)));
+      $('crop-zoom').value = crop.zoom; clampCrop(); drawCrop();
+    }, { passive: false });
+  })();
+  $('crop-back').addEventListener('click', function () { src = null; show('pick'); });
+  $('crop-next').addEventListener('click', function () {
+    var c = document.createElement('canvas'); c.width = c.height = WORK;
+    var side = viewSide() * CIRCLE, cx = c.getContext('2d');
+    cx.imageSmoothingQuality = 'high';
+    cx.drawImage(src, crop.cx - side / 2, crop.cy - side / 2, side, side, 0, 0, WORK, WORK);
+    show('make');
+    $('busy').hidden = false;
+    // 화면에 "바꾸는 중"이 먼저 보이게 한 박자 쉬고 계산
+    setTimeout(function () {
+      var t0 = performance.now();
+      art = toonify(cx.getImageData(0, 0, WORK, WORK).data);
+      art.ms = Math.round(performance.now() - t0);
+      opt.bg = art.cutOk ? 'cut' : 'keep';
+      $('bg-note').hidden = art.cutOk;
+      placeFace();
+      rollEyes(true);
+      buildSticker();
+      paintControls();
+      render();
+      $('busy').hidden = true;
+      document.body.setAttribute('data-toon-ms', art.ms);
+    }, 30);
+  });
+
+  // ════════ 그림으로 바꾸기(이 휴대폰 안에서만) ════════
+  var art0 = {};   // 배경 나누기가 색을 비교할 때 쓰는 팔레트
+  function toonify(rgba) {
+    var W = WORK, N = W * W;
+    // ① 붓칠처럼 평평하게: 쿠와하라 필터 두 번(가장자리는 살리고 질감은 지운다)
+    var rgb = new Float32Array(N * 3);
+    for (var p = 0; p < N; p++) { rgb[p * 3] = rgba[p * 4]; rgb[p * 3 + 1] = rgba[p * 4 + 1]; rgb[p * 3 + 2] = rgba[p * 4 + 2]; }
+    rgb = kuwahara(rgb, W, W, 6);
+    rgb = kuwahara(rgb, W, W, 4);
+    // ② 색 몇 개로 줄이기
+    var K = 6, centers = kmeans(rgb, W, K);
+    var labels = new Uint8Array(N);
+    for (p = 0; p < N; p++) labels[p] = nearest(centers, K, rgb[p * 3], rgb[p * 3 + 1], rgb[p * 3 + 2]);
+    labels = modeFilter(modeFilter(labels, W, W, K), W, W, K);
+    var palette = [];
+    for (var k = 0; k < K; k++) palette.push(cutify(centers[k * 3], centers[k * 3 + 1], centers[k * 3 + 2]));
+    // ③ 배경 나누기 — 동그라미 가장자리에 많은 색 = 바닥
+    art0.palette = palette;
+    var cut = cutBackground(labels, W, K);
+    var res = { W: W, labels: labels, palette: palette, K: K, mask: cut.mask, cutOk: cut.ok, box: cut.box };
+    if (cut.ok) celShade(res, rgb);
+    return res;
+  }
+  // ④ 배경을 지운 응가는 명암 세 단계로 다시 칠한다(그린 그림처럼) — 색은 응가의 평균색, 밝고 어두운 자리는 사진 그대로
+  function celShade(res, rgb) {
+    var W = res.W, N = W * W, m = res.mask, n = 0, sr = 0, sg = 0, sb = 0, lums = [], lum = new Float32Array(N), p;
+    for (p = 0; p < N; p++) {
+      var l = 0.299 * rgb[p * 3] + 0.587 * rgb[p * 3 + 1] + 0.114 * rgb[p * 3 + 2]; lum[p] = l;
+      if (m[p]) { n++; sr += rgb[p * 3]; sg += rgb[p * 3 + 1]; sb += rgb[p * 3 + 2]; if (!(p % 3)) lums.push(l); }
+    }
+    lums.sort(function (a, b) { return a - b; });
+    var t1 = lums[Math.floor(lums.length * 0.3)], t2 = lums[Math.floor(lums.length * 0.84)];
+    var hsl = toHsl(sr / n, sg / n, sb / n), h = hsl[0], sat = Math.max(0.38, Math.min(0.8, hsl[1] * 1.25)), lt = Math.max(0.27, Math.min(0.5, hsl[2]));
+    res.cel = [fromHsl(h, Math.min(1, sat * 1.05), Math.max(0.13, lt - 0.12)), fromHsl(h, sat, lt), fromHsl(h, sat * 0.95, Math.min(0.76, lt + 0.17))];
+    // 밝기를 한 번 더 뭉개 두고, 그릴 때 부드럽게 읽어 경계가 매끈한 곡선이 되게 한다
+    boxBlur(lum, W, 3); boxBlur(lum, W, 3);
+    res.lum = lum; res.t1 = t1; res.t2 = t2;
+  }
+  function boxBlur(f, W, r) {
+    var t = new Float32Array(f.length), x, y, k, acc, n;
+    for (y = 0; y < W; y++) {
+      acc = 0; n = 0;
+      for (k = -r; k <= r; k++) if (k >= 0 && k < W) { acc += f[y * W + k]; n++; }
+      for (x = 0; x < W; x++) {
+        t[y * W + x] = acc / n;
+        var a = x - r, b = x + r + 1;
+        if (a >= 0) { acc -= f[y * W + a]; n--; }
+        if (b < W) { acc += f[y * W + b]; n++; }
+      }
+    }
+    for (x = 0; x < W; x++) {
+      acc = 0; n = 0;
+      for (k = -r; k <= r; k++) if (k >= 0 && k < W) { acc += t[k * W + x]; n++; }
+      for (y = 0; y < W; y++) {
+        f[y * W + x] = acc / n;
+        var c = y - r, d = y + r + 1;
+        if (c >= 0) { acc -= t[c * W + x]; n--; }
+        if (d < W) { acc += t[d * W + x]; n++; }
+      }
+    }
+  }
+  function toHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+    if (d > 0) {
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) / 6;
+    }
+    return [h, s, l];
+  }
+  function fromHsl(h, s, l) {
+    if (s === 0) return [l * 255, l * 255, l * 255];
+    function f(t) { var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; if (t < 0) t += 1; if (t > 1) t -= 1;
+      return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+    return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+  }
+
+  // 쿠와하라: 네 귀퉁이 칸 중 밝기가 가장 고른 칸의 평균색. 합계표(적분 영상)로 빠르게
+  function kuwahara(rgb, W, H, R) {
+    var W1 = W + 1, S = W1 * (H + 1);
+    var sr = new Float64Array(S), sg = new Float64Array(S), sb = new Float64Array(S), sl = new Float64Array(S), sl2 = new Float64Array(S);
+    for (var y = 0; y < H; y++) {
+      var ar = 0, ag = 0, ab = 0, al = 0, al2 = 0;
+      for (var x = 0; x < W; x++) {
+        var i = (y * W + x) * 3, r = rgb[i], g = rgb[i + 1], b = rgb[i + 2], l = 0.299 * r + 0.587 * g + 0.114 * b;
+        ar += r; ag += g; ab += b; al += l; al2 += l * l;
+        var k = (y + 1) * W1 + x + 1, ku = y * W1 + x + 1;
+        sr[k] = sr[ku] + ar; sg[k] = sg[ku] + ag; sb[k] = sb[ku] + ab; sl[k] = sl[ku] + al; sl2[k] = sl2[ku] + al2;
+      }
+    }
+    var out = new Float32Array(W * H * 3);
+    for (y = 0; y < H; y++) {
+      for (x = 0; x < W; x++) {
+        var best = Infinity, br = 0, bg = 0, bb = 0;
+        for (var q = 0; q < 4; q++) {
+          var x0 = q & 1 ? x : x - R, x1 = q & 1 ? x + R : x, y0 = q & 2 ? y : y - R, y1 = q & 2 ? y + R : y;
+          if (x0 < 0) x0 = 0; if (y0 < 0) y0 = 0; if (x1 > W - 1) x1 = W - 1; if (y1 > H - 1) y1 = H - 1;
+          var n = (x1 - x0 + 1) * (y1 - y0 + 1);
+          var A = y0 * W1 + x0, B = y0 * W1 + x1 + 1, C = (y1 + 1) * W1 + x0, D = (y1 + 1) * W1 + x1 + 1;
+          var m = (sl[D] - sl[B] - sl[C] + sl[A]) / n, v = (sl2[D] - sl2[B] - sl2[C] + sl2[A]) / n - m * m;
+          if (v < best) {
+            best = v;
+            br = (sr[D] - sr[B] - sr[C] + sr[A]) / n; bg = (sg[D] - sg[B] - sg[C] + sg[A]) / n; bb = (sb[D] - sb[B] - sb[C] + sb[A]) / n;
+          }
+        }
+        var o = (y * W + x) * 3; out[o] = br; out[o + 1] = bg; out[o + 2] = bb;
+      }
+    }
+    return out;
+  }
+  function cdist(c, i, r, g, b) { var dr = c[i] - r, dg = c[i + 1] - g, db = c[i + 2] - b; return 2 * dr * dr + 4 * dg * dg + 3 * db * db; }
+  function nearest(c, K, r, g, b) {
+    var best = 0, bd = Infinity;
+    for (var k = 0; k < K; k++) { var d = cdist(c, k * 3, r, g, b); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }
+  // k-평균: 동그라미 안 점만 뽑아, 밝기 순서로 고르게 시작해서 열 번 고친다(같은 사진이면 늘 같은 결과)
+  function kmeans(rgb, W, K) {
+    var N = W * W, R0 = W / 2, step = Math.max(1, Math.floor(N * 0.785 / 24000)), pts = [];
+    for (var p = 0; p < N; p += step) { var px = p % W, py = (p / W) | 0; if (Math.hypot(px + 0.5 - R0, py + 0.5 - R0) < R0 * 0.98) pts.push(p); }
+    var S = pts.length, sm = new Float32Array(S * 3), lum = new Float32Array(S), idx = [];
+    for (var s = 0; s < S; s++) {
+      p = pts[s];
+      sm[s * 3] = rgb[p * 3]; sm[s * 3 + 1] = rgb[p * 3 + 1]; sm[s * 3 + 2] = rgb[p * 3 + 2];
+      lum[s] = 0.299 * sm[s * 3] + 0.587 * sm[s * 3 + 1] + 0.114 * sm[s * 3 + 2]; idx.push(s);
+    }
+    idx.sort(function (a, b) { return lum[a] - lum[b]; });
+    var c = new Float32Array(K * 3);
+    for (var k = 0; k < K; k++) { var q = idx[Math.floor((k + 0.5) / K * S)]; c[k * 3] = sm[q * 3]; c[k * 3 + 1] = sm[q * 3 + 1]; c[k * 3 + 2] = sm[q * 3 + 2]; }
+    var sum = new Float64Array(K * 3), cnt = new Float64Array(K);
+    for (var it = 0; it < 10; it++) {
+      sum.fill(0); cnt.fill(0);
+      for (s = 0; s < S; s++) {
+        var b = nearest(c, K, sm[s * 3], sm[s * 3 + 1], sm[s * 3 + 2]);
+        sum[b * 3] += sm[s * 3]; sum[b * 3 + 1] += sm[s * 3 + 1]; sum[b * 3 + 2] += sm[s * 3 + 2]; cnt[b]++;
+      }
+      for (k = 0; k < K; k++) {
+        if (cnt[k]) { c[k * 3] = sum[k * 3] / cnt[k]; c[k * 3 + 1] = sum[k * 3 + 1] / cnt[k]; c[k * 3 + 2] = sum[k * 3 + 2] / cnt[k]; }
+        else { var z = idx[(k * 7919) % S]; c[k * 3] = sm[z * 3]; c[k * 3 + 1] = sm[z * 3 + 1]; c[k * 3 + 2] = sm[z * 3 + 2]; }
+      }
+    }
+    return c;
+  }
+  // 3×3 다수결 — 자잘한 점을 지운다
+  function modeFilter(lab, W, H, K) {
+    var out = new Uint8Array(W * H), cnt = new Uint8Array(K);
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        var best = lab[y * W + x], bc = 0;
+        for (var dy = -1; dy <= 1; dy++) {
+          var yy = y + dy; if (yy < 0 || yy >= H) continue;
+          for (var dx = -1; dx <= 1; dx++) {
+            var xx = x + dx; if (xx < 0 || xx >= W) continue;
+            var l = lab[yy * W + xx], c = ++cnt[l];
+            if (c > bc) { bc = c; best = l; }
+          }
+        }
+        for (dy = -1; dy <= 1; dy++) { yy = y + dy; if (yy < 0 || yy >= H) continue; for (dx = -1; dx <= 1; dx++) { xx = x + dx; if (xx >= 0 && xx < W) cnt[lab[yy * W + xx]] = 0; } }
+        out[y * W + x] = best;
+      }
+    }
+    return out;
+  }
+  // 색을 조금 더 또렷하고 따뜻하게(만화 느낌)
+  function cutify(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+    if (d > 0) {
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h /= 6;
+    }
+    s = Math.min(1, s * 1.22 + 0.05);
+    l = Math.min(0.92, l * 1.04 + 0.03);
+    function f(t) { var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; if (t < 0) t += 1; if (t > 1) t -= 1;
+      return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+    return s === 0 ? [l * 255, l * 255, l * 255] : [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+  }
+
+  // 배경 나누기. 실패하면 ok=false(동그란 스티커로 간다)
+  function cutBackground(lab, W, K) {
+    var R0 = W / 2, ring = new Float64Array(K), center = new Float64Array(K), ringN = 0, centerN = 0;
+    for (var y = 0; y < W; y++) for (var x = 0; x < W; x++) {
+      var d = Math.hypot(x + 0.5 - R0, y + 0.5 - R0) / R0, l = lab[y * W + x];
+      if (d > 0.8 && d < 0.97) { ring[l]++; ringN++; }
+      else if (d < 0.32) { center[l]++; centerN++; }
+    }
+    var isBg = [], anyBg = false, fgSeed = -1, k, j;
+    for (k = 0; k < K; k++) { isBg[k] = ring[k] / ringN >= 0.08 && center[k] / centerN < 0.3; if (isBg[k]) anyBg = true; }
+    if (!anyBg) return { ok: false, mask: null };
+    // 색깔 거리 — 밝기보다 색깔(빨강·파랑 쪽 치우침)을 크게 본다. 그림자 진 잔디는 잔디와 가깝고 응가와는 멀다
+    var pal = art0.palette;
+    function cd(a, b) {
+      var ya = 0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2], yb = 0.299 * b[0] + 0.587 * b[1] + 0.114 * b[2];
+      var du = (a[2] - ya) - (b[2] - yb), dv = (a[0] - ya) - (b[0] - yb), dy = ya - yb;
+      return 0.25 * dy * dy + du * du + dv * dv;
+    }
+    function toBg(k) { var d = Infinity; for (var j = 0; j < K; j++) if (isBg[j]) d = Math.min(d, cd(pal[k], pal[j])); return d; }
+    // 응가 색 = 가운데에 있고 바닥과 색깔이 가장 다른 것
+    var bestScore = 0;
+    for (k = 0; k < K; k++) {
+      if (isBg[k] || center[k] / centerN < 0.08) continue;
+      var sc = center[k] / centerN * Math.sqrt(toBg(k));
+      if (sc > bestScore) { bestScore = sc; fgSeed = k; }
+    }
+    if (fgSeed < 0 || toBg(fgSeed) < 600) return { ok: false, mask: null };   // 바닥과 색이 너무 비슷(흙바닥 등) — 동그랗게 간다
+    // 나머지 색은 바닥과 응가 중 색깔이 더 가까운 쪽으로
+    for (k = 0; k < K; k++) {
+      if (isBg[k] || k === fgSeed) continue;
+      if (toBg(k) < cd(pal[k], pal[fgSeed])) isBg[k] = true;
+    }
+    var N = W * W, m = new Uint8Array(N);
+    for (y = 0; y < W; y++) for (x = 0; x < W; x++) {
+      var i = y * W + x;
+      m[i] = !isBg[lab[i]] && Math.hypot(x + 0.5 - R0, y + 0.5 - R0) < R0 * 0.97 ? 1 : 0;
+    }
+    if (!anyBg) return { ok: false, mask: null };
+    // 가는 부스러기 지우기(깎았다 다시 붙이기)
+    var din = chamfer(m, W, W, 0);
+    var er = new Uint8Array(N); for (i = 0; i < N; i++) er[i] = din[i] > 2.5 ? 1 : 0;
+    var inv = new Uint8Array(N); for (i = 0; i < N; i++) inv[i] = er[i] ? 0 : 1;
+    var dout = chamfer(inv, W, W, Infinity);
+    for (i = 0; i < N; i++) m[i] = er[i] || dout[i] <= 2.5 ? 1 : 0;
+    // 덩어리 나누기 — 가장 큰 것과 가운데 가까운 큰 덩어리만 남긴다
+    var comp = new Int32Array(N).fill(-1), sizes = [], cxs = [], cys = [], stack = new Int32Array(N);
+    for (i = 0; i < N; i++) {
+      if (!m[i] || comp[i] >= 0) continue;
+      var id = sizes.length, top = 0, n = 0, sx = 0, sy = 0;
+      stack[top++] = i; comp[i] = id;
+      while (top) {
+        var q = stack[--top], qx = q % W, qy = (q / W) | 0; n++; sx += qx; sy += qy;
+        if (qx > 0 && m[q - 1] && comp[q - 1] < 0) { comp[q - 1] = id; stack[top++] = q - 1; }
+        if (qx < W - 1 && m[q + 1] && comp[q + 1] < 0) { comp[q + 1] = id; stack[top++] = q + 1; }
+        if (qy > 0 && m[q - W] && comp[q - W] < 0) { comp[q - W] = id; stack[top++] = q - W; }
+        if (qy < W - 1 && m[q + W] && comp[q + W] < 0) { comp[q + W] = id; stack[top++] = q + W; }
+      }
+      sizes.push(n); cxs.push(sx / n); cys.push(sy / n);
+    }
+    if (!sizes.length) return { ok: false, mask: null };
+    var big = 0; for (k = 1; k < sizes.length; k++) if (sizes[k] > sizes[big]) big = k;
+    var keep = sizes.map(function (s, k) { return k === big || (s >= sizes[big] * 0.2 && Math.hypot(cxs[k] - R0, cys[k] - R0) < R0 * 0.55); });
+    for (i = 0; i < N; i++) m[i] = comp[i] >= 0 && keep[comp[i]] ? 1 : 0;
+    // 구멍 메우기(바깥과 이어지지 않은 배경 = 응가 속 반짝이)
+    var seen = new Uint8Array(N); top = 0;
+    for (x = 0; x < W; x++) { if (!m[x]) { seen[x] = 1; stack[top++] = x; } var b = (W - 1) * W + x; if (!m[b] && !seen[b]) { seen[b] = 1; stack[top++] = b; } }
+    for (y = 0; y < W; y++) { var a = y * W; if (!m[a] && !seen[a]) { seen[a] = 1; stack[top++] = a; } a = y * W + W - 1; if (!m[a] && !seen[a]) { seen[a] = 1; stack[top++] = a; } }
+    while (top) {
+      q = stack[--top]; qx = q % W; qy = (q / W) | 0;
+      if (qx > 0 && !m[q - 1] && !seen[q - 1]) { seen[q - 1] = 1; stack[top++] = q - 1; }
+      if (qx < W - 1 && !m[q + 1] && !seen[q + 1]) { seen[q + 1] = 1; stack[top++] = q + 1; }
+      if (qy > 0 && !m[q - W] && !seen[q - W]) { seen[q - W] = 1; stack[top++] = q - W; }
+      if (qy < W - 1 && !m[q + W] && !seen[q + W]) { seen[q + W] = 1; stack[top++] = q + W; }
+    }
+    var area = 0, x0 = W, y0 = W, x1 = 0, y1 = 0;
+    for (i = 0; i < N; i++) {
+      if (!m[i] && !seen[i]) m[i] = 1;
+      if (m[i]) { area++; var mx = i % W, my = (i / W) | 0; if (mx < x0) x0 = mx; if (mx > x1) x1 = mx; if (my < y0) y0 = my; if (my > y1) y1 = my; }
+    }
+    var frac = area / (Math.PI * R0 * R0);
+    if (frac < 0.03 || frac > 0.8) return { ok: false, mask: null };
+    return { ok: true, mask: m, box: [x0, y0, x1, y1] };
+  }
+  // 거리 지도(체임퍼): mask=1인 칸마다 가장 가까운 0 칸까지의 거리.
+  // edge: 영상 밖을 어떻게 볼지 — 0이면 밖도 0 칸(배경까지 거리), Infinity면 밖은 없는 셈(응가까지 거리)
+  function chamfer(mask, W, H, edge) {
+    var d = new Float32Array(W * H), INF = 1e9, a = 1, b = Math.SQRT2, i, x, y, v, ea = edge + a, eb = edge + b;
+    for (i = 0; i < W * H; i++) d[i] = mask[i] ? INF : 0;
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; if (!d[i]) continue; v = d[i];
+      v = Math.min(v, x > 0 ? d[i - 1] + a : ea, y > 0 ? d[i - W] + a : ea,
+        x > 0 && y > 0 ? d[i - W - 1] + b : eb, x < W - 1 && y > 0 ? d[i - W + 1] + b : eb);
+      d[i] = v;
+    }
+    for (y = H - 1; y >= 0; y--) for (x = W - 1; x >= 0; x--) {
+      i = y * W + x; if (!d[i]) continue; v = d[i];
+      v = Math.min(v, x < W - 1 ? d[i + 1] + a : ea, y < H - 1 ? d[i + W] + a : ea,
+        x < W - 1 && y < H - 1 ? d[i + W + 1] + b : eb, x > 0 && y < H - 1 ? d[i + W - 1] + b : eb);
+      d[i] = v;
+    }
+    return d;
+  }
+
+  // ── 스티커 그리기: 배경을 지웠으면 모양대로 흰 테두리, 아니면 동그란 스티커 ──
+  // 테두리는 거리 지도를 부드럽게 읽어 계단 없이 그린다(크게 키워도 매끈하게)
+  function buildSticker() {
+    var W = art.W, P = PAD, Wp = W + 2 * P, Np = Wp * Wp;
+    var sdf = new Float32Array(Np);   // 바깥(+)·안(−) 거리, 작업 픽셀 단위
+    if (opt.bg === 'cut' && art.cutOk) {
+      var m = new Uint8Array(Np);
+      for (var y = 0; y < W; y++) for (var x = 0; x < W; x++) m[(y + P) * Wp + x + P] = art.mask[y * W + x];
+      var inv = new Uint8Array(Np); for (var i = 0; i < Np; i++) inv[i] = m[i] ? 0 : 1;
+      var din = chamfer(m, Wp, Wp, 0), dout = chamfer(inv, Wp, Wp, Infinity);
+      for (i = 0; i < Np; i++) sdf[i] = m[i] ? 0.5 - din[i] : dout[i] - 0.5;
+      blurField(sdf, Wp);
+    } else {
+      var R = W / 2 * 0.985, c = Wp / 2;
+      for (y = 0; y < Wp; y++) for (x = 0; x < Wp; x++) sdf[y * Wp + x] = Math.hypot(x + 0.5 - c, y + 0.5 - c) - R;
+    }
+    // 그릴 창: 배경을 지웠으면 응가 둘레 + 흰 테두리만, 아니면 동그라미 전체. 창을 카드 자리(가로 860·세로 800)에 맞춰 키운다
+    var wx0 = 0, wy0 = 0, ww = Wp, wh = Wp;
+    if (opt.bg === 'cut' && art.cutOk) {
+      var m2 = BORDER + 8, bx = art.box;
+      wx0 = Math.max(0, bx[0] + P - m2); wy0 = Math.max(0, bx[1] + P - m2);
+      ww = Math.min(Wp, bx[2] + P + m2 + 1) - wx0; wh = Math.min(Wp, bx[3] + P + m2 + 1) - wy0;
+    }
+    var scale = Math.min(860 / ww, 800 / wh, 2.4), OW = Math.round(ww * scale), OH = Math.round(wh * scale), cv = document.createElement('canvas');
+    cv.width = OW; cv.height = OH;
+    var ctx = cv.getContext('2d'), img = ctx.createImageData(OW, OH), out = img.data;
+    var line = [43, 29, 20], pal = art.palette, lab = art.labels, cel = (opt.bg === 'cut' && art.cutOk) ? art.cel : null;
+    for (var oy = 0; oy < OH; oy++) {
+      var v = wy0 + (oy + 0.5) / scale - 0.5;
+      for (var ox = 0; ox < OW; ox++) {
+        var u = wx0 + (ox + 0.5) / scale - 0.5, s = sample(sdf, Wp, u, v), o = (oy * OW + ox) * 4;
+        var aw = clamp01(0.5 - (s - BORDER) * scale);
+        if (aw <= 0) continue;
+        var rr = 255, gg = 253, bb = 247, aa = aw;
+        var af = clamp01(0.5 - s * scale);
+        if (af > 0) {
+          var lx = Math.round(u - P), ly = Math.round(v - P);
+          if (lx < 0) lx = 0; if (ly < 0) ly = 0; if (lx > W - 1) lx = W - 1; if (ly > W - 1) ly = W - 1;
+          var li = lab[ly * W + lx], col = pal[li], edge = 0;
+          if (cel) {
+            // 명암 세 단계 — 밝기 경계는 1.6 밝기만큼 섞어 계단 없이
+            var L = sample(art.lum, W, u - P, v - P), a1 = clamp01((L - art.t1) / 1.6 + 0.5), a2 = clamp01((L - art.t2) / 1.6 + 0.5);
+            var c0 = cel[0], c1 = cel[1], c2 = cel[2];
+            col = [c0[0] + (c1[0] - c0[0]) * a1 + (c2[0] - c1[0]) * a2, c0[1] + (c1[1] - c0[1]) * a1 + (c2[1] - c1[1]) * a2, c0[2] + (c1[2] - c0[2]) * a1 + (c2[2] - c1[2]) * a2];
+          } else {
+            // 색이 바뀌는 경계에 가는 선(동그란 스티커 — 바닥까지 그림으로)
+            var lx2 = Math.min(W - 1, lx + 1), ly2 = Math.min(W - 1, ly + 1);
+            if (lab[ly * W + lx2] !== li && contrast(col, pal[lab[ly * W + lx2]])) edge = 1;
+            else if (lab[ly2 * W + lx] !== li && contrast(col, pal[lab[ly2 * W + lx]])) edge = 1;
+          }
+          var cr = col[0], cg = col[1], cb = col[2];
+          if (edge) { cr = cr * 0.25 + line[0] * 0.75; cg = cg * 0.25 + line[1] * 0.75; cb = cb * 0.25 + line[2] * 0.75; }
+          rr = rr * (1 - af) + cr * af; gg = gg * (1 - af) + cg * af; bb = bb * (1 - af) + cb * af;
+          aa = Math.max(aa, af);
+        }
+        // 바깥 테두리 선(안쪽으로 LINE만큼)
+        var al = clamp01(0.5 - s * scale) * clamp01(0.5 + (s + LINE) * scale);
+        if (al > 0) { rr = rr * (1 - al) + line[0] * al; gg = gg * (1 - al) + line[1] * al; bb = bb * (1 - al) + line[2] * al; }
+        out[o] = rr; out[o + 1] = gg; out[o + 2] = bb; out[o + 3] = aa * 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    // 카드 위 자리: 가운데(스티커 칸 236~1136의 가운데)
+    var cx = CARD_W / 2 - OW / 2, cy = SY + STICKER / 2 - OH / 2;
+    sticker = { canvas: cv, scale: scale, x: cx, y: cy, ox: cx - wx0 * scale, oy: cy - wy0 * scale };
+  }
+  function contrast(a, b) { var d = Math.abs((0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2]) - (0.299 * b[0] + 0.587 * b[1] + 0.114 * b[2])); return d > 22; }
+  function clamp01(t) { return t < 0 ? 0 : t > 1 ? 1 : t; }
+  function sample(f, W, u, v) {
+    if (u < 0) u = 0; if (v < 0) v = 0; if (u > W - 1.001) u = W - 1.001; if (v > W - 1.001) v = W - 1.001;
+    var x = u | 0, y = v | 0, fx = u - x, fy = v - y, i = y * W + x;
+    return (f[i] * (1 - fx) + f[i + 1] * fx) * (1 - fy) + (f[i + W] * (1 - fx) + f[i + W + 1] * fx) * fy;
+  }
+  function blurField(f, W) {
+    var t = new Float32Array(f.length), x, y, i;
+    for (y = 0; y < W; y++) for (x = 0; x < W; x++) { i = y * W + x; t[i] = (f[i] * 2 + (x > 0 ? f[i - 1] : f[i]) + (x < W - 1 ? f[i + 1] : f[i])) / 4; }
+    for (y = 0; y < W; y++) for (x = 0; x < W; x++) { i = y * W + x; f[i] = (t[i] * 2 + (y > 0 ? t[i - W] : t[i]) + (y < W - 1 ? t[i + W] : t[i])) / 4; }
+  }
+
+  // ════════ 얼굴 ════════
+  // 기본 자리: 배경을 지웠으면 응가 덩어리 위쪽 가운데, 아니면 동그라미 가운데 조금 위
+  function placeFace() {
+    var W = art.W, P = PAD;
+    if (art.cutOk && art.box) {
+      var b = art.box, bw = b[2] - b[0], bh = b[3] - b[1];
+      face.x = P + (b[0] + b[2]) / 2; face.y = P + b[1] + bh * 0.42;
+      face.base = Math.max(22, Math.min(64, bw * 0.12));
+    } else { face.x = P + W / 2; face.y = P + W * 0.46; face.base = W * 0.075; }
+    opt.size = 1; $('face-size').value = 1;
+  }
+  function rollEyes(first) {
+    function rnd() { var a = Math.random() * Math.PI * 2, r = 0.45 + Math.random() * 0.55; return [Math.cos(a) * r, Math.sin(a) * r]; }
+    face.pupils = first ? [[0.35, -0.25], [-0.2, 0.3]] : [rnd(), rnd()];
+  }
+  function drawFace(ctx, k, ox, oy) {
+    var Re = face.base * opt.size * k, cx = ox + face.x * k, cy = oy + face.y * k, f = opt.face;
+    var ex = Re * 1.28, ey = cy;
+    var lid = sampleColor();
+    // 볼
+    if (f === 'proud' || f === 'tongue' || f === 'sleepy') {
+      ctx.fillStyle = 'rgba(255,140,150,0.55)';
+      [-1, 1].forEach(function (sd) { ctx.beginPath(); ctx.ellipse(cx + sd * Re * 2.25, cy + Re * 1.35, Re * 0.55, Re * 0.32, 0, 0, Math.PI * 2); ctx.fill(); });
+    }
+    // 눈알
+    [-1, 1].forEach(function (sd, n) {
+      var x = cx + sd * ex, y = ey, R = Re;
+      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.lineWidth = Math.max(2, R * 0.14); ctx.strokeStyle = INK; ctx.stroke();
+      var pr = R * (f === 'wow' ? 0.3 : 0.5), mo = R - pr - R * 0.12, pd = face.pupils[n];
+      var px = x + pd[0] * mo, py = y + pd[1] * mo;
+      if (f === 'sleepy') py = y + Math.abs(pd[1]) * mo * 0.5 + mo * 0.35;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fillStyle = '#1b1210'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px - pr * 0.35, py - pr * 0.35, pr * 0.28, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+      if (f === 'sleepy') {   // 반쯤 감은 눈꺼풀
+        ctx.save(); ctx.beginPath(); ctx.arc(x, y, R - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.clip();
+        ctx.fillStyle = lid; ctx.fillRect(x - R, y - R, R * 2, R * 1.05);
+        ctx.restore();
+        ctx.beginPath(); ctx.moveTo(x - R * 0.98, y + R * 0.05); ctx.lineTo(x + R * 0.98, y + R * 0.05);
+        ctx.lineWidth = Math.max(2, R * 0.16); ctx.strokeStyle = INK; ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.lineWidth = Math.max(2, R * 0.14); ctx.stroke();
+      }
+    });
+    // 걱정 눈썹·땀
+    if (f === 'worry') {
+      ctx.lineCap = 'round'; ctx.lineWidth = Math.max(3, Re * 0.2); ctx.strokeStyle = INK;
+      [-1, 1].forEach(function (sd) {
+        ctx.beginPath(); ctx.moveTo(cx + sd * (ex + Re * 0.85), ey - Re * 1.25); ctx.lineTo(cx + sd * (ex - Re * 0.55), ey - Re * 1.6); ctx.stroke();
+      });
+      var sx = cx + ex + Re * 1.55, sy = ey - Re * 0.9;
+      ctx.beginPath(); ctx.moveTo(sx, sy - Re * 0.75);
+      ctx.bezierCurveTo(sx + Re * 0.55, sy + Re * 0.05, sx + Re * 0.38, sy + Re * 0.5, sx, sy + Re * 0.5);
+      ctx.bezierCurveTo(sx - Re * 0.38, sy + Re * 0.5, sx - Re * 0.55, sy + Re * 0.05, sx, sy - Re * 0.75);
+      ctx.fillStyle = '#9fd3f5'; ctx.fill(); ctx.lineWidth = Math.max(2, Re * 0.1); ctx.strokeStyle = '#3d7fae'; ctx.stroke();
+    }
+    // 입
+    var my = cy + Re * 1.75, mw = Re * 1.05;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(3, Re * 0.17);
+    if (f === 'proud') {
+      ctx.beginPath(); ctx.moveTo(cx - mw, my - Re * 0.15); ctx.quadraticCurveTo(cx, my + Re * 1.5, cx + mw, my - Re * 0.15); ctx.closePath();
+      ctx.fillStyle = '#5a1f1a'; ctx.fill();
+      ctx.save(); ctx.clip(); ctx.beginPath(); ctx.ellipse(cx, my + Re * 0.75, mw * 0.55, Re * 0.38, 0, 0, Math.PI * 2); ctx.fillStyle = '#ff8f99'; ctx.fill(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(cx - mw, my - Re * 0.15); ctx.quadraticCurveTo(cx, my + Re * 1.5, cx + mw, my - Re * 0.15); ctx.closePath(); ctx.stroke();
+    } else if (f === 'tongue') {
+      ctx.beginPath(); ctx.moveTo(cx - mw * 0.9, my); ctx.quadraticCurveTo(cx, my + Re * 0.75, cx + mw * 0.9, my); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - Re * 0.42, my + Re * 0.32);
+      ctx.lineTo(cx - Re * 0.42, my + Re * 0.95); ctx.arc(cx, my + Re * 0.95, Re * 0.42, Math.PI, 0, true); ctx.lineTo(cx + Re * 0.42, my + Re * 0.32);
+      ctx.fillStyle = '#ff7f8c'; ctx.fill(); ctx.lineWidth = Math.max(2, Re * 0.12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, my + Re * 0.45); ctx.lineTo(cx, my + Re * 0.95); ctx.lineWidth = Math.max(2, Re * 0.08); ctx.strokeStyle = '#c4505d'; ctx.stroke();
+    } else if (f === 'wow') {
+      ctx.beginPath(); ctx.ellipse(cx, my + Re * 0.35, Re * 0.42, Re * 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = '#5a1f1a'; ctx.fill(); ctx.stroke();
+    } else if (f === 'worry') {
+      ctx.beginPath(); ctx.moveTo(cx - mw * 0.85, my + Re * 0.35);
+      ctx.bezierCurveTo(cx - mw * 0.45, my - Re * 0.05, cx - mw * 0.15, my + Re * 0.6, cx, my + Re * 0.3);
+      ctx.bezierCurveTo(cx + mw * 0.15, my, cx + mw * 0.45, my + Re * 0.65, cx + mw * 0.85, my + Re * 0.25); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.moveTo(cx - mw * 0.45, my + Re * 0.2); ctx.quadraticCurveTo(cx, my + Re * 0.55, cx + mw * 0.45, my + Re * 0.2); ctx.stroke();
+    }
+    return { cx: cx, top: cy - Re * 1.8, right: cx + ex + Re };
+  }
+  // 눈꺼풀 색 = 얼굴 자리의 그림 색
+  function sampleColor() {
+    var W = art.W, x = Math.round(face.x - PAD), y = Math.round(face.y - PAD);
+    x = Math.max(0, Math.min(W - 1, x)); y = Math.max(0, Math.min(W - 1, y));
+    var c = (opt.bg === 'cut' && art.cutOk && art.cel) ? art.cel[1] : art.palette[art.labels[y * W + x]];
+    return 'rgb(' + Math.round(c[0] * 0.85) + ',' + Math.round(c[1] * 0.85) + ',' + Math.round(c[2] * 0.85) + ')';
+  }
+
+  // ════════ 카드 ════════
+  var card = $('card'), cctx = card.getContext('2d');
+  var SX = (CARD_W - STICKER) / 2, SY = 236;   // 스티커 자리
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  function title() { return opt.name ? opt.name + '의 오늘 응가' : '우리 애 오늘 응가'; }
+  function sayText() { var f = FACES.filter(function (x) { return x.id === opt.face; })[0]; return opt.say || (f ? f.say : ''); }
+  function render() {
+    if (!art || !sticker) return;
+    var ctx = cctx;
+    ctx.clearRect(0, 0, CARD_W, CARD_H);
+    ctx.fillStyle = '#f7ede2'; ctx.fillRect(0, 0, CARD_W, CARD_H);
+    // 뒤 동그라미
+    ctx.fillStyle = '#fbe3b4'; ctx.beginPath(); ctx.arc(CARD_W / 2, SY + STICKER / 2 + 10, STICKER * 0.47, 0, Math.PI * 2); ctx.fill();
+    // 제목·날짜
+    var now = new Date();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#4a3f35';
+    // 블랙한산스는 글자 묶음별로 나눠 받는다 — 제목 글자가 다 와 있을 때만 쓰고, 아니면 받아 온 뒤 다시 그린다
+    var bhs = false;
+    try { bhs = !!(document.fonts && document.fonts.check && document.fonts.check("90px 'Black Han Sans'", title())); } catch (e) { bhs = false; }
+    if (!bhs) ensureTitleFont(title());
+    fitText(ctx, title(), CARD_W / 2, 132, 940, bhs ? 92 : 80, bhs ? "'Black Han Sans', sans-serif" : "'Pretendard', sans-serif", bhs ? '400' : '800');
+    ctx.font = "700 38px 'Pretendard', sans-serif"; ctx.fillStyle = '#8a7a68';
+    ctx.fillText((now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일', CARD_W / 2, 196);
+    // 스티커(그림자 + 스티커)
+    ctx.save();
+    ctx.shadowColor = 'rgba(74,63,53,0.28)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 12;
+    ctx.drawImage(sticker.canvas, sticker.x, sticker.y);
+    ctx.restore();
+    var fc = drawFace(ctx, sticker.scale, sticker.ox, sticker.oy);
+    // 말풍선
+    var t = sayText();
+    if (t) bubble(ctx, t, fc);
+    // 상태
+    var st = STATES.filter(function (s) { return s.id === opt.state; })[0];
+    if (st && st.id !== 'none') {
+      var good = st.id === 'usual', label = good ? '평소대로 ✓' : '평소와 달랐어요';
+      ctx.font = "800 44px 'Pretendard', sans-serif";
+      var w = ctx.measureText(label).width + 64, x = CARD_W / 2 - w / 2, y = 1176;
+      ctx.fillStyle = good ? '#e3f1e5' : '#fbe7d6'; roundRect(ctx, x, y, w, 76, 38); ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = good ? '#b9d9be' : '#ecc4a4'; ctx.stroke();
+      ctx.fillStyle = good ? '#2f6b3a' : '#9c4530'; ctx.textBaseline = 'middle'; ctx.fillText(label, CARD_W / 2, y + 40);
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.font = "700 30px 'Pretendard', sans-serif"; ctx.fillStyle = '#a08f7c';
+    ctx.fillText('왈슨 · 다산동 강아지 산책 앱', CARD_W / 2, 1306);
+    cardDirty = true;
+    clearTimeout(blobTimer);
+    blobTimer = setTimeout(makeBlob, 250);
+  }
+  var askedFont = {};
+  function ensureTitleFont(text) {
+    if (askedFont[text] || !document.fonts || !document.fonts.load) return;
+    askedFont[text] = true;
+    document.fonts.load("400 90px 'Black Han Sans'", text).then(function (f) { if (f && f.length) requestRender(); }, function () { /* 기본 글꼴로 둔다 */ });
+  }
+  // 보내기 버튼을 누른 순간 바로 공유 창을 열 수 있게 그림 파일을 미리 만들어 둔다(아이폰은 누른 뒤 시간이 지나면 막힘)
+  function makeBlob() {
+    card.toBlob(function (b) { cardBlob = b; cardDirty = false; }, 'image/png');
+  }
+  function fitText(ctx, text, x, y, maxW, size, family, weight) {
+    var s = size;
+    do { ctx.font = weight + ' ' + s + 'px ' + family; s -= 4; } while (ctx.measureText(text).width > maxW && s > 40);
+    ctx.fillText(text, x, y);
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r); ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r); ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r); ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
+  }
+  // 말풍선 — 얼굴 오른쪽 위, 카드 밖으로 나가지 않게
+  function bubble(ctx, text, fc) {
+    ctx.font = "800 46px 'Pretendard', sans-serif";
+    var lines = wrap(ctx, text, 470), lh = 58, w = 0;
+    lines.forEach(function (l) { w = Math.max(w, ctx.measureText(l).width); });
+    w += 56; var h = lines.length * lh + 34;
+    var x = Math.min(CARD_W - w - 30, Math.max(30, fc.right - 40)), y = Math.max(222, fc.top - h - 40);
+    var tipX = Math.max(x + 40, Math.min(x + w - 40, fc.cx + 30)), tipY = fc.top - 6;
+    ctx.save();
+    ctx.shadowColor = 'rgba(74,63,53,0.18)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#ffffff'; roundRect(ctx, x, y, w, h, 30); ctx.fill();
+    ctx.restore();
+    ctx.lineWidth = 4; ctx.strokeStyle = INK; roundRect(ctx, x, y, w, h, 30); ctx.stroke();
+    // 꼬리
+    var bx = Math.max(x + 34, Math.min(x + w - 70, tipX - 18));
+    ctx.beginPath(); ctx.moveTo(bx, y + h - 2); ctx.lineTo(tipX, Math.max(y + h + 30, tipY)); ctx.lineTo(bx + 38, y + h - 2); ctx.closePath();
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bx, y + h); ctx.lineTo(tipX, Math.max(y + h + 30, tipY)); ctx.lineTo(bx + 38, y + h); ctx.stroke();
+    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    lines.forEach(function (l, i) { ctx.fillText(l, x + w / 2, y + 17 + lh * i + lh / 2); });
+    ctx.textBaseline = 'alphabetic';
+  }
+  function wrap(ctx, text, maxW) {
+    if (ctx.measureText(text).width <= maxW) return [text];
+    var best = text.length >> 1, sp = text.lastIndexOf(' ', best);
+    if (sp < 0) sp = text.indexOf(' ', best);
+    var cut = sp > 0 ? sp : best;
+    return [text.slice(0, cut).trim(), text.slice(cut).trim()];
+  }
+
+  // 얼굴 끌어서 옮기기
+  (function () {
+    var drag = null;
+    function toWork(e) {
+      var r = card.getBoundingClientRect(), k = CARD_W / r.width;
+      return { x: ((e.clientX - r.left) * k - sticker.ox) / sticker.scale, y: ((e.clientY - r.top) * k - sticker.oy) / sticker.scale };
+    }
+    card.addEventListener('pointerdown', function (e) {
+      if (!sticker) return;
+      var p = toWork(e), R = face.base * opt.size;
+      if (Math.hypot(p.x - face.x, p.y - (face.y + R * 0.5)) > R * 4.2) return;   // 얼굴 근처만
+      drag = { dx: face.x - p.x, dy: face.y - p.y }; card.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    card.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var p = toWork(e), lim = WORK + 2 * PAD;
+      face.x = Math.max(0, Math.min(lim, p.x + drag.dx)); face.y = Math.max(0, Math.min(lim, p.y + drag.dy));
+      requestRender();
+    });
+    function end() { drag = null; }
+    card.addEventListener('pointerup', end); card.addEventListener('pointercancel', end);
+  })();
+  var rafPending = false;
+  function requestRender() { if (rafPending) return; rafPending = true; requestAnimationFrame(function () { rafPending = false; render(); }); }
+
+  // ════════ 조작 ════════
+  function chipRow(box, items, cur, onPick) {
+    box.innerHTML = '';
+    items.forEach(function (it) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = it.label;
+      b.setAttribute('aria-pressed', it.id === cur ? 'true' : 'false');
+      b.setAttribute('data-id', it.id);
+      b.addEventListener('click', function () { onPick(it); });
+      box.appendChild(b);
+    });
+  }
+  function paintControls() {
+    chipRow($('faces'), FACES, opt.face, function (it) { opt.face = it.id; opt.faceTouched = true; $('say').placeholder = it.say; paintControls(); render(); });
+    chipRow($('states'), STATES, opt.state, function (it) {
+      opt.state = it.id;
+      if (it.face && !opt.faceTouched) opt.face = it.face;
+      paintControls(); render();
+    });
+    var bgs = [{ id: 'cut', label: '지우기' }, { id: 'keep', label: '동그랗게' }];
+    chipRow($('bgs'), bgs, opt.bg, function (it) {
+      if (it.id === 'cut' && !art.cutOk) { toast('이 사진은 배경을 잘 못 나눠요. 더 가까이 찍어 보세요.'); return; }
+      if (opt.bg === it.id) return;
+      opt.bg = it.id; buildSticker(); paintControls(); render();
+    });
+    var f = FACES.filter(function (x) { return x.id === opt.face; })[0];
+    $('say').placeholder = f ? f.say : '';
+    $('name').value = opt.name;
+    document.body.setAttribute('data-face', opt.face);
+    document.body.setAttribute('data-state', opt.state);
+    document.body.setAttribute('data-bg', opt.bg);
+  }
+  $('roll').addEventListener('click', function () { rollEyes(false); render(); });
+  $('name').addEventListener('input', function () {
+    opt.name = this.value.trim().slice(0, 10);
+    try { if (opt.name) localStorage.setItem(NAME_KEY, opt.name); else localStorage.removeItem(NAME_KEY); } catch (e) { /* 이번만 */ }
+    requestRender();
+  });
+  $('say').addEventListener('input', function () { opt.say = this.value.trim().slice(0, 16); requestRender(); });
+  $('face-size').addEventListener('input', function () { opt.size = +this.value; requestRender(); });
+  $('again').addEventListener('click', function () { src = null; art = null; sticker = null; show('pick'); });
+
+  // ════════ 보내기 ════════
+  function fileName() { var d = new Date(); return 'walson-poop-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.png'; }
+  function track(what) { try { if (window.WalsonTrack) WalsonTrack.send('share_click', { what: what }); } catch (e) { /* 무시 */ } }
+  $('send-btn').addEventListener('click', function () {
+    if (!art) return;
+    function go(blob) {
+      var file = null;
+      try { file = new File([blob], fileName(), { type: 'image/png' }); } catch (e) { file = null; }
+      var mobile = window.WalsonSave ? WalsonSave.isMobile() : /Android|iPhone|iPad/i.test(navigator.userAgent);
+      var canShare = false;
+      try { canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { canShare = false; }
+      if (mobile && canShare) {
+        // 글: 제목·상태 + 만든 곳(?from=poop_share — 받은 가족이 눌러 들어오면 통계의 유입 칸에 남는다)
+        navigator.share({ files: [file], text: title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
+          '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share' })
+          .then(function () { track('poop_toon'); toast('보냈어요. 가족 반응도 알려 주세요!'); })
+          .catch(function (err) {
+            if (err && err.name === 'AbortError') return;   // 공유 창을 그냥 닫음
+            saveFile(blob);
+          });
+        return;
+      }
+      saveFile(blob);
+    }
+    function saveFile(blob) {
+      if (window.WalsonSave) WalsonSave.download(blob, fileName());
+      track('poop_toon_save');
+      toast('그림을 저장했어요. 카톡에서 사진으로 보내 주세요.');
+    }
+    if (cardBlob && !cardDirty) go(cardBlob);
+    else card.toBlob(function (b) { cardBlob = b; cardDirty = false; go(b); }, 'image/png');
+  });
+  if (window.WalsonSave && !WalsonSave.isMobile()) $('send-btn').textContent = '그림 저장하기';
+
+  // ════════ 첫 화면 그림(예시를 미리 바꿔 보여 준다) ════════
+  function drawHero() {
+    var hc = $('hero'), hx = hc.getContext('2d');
+    var c = document.createElement('canvas'); c.width = c.height = WORK;
+    var s = makeSample(1), side = 900;
+    c.getContext('2d').drawImage(s, 600 - side / 2, 600 - side / 2, side, side, 0, 0, WORK, WORK);
+    var keep = { art: art, sticker: sticker, face: JSON.parse(JSON.stringify(face)), opt: JSON.parse(JSON.stringify(opt)) };
+    art = toonify(c.getContext('2d').getImageData(0, 0, WORK, WORK).data);
+    opt.bg = art.cutOk ? 'cut' : 'keep'; opt.face = 'proud'; opt.size = 1;
+    placeFace(); rollEyes(true); buildSticker();
+    hx.clearRect(0, 0, hc.width, hc.height);
+    var sw = sticker.canvas.width, sh = sticker.canvas.height, k = hc.width / Math.max(sw, sh) * 0.96;
+    var dx = (hc.width / k - sw) / 2, dy = (hc.height / k - sh) / 2;
+    hx.save(); hx.scale(k, k); hx.drawImage(sticker.canvas, dx, dy); drawFace(hx, sticker.scale, dx - (sticker.x - sticker.ox), dy - (sticker.y - sticker.oy)); hx.restore();
+    art = keep.art; sticker = keep.sticker; face = keep.face; opt = keep.opt;
+  }
+  // 글꼴이 준비된 뒤에 그린다(카드 글자가 기본 글꼴로 찍히지 않게) — 늦으면 그냥 그린다
+  var fontsReady = (document.fonts && document.fonts.load)
+    ? Promise.race([Promise.all([
+        document.fonts.load("400 90px 'Black Han Sans'", '우리 애 오늘 응가의'),
+        document.fonts.load("800 44px 'Pretendard'", '평소대로 달랐어요 오늘도 해냈다'),
+        document.fonts.load("700 38px 'Pretendard'", '11월 16일 월요일 왈슨 다산동 강아지 산책 앱')
+      ]), new Promise(function (r) { setTimeout(r, 1500); })])
+    : Promise.resolve();
+  setTimeout(drawHero, 60);
+  fontsReady.then(function () { if (art) render(); });
+
+  // 시험용(자동 시험에서 쓰는 손잡이 — 화면에는 영향 없음)
+  window.__toon = { state: function () { return { opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, cel: art && art.cel, box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height } }; } };
+})();
+</script>
+</body>
+</html>
