@@ -3,7 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>동네</title>
+<title>왈슨</title>
+<!-- 카톡·SNS 링크 미리보기(2026-11-16, 시안 1-B — index.html과 같은 값). 이미지를 바꾸면 ?v= 번호를 올릴 것 -->
+<meta name="description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="왈슨">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="왈슨">
+<meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
+<meta property="og:url" content="https://johnsongarage.co.kr/walson/town.html">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=1">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="800">
+<meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
+<meta name="twitter:card" content="summary_large_image">
+<!-- 왈슨 시작 화면(splash.css/js) — 첫 화면이 [동네]가 되면서 여기서도 보인다(2026-11-16). 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
+<script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="splash.css?v=1">
+<link rel="preload" as="image" href="icons/walson-logo.webp">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
@@ -281,6 +299,15 @@
 <script src="geo.js?v=4"></script>
 </head>
 <body>
+<div id="splash" role="img" aria-label="왈슨, 다산동 강아지 산책 앱. 제작 johnsongarage">
+  <div class="splash-main">
+    <img src="icons/walson-logo.webp" alt="" width="900" height="732">
+    <div class="splash-name">왈슨</div>
+    <div class="splash-tag">다산동 강아지 산책 앱</div>
+  </div>
+  <div class="splash-by">제작자 johnsongarage</div>
+</div>
+<script src="splash.js?v=1"></script>
 
 <div id="map"></div>
 <div class="top-stack">
@@ -323,7 +350,7 @@
   <p class="sheet-note">조건은 운영자가 직접 가서 확인한 날 기준이에요. 매장마다 바뀔 수 있으니 들어가기 전에 한 번 더 물어보세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.</p>
 </div>
 
-<script src="tabbar.js?v=5" data-tab="town"></script>
+<script src="tabbar.js?v=6" data-tab="town"></script>
 <script>
 (function () {
   var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(walk.html과 같은 값)
@@ -1008,7 +1035,9 @@
     var explained = false;
     try { explained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 안 함 */ }
     if (!explained) return;
-    var go = function () { locateAndCenter(true); };
+    // 첫 화면이 되면서(2026-11-16) 열 때는 지도를 옮기지 않고 내 위치 점만 찍는다 — 집에서 열어 남에게 보여 주거나 캡처해도
+    // 골목 단위로 확대되지 않게(11/13 C안 때의 걱정). 가까운 가게·미션 거리는 그대로 계산되고, 확대는 [내 위치] 버튼으로.
+    var go = function () { locate(true).then(refreshShops, function () {}); };
     try {
       navigator.permissions.query({ name: 'geolocation' }).then(function (p) { if (p.state !== 'denied') go(); }, go);
     } catch (e) { go(); }
@@ -1016,5 +1045,17 @@
 })();
 </script>
 
+<!-- 첫 화면이 [동네](2026-11-16): 처음 온 사람은 샘플로 시작([오늘]과 같은 규칙 — 11/15 "샘플이 기본"), 그리고 [산책] 버튼(walk-fab.js) -->
+<script src="walk-photos.js?v=1"></script>
+<script src="sample-data.js?v=5"></script>
+<script>
+  (function () {
+    var inappBusy = window.WalsonInApp && (WalsonInApp.escaped || WalsonInApp.receiving);
+    if (!inappBusy && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
+      PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('town.html'); });
+    }
+  })();
+</script>
+<script src="walk-fab.js?v=1"></script>
 </body>
 </html>

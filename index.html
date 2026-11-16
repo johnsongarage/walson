@@ -17,6 +17,20 @@
 <meta property="og:image:height" content="800">
 <meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
 <meta name="twitter:card" content="summary_large_image">
+<script>
+// 첫 화면은 [동네](2026-11-16 가르시아 — 11/13 C안 "첫 화면 [오늘]" 번복). 앱을 처음 열 때(바깥 링크·홈 화면 앱·주소 입력)만
+// [동네]로 보낸다. 앱 안에서 [오늘]로 온 것(같은 사이트에서 온 이동)·새로고침·뒤로 가기·주소 뒤 #(카톡→크롬 기록 옮기기 등)은 그대로.
+(function () {
+  try {
+    if (location.hash || /[?&]sample=/.test(location.search)) return;   // 샘플 켜기·끄기 주소는 [오늘]이 처리한다
+    var nav = performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+    if (nav && (nav.type === 'reload' || nav.type === 'back_forward')) return;
+    var here = location.origin + location.pathname.replace(/[^/]*$/, '');
+    if ((document.referrer || '').indexOf(here) === 0) return;
+    location.replace('town.html' + location.search);
+  } catch (e) { /* 모르면 [오늘] 그대로 */ }
+})();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
@@ -316,7 +330,7 @@
     });
   })();
 </script>
-<script src="tabbar.js?v=5" data-tab="today"></script>
+<script src="tabbar.js?v=6" data-tab="today"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';     // walk.html이 산책을 끝낼 때 저장하는 기록
