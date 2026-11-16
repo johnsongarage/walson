@@ -1,7 +1,7 @@
 // 이 휴대폰 저장소 한 곳(2026-11-17 리팩토링 — 예약 작업 "서버·네이티브 대비", PLATFORM_PLAN.md). 전역 window.WalsonStore.
 // - 키 이름과 저장 형식(JSON)은 예전 그대로다. 예전 기록이 그대로 읽혀야 하니 형식을 바꾸지 말 것.
 // - 화면·스크립트는 localStorage를 직접 만지지 말고 여기를 거친다. 핵심 기록(산책·진행 중 산책·주민증·방문·핀·도감)부터 옮겼다.
-//   아직 직접 만지는 곳은 PLATFORM_PLAN.md 6절에 적어 둔다.
+//   아직 직접 만지는 곳은 PLATFORM_PLAN.md 7절에 적어 둔다.
 // - 나중에 서버(로그인 뒤 백업)나 네이티브(Capacitor Preferences 등)로 갈 때 이 파일만 바꾸면 되게 한다.
 // - 사진은 IndexedDB에 따로 있다: walk-photos.js → window.WalkPhotos(데이터베이스 'petwalk-photos', 저장소 'photos').
 (function () {
