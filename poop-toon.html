@@ -451,6 +451,12 @@
   var SMOOTH = { k1: 4, k2: 3, blur: 1 };
   // 떼어 낸 모양의 경계를 다듬는 정도(작업 픽셀 반경, 세 번 뭉갬) — 클수록 매끈하지만 작은 알갱이의 모서리도 둥글어진다
   var EDGE_SMOOTH = 7;   // 11/16 실제 사진 3장으로 0·3·5·7 비교 → 7이 톱니 없이 매끈하고 작은 알갱이도 남음
+  // 가는 곁가지로 볼 굵기: 덩어리에서 가장 굵은 곳 반지름의 이 배수보다 가는 부분은 깎는다(풀잎·틈새)
+  var THIN_RATIO = 0.35;
+  // …다만 아무리 굵은 응가여도 이 굵기(반지름, 작업 칸)보다 굵은 곁가지는 남긴다 — 큰 더미에 붙은 작은 덩어리(진짜 응가)가 지워지지 않게
+  var THIN_CAP = 10;
+  // 응가 안의 가는 줄(위를 지나간 풀잎)을 지울 창 크기: 가장 굵은 곳 반지름의 이 배수(2~7칸)
+  var LINE_RATIO = 0.18;   // 11/16 실제 사진 3장(풀밭·알갱이·더미)으로 비율 0.3·0.35·0.45, 최대 7·10·14 비교해 정함
   function toonify(rgba, tap) {
     var W = WORK, N = W * W;
     // ① 붓칠처럼 평평하게: 쿠와하라 필터 두 번(가장자리는 살리고 질감은 지운다)
@@ -464,8 +470,14 @@
     // ③ 응가 떼어 내기(칸마다 판정) — 확실하지 않으면 떼어 내지 않는다
     var cut = segment(labF, W, tap);
     var res = { W: W, mask: cut.mask, cutOk: cut.ok, box: cut.box, main: cut.main, labF: labF, allPal: null, dbg: cut.dbg };
-    // ④ 응가 안의 색 묶음(최대 5색, 사진 색 그대로)
-    if (cut.ok) res.fgPal = labPalette(labF, W, cut.mask, 5);
+    // ④ 응가 위를 지나간 풀잎 지우기(가는 틈은 둘레 응가 색으로 메우고, 가는 줄은 가운데값으로) → 응가 안의 색 묶음(최대 5색, 사진 색 그대로)
+    if (cut.ok) {
+      var rho = Math.max(2, Math.min(7, Math.round((cut.rMain || 20) * LINE_RATIO)));
+      var rh = Math.max(3, Math.min(8, Math.round((cut.rMain || 20) * 0.15)));
+      res.lfPaint = medianIn(inpaint(labF, W, cut.mask, cut.raw, rh), W, cut.mask, window.__toonLine != null ? window.__toonLine : rho);
+      res.fgPal = labPalette(res.lfPaint, W, cut.mask, 5);
+      res.dbg.rMain = Math.round(cut.rMain || 0); res.dbg.rho = rho;
+    }
     return res;
   }
   // ── 색 좌표(sRGB ↔ Lab, D65) ──
@@ -672,19 +684,146 @@
     if (!tap) {
       var d = A.dbg; if (ca) { d.frac = ca.frac; d.parts = ca.parts; }
       if (!autoOk) { d.why = d.why || (ca && !ca.ok ? 'size' : 'unsure'); return { ok: false, dbg: d }; }
-      return { ok: true, mask: ca.mask, box: ca.box, main: ca.main, dbg: d };
+      return finish(ca.mask, A.m, W, null, d);
     }
     var ti = tap[1] * W + tap[0];
     if (autoOk && ca.mask[ti]) {
       var c1 = cleanMask(A.m.slice(), W, tap, null);
-      if (c1.ok) { A.dbg.tap = 'in'; return { ok: true, mask: c1.mask, box: c1.box, main: c1.main, dbg: A.dbg }; }
+      if (c1.ok) { A.dbg.tap = 'in'; return finish(c1.mask, A.m, W, tap, A.dbg); }
     }
     var B = classify(lf, W, tap, A.ok ? A : null);
     if (!B.ok) return { ok: false, dbg: B.dbg };
     var c2 = cleanMask(B.m, W, tap, autoOk ? ca.mask : null);
     B.dbg.tap = 'add'; B.dbg.frac = c2.frac; B.dbg.parts = c2.parts;
     if (!c2.ok) return { ok: false, dbg: B.dbg };
-    return { ok: true, mask: c2.mask, box: c2.box, main: c2.main, dbg: B.dbg };
+    return finish(c2.mask, B.m, W, tap, B.dbg);
+  }
+  // 마무리: 가는 곁가지를 깎고 덩어리·얼굴 자리를 다시 잡는다. raw = 처음 칸마다 판정(응가 1/바닥 0) — 구멍 메울 때 쓴다
+  function finish(mask, raw, W, tap, dbg) {
+    var t = trimThin(mask, W, tap);
+    dbg.trim = t.trimmed;
+    if (!t.ok) { dbg.why = 'trim'; return { ok: false, dbg: dbg }; }
+    return { ok: true, mask: t.mask, box: t.box, main: t.main, rMain: t.rMain, raw: raw, dbg: dbg };
+  }
+  // 가는 곁가지 지우기(11/16 가르시아 "풀잎이 살아 있어, 실제 똥은 매끄러운데 — 실제 가운데 굵기보다 튀는 변은 배경에서 생긴 노이즈"):
+  // 덩어리마다 가장 굵은 곳의 반지름(안쪽 거리의 최댓값)을 재고, 그 THIN_RATIO배보다 가는 곁가지(풀잎·틈새)는 깎았다 다시 붙여(열기) 없앤다.
+  // 알갱이가 여러 개면 알갱이마다 제 굵기로 잰다(작은 알갱이가 큰 알갱이 기준에 지워지지 않게). 깎는 굵기는 THIN_CAP까지만
+  // (큰 더미에 붙은 작은 진짜 덩어리가 더미 굵기에 비해 가늘다고 지워지지 않게)
+  function trimThin(m, W, tap) {
+    var N = W * W, i, k, ratio = window.__toonThin != null ? window.__toonThin : THIN_RATIO;
+    var din = chamfer(m, W, W, 0), lab = labelComps(m, W), comp = lab.comp, n = lab.sizes.length;
+    var rmax = new Float32Array(n);
+    for (i = 0; i < N; i++) if (m[i] && din[i] > rmax[comp[i]]) rmax[comp[i]] = din[i];
+    var cap = window.__toonThinCap != null ? window.__toonThinCap : THIN_CAP;
+    var r = Array.prototype.map.call(rmax, function (v) { return Math.max(2, Math.min(cap, v * ratio)); });
+    var core = new Uint8Array(N), out = new Uint8Array(N), before = 0, after = 0;
+    for (i = 0; i < N; i++) if (m[i] && din[i] > r[comp[i]]) core[i] = 1;
+    var inv = new Uint8Array(N); for (i = 0; i < N; i++) inv[i] = core[i] ? 0 : 1;
+    var dc = chamfer(inv, W, W, Infinity);
+    for (i = 0; i < N; i++) { if (m[i]) { before++; if (dc[i] <= r[comp[i]] + 0.5) { out[i] = 1; after++; } } }
+    // 깎고 나서 떨어져 나온 부스러기는 버리고, 덩어리·얼굴 자리를 다시
+    var l2 = labelComps(out, W), sizes = l2.sizes, bx2 = l2.boxes;
+    if (!sizes.length) return { ok: false, trimmed: 1 };
+    var big = 0; for (k = 1; k < sizes.length; k++) if (sizes[k] > sizes[big]) big = k;
+    var minA = Math.max(150, sizes[big] * 0.04), main = big;
+    if (tap) {
+      var tid = l2.comp[tap[1] * W + tap[0]];
+      if (tid >= 0 && sizes[tid] >= minA) main = tid;
+      else {   // 누른 곳이 깎여 나갔으면 가장 가까운 덩어리
+        var bd = Infinity;
+        for (k = 0; k < sizes.length; k++) if (sizes[k] >= minA) { var d = Math.hypot((bx2[k][0] + bx2[k][2]) / 2 - tap[0], (bx2[k][1] + bx2[k][3]) / 2 - tap[1]); if (d < bd) { bd = d; main = k; } }
+      }
+    }
+    var box = [W, W, 0, 0], rMain = 0;
+    for (i = 0; i < N; i++) {
+      if (!out[i]) continue;
+      var c2 = l2.comp[i];
+      if (sizes[c2] < minA) { out[i] = 0; continue; }
+      if (c2 === main && din[i] > rMain) rMain = din[i];
+      var x = i % W, y = (i / W) | 0;
+      if (x < box[0]) box[0] = x; if (x > box[2]) box[2] = x; if (y < box[1]) box[1] = y; if (y > box[3]) box[3] = y;
+    }
+    return { ok: true, mask: out, box: box, main: bx2[main], rMain: rMain, trimmed: before ? Math.round((1 - after / before) * 1000) / 1000 : 0 };
+  }
+  function labelComps(m, W) {
+    var N = W * W, comp = new Int32Array(N).fill(-1), sizes = [], boxes = [], stack = new Int32Array(N);
+    for (var i = 0; i < N; i++) {
+      if (!m[i] || comp[i] >= 0) continue;
+      var id = sizes.length, top = 0, n = 0, bx = [W, W, 0, 0];
+      stack[top++] = i; comp[i] = id;
+      while (top) {
+        var q = stack[--top], qx = q % W, qy = (q / W) | 0; n++;
+        if (qx < bx[0]) bx[0] = qx; if (qy < bx[1]) bx[1] = qy; if (qx > bx[2]) bx[2] = qx; if (qy > bx[3]) bx[3] = qy;
+        if (qx > 0 && m[q - 1] && comp[q - 1] < 0) { comp[q - 1] = id; stack[top++] = q - 1; }
+        if (qx < W - 1 && m[q + 1] && comp[q + 1] < 0) { comp[q + 1] = id; stack[top++] = q + 1; }
+        if (qy > 0 && m[q - W] && comp[q - W] < 0) { comp[q - W] = id; stack[top++] = q - W; }
+        if (qy < W - 1 && m[q + W] && comp[q + W] < 0) { comp[q + W] = id; stack[top++] = q + W; }
+      }
+      sizes.push(n); boxes.push(bx);
+    }
+    return { comp: comp, sizes: sizes, boxes: boxes };
+  }
+  // 응가 안의 가는 줄 지우기: 응가 위를 가로지른 마른 풀잎처럼 응가 색으로 잘못 판정된 가는 줄은 구멍 메우기로 안 지워진다.
+  // 응가 칸만 모아 (2ρ+1)² 창의 가운데값(중앙값)으로 바꾸면, 창 반쯤보다 가는 줄은 사라지고
+  // 넓은 색 덩어리(빛 받은 쪽·그늘진 쪽)와 그 경계는 그대로 남는다. ρ는 응가 굵기에 맞춘다
+  function medianIn(lf, W, mask, rho) {
+    var N = W * W, out = new Float32Array(lf), i, j, x, y, xx, yy, c;
+    var x0 = W, y0 = W, x1 = -1, y1 = -1;
+    for (i = 0; i < N; i++) if (mask[i]) { x = i % W; y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0 || rho < 1) return out;
+    var B = 256, hist = new Int32Array(B), q = new Uint8Array(N);
+    for (c = 0; c < 3; c++) {
+      var lo = Infinity, hi = -Infinity;
+      for (i = 0; i < N; i++) if (mask[i]) { var v = lf[i * 3 + c]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      if (!(hi > lo)) continue;
+      var sc = (B - 1) / (hi - lo);
+      for (i = 0; i < N; i++) if (mask[i]) q[i] = Math.round((lf[i * 3 + c] - lo) * sc);
+      for (y = y0; y <= y1; y++) {
+        var ya = Math.max(0, y - rho), yb = Math.min(W - 1, y + rho), cnt = 0, med = 0, lt = 0;
+        hist.fill(0);
+        for (xx = Math.max(0, x0 - rho); xx <= Math.min(W - 1, x0 + rho); xx++) for (yy = ya; yy <= yb; yy++) { j = yy * W + xx; if (mask[j]) { hist[q[j]]++; cnt++; } }
+        for (x = x0; x <= x1; x++) {
+          if (x > x0) {   // 창을 한 칸 오른쪽으로: 왼쪽 열 빼고 오른쪽 열 넣기
+            var xo = x - rho - 1, xn = x + rho;
+            if (xo >= 0) for (yy = ya; yy <= yb; yy++) { j = yy * W + xo; if (mask[j]) { hist[q[j]]--; cnt--; if (q[j] < med) lt--; } }
+            if (xn < W) for (yy = ya; yy <= yb; yy++) { j = yy * W + xn; if (mask[j]) { hist[q[j]]++; cnt++; if (q[j] < med) lt++; } }
+          }
+          i = y * W + x;
+          if (!mask[i] || !cnt) continue;
+          var half = (cnt + 1) >> 1;   // 가운데값 칸: 그 칸까지 센 수가 처음으로 반을 넘는 칸
+          while (med > 0 && lt >= half) { med--; lt -= hist[med]; }
+          while (lt + hist[med] < half) { lt += hist[med]; med++; }
+          out[i * 3 + c] = lo + med / sc;
+        }
+      }
+    }
+    return out;
+  }
+  // 응가 안 가는 틈 메우기(색): 응가 안인데 처음 판정이 바닥이었던 칸 가운데 '가는' 것(응가 위를 지나간 초록 풀잎,
+  // 경계에 묻어 온 바닥 색)만 둘레 응가 색으로 채운다. 넓은 것(흰 점액·큰 반짝이 — 건강 신호일 수 있음)은 사진 색 그대로 둔다
+  function inpaint(lf, W, mask, raw, rh) {
+    var N = W * W, out = new Float32Array(lf), known = new Uint8Array(N), H = new Uint8Array(N), i, k;
+    if (!raw) return out;
+    for (i = 0; i < N; i++) H[i] = mask[i] && !raw[i] ? 1 : 0;
+    var dH = chamfer(H, W, W, 0), core = new Uint8Array(N);
+    for (i = 0; i < N; i++) core[i] = H[i] && dH[i] > rh ? 0 : 1;   // 0 = 넓은 곳의 속
+    var dc = chamfer(core, W, W, Infinity);
+    for (i = 0; i < N; i++) known[i] = mask[i] && !(H[i] && dc[i] > rh + 0.5) ? 1 : 0;
+    for (var it = 0; it < 80; it++) {
+      var add = [];
+      for (i = 0; i < N; i++) {
+        if (!mask[i] || known[i]) continue;
+        var x = i % W, y = (i / W) | 0, L = 0, A = 0, B = 0, n = 0;
+        if (x > 0 && known[i - 1]) { L += out[(i - 1) * 3]; A += out[(i - 1) * 3 + 1]; B += out[(i - 1) * 3 + 2]; n++; }
+        if (x < W - 1 && known[i + 1]) { L += out[(i + 1) * 3]; A += out[(i + 1) * 3 + 1]; B += out[(i + 1) * 3 + 2]; n++; }
+        if (y > 0 && known[i - W]) { L += out[(i - W) * 3]; A += out[(i - W) * 3 + 1]; B += out[(i - W) * 3 + 2]; n++; }
+        if (y < W - 1 && known[i + W]) { L += out[(i + W) * 3]; A += out[(i + W) * 3 + 1]; B += out[(i + W) * 3 + 2]; n++; }
+        if (n) add.push(i, L / n, A / n, B / n);
+      }
+      if (!add.length) break;
+      for (k = 0; k < add.length; k += 4) { i = add[k]; out[i * 3] = add[k + 1]; out[i * 3 + 1] = add[k + 2]; out[i * 3 + 2] = add[k + 3]; known[i] = 1; }
+    }
+    return out;
   }
   // 칸마다 응가/바닥 나누기. tap이 있으면 누른 색(과 prev의 응가 색)으로 시작한다
   function classify(lf, W, tap, prev) {
@@ -894,7 +1033,7 @@
     var line = [43, 29, 20], cutMode = opt.bg === 'cut' && art.cutOk;
     // 칠할 색 묶음: 배경을 지웠으면 응가 안의 색, 동그랗게면 동그라미 안 전체의 색(처음 쓸 때 만든다)
     var pal = cutMode ? art.fgPal : (art.allPal || (art.allPal = labPalette(art.labF, W, null, 7)));
-    var edgeF = edgeField(pal, W, cutMode ? art.mask : null), lf = art.labF, tl = [0, 0, 0];
+    var lf = cutMode ? art.lfPaint : art.labF, edgeF = edgeField(pal, W, cutMode ? art.mask : null, lf), tl = [0, 0, 0];
     for (var oy = 0; oy < OH; oy++) {
       var v = wy0 + (oy + 0.5) / scale - 0.5;
       for (var ox = 0; ox < OW; ox++) {
@@ -938,8 +1077,8 @@
     for (var c = 0; c < 3; c++) out[c] = (f[i + c] * (1 - fx) + f[i + 3 + c] * fx) * (1 - fy) + (f[j + c] * (1 - fx) + f[j + 3 + c] * fx) * fy;
   }
   // 색 묶음 경계 지도: 옆 칸과 묶음이 다르고 두 색이 많이 다르면(ΔE 18 넘게) 1 — 살짝 뭉개 부드럽게 읽는다
-  function edgeField(pal, W, mask) {
-    var N = W * W, lab = new Uint8Array(N), lf = art.labF, e = new Float32Array(N), p;
+  function edgeField(pal, W, mask, lf) {
+    var N = W * W, lab = new Uint8Array(N), e = new Float32Array(N), p;
     for (p = 0; p < N; p++) lab[p] = nearestPal(pal, lf[p * 3], lf[p * 3 + 1], lf[p * 3 + 2]);
     for (var y = 0; y < W - 1; y++) for (var x = 0; x < W - 1; x++) {
       p = y * W + x;
@@ -970,6 +1109,13 @@
       var b = art.main || art.box, bw = b[2] - b[0], bh = b[3] - b[1];
       face.x = P + (b[0] + b[2]) / 2; face.y = P + b[1] + bh * 0.42;
       face.base = Math.max(16, Math.min(64, Math.min(bw, bh * 1.6) * 0.15));
+      // 굽은 응가(ㄱ자·갈고리)는 상자 가운데가 몸 밖이라 얼굴이 옆에 떠 있었다 → 몸 안에서 가장 굵은 곳에, 위쪽을 조금 더 쳐 준다
+      var din = chamfer(art.mask, W, W, 0), best = -1;
+      for (var y = b[1]; y <= b[3]; y++) for (var x = b[0]; x <= b[2]; x++) {
+        var dv = din[y * W + x]; if (!dv) continue;
+        var sc = dv * (1.15 - 0.3 * (y - b[1]) / Math.max(1, bh));
+        if (sc > best) { best = sc; face.x = P + x; face.y = P + y; }
+      }
     } else { face.x = P + W / 2; face.y = P + W * 0.46; face.base = W * 0.075; }
     opt.size = 1; $('face-size').value = 1;
   }
@@ -1046,7 +1192,7 @@
   function sampleColor() {
     var pal = (opt.bg === 'cut' && art.cutOk) ? art.fgPal : art.allPal, tl = [0, 0, 0];
     var c = [120, 80, 40];
-    if (pal && pal.length) { sample3(art.labF, art.W, face.x - PAD, face.y - PAD, tl); c = pal[nearestPal(pal, tl[0], tl[1], tl[2])].rgb; }
+    if (pal && pal.length) { sample3((opt.bg === 'cut' && art.cutOk) ? art.lfPaint : art.labF, art.W, face.x - PAD, face.y - PAD, tl); c = pal[nearestPal(pal, tl[0], tl[1], tl[2])].rgb; }
     return 'rgb(' + Math.round(c[0] * 0.85) + ',' + Math.round(c[1] * 0.85) + ',' + Math.round(c[2] * 0.85) + ')';
   }
 
@@ -1287,7 +1433,7 @@
     var cut = opt.bg === 'cut' && art.cutOk, pal = cut ? art.fgPal : art.allPal, W = art.W, R0 = W / 2, Ls = [], As = [], Bs = [], red = 0, light = 0, n = 0, t = [0, 0, 0];
     for (var p = 0; p < W * W; p += 3) {
       if (cut ? !art.mask[p] : Math.hypot((p % W) + 0.5 - R0, ((p / W) | 0) + 0.5 - R0) > R0 * 0.97) continue;
-      var e = pal[nearestPal(pal, art.labF[p * 3], art.labF[p * 3 + 1], art.labF[p * 3 + 2])];
+      var F = cut ? art.lfPaint : art.labF, e = pal[nearestPal(pal, F[p * 3], F[p * 3 + 1], F[p * 3 + 2])];
       toLab(e.rgb[0], e.rgb[1], e.rgb[2], t, 0); Ls.push(t[0]); As.push(t[1]); Bs.push(t[2]); n++;
       if (t[1] > 35 && t[0] > 25 && t[1] > t[2] * 0.9) red++;
       if (t[0] > 82 && Math.hypot(t[1], t[2]) < 16) light++;
