@@ -82,8 +82,9 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=6"></script>
-<script src="save-image.js?v=1"></script>
+<script src="track.js?v=8"></script>
+<script src="save-image.js?v=2"></script>
+<script src="image-editor.js?v=2"></script>
 </head>
 <body>
 
@@ -115,7 +116,8 @@
       <h3>이런 산책을 좋아해요</h3><p id="r-tip"></p>
       <h3>잘 맞는 산책 친구</h3><p id="r-friend"></p>
     </div>
-    <button type="button" class="btn-main" id="save-btn">결과 이미지 저장</button>
+    <!-- 2026-11-16 한 화면 편집기: 사진 끌기·확대·글자 붙이기를 한 화면에서(image-editor.js) -->
+    <button type="button" class="btn-main" id="save-btn">꾸미고 저장하기</button>
     <button type="button" class="btn-sub" id="share-btn">친구에게 테스트 보내기</button>
     <a class="btn-sub" href="start.html" id="card-cta">우리 개 주민증도 만들기</a>
     <button type="button" class="back-q" id="retry-btn">다시 하기</button>
@@ -226,7 +228,7 @@
   }
 
   // ── 결과 이미지(1080×1350, 인스타 피드 비율) ──
-  var resultCanvas = null;
+  var resultCanvas = null, resultImgs = null;
   function font(w, s) { return w + ' ' + s + 'px Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif'; }
   function wrapText(ctx, text, maxW) {
     var words = text.split(' '), lines = [], line = '';
@@ -240,7 +242,9 @@
   function loadImg(src) {
     return new Promise(function (res) { if (!src) return res(null); var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; });
   }
-  function drawResult(type, photo, logo) {
+  // po(2026-11-16 한 화면 편집기): { zoom, x, y, layout } — 동그라미 사진을 키우고 옮긴다. layout을 넘기면 사진 칸 { x, y, w, h }를 채운다
+  function drawResult(type, photo, logo, po) {
+    po = po || {};
     var T = TYPES[type], W = 1080, H = 1350;
     var c = document.createElement('canvas'); c.width = W; c.height = H;
     var ctx = c.getContext('2d');
@@ -264,9 +268,11 @@
       ctx.beginPath();
       ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
       ctx.clip();
-      var s = Math.max(size / img.width, size / img.height);
-      ctx.drawImage(img, W / 2 - img.width * s / 2, py + size / 2 - img.height * s / 2, img.width * s, img.height * s);
+      var s = Math.max(size / img.width, size / img.height) * (photo ? Math.max(1, po.zoom || 1) : 1), iw = img.width * s, ih = img.height * s;
+      var qx = photo && po.x != null ? po.x : 0.5, qy = photo && po.y != null ? po.y : 0.5;
+      ctx.drawImage(img, px - (iw - size) * qx, py - (ih - size) * qy, iw, ih);
       ctx.restore();
+      if (po.layout) { po.layout.x = px; po.layout.y = py; po.layout.w = size; po.layout.h = size; }
       ctx.lineWidth = 12;
       ctx.strokeStyle = T.color;
       ctx.beginPath();
@@ -300,15 +306,31 @@
       ? Promise.all([document.fonts.load('96px "Black Han Sans"'), document.fonts.load('800 46px Pretendard')]).catch(function () {})
       : Promise.resolve();
     Promise.all([loadImg(profile.photo), loadImg('icons/walson-logo.webp'), fontsReady]).then(function (r) {
+      resultImgs = { type: type, photo: r[0], logo: r[1] };
       resultCanvas = drawResult(type, r[0], r[1]);
       $('result-img').src = resultCanvas.toDataURL('image/png');
     });
   }
 
+  // 꾸미고 저장하기(한 화면 편집기 — 휴대폰은 공유 창, PC는 내려받기)
   $('save-btn').addEventListener('click', function () {
-    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_type' });
-    if (!resultCanvas) return;
-    WalsonSave.canvas(resultCanvas, 'walson-walk-type.png');   // 휴대폰은 공유 창, PC는 내려받기
+    if (!resultCanvas || !resultImgs) return;
+    var R = resultImgs;
+    if (!window.WalsonEditor) { WalsonSave.canvas(resultCanvas, 'walson-walk-type.png'); return; }
+    WalsonEditor.open({
+      title: '산책 유형 결과',
+      photo: R.photo ? { sources: [['profile', '프로필 사진']], src: 'profile', zoom: 1, x: 0.5, y: 0.5, home: { x: 0.5, y: 0.5 } } : null,
+      hint: R.photo ? '동그라미 사진은 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요',
+      draw: function (cv, st) {
+        var L = {}, out = drawResult(R.type, R.photo, R.logo, st.photo ? { zoom: st.photo.zoom, x: st.photo.x, y: st.photo.y, layout: L } : { layout: L });
+        if (cv.width !== out.width) cv.width = out.width;
+        if (cv.height !== out.height) cv.height = out.height;
+        var g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(out, 0, 0);
+        return R.photo ? { x: L.x, y: L.y, w: L.w, h: L.h, img: R.photo } : null;
+      },
+      fileName: function () { return 'walson-walk-type.png'; },
+      onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_type', how: how }); }
+    });
   });
   $('share-btn').addEventListener('click', function () {
     window.WalsonTrack && WalsonTrack.send('share_click', { what: 'walk_type' });

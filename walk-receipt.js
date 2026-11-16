@@ -13,7 +13,8 @@
 //
 //   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', photoY: 0~1, photoX: 0~1, photoZoom: 1~, logo, layout })   (화면 테마는 11/16부터 차분 하나뿐)
 //     photoX·photoZoom(2026-11-16 한 화면 편집기 시안): 사진을 좌우로 옮기고 키운다. 없으면 예전 그대로(가운데·꽉 채우기).
-//     layout: 빈 객체를 넘기면 { W, H, photoH }를 채워 준다(편집기가 '사진 칸을 끌었는지' 가리는 데 씀).
+//     layout: 빈 객체를 넘기면 { W, H, photoH, note: { y, h }, paper: { x, w } }를 채워 준다
+//             (편집기가 '사진 칸을 끌었는지' 가리고, [특이 사항] 탭에서 그 줄을 크게 보여 주는 데 씀).
 //   data = { no, date, demo, mode: 'time'|'gps', after(다녀와서 적은 산책), durationMin, distanceKm, feel, sniff, poop,
 //            stamps: { hit, fresh } | null, steady: { days, got }, goal: { target, total, reached } | null, note, name }
 (function () {
@@ -79,8 +80,8 @@
     // 오늘 목표(11/16 — 크기별 소 30·중 60·대 90분, 그날 이 산책까지 걸은 시간). 달성하면 작은 "달성" 도장
     if (d.goal && d.goal.target) out.push({ t: 'pair', l: '오늘 목표', r: d.goal.total + '/' + d.goal.target + '분', goal: !!d.goal.reached });
     out.push({ t: 'rule' });
-    out.push({ t: 'label', text: '특이 사항' });
-    out.push({ t: 'para', text: d.note || '없음 (평화로운 산책)' });
+    out.push({ t: 'label', text: '특이 사항', note: true });
+    out.push({ t: 'para', text: d.note || '없음 (평화로운 산책)', note: true });
     out.push({ t: 'rule', double: true });
     // "충분했어요"·답 없음 = 상환 완료, "조금 아쉬워요" = 일부 상환 — 죄책감을 키우지 않게 "연체 아님"을 붙인다
     out.push({ t: 'debt', l: '오늘 산책 빚', r: '1회분', stamp: d.feel === 'short' ? ['일부', '상환'] : ['상환', '완료'], seed: seed });
@@ -338,12 +339,18 @@
     ctx.scale(scale, scale);
     ctx.translate(-S.pw / 2, -PH);
     drawPaper(ctx, S, PH);
-    var y = top, stampAt = null;
+    var y = top, stampAt = null, n0 = null, n1 = null;
     list.forEach(function (r) {
       drawRow(ctx, r, S, y, inner);
       if (r.t === 'debt') stampAt = { y: y + r.h / 2, words: r.stamp, seed: r.seed };
+      if (r.note) { if (n0 == null) n0 = y; n1 = y + r.h; }
       y += r.h;
     });
+    // 특이 사항 줄이 그림의 어디에 있는지(종이는 살짝 기울었지만 1.2도라 무시) — 편집기 [특이 사항] 탭이 이 줄을 크게 보여 준다
+    if (opts.layout && n0 != null) {
+      opts.layout.note = { y: H - S.margin + (n0 - PH) * scale, h: (n1 - n0) * scale };
+      opts.layout.paper = { x: W / 2 - S.pw * scale / 2, w: S.pw * scale };
+    }
     if (stampAt) drawStamp(ctx, S.pw * 0.64, stampAt.y + S.stampR * 0.35, S.stampR, stampAt.words, stampAt.seed);
     ctx.restore();
     return canvas;

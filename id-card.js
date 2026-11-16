@@ -7,6 +7,7 @@
 // 고치면 쓰는 화면(start.html·my-card.html)의 ?v= 번호를 같이 올릴 것.
 (function () {
   var W = 1600, H = 1000;
+  var PHOTO_BOX = { x: 96, y: 318, w: 460, h: 520 };   // 앞면 사진 칸 — 편집기가 이 칸 안에서 사진을 끌고 키운다
   // 카드에 찍는 "나도 만들기" 주소(2026-11-14 피드백: 카드를 본 사람이 들어올 입구가 없었다) — 내 도메인 주소(QR_RULES.md의 원칙)
   var SHARE_URL = 'https://johnsongarage.co.kr/walson/start.html';
   var SHARE_URL_TEXT = 'johnsongarage.co.kr/walson';
@@ -174,7 +175,7 @@
     ctx.beginPath(); ctx.moveTo(96, 268); ctx.lineTo(W - 96, 268); ctx.stroke();
 
     // 사진
-    var px = 96, py = 318, pw = 460, ph = 520, img = opts.photo || null;
+    var px = PHOTO_BOX.x, py = PHOTO_BOX.y, pw = PHOTO_BOX.w, ph = PHOTO_BOX.h, img = opts.photo || null;
     roundRect(ctx, px, py, pw, ph, 36);
     ctx.fillStyle = '#f3ddd2';
     ctx.fill();
@@ -419,9 +420,64 @@
     return out;
   }
 
+  // ── 꾸미고 저장하기(2026-11-16 한 화면 편집기, image-editor.js) — [주민증] 탭과 만들기 3단계가 같이 쓴다 ──
+  // o: { profile, photo(그림|null), frontOpts: function () → drawFront opts(사진 빼고), drawBack: function (canvas)|null(뒷면 없음),
+  //      side: 'front'|'back', fmt, title, onSave(st, how), onClose(st) }
+  // 사진은 이 저장에서만 칸 안에서 옮기고 키운다(주민증에 들어간 원래 사진은 그대로).
+  function cropPhoto(img, zoom, qx, qy) {
+    var c = document.createElement('canvas'); c.width = PHOTO_BOX.w * 2; c.height = PHOTO_BOX.h * 2;
+    var g = c.getContext('2d'), s = Math.max(c.width / img.width, c.height / img.height) * Math.max(1, zoom || 1), iw = img.width * s, ih = img.height * s;
+    g.drawImage(img, -(iw - c.width) * qx, -(ih - c.height) * qy, iw, ih);
+    return c;
+  }
+  function openEditor(o) {
+    if (!window.WalsonEditor) return null;
+    var card = document.createElement('canvas'), tabs = [];
+    if (o.drawBack) tabs.push({
+      id: 'side', label: '면', icon: 'side', first: true,
+      rows: function (st) {
+        return [{ chips: [{ text: '앞면', value: 'front', on: st.extra.side !== 'back' }, { text: '뒷면 · 산책 경력', value: 'back', on: st.extra.side === 'back' }] },
+          { tip: '뒷면엔 승급 기록·발도장 기록·특기가 들어가요. 발도장 장소 이름은 공개된 공원·가게 이름뿐이에요.' }];
+      },
+      onPick: function (v, st) { st.extra.side = v === 'back' ? 'back' : 'front'; }
+    });
+    return WalsonEditor.open({
+      title: o.title || '강아지 주민증',
+      formats: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: o.fmt || 'card',
+      tabs: tabs, tab: o.side === 'back' ? 'side' : undefined,
+      photo: o.photo ? { sources: [['profile', '주민증 사진']], src: 'profile', zoom: 1, x: 0.5, y: 0.5, home: { x: 0.5, y: 0.5 }, noBand: '뒷면엔 사진이 없어요.' } : null,
+      extra: { side: o.side === 'back' ? 'back' : 'front' },
+      hint: o.photo ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요',
+      draw: function (cv, st) {
+        var front = st.extra.side !== 'back' || !o.drawBack;
+        if (front) {
+          var fo = Object.assign({}, o.frontOpts ? o.frontOpts() : {});
+          fo.photo = o.photo ? cropPhoto(o.photo, st.photo.zoom, st.photo.x, st.photo.y) : null;
+          drawFront(card, o.profile, fo);
+        } else o.drawBack(card);
+        var out = composeExport(card, o.profile, st.fmt), g = cv.getContext('2d');
+        if (cv.width !== out.width) cv.width = out.width;
+        if (cv.height !== out.height) cv.height = out.height;
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.clearRect(0, 0, cv.width, cv.height);
+        // '카드만'은 카드 그림 그대로라 둥근 모서리 바깥이 투명했다 — 사진첩·카톡에서 흰색·검은색 귀퉁이(테두리)로 남아서,
+        // 신호등 테두리 색으로 채워 꽉 찬 네모로 저장한다(2026-11-16 가르시아 "카드 양식일 때 이미지 테두리가 남는 거")
+        if (out === card) { g.fillStyle = (SIGNALS[o.profile.signal] || SIGNALS.none).color; g.fillRect(0, 0, cv.width, cv.height); }
+        g.drawImage(out, 0, 0);
+        if (!front || !o.photo) return null;
+        // composeExport가 카드를 놓는 자리(정사각형·스토리: 960×600 가운데) — 사진 칸을 같은 비율로 옮긴다
+        var k = 1, ox = 0, oy = 0;
+        if (st.fmt === 'square' || st.fmt === 'story') { k = 960 / W; ox = (out.width - 960) / 2; oy = Math.round((out.height - 600) / 2) - (st.fmt === 'story' ? 60 : 30); }
+        return { x: ox + PHOTO_BOX.x * k, y: oy + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k, img: o.photo };
+      },
+      fileName: function (st) { return (o.profile.name || 'dog') + '-주민증' + (st.extra.side === 'back' && o.drawBack ? '-뒷면' : '') + (st.fmt === 'card' ? '' : '-' + st.fmt) + '.png'; },
+      onSave: o.onSave, onClose: o.onClose
+    });
+  }
+
   window.WalsonIdCard = {
-    W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT,
-    drawFront: drawFront, drawBack: drawBack, composeExport: composeExport,
+    W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX,
+    drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, openEditor: openEditor,
     loadImage: loadImage, fontsReady: fontsReady, todayText: todayText, dateText: dateText
   };
 })();

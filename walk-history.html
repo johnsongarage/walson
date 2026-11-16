@@ -96,7 +96,7 @@
     background: transparent; color: var(--ink-soft); cursor: pointer;
   }
   .format button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-  .canvas-box { display: flex; justify-content: center; background: var(--accent-tint); border-radius: 12px; padding: 10px; }
+  .canvas-box { display: flex; justify-content: center; background: var(--accent-tint); border-radius: 12px; padding: 10px; cursor: pointer; }
   .canvas-box canvas {
     display: block; max-width: 100%; max-height: 66vh; width: auto; height: auto;
     border-radius: 6px; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.18);
@@ -202,8 +202,8 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=6"></script>
-<script src="save-image.js?v=1"></script>
+<script src="track.js?v=8"></script>
+<script src="save-image.js?v=2"></script>
 </head>
 <body>
 
@@ -214,8 +214,8 @@
   </div>
   <p class="subtitle" id="subtitle"></p>
   <div class="just" id="just" role="status" hidden>
-    <span><b>방금 산책 영수증이 나왔어요.</b><br>사진·특이 사항은 아래에서 바꿀 수 있어요.</span>
-    <button type="button" id="just-save">저장·공유</button>
+    <span><b>방금 산책 영수증이 나왔어요.</b><br>사진·특이 사항·글자는 꾸미기에서 한 화면에 바꿔요.</span>
+    <button type="button" id="just-save">꾸미고 저장</button>
   </div>
 
   <div class="summary">
@@ -234,29 +234,11 @@
 
   <section class="panel" id="viewer" hidden>
     <h2>산책 영수증 <small>산책 한 번에 한 장</small></h2>
-    <div class="format" id="format" role="group" aria-label="이미지 모양">
-      <button type="button" data-fmt="story">스토리 9:16</button>
-      <button type="button" data-fmt="feed">피드 4:5</button>
-    </div>
-    <div class="canvas-box"><canvas id="rc" width="1080" height="1920" role="img" aria-label="산책 영수증 미리 보기"></canvas></div>
+    <!-- 2026-11-16 한 화면 편집기: 모양·사진(끌기·확대)·특이 사항·글자 붙이기는 '꾸미고 저장하기'(image-editor.js)에서 한 화면에. 여기는 미리 보기만 -->
+    <div class="canvas-box" id="rc-box" role="button" tabindex="0" aria-label="영수증 꾸미고 저장하기"><canvas id="rc" width="1080" height="1920" role="img" aria-label="산책 영수증 미리 보기"></canvas></div>
     <p class="which" id="which"></p>
 
-    <div class="row" id="photo-row" hidden>
-      <span class="row-label">사진</span>
-      <div class="chips" id="photo-src" role="group" aria-label="사진 고르기"></div>
-    </div>
-    <div class="row" id="pos-row" hidden>
-      <label class="row-label" for="photo-pos">사진 위치 <small>위·아래로 옮겨요</small></label>
-      <input type="range" class="pos" id="photo-pos" min="0" max="100" value="40">
-    </div>
-
-    <div class="row">
-      <span class="row-label">특이 사항 <small>하나 고르거나 직접 써요</small></span>
-      <div class="chips" id="notes" role="group" aria-label="특이 사항 고르기"></div>
-      <input type="text" class="custom" id="note-custom" maxlength="28" placeholder="직접 쓰기 (28자까지)" autocomplete="off" aria-label="특이 사항 직접 쓰기">
-    </div>
-
-    <button type="button" class="btn-main" id="save-btn">저장·공유</button>
+    <button type="button" class="btn-main" id="save-btn">꾸미고 저장하기</button>
     <p class="note">사진·이름·날짜·산책 시간과 끝 화면 답만 들어가요. 위치·경로·산책한 시각·장소 이름은 넣지 않아요.
       이 휴대폰 안에서 만들고, 어디로도 보내지 않아요.</p>
   </section>
@@ -288,19 +270,20 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=9"></script>
-<script src="month-report.js?v=3"></script>
-<script src="walk-receipt.js?v=5"></script>
+<script src="month-report.js?v=5"></script>
+<script src="walk-receipt.js?v=6"></script>
+<script src="image-editor.js?v=2"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';        // walk.html·go.html·[오늘] "다녀왔어요"가 저장하는 산책 기록
   var PROFILE_KEY = 'petwalk_profile';
-  var CHOICE_KEY = 'walson_receipts';     // 산책별로 고른 것 { 산책 열쇠: { note, custom, photo, pos } } — 이 휴대폰에만
+  var CHOICE_KEY = 'walson_receipts';     // 산책별로 고른 것 { 산책 열쇠: { note, custom, photo, pos(위아래 0~100), px(좌우 0~100), zoom, stickers } } — 이 휴대폰에만
   var FMT_KEY = 'walson_receipt_fmt';     // 마지막에 고른 영수증 모양(스토리·피드)
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   var PAGE = 30;                          // 영수증철을 한 번에 몇 장씩 보여 줄지
 
   // 특이 사항 — 가르시아가 쓴 관찰(card-shared.js 스킬·특성)과 산책 유형(walk-type.html)을 영수증 말투로 줄인 것.
-  // 관찰은 그대로 두고 말투만 바꿨다(게임식 수치·확률 표기는 뺌). 앞의 8개를 먼저 보여 준다.
+  // 관찰은 그대로 두고 말투만 바꿨다(게임식 수치·확률 표기는 뺌). 꾸미기의 [특이 사항] 탭에 옆으로 이어 보여 준다.
   var NOTES = [
     { id: 'pole',    text: '전봇대마다 냄새 정독함' },            // 산책 유형 · 킁킁 탐정형
     { id: 'grass',   text: '풀숲 앞에서 3분 정차 (냄새 조사)' },   // 스킬 · 3초 멈칫 냄새 탐정
@@ -320,7 +303,6 @@
     { id: 'outside', text: '밖에서만 순둥이 (집에선 왕)' },         // 특성 · 외부인 한정 순둥이
     { id: 'paw',     text: '발바닥 옥수수 칩 냄새 진동' }           // 특성 · 발바닥 고소함 MAX
   ];
-  var FIRST = 8;
 
   function $(id) { return document.getElementById(id); }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
@@ -556,81 +538,85 @@
     return Promise.all([sourcesFor(i), WalkReceipt.ensureFonts(WalkReceipt.textOf(d, state.fmt))]).then(function (a) {
       if (my !== token) return;
       var s = a[0], pick = pickSource(i, s), c = choice(i);
-      paintPhotoControls(i, s, pick);
       WalkReceipt.draw(canvas, d, pick === 'logo' ? null : s[pick], {
-        fmt: state.fmt, logo: s.logo, photoY: (c.pos != null ? c.pos : 40) / 100
+        fmt: state.fmt, logo: s.logo, photoY: (c.pos != null ? c.pos : 40) / 100,
+        photoX: (c.px != null ? c.px : 50) / 100, photoZoom: c.zoom || 1
       });
+      if (window.WalsonEditor && c.stickers && c.stickers.length) WalsonEditor.drawStickers(canvas, c.stickers);
     });
   }
 
-  // ── 모양 ──
-  var fmtButtons = $('format').querySelectorAll('button');
-  function paintFormat() {
-    Array.prototype.forEach.call(fmtButtons, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-fmt') === state.fmt ? 'true' : 'false'); });
+  // ── 꾸미기(한 화면 편집기 — image-editor.js, 2026-11-16) ──
+  // 모양·사진(끌어서 옮기기·두 손가락 확대)·특이 사항·글자 붙이기를 한 화면에서. 고른 것은 산책마다 이 휴대폰에 남는다
+  var NOTE_TEXT = NOTES.map(function (n) { return n.text; }).join('') + '없음 (평화로운 산책)';
+  function noteFrom(extra, i) {
+    if (extra.note === 'none') return '';
+    if (extra.note === 'custom') return (extra.custom || '').trim() || noteById(defaultNote(i));
+    return noteById(extra.note || defaultNote(i));
   }
-  Array.prototype.forEach.call(fmtButtons, function (b) {
-    b.addEventListener('click', function () {
-      state.fmt = b.getAttribute('data-fmt');
-      try { localStorage.setItem(FMT_KEY, state.fmt); } catch (e) { /* 이번만 */ }
-      paintFormat(); render();
+  function openEditor() {
+    if (!window.WalsonEditor) return;
+    var i = state.i, w = walks[i];
+    Promise.all([sourcesFor(i), WalkReceipt.ensureFonts(WalkReceipt.textOf(receiptData(i), 'story') + NOTE_TEXT)]).then(function (a) {
+      var s = a[0], c = choice(i);
+      var avail = ['walk', 'profile', 'logo'].filter(function (k) { return k === 'logo' || s[k]; });
+      var noteNow = c.note === 'custom' && c.custom && c.custom.trim() ? 'custom' : (c.note || defaultNote(i));
+      // 특이 사항 — 큰 글 칸(2026-11-16 가르시아 "옆으로 스크롤 하는 거 아닌 것 같아 … 사진을 침범하더라도 크게").
+      // 위: 영수증에 찍힐 글 그대로(영수증 글꼴), 눌러서 바로 고쳐 쓴다. 아래: 본보기 문구 전부를 줄바꿈해 한눈에 — 누르면 글 칸에 들어간다.
+      // 이 탭에선 미리 보기가 영수증의 특이 사항 줄 둘레로 확대된다(작아진 미리 보기·자판이 올라온 화면에서도 찍힌 글이 읽히게)
+      var lastL = null;
+      var noteTab = {
+        id: 'note', label: '특이 사항', icon: 'note', focusLabel: '특이 사항 줄 확대',
+        focus: function () {
+          if (!lastL || !lastL.note || !lastL.paper) return null;
+          var m = lastL.note.h * 1.6;   // 위아래로 조금 더(앞뒤 줄이 보여야 어디인지 안다)
+          return { x: lastL.paper.x, w: lastL.paper.w, y: lastL.note.y - m, h: lastL.note.h + m * 2 };
+        },
+        text: {
+          title: '특이 사항', hint: '영수증에 이대로 찍혀요', max: 28,
+          empty: '없음 (평화로운 산책)', font: '"Nanum Gothic Coding", ui-monospace, monospace',
+          presets: NOTES.map(function (n) { return { text: n.text, value: n.id }; }),
+          get: function (st) { return noteFrom(st.extra, i); },
+          set: function (st, t, id) {
+            if (id) { st.extra.note = id; st.extra.custom = undefined; }
+            else if (t) { st.extra.note = 'custom'; st.extra.custom = t; }
+            else { st.extra.note = 'none'; st.extra.custom = undefined; }
+          },
+          fonts: function (t) { return WalkReceipt.ensureFonts(t); }
+        }
+      };
+      WalsonEditor.open({
+        title: '산책 영수증 · No.' + pad4(i + 1),
+        formats: [['story', '스토리 9:16'], ['feed', '피드 4:5']], fmt: state.fmt,
+        photo: { sources: avail.map(function (k) { return [k, SRC_LABEL[k]]; }), fixed: ['logo'], src: pickSource(i, s),
+          zoom: c.zoom || 1, x: (c.px != null ? c.px : 50) / 100, y: (c.pos != null ? c.pos : 40) / 100, home: { x: 0.5, y: 0.4 } },
+        tabs: [noteTab],
+        stickers: c.stickers || [],
+        extra: { note: noteNow, custom: noteNow === 'custom' ? c.custom : undefined },
+        hint: avail.length > 1 || s.walk || s.profile ? '사진은 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요',
+        draw: function (cv, st) {
+          var L = {}, img = st.photo.src === 'logo' ? null : s[st.photo.src], d = receiptData(i);
+          d.note = noteFrom(st.extra, i);
+          WalkReceipt.draw(cv, d, img, { fmt: st.fmt, logo: s.logo, photoX: st.photo.x, photoY: st.photo.y, photoZoom: st.photo.zoom, layout: L });
+          lastL = L;
+          return { x: 0, y: 0, w: L.W, h: L.photoH, img: img };
+        },
+        fileName: function (st) { return 'walson-receipt-' + w.date + '-' + pad4(i + 1) + (st.fmt === 'feed' ? '-feed' : '') + '.png'; },
+        onSave: function (st, how) { keep(st); window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_receipt', format: st.fmt, how: how }); },
+        onClose: function (st) { keep(st); render(); }
+      });
+      // 편집기에서 고른 것을 이 산책에 남긴다(닫아도 남는다)
+      function keep(st) {
+        setChoice(i, {
+          photo: st.photo.src, pos: Math.round(st.photo.y * 100), px: Math.round(st.photo.x * 100),
+          zoom: st.photo.zoom > 1.001 ? Math.round(st.photo.zoom * 100) / 100 : undefined,
+          note: st.extra.note, custom: st.extra.note === 'custom' ? st.extra.custom : undefined,
+          stickers: st.stickers.length ? st.stickers.map(function (x) { return { text: x.text, nx: Math.round(x.nx * 1000) / 1000, ny: Math.round(x.ny * 1000) / 1000, s: Math.round(x.s * 100) / 100, style: x.style }; }) : undefined
+        });
+        if (state.fmt !== st.fmt) { state.fmt = st.fmt; try { localStorage.setItem(FMT_KEY, state.fmt); } catch (e) { /* 이번만 */ } }
+      }
     });
-  });
-
-  // ── 사진 고르기 · 위치 ──
-  var photoRow = $('photo-row'), photoSrc = $('photo-src'), posRow = $('pos-row'), pos = $('photo-pos');
-  function paintPhotoControls(i, s, pick) {
-    var avail = ['walk', 'profile', 'logo'].filter(function (k) { return k === 'logo' || s[k]; });
-    photoRow.hidden = avail.length < 2;
-    photoSrc.innerHTML = '';
-    avail.forEach(function (k) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.textContent = SRC_LABEL[k];
-      b.setAttribute('aria-pressed', k === pick ? 'true' : 'false');
-      b.addEventListener('click', function () { setChoice(state.i, { photo: k }); render(); });
-      photoSrc.appendChild(b);
-    });
-    posRow.hidden = pick === 'logo';
-    var c = choice(i);
-    pos.value = c.pos != null ? c.pos : 40;
   }
-  pos.addEventListener('input', function () { setChoice(state.i, { pos: +pos.value }); render(); });
-
-  // ── 특이 사항 ──
-  var notesEl = $('notes'), custom = $('note-custom'), showAllNotes = false;
-  function paintNotes() {
-    var i = state.i, c = choice(i);
-    var current = c.note === 'custom' && c.custom && c.custom.trim() ? 'custom' : (c.note || defaultNote(i));
-    notesEl.innerHTML = '';
-    var list = showAllNotes ? NOTES : NOTES.slice(0, FIRST);
-    // 지금 고른 것이 접힌 쪽에 있으면 펼쳐서 보여 준다
-    if (!showAllNotes && NOTES.slice(FIRST).some(function (n) { return n.id === current; })) { showAllNotes = true; list = NOTES; }
-    list.forEach(function (n) { notesEl.appendChild(noteButton(n.id, n.text, current)); });
-    if (!showAllNotes) {
-      var more = document.createElement('button');
-      more.type = 'button'; more.className = 'more-btn'; more.textContent = '더 보기 +' + (NOTES.length - FIRST);
-      more.addEventListener('click', function () { showAllNotes = true; paintNotes(); });
-      notesEl.appendChild(more);
-    }
-    notesEl.appendChild(noteButton('none', '없음', current));
-    custom.value = c.note === 'custom' ? (c.custom || '') : '';
-  }
-  function noteButton(id, text, current) {
-    var b = document.createElement('button');
-    b.type = 'button'; b.textContent = text;
-    b.setAttribute('aria-pressed', id === current ? 'true' : 'false');
-    b.addEventListener('click', function () { setChoice(state.i, { note: id, custom: undefined }); paintNotes(); render(); });
-    return b;
-  }
-  custom.addEventListener('input', function () {
-    var v = custom.value;
-    if (v.trim()) setChoice(state.i, { note: 'custom', custom: v });
-    else setChoice(state.i, { note: undefined, custom: undefined });
-    Array.prototype.forEach.call(notesEl.querySelectorAll('button[aria-pressed]'), function (b) {
-      b.setAttribute('aria-pressed', 'false');
-    });
-    if (!v.trim()) paintNotes();
-    render();
-  });
 
   // ── 영수증철(= 산책 목록) — 최신이 위. 한 줄을 누르면 위 영수증이 그 산책으로 바뀐다 ──
   var listEl = $('list'), bookMore = $('book-more');
@@ -712,32 +698,20 @@
   }
   function select(i, scroll) {
     state.i = i;
-    showAllNotes = false;
     if (i < walks.length - state.shown) { state.shown = walks.length - i; paintBook(); }   // 고른 줄이 접혀 있지 않게
     else paintCurrent();
-    paintWhich(); paintNotes(); render();
+    paintWhich(); render();
     if (scroll) $('viewer').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ── 저장 ──
-  var saveBtn = $('save-btn'), justSave = $('just-save');
-  if (window.WalsonSave) { saveBtn.textContent = WalsonSave.label(); justSave.textContent = WalsonSave.label(); }
-  // 끝 화면에서 막 넘어온 사람은 맨 위 안내 줄에서 바로 저장(아래 저장 버튼까지 내려가지 않게) — 같은 저장을 쓴다
-  justSave.addEventListener('click', function () { if (!saveBtn.disabled) saveBtn.click(); });
-  saveBtn.addEventListener('click', function () {
-    if (!window.WalsonSave) return;
-    saveBtn.disabled = true;
-    // 그리던 중이면 끝난 뒤 저장(미리 보기 캔버스가 곧 1080px 저장본)
-    lastRender.then(function () {
-      var w = walks[state.i];
-      WalsonSave.canvas(canvas, 'walson-receipt-' + w.date + '-' + pad4(state.i + 1) + '.png');
-      window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_receipt', format: state.fmt });
-    }).then(function () { saveBtn.disabled = false; }, function () { saveBtn.disabled = false; });
-  });
+  // ── 꾸미고 저장하기 — 버튼·미리 보기·안내 줄 모두 편집기를 연다 ──
+  $('save-btn').addEventListener('click', openEditor);
+  $('just-save').addEventListener('click', openEditor);
+  $('rc-box').addEventListener('click', openEditor);
+  $('rc-box').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEditor(); } });
 
   $('viewer').hidden = false;
   $('book').hidden = false;
-  paintFormat();
   paintBook();
   select(state.i, false);
 })();

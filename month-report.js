@@ -2,7 +2,8 @@
 // [기록]에서 한 달의 산책을 한 장 이미지로: 산책 횟수·시간·산책한 날·거리, 달력(산책한 날·응가), 가장 긴 산책,
 // 가장 긴 연속, 새로 모은 발도장 "개수", 그 달의 대표 사진(가장 최근 "오늘의 한 장").
 // 위치·산책 길·발도장 장소 이름은 넣지 않는다. 그리기는 이 휴대폰 안에서만.
-//   MonthReport.open({ walks, profile })  — 기본은 이번 달, 시트에서 지난달로 넘길 수 있다
+//   MonthReport.open({ walks, profile })  — 기본은 이번 달. 2026-11-16부터 한 화면 편집기(image-editor.js)에서 연다:
+//   [모양] 피드·스토리 · [달] 지난달로 넘기기 · [사진] 대표 사진 끌기·두 손가락 확대 · [글자 붙이기]
 (function () {
   var FORMATS = { feed: { w: 1080, h: 1350 }, story: { w: 1080, h: 1920 } };
   var SIGNAL = { green: '#3f9b5b', yellow: '#dfa21f', red: '#d2493f' };
@@ -50,7 +51,9 @@
   }
   function minText(min) { return min >= 60 ? Math.floor(min / 60) + '시간 ' + (min % 60 ? (min % 60) + '분' : '') : min + '분'; }
 
-  function draw(r, photo, logo, profile, fmt, target) {
+  // po(2026-11-16 편집기): { zoom, x, y, layout } — 대표 사진을 동그라미 안에서 키우고 옮긴다. layout을 넘기면 사진 칸 { x, y, w, h }를 채운다
+  function draw(r, photo, logo, profile, fmt, target, po) {
+    po = po || {};
     var F = FORMATS[fmt] || FORMATS.feed, W = F.w, H = F.h;
     var c = target || document.createElement('canvas');
     c.width = W; c.height = H;
@@ -68,8 +71,13 @@
     ctx.clip();
     ctx.fillStyle = '#F2B833'; ctx.fillRect(px, py, ph, ph);
     var img = photo || logo;
-    if (img) { var s = Math.max(ph / img.width, ph / img.height); ctx.drawImage(img, px + (ph - img.width * s) / 2, py + (ph - img.height * s) / 2, img.width * s, img.height * s); }
+    if (img) {
+      var s = Math.max(ph / img.width, ph / img.height) * (photo ? Math.max(1, po.zoom || 1) : 1), iw = img.width * s, ih = img.height * s;
+      var qx = photo && po.x != null ? po.x : 0.5, qy = photo && po.y != null ? po.y : 0.5;
+      ctx.drawImage(img, px - (iw - ph) * qx, py - (ih - ph) * qy, iw, ih);
+    }
     ctx.restore();
+    if (po.layout) { po.layout.x = px; po.layout.y = py; po.layout.w = ph; po.layout.h = ph; }
     ctx.lineWidth = 8; ctx.strokeStyle = (SIGNAL[profile && profile.signal] || accent);
     ctx.beginPath(); ctx.arc(px + ph / 2, py + ph / 2, ph / 2, 0, Math.PI * 2); ctx.stroke();
     var tx = px + ph + 40;
@@ -144,86 +152,70 @@
     return c;
   }
 
-  // ── 시트 ──
-  var styleAdded = false;
-  function addStyle() {
-    if (styleAdded) return; styleAdded = true;
-    var css = document.createElement('style');
-    css.textContent =
-      '.mr-back{position:fixed;inset:0;z-index:3000;background:rgba(30,20,12,.6);display:flex;align-items:flex-end;justify-content:center;overflow-y:auto;}' +
-      '.mr-sheet{width:100%;max-width:440px;background:#fffaf3;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));margin-top:auto;font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:#4a3f35;}' +
-      '.mr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}' +
-      '.mr-head h3{margin:0;font-size:16px;font-weight:800;}' +
-      '.mr-head button{font:800 16px Pretendard,sans-serif;width:36px;height:36px;border-radius:10px;border:1px solid #e6d6c1;background:#fff;color:#4a3f35;cursor:pointer;}' +
-      '.mr-head button:disabled{opacity:.35;cursor:default;}' +
-      '.mr-prev{display:block;max-width:100%;max-height:56vh;width:auto;height:auto;margin:0 auto;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);}' +
-      '.mr-fmt,.mr-row{display:flex;gap:8px;margin-top:12px;}' +
-      '.mr-fmt button,.mr-row button{flex:1;font:800 14px Pretendard,-apple-system,sans-serif;padding:11px;border-radius:12px;border:1px solid #e6d6c1;background:#fff;color:#4a3f35;cursor:pointer;}' +
-      '.mr-fmt button[aria-pressed="true"]{background:#4a3f35;color:#fff;border-color:#4a3f35;}' +
-      '.mr-row .mr-save{background:#b8563a;border-color:#b8563a;color:#fff;flex:2;}' +
-      '.mr-note{font-size:12px;color:#6b5d4e;margin:10px 2px 0;line-height:1.5;}';
-    document.head.appendChild(css);
+  // ── 열기: 한 화면 편집기(image-editor.js) ──
+  function loadPhoto(key) {
+    if (!key || !window.WalkPhotos) return Promise.resolve(null);
+    return WalkPhotos.get(key).then(function (blob) {
+      if (!blob) return null;
+      var u = URL.createObjectURL(blob);
+      return loadImg(u).then(function (im) { setTimeout(function () { URL.revokeObjectURL(u); }, 1000); return im; });
+    }).catch(function () { return null; });
   }
-
   function open(opts) {
-    addStyle();
+    if (!window.WalsonEditor) return;
     var walks = opts.walks || [], profile = opts.profile || {};
-    var now = new Date(), y = now.getFullYear(), m = now.getMonth(), fmt = 'feed';
-    var firstDate = walks.reduce(function (a, w) { return w && w.date && w.date < a ? w.date : a; }, y + '-' + pad2(m + 1) + '-01');
+    var now = new Date();
+    var firstDate = walks.reduce(function (a, w) { return w && w.date && w.date < a ? w.date : a; }, now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-01');
     var minY = Number(firstDate.slice(0, 4)), minM = Number(firstDate.slice(5, 7)) - 1;
-    var back = document.createElement('div');
-    back.className = 'mr-back';
-    back.innerHTML =
-      '<div class="mr-sheet" role="dialog" aria-modal="true" aria-label="월간 리포트">' +
-        '<div class="mr-head"><button type="button" class="mr-p" aria-label="이전 달">‹</button><h3 class="mr-t"></h3><button type="button" class="mr-n" aria-label="다음 달">›</button></div>' +
-        '<canvas class="mr-prev" aria-label="월간 리포트 미리 보기"></canvas>' +
-        '<div class="mr-fmt"><button type="button" data-f="feed" aria-pressed="true">피드 4:5</button><button type="button" data-f="story" aria-pressed="false">스토리 9:16</button></div>' +
-        '<div class="mr-row"><button type="button" class="mr-close">닫기</button><button type="button" class="mr-save">저장·공유</button></div>' +
-        '<p class="mr-note">횟수·시간·달력만 들어가고 위치·산책 길·장소 이름은 들어가지 않아요. 이 휴대폰에서 만들어요.</p>' +
-      '</div>';
-    document.body.appendChild(back);
-    var prev = back.querySelector('.mr-prev');
-    if (window.WalsonSave) back.querySelector('.mr-save').textContent = WalsonSave.label();
-    function close() { back.remove(); }
-    back.addEventListener('click', function (e) { if (e.target === back) close(); });
-    back.querySelector('.mr-close').addEventListener('click', close);
-
     var fontsReady = (document.fonts && document.fonts.load)
       ? Promise.all([document.fonts.load('84px "Black Han Sans"'), document.fonts.load('800 34px Pretendard')]).catch(function () {}) : Promise.resolve();
-    var logoP = loadImg('icons/walson-logo.webp');
-    var photoCache = {};
-    function photoFor(key) {
-      if (!key || !window.WalkPhotos) return Promise.resolve(null);
-      if (photoCache[key]) return photoCache[key];
-      photoCache[key] = WalkPhotos.get(key).then(function (blob) {
-        if (!blob) return null;
-        var u = URL.createObjectURL(blob);
-        return loadImg(u).then(function (im) { setTimeout(function () { URL.revokeObjectURL(u); }, 1000); return im; });
-      }).catch(function () { return null; });
-      return photoCache[key];
+    var photos = {};   // 사진 열쇠 → 그림(불러오는 동안은 없음 — 앱 그림으로 그렸다가 오면 다시 그린다)
+    var ed = null;
+    function ensurePhoto(key) {
+      if (!key || key in photos) return;
+      photos[key] = null;
+      loadPhoto(key).then(function (im) { photos[key] = im; if (ed) { ed.redraw(); ed.rebuild(); } });
     }
-    function render() {
-      var r = summarize(walks, y, m);
-      back.querySelector('.mr-t').textContent = y + '년 ' + (m + 1) + '월 리포트';
-      back.querySelector('.mr-p').disabled = (y < minY || (y === minY && m <= minM));
-      back.querySelector('.mr-n').disabled = (y === now.getFullYear() && m === now.getMonth());
-      Promise.all([photoFor(r.photoKey), logoP, fontsReady]).then(function (a) { draw(r, a[0], a[1], profile, fmt, prev); });
-    }
-    back.querySelector('.mr-p').addEventListener('click', function () { m--; if (m < 0) { m = 11; y--; } render(); });
-    back.querySelector('.mr-n').addEventListener('click', function () { m++; if (m > 11) { m = 0; y++; } render(); });
-    Array.prototype.forEach.call(back.querySelectorAll('.mr-fmt button'), function (b) {
-      b.addEventListener('click', function () {
-        fmt = b.getAttribute('data-f');
-        Array.prototype.forEach.call(back.querySelectorAll('.mr-fmt button'), function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-        render();
+    function isFirst(e) { return e.y < minY || (e.y === minY && e.m <= minM); }
+    function isLast(e) { return e.y === now.getFullYear() && e.m === now.getMonth(); }
+    var monthTab = {
+      id: 'month', label: '달', icon: 'month', first: true,
+      rows: function (st) {
+        var e = st.extra;
+        return [
+          { chips: [{ text: '‹ 지난달', value: 'prev', disabled: isFirst(e) }, { text: e.y + '년 ' + (e.m + 1) + '월', value: 'now', on: true }, { text: '다음 달 ›', value: 'next', disabled: isLast(e) }] },
+          { tip: '횟수·시간·달력만 들어가고 위치·산책 길·장소 이름은 들어가지 않아요.' }
+        ];
+      },
+      onPick: function (v, st) {
+        var e = st.extra;
+        if (v === 'prev' && !isFirst(e)) { e.m--; if (e.m < 0) { e.m = 11; e.y--; } }
+        else if (v === 'next' && !isLast(e)) { e.m++; if (e.m > 11) { e.m = 0; e.y++; } }
+        else return;
+        e.r = summarize(walks, e.y, e.m);
+        ensurePhoto(e.r.photoKey);
+        st.photo.zoom = 1; st.photo.x = 0.5; st.photo.y = 0.5;   // 달마다 사진이 달라서 처음대로
+      }
+    };
+    Promise.all([loadImg('icons/walson-logo.webp'), fontsReady]).then(function (a) {
+      var logo = a[0], y = now.getFullYear(), m = now.getMonth(), r = summarize(walks, y, m);
+      ensurePhoto(r.photoKey);
+      ed = WalsonEditor.open({
+        title: '월간 리포트',
+        formats: [['feed', '피드 4:5'], ['story', '스토리 9:16']], fmt: 'feed',
+        tabs: [monthTab], tab: 'month',
+        photo: { sources: [['photo', '그 달 사진'], ['logo', '왈슨 그림']], fixed: ['logo'], src: 'photo', zoom: 1, x: 0.5, y: 0.5, home: { x: 0.5, y: 0.5 } },
+        extra: { y: y, m: m, r: r },
+        hint: '동그라미 사진은 끌어서 옮기고, 두 손가락으로 키워요',
+        draw: function (cv, st) {
+          var e = st.extra, img = st.photo.src === 'photo' ? (photos[e.r.photoKey] || null) : null, L = {};
+          draw(e.r, img, logo, profile, st.fmt, cv, { zoom: st.photo.zoom, x: st.photo.x, y: st.photo.y, layout: L });
+          return { x: L.x, y: L.y, w: L.w, h: L.h, img: img };
+        },
+        fileName: function (st) { return 'walson-' + st.extra.y + '-' + pad2(st.extra.m + 1) + '-' + st.fmt + '.png'; },
+        onSave: function (st, how) { if (window.WalsonTrack) WalsonTrack.send('card_saved', { what: 'month_report', format: st.fmt, how: how }); }
       });
     });
-    back.querySelector('.mr-save').addEventListener('click', function () {
-      if (window.WalsonTrack) WalsonTrack.send('card_saved', { what: 'month_report', format: fmt });
-      var name = 'walson-' + y + '-' + pad2(m + 1) + '-' + fmt + '.png';
-      if (window.WalsonSave) WalsonSave.canvas(prev, name);
-    });
-    render();
   }
 
   window.MonthReport = { open: open, summarize: summarize, draw: draw };

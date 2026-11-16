@@ -19,7 +19,7 @@
   var ALLOWED = {
     page_view: [],
     card_made: ['signal', 'size'],
-    card_saved: ['what', 'format'],
+    card_saved: ['what', 'format', 'how'],   // how: save(저장)·share(공유) — 2026-11-16 저장과 공유를 나눔
     walk_start: ['mode'],
     walk_complete: ['mode', 'min_bucket', 'eligible'],
     stamp_new: ['count'],
