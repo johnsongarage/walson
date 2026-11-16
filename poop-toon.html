@@ -108,11 +108,12 @@
   .toast[hidden] { display: none; }
 </style>
 <script src="store.js?v=1"></script>
+<script src="device.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=9"></script>
-<script src="save-image.js?v=2"></script>
+<script src="save-image.js?v=3"></script>
 </head>
 <body>
 <div class="wrap">
@@ -1734,11 +1735,11 @@
       var file = null;
       try { file = new File([blob], fileName(), { type: 'image/png' }); } catch (e) { file = null; }
       var mobile = window.WalsonSave ? WalsonSave.isMobile() : /Android|iPhone|iPad/i.test(navigator.userAgent);
-      var canShare = false;
-      try { canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { canShare = false; }
+      var canShare = false;   // 공유 창(device.js)이 이 그림 파일을 받는다고 답할 때만
+      try { canShare = !!(file && WalsonDevice.canShare({ files: [file] })); } catch (e) { canShare = false; }
       if (mobile && canShare) {
         // 글: 제목·상태 + 만든 곳(?from=poop_share — 받은 가족이 눌러 들어오면 통계의 유입 칸에 남는다)
-        navigator.share({ files: [file], text: title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
+        WalsonDevice.share({ files: [file], text: title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
           (capText() ? '\n' + capText() : '') + '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share' })
           .then(function () { track('poop_toon'); saveToWalk(true); toast('보냈어요. 가족 반응도 알려 주세요!'); })
           .catch(function (err) {

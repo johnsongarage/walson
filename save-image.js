@@ -2,17 +2,12 @@
 // 예전 방식(canvas·blob): 휴대폰이면 공유 창, PC면 내려받기 — 공유를 지원하는 PC 브라우저에서 공유 창만 뜨던 문제를 막으려고 휴대폰만 공유.
 // 2026-11-16 저장과 공유를 나눔(save·share): 안드로이드 공유 창에는 '사진첩에 저장'이 없어서 "저장·공유" 버튼으로는 저장이 안 됐다.
 //   한 화면 편집기(image-editor.js)·키링 파일은 save/share를 쓴다. 기록 내보내기(profile.html)는 예전 방식(blob) 그대로.
+// 2026-11-17 리팩토링: 기기 종류(휴대폰·아이폰)와 공유 창은 device.js(WalsonDevice)가 한다 — 이 파일은 그림 저장·내려받기·
+//   "길게 눌러 저장" 안내와, 공유 창이 안 될 때 무엇을 할지(내려받기·안내 글)만. 동작은 그대로. 먼저 불러야 하는 것: device.js
 (function () {
-  function isMobile() {
-    var ua = navigator.userAgent || '';
-    if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
-    // 아이패드 사파리는 맥처럼 보인다 — 터치가 있으면 휴대 기기로 본다
-    if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return true;
-    return !!(window.matchMedia && matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches);
-  }
-  function canShareFile(file) {
-    try { return !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { return false; }
-  }
+  // 예전 이름 그대로 둔다(응가 캐릭터 화면 등이 WalsonSave.isMobile을 부른다) — 판단은 device.js
+  function isMobile() { return WalsonDevice.isMobile(); }
+  function isIOS() { return WalsonDevice.isIOS(); }
   function download(blob, fileName) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -25,8 +20,8 @@
     if (!b) return;
     var file = null;
     try { file = new File([b], fileName, { type: b.type || 'image/png' }); } catch (e) { file = null; }
-    if (isMobile() && file && canShareFile(file)) {
-      navigator.share({ files: [file] }).catch(function (err) {
+    if (isMobile() && file && WalsonDevice.canShare({ files: [file] })) {
+      WalsonDevice.share({ files: [file] }).catch(function (err) {
         if (err && err.name === 'AbortError') return;   // 사용자가 닫음
         download(b, fileName);
       });
@@ -44,14 +39,11 @@
   // 저장: 안드로이드·PC는 파일로 내려받기(갤러리·다운로드 폴더). 아이폰·아이패드는 내려받으면 '파일' 앱으로 가서 사진 앱에 안 보이므로,
   //       그림을 크게 띄우고 "길게 눌러 사진 앱에 저장"을 안내한다.
   // 공유: 공유 창(카톡·인스타 등). 공유 창을 못 여는 브라우저(대부분의 PC, 일부 앱 안 브라우저)에서는 공유 버튼을 숨긴다(canShare).
-  function isIOS() {
-    var ua = navigator.userAgent || '';
-    return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  }
+  // 그림 파일을 공유 창에 넘길 수 있다고 브라우저가 답하는지(편집기의 [공유] 버튼을 보일지)
   function canShare() {
     try {
-      if (!navigator.share || !navigator.canShare || typeof File !== 'function') return false;
-      return navigator.canShare({ files: [new File([new Blob(['x'], { type: 'image/png' })], 'a.png', { type: 'image/png' })] });
+      if (!WalsonDevice.canShare() || typeof File !== 'function') return false;
+      return !!WalsonDevice.canShare({ files: [new File([new Blob(['x'], { type: 'image/png' })], 'a.png', { type: 'image/png' })] });
     } catch (e) { return false; }
   }
   function longPress(c) {
@@ -87,10 +79,11 @@
   function share(c, fileName) {
     var file = null;
     try { file = fileOf(c, fileName); } catch (e) { file = null; }
+    // 공유 창이 있고 브라우저가 이 그림을 거절하지 않으면(미리 답하지 못하는 브라우저는 일단 해 본다 — canShare가 null)
     var ok = false;
-    try { ok = !!(file && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))); } catch (e) { ok = false; }
+    try { ok = !!(file && WalsonDevice.canShare() && WalsonDevice.canShare({ files: [file] }) !== false); } catch (e) { ok = false; }
     if (!ok) { alert('이 브라우저에서는 바로 공유할 수 없어요. [저장]한 뒤 보내 주세요.'); return; }
-    navigator.share({ files: [file] }).catch(function (err) {
+    WalsonDevice.share({ files: [file] }).catch(function (err) {
       if (err && err.name === 'AbortError') return;   // 사용자가 닫음
       alert('공유 창을 열지 못했어요. [저장]한 뒤 보내 주세요.');
     });

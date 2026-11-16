@@ -13,12 +13,13 @@
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
 <script src="store.js?v=1"></script>
+<script src="device.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=10"></script>
 <script src="infra-pins.js?v=21"></script>
 <script src="shop-visits.js?v=4"></script>
-<script src="qr-scan.js?v=2"></script>
+<script src="qr-scan.js?v=3"></script>
 <script src="demo-geo.js?v=6"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
@@ -81,7 +82,7 @@
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
 <script src="walk-screen.js?v=2"></script>
-<script src="walk-engine.js?v=1"></script>
+<script src="walk-engine.js?v=2"></script>
 </head>
 <body>
 
@@ -159,18 +160,17 @@
   var $ = function (id) { return document.getElementById(id); };
   // 길 기록 자체(위치 받기·거르기·발도장 바로 판정·진행 중 저장·이어 하기·시작·끝내기)는 walk-engine.js(WalkEngine)가 한다(2026-11-17 나눔).
   // 이 화면은 그리기만 — 엔진이 알려 주면(아래 "엔진 연결") 미션 카드·알림 띠·지도·시계를 다시 그린다. 산책 상태는 E.state()로 읽기만 한다.
-  // 핀(산책 중 꽂은 메모 — 지도 보기 안에서 꽂고 지운다)·주민증은 store.js(WalsonStore)로 읽고 쓴다
+  // 핀(산책 중 꽂은 메모 — 지도 보기 안에서 꽂고 지운다)·주민증·화면 켜 두기 설정은 store.js(WalsonStore)로 읽고 쓴다
+  // 화면 켜 두기(Wake Lock)·진동은 device.js(WalsonDevice)가 한다 — 이 화면은 언제 켜 두고 언제 울릴지만 정한다
   var E = window.WalkEngine;
   var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(공용 장소)
-  // 화면 켜 두기는 기본 꺼짐(0단계) — 켠 사람만 Wake Lock
-  var KEEP_SCREEN_KEY = 'petwalk_keep_screen';
+  // 화면 켜 두기는 기본 꺼짐(0단계) — 켠 사람만(설정 petwalk_keep_screen = '1'), 산책 중일 때만 잡는다
+  var KEEP_SCREEN_KEY = WalsonStore.KEYS.keepScreen;
+  var keepAwake = WalsonDevice.keepAwake;
   var POCKET_TIP = '화면을 꺼서 주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
   var KEEP_TIP = '화면을 켜 둘게요 — 길이 자세히 남아요. 주머니에 넣을 땐 전원 버튼으로 꺼 주세요.';
   var kmText = E.kmText, pad2 = E.pad2;
-  function keepScreen() { try { return localStorage.getItem(KEEP_SCREEN_KEY) === '1'; } catch (e) { return false; } }
-
-  // ── 상태(화면) ──
-  var wakeLock = null;
+  function keepScreen() { return WalsonStore.flag(KEEP_SCREEN_KEY); }
 
   var showWalkNotice = WalkScreen.notice($('walk-notice'));
   var menuCtl = WalkScreen.menu($('menu-btn'), $('menu'));
@@ -227,35 +227,22 @@
     var p = E.missionProgress(), all = R.missions(p);
     var done = all.filter(function (m) { return m.done; }).length, next = R.currentMission(p);
     showWalkNotice(pl.name + ' 발도장 받았어요 (' + done + '/' + all.length + ')' + (next ? ' · 다음 미션: ' + next.place.name : ' · 미션을 다 했어요'), 'stamp');
-    // 진동은 이 화면을 한 번이라도 누른 뒤에만 된다(브라우저 규칙) — 주머니에서 막 꺼내 연 화면은 조용히 넘어간다
-    try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate([90, 60, 90]); } catch (e) { /* 진동 없는 기기(아이폰 등) */ }
+    // 진동은 이 화면을 한 번이라도 누른 뒤에만 된다(브라우저 규칙) — 주머니에서 막 꺼내 연 화면은 조용히 넘어간다. 진동 없는 기기(아이폰 등)도 조용히
+    WalsonDevice.vibrate([90, 60, 90], { onlyAfterTap: true });
   }
 
-  // ── 화면 켜 두기 ──
-  function requestWakeLock() {
-    if (!('wakeLock' in navigator)) return Promise.resolve(false);
-    return navigator.wakeLock.request('screen').then(function (lock) {
-      wakeLock = lock;
-      lock.addEventListener('release', function () { if (wakeLock === lock) wakeLock = null; });
-      return true;
-    }).catch(function () { return false; });
-  }
-  function releaseWakeLock() {
-    if (wakeLock) wakeLock.release().catch(function () {});
-    wakeLock = null;
-  }
+  // ── 화면 켜 두기 ── 잡고 푸는 일은 device.js(keepAwake), 언제 잡을지(켠 사람 · 산책 중 · 다시 보일 때)는 여기서
   function paintKeepScreen() {
     $('keep-screen-label').textContent = '화면 켜 두기 · ' + (keepScreen() ? '켬' : '꺼짐');
     $('pocket-tip-text').textContent = keepScreen() ? '화면을 켜 두는 중 · 주머니에 넣을 땐 전원 버튼으로' : '화면을 꺼서 주머니에 넣어도 돼요';
   }
   paintKeepScreen();
   $('keep-screen-toggle').addEventListener('click', function () {
-    var on = !keepScreen();
-    try { if (on) localStorage.setItem(KEEP_SCREEN_KEY, '1'); else localStorage.removeItem(KEEP_SCREEN_KEY); } catch (err) { /* 저장 못 하면 바뀌지 않는다 */ }
+    WalsonStore.setFlag(KEEP_SCREEN_KEY, !keepScreen());   // 저장 못 하면 바뀌지 않는다
     paintKeepScreen();
     menuCtl.close();
-    if (keepScreen()) { if (E.state().walking) requestWakeLock(); showWalkNotice(KEEP_TIP, 'info'); }
-    else { releaseWakeLock(); showWalkNotice(POCKET_TIP, 'info'); }
+    if (keepScreen()) { if (E.state().walking) keepAwake.request(); showWalkNotice(KEEP_TIP, 'info'); }
+    else { keepAwake.release(); showWalkNotice(POCKET_TIP, 'info'); }
   });
 
   // ── 가게 QR 찍기 ──
@@ -388,7 +375,7 @@
   // 지금 위치를 바로 읽는 것과 숨겨질 때 저장은 엔진이 한다(엔진보다 먼저 걸어서 예전처럼 화면 켜 두기 → 시계 → 위치 순서)
   document.addEventListener('visibilitychange', function () {
     if (!E.state().walking || document.visibilityState !== 'visible') return;
-    if (!wakeLock && keepScreen()) requestWakeLock();
+    if (!keepAwake.held() && keepScreen()) keepAwake.request();
     tick();
   });
 
@@ -398,12 +385,12 @@
     // (주머니·화면 켜 두기 안내는 화면 켜 두기 설정을 아는 화면이 띄운다 — 예전 startWalk 끝에서 띄우던 것과 같은 글)
     onState: function (s, why) {
       if (s.walking) {
-        if (keepScreen()) requestWakeLock();
+        if (keepScreen()) keepAwake.request();
         paintSince();
         tick();
         if (why === 'start') showWalkNotice(keepScreen() ? KEEP_TIP : POCKET_TIP, 'info');
       } else {
-        releaseWakeLock();
+        keepAwake.release();
       }
     },
     // 위치가 들어와 바뀜 — 미션 카드, 지도를 펼쳐 둔 중이면 지도도(mapToo가 false면 지도는 그대로)
