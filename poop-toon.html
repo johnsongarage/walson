@@ -28,7 +28,8 @@
      11/13 응가 일기 원칙(POOP_DIARY.md)을 지킨다: 사진은 남기지 않는다(그림만), 산책 중엔 휴대폰 기본 카메라로 한 장만,
      점수는 앱이 매기지 않는다(표정·상태는 보호자가 고름), 위치는 쓰지 않는다.
      그림으로 바꾸기는 이 휴대폰 안에서만 한다 — 생성 AI·서버 없음. 목표(11/16 가르시아): 응가 모양대로, 색도 사진 그대로.
-     붓칠처럼 평평하게(쿠와하라 필터) → 바닥/응가 나누기(가장자리에 많은 색 = 바닥, 가운데에 가장 많은 색 = 응가 본체, 나머지는 색이 가까운 쪽)
+     붓칠처럼 평평하게(쿠와하라 필터) → 응가 떼어 내기(칸마다: 가장자리 = 바닥, 바닥이 어두워지고 색이 옅어진 것 = 그림자, 바닥·그림자와 가장 다른
+     응가다운 색에서 시작해 세 번 다시 배움. 응가를 톡 누르면 그 위에 더함. 애매하면 바닥까지 그림 — 11/16 실제 사진 3장으로 고침)
      → 응가 안의 색을 Lab 좌표에서 최대 5묶음으로 뽑아 그 색 그대로 칠함(빨간 줄·흰 점액·노란·검은 변도 남음) → 굵은 테두리 + 흰 스티커 테두리
      (못 나누면 동그란 스티커로 바닥까지 그림으로).
      통계: 화면 열기(page_view)와 보내기 횟수(share_click what=poop_toon / 내려받기 poop_toon_save)만 — 사진·그림은 보내지 않는다. */
@@ -92,6 +93,9 @@
   .field input[type="text"] { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
     font-family: inherit; font-size: 16px; }
   .field input[type="range"] { accent-color: var(--accent); }
+  .tap-note { max-width: 340px; margin: -4px auto 12px; text-align: center; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+  .tap-note.is-set { color: var(--accent-ink); }
+  .btn-text.left { margin: -6px 0 14px; padding-left: 0; }
   .bg-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: #fbefe0; font-size: 13px; line-height: 1.55; word-break: keep-all; }
   .bg-note[hidden] { display: none; }
   .after { margin-top: 10px; }
@@ -135,8 +139,9 @@
   <!-- 2. 자리 맞추기 -->
   <section class="step" id="step-crop" hidden>
     <h2>응가가 동그라미 가운데 오게</h2>
-    <p class="lead">끌어서 옮기고, 두 손가락이나 아래 막대로 키워요. 동그라미 밖은 잘려요.</p>
-    <div class="crop-box"><canvas id="crop-canvas" width="680" height="680" aria-label="자리 맞추기 — 끌어서 옮기기"></canvas></div>
+    <p class="lead" id="crop-lead">끌어서 옮기고, 두 손가락이나 아래 막대로 키워요. <b>응가 하나를 톡 누르면</b> 더 정확하게 떼어 내요.</p>
+    <div class="crop-box"><canvas id="crop-canvas" width="680" height="680" aria-label="자리 맞추기 — 끌어서 옮기고, 응가를 톡 눌러 표시"></canvas></div>
+    <p class="tap-note" id="tap-note">응가를 톡 누르면 여기에 표시돼요(안 눌러도 돼요)</p>
     <label class="zoom">작게<input type="range" id="crop-zoom" min="1" max="5" step="0.01" value="1" aria-label="확대">크게</label>
     <div class="row">
       <button type="button" class="btn-sub" id="crop-back">다시 고르기</button>
@@ -151,6 +156,10 @@
       <p class="busy" id="busy" hidden>그림으로 바꾸는 중…</p>
     </div>
     <p class="hint">그림 위 얼굴을 끌어서 옮길 수 있어요</p>
+    <!-- 그림 방식 — 응가만 떼어 낼지, 바닥까지 동그랗게 그릴지(11/16 실제 사진: 풀밭 사진은 바닥까지 그린 쪽이 잘 나옴) -->
+    <div class="group"><span class="g-label">그림</span><div class="chips" id="bgs"></div></div>
+    <p class="bg-note" id="bg-note" hidden>응가와 바닥을 확실히 나누지 못해서 바닥까지 그림으로 그렸어요. 응가만 떼어 내려면 "다시 고르기"에서 응가를 톡 눌러 주세요.</p>
+    <button type="button" class="btn-text left" id="repick">응가가 잘못 잡혔으면 · 응가를 눌러 다시 고르기</button>
     <div class="group"><span class="g-label">표정</span><div class="chips" id="faces"></div></div>
     <button type="button" class="roll" id="roll">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="12" r="5"/><circle cx="17" cy="12" r="5"/><circle cx="9.5" cy="10.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="13.5" r="1.6" fill="currentColor"/></svg>
@@ -161,10 +170,8 @@
       <summary>더 꾸미기</summary>
       <label class="field">강아지 이름<input type="text" id="name" maxlength="10" placeholder="우리 애" autocomplete="off"></label>
       <label class="field">말풍선 한마디<input type="text" id="say" maxlength="16" autocomplete="off"></label>
-      <div class="group"><span class="g-label">배경</span><div class="chips" id="bgs"></div></div>
       <label class="field">얼굴 크기<input type="range" id="face-size" min="0.5" max="1.8" step="0.01" value="1"></label>
     </details>
-    <p class="bg-note" id="bg-note" hidden>배경과 응가를 잘 못 나눠서 동그랗게 잘랐어요. 응가가 가운데 오게 더 가까이 찍으면 배경을 지울 수 있어요.</p>
     <button type="button" class="btn-main" id="send-btn">가족에게 보내기</button>
     <div class="after"><button type="button" class="btn-text" id="again">다른 사진으로</button></div>
     <ul class="notes small">
@@ -205,6 +212,7 @@
   // ── 상태 ──
   var src = null;                          // 고른 사진(메모리에만 — 저장하지 않는다)
   var crop = { zoom: 1, cx: 0, cy: 0 };    // 자리 맞추기: 확대, 가운데(사진 좌표)
+  var tapPt = null;                        // 자리 맞추기에서 응가를 톡 누른 곳(사진 좌표) — 그 색을 기준으로 떼어 낸다
   var art = null;                          // 그림으로 바꾼 결과(작업 데이터)
   var sticker = null;                      // 지금 배경 방식으로 그린 스티커 캔버스
   var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', size: 1 };
@@ -332,9 +340,27 @@
     cropCtx.beginPath(); cropCtx.arc(W / 2, W / 2, W * CIRCLE / 2, 0, Math.PI * 2);
     cropCtx.lineWidth = 5; cropCtx.strokeStyle = '#fffaf3'; cropCtx.setLineDash([16, 12]); cropCtx.stroke();
     cropCtx.restore();
+    // 누른 곳 표시
+    if (tapPt) {
+      var mx = (tapPt[0] - (crop.cx - side / 2)) / side * W, my = (tapPt[1] - (crop.cy - side / 2)) / side * W;
+      cropCtx.save();
+      cropCtx.beginPath(); cropCtx.arc(mx, my, 20, 0, Math.PI * 2); cropCtx.lineWidth = 6; cropCtx.strokeStyle = '#fffaf3'; cropCtx.stroke();
+      cropCtx.beginPath(); cropCtx.arc(mx, my, 20, 0, Math.PI * 2); cropCtx.lineWidth = 3; cropCtx.strokeStyle = '#b8563a'; cropCtx.stroke();
+      cropCtx.beginPath(); cropCtx.arc(mx, my, 5, 0, Math.PI * 2); cropCtx.fillStyle = '#b8563a'; cropCtx.fill();
+      cropCtx.font = "800 26px 'Pretendard', sans-serif"; cropCtx.textAlign = 'center';
+      var ty = my - 34 < 30 ? my + 56 : my - 34;
+      cropCtx.lineWidth = 6; cropCtx.strokeStyle = '#fffaf3'; cropCtx.strokeText('응가', mx, ty); cropCtx.fillStyle = '#9c4530'; cropCtx.fillText('응가', mx, ty);
+      cropCtx.restore();
+    }
+  }
+  function paintTapNote() {
+    var n = $('tap-note');
+    n.textContent = tapPt ? '응가 표시 완료 · 다른 곳을 누르면 옮겨져요' : '응가를 톡 누르면 여기에 표시돼요(안 눌러도 돼요)';
+    n.classList.toggle('is-set', !!tapPt);
   }
   function startCrop(canvas) {
-    src = canvas;
+    src = canvas; tapPt = null; paintTapNote();
+    $('crop-lead').innerHTML = '끌어서 옮기고, 두 손가락이나 아래 막대로 키워요. <b>응가 하나를 톡 누르면</b> 더 정확하게 떼어 내요.';
     crop.zoom = 1; crop.cx = src.width / 2; crop.cy = src.height / 2;
     $('crop-zoom').value = 1;
     clampCrop();
@@ -343,11 +369,15 @@
   }
   $('crop-zoom').addEventListener('input', function () { crop.zoom = +this.value; clampCrop(); drawCrop(); });
   (function () {
-    var pts = {}, lastDist = 0;
+    var pts = {}, lastDist = 0, gest = null;   // gest: 한 번 누르기인지 보려고(조금만 움직이고 짧게 떼면 톡)
     function dist() { var k = Object.keys(pts); if (k.length < 2) return 0; var a = pts[k[0]], b = pts[k[1]]; return Math.hypot(a.x - b.x, a.y - b.y); }
-    cropCv.addEventListener('pointerdown', function (e) { cropCv.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY }; lastDist = dist(); });
+    cropCv.addEventListener('pointerdown', function (e) {
+      cropCv.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY }; lastDist = dist();
+      if (Object.keys(pts).length === 1) gest = { x: e.clientX, y: e.clientY, t: Date.now(), moved: 0, multi: false }; else if (gest) gest.multi = true;
+    });
     cropCv.addEventListener('pointermove', function (e) {
       var p = pts[e.pointerId]; if (!p || !src) return;
+      if (gest) gest.moved += Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y);
       var n = Object.keys(pts).length, cssW = cropCv.getBoundingClientRect().width || 1;
       if (n === 1) {
         var k = viewSide() / cssW;
@@ -361,7 +391,19 @@
       }
       clampCrop(); drawCrop();
     });
-    function up(e) { delete pts[e.pointerId]; lastDist = dist(); }
+    function up(e) {
+      var wasTap = gest && !gest.multi && gest.moved < 10 && Date.now() - gest.t < 500 && Object.keys(pts).length === 1 && e.type === 'pointerup';
+      delete pts[e.pointerId]; lastDist = dist();
+      if (!Object.keys(pts).length) {
+        if (wasTap && src) {
+          var r = cropCv.getBoundingClientRect(), side = viewSide();
+          var fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+          // 동그라미 안을 눌렀을 때만
+          if (Math.hypot(fx - 0.5, fy - 0.5) < CIRCLE / 2) { tapPt = [crop.cx - side / 2 + fx * side, crop.cy - side / 2 + fy * side]; paintTapNote(); drawCrop(); }
+        }
+        gest = null;
+      }
+    }
     cropCv.addEventListener('pointerup', up); cropCv.addEventListener('pointercancel', up);
     cropCv.addEventListener('wheel', function (e) {
       e.preventDefault();
@@ -369,18 +411,24 @@
       $('crop-zoom').value = crop.zoom; clampCrop(); drawCrop();
     }, { passive: false });
   })();
-  $('crop-back').addEventListener('click', function () { src = null; show('pick'); });
+  $('crop-back').addEventListener('click', function () { src = null; tapPt = null; show('pick'); });
   $('crop-next').addEventListener('click', function () {
     var c = document.createElement('canvas'); c.width = c.height = WORK;
     var side = viewSide() * CIRCLE, cx = c.getContext('2d');
     cx.imageSmoothingQuality = 'high';
     cx.drawImage(src, crop.cx - side / 2, crop.cy - side / 2, side, side, 0, 0, WORK, WORK);
+    // 누른 곳을 작업 좌표로
+    var tap = null;
+    if (tapPt) {
+      var tu = Math.round((tapPt[0] - (crop.cx - side / 2)) / side * WORK), tv = Math.round((tapPt[1] - (crop.cy - side / 2)) / side * WORK);
+      if (tu >= 0 && tv >= 0 && tu < WORK && tv < WORK) tap = [tu, tv];
+    }
     show('make');
     $('busy').hidden = false;
     // 화면에 "바꾸는 중"이 먼저 보이게 한 박자 쉬고 계산
     setTimeout(function () {
       var t0 = performance.now();
-      art = toonify(cx.getImageData(0, 0, WORK, WORK).data);
+      art = toonify(cx.getImageData(0, 0, WORK, WORK).data, tap);
       art.ms = Math.round(performance.now() - t0);
       opt.bg = art.cutOk ? 'cut' : 'keep';
       $('bg-note').hidden = art.cutOk;
@@ -398,11 +446,10 @@
   // 목표(11/16 가르시아 "똥의 모양대로 그림이 생성되고 색깔도 따라 만들어지는 걸 원해"):
   // 모양은 사진에서 응가만 떼어 낸 그대로, 색은 응가 안에서 뽑은 색 묶음(최대 5색, 사진 색 그대로)으로 칠한다.
   // 빨간 줄·흰 점액·노란 부분처럼 다른 색이 섞여 있으면 그 색도 남는다(건강 기록에서 색이 중요해서).
-  var art0 = {};   // 배경 나누기가 색을 비교할 때 쓰는 팔레트
   // 뭉개는 정도: 쿠와하라 두 번의 반경과 색 칸을 한 번 더 뭉개는 반경(작업 픽셀). 크면 매끈하지만 가는 줄이 넓어진다
   // 11/16 색 따라 그리기 때 6·4·2 → 4·3·1로 줄임: 빨간 줄이 사진보다 1.6배 두꺼워지던 것이 1.4배로, 흰 점액 비율은 사진과 같게(16.0% / 16.1%)
   var SMOOTH = { k1: 4, k2: 3, blur: 1 };
-  function toonify(rgba) {
+  function toonify(rgba, tap) {
     var W = WORK, N = W * W;
     // ① 붓칠처럼 평평하게: 쿠와하라 필터 두 번(가장자리는 살리고 질감은 지운다)
     var rgb = new Float32Array(N * 3);
@@ -410,19 +457,12 @@
     var sm = window.__toonSmooth || SMOOTH;   // (시험에서만 바꿔 본다)
     rgb = kuwahara(rgb, W, W, sm.k1);
     rgb = kuwahara(rgb, W, W, sm.k2);
-    // ② 바닥과 응가를 나누려고 색 여섯 묶음(동그라미 안)
-    var K = 6, centers = kmeans(rgb, W, K);
-    var labels = new Uint8Array(N);
-    for (p = 0; p < N; p++) labels[p] = nearest(centers, K, rgb[p * 3], rgb[p * 3 + 1], rgb[p * 3 + 2]);
-    labels = modeFilter(modeFilter(labels, W, W, K), W, W, K);
-    var palette = [];
-    for (var k = 0; k < K; k++) palette.push([centers[k * 3], centers[k * 3 + 1], centers[k * 3 + 2]]);
-    art0.palette = palette;
-    // ③ 배경 나누기 — 동그라미 가장자리에 많은 색 = 바닥
-    var cut = cutBackground(labels, W, K);
-    // ④ 칠할 색: 부드럽게 한 사진 색을 Lab(사람 눈에 고르게 보이는 색 좌표)으로 바꿔 두고, 응가 안의 색 묶음을 뽑는다
+    // ② 사진 색을 Lab(사람 눈에 고르게 보이는 색 좌표)으로 — 떼어 내기와 칠하기가 같이 쓴다
     var labF = labField(rgb, W, sm.blur);
-    var res = { W: W, labels: labels, palette: palette, K: K, mask: cut.mask, cutOk: cut.ok, box: cut.box, labF: labF, allPal: null };
+    // ③ 응가 떼어 내기(칸마다 판정) — 확실하지 않으면 떼어 내지 않는다
+    var cut = segment(labF, W, tap);
+    var res = { W: W, mask: cut.mask, cutOk: cut.ok, box: cut.box, main: cut.main, labF: labF, allPal: null, dbg: cut.dbg };
+    // ④ 응가 안의 색 묶음(최대 5색, 사진 색 그대로)
     if (cut.ok) res.fgPal = labPalette(labF, W, cut.mask, 5);
     return res;
   }
@@ -550,39 +590,6 @@
     }
     return out;
   }
-  function cdist(c, i, r, g, b) { var dr = c[i] - r, dg = c[i + 1] - g, db = c[i + 2] - b; return 2 * dr * dr + 4 * dg * dg + 3 * db * db; }
-  function nearest(c, K, r, g, b) {
-    var best = 0, bd = Infinity;
-    for (var k = 0; k < K; k++) { var d = cdist(c, k * 3, r, g, b); if (d < bd) { bd = d; best = k; } }
-    return best;
-  }
-  // k-평균: 동그라미 안 점만 뽑아, 밝기 순서로 고르게 시작해서 열 번 고친다(같은 사진이면 늘 같은 결과)
-  function kmeans(rgb, W, K) {
-    var N = W * W, R0 = W / 2, step = Math.max(1, Math.floor(N * 0.785 / 24000)), pts = [];
-    for (var p = 0; p < N; p += step) { var px = p % W, py = (p / W) | 0; if (Math.hypot(px + 0.5 - R0, py + 0.5 - R0) < R0 * 0.98) pts.push(p); }
-    var S = pts.length, sm = new Float32Array(S * 3), lum = new Float32Array(S), idx = [];
-    for (var s = 0; s < S; s++) {
-      p = pts[s];
-      sm[s * 3] = rgb[p * 3]; sm[s * 3 + 1] = rgb[p * 3 + 1]; sm[s * 3 + 2] = rgb[p * 3 + 2];
-      lum[s] = 0.299 * sm[s * 3] + 0.587 * sm[s * 3 + 1] + 0.114 * sm[s * 3 + 2]; idx.push(s);
-    }
-    idx.sort(function (a, b) { return lum[a] - lum[b]; });
-    var c = new Float32Array(K * 3);
-    for (var k = 0; k < K; k++) { var q = idx[Math.floor((k + 0.5) / K * S)]; c[k * 3] = sm[q * 3]; c[k * 3 + 1] = sm[q * 3 + 1]; c[k * 3 + 2] = sm[q * 3 + 2]; }
-    var sum = new Float64Array(K * 3), cnt = new Float64Array(K);
-    for (var it = 0; it < 10; it++) {
-      sum.fill(0); cnt.fill(0);
-      for (s = 0; s < S; s++) {
-        var b = nearest(c, K, sm[s * 3], sm[s * 3 + 1], sm[s * 3 + 2]);
-        sum[b * 3] += sm[s * 3]; sum[b * 3 + 1] += sm[s * 3 + 1]; sum[b * 3 + 2] += sm[s * 3 + 2]; cnt[b]++;
-      }
-      for (k = 0; k < K; k++) {
-        if (cnt[k]) { c[k * 3] = sum[k * 3] / cnt[k]; c[k * 3 + 1] = sum[k * 3 + 1] / cnt[k]; c[k * 3 + 2] = sum[k * 3 + 2] / cnt[k]; }
-        else { var z = idx[(k * 7919) % S]; c[k * 3] = sm[z * 3]; c[k * 3 + 1] = sm[z * 3 + 1]; c[k * 3 + 2] = sm[z * 3 + 2]; }
-      }
-    }
-    return c;
-  }
   // 3×3 다수결 — 자잘한 점을 지운다
   function modeFilter(lab, W, H, K) {
     var out = new Uint8Array(W * H), cnt = new Uint8Array(K);
@@ -603,94 +610,235 @@
     }
     return out;
   }
-  // 배경 나누기. 실패하면 ok=false(동그란 스티커로 간다)
-  function cutBackground(lab, W, K) {
-    var R0 = W / 2, ring = new Float64Array(K), center = new Float64Array(K), ringN = 0, centerN = 0;
-    for (var y = 0; y < W; y++) for (var x = 0; x < W; x++) {
-      var d = Math.hypot(x + 0.5 - R0, y + 0.5 - R0) / R0, l = lab[y * W + x];
-      if (d > 0.8 && d < 0.97) { ring[l]++; ringN++; }
-      else if (d < 0.32) { center[l]++; centerN++; }
-    }
-    var isBg = [], anyBg = false, fgSeed = -1, k, j;
-    for (k = 0; k < K; k++) { isBg[k] = ring[k] / ringN >= 0.08 && center[k] / centerN < 0.3; if (isBg[k]) anyBg = true; }
-    if (!anyBg) return { ok: false, mask: null };
-    // 색깔 거리 — 밝기보다 색깔(빨강·파랑 쪽 치우침)을 크게 본다. 그림자 진 잔디는 잔디와 가깝고 응가와는 멀다
-    var pal = art0.palette;
-    function cd(a, b) {
-      var ya = 0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2], yb = 0.299 * b[0] + 0.587 * b[1] + 0.114 * b[2];
-      var du = (a[2] - ya) - (b[2] - yb), dv = (a[0] - ya) - (b[0] - yb), dy = ya - yb;
-      return 0.25 * dy * dy + du * du + dv * dv;
-    }
-    function toBg(k) { var d = Infinity; for (var j = 0; j < K; j++) if (isBg[j]) d = Math.min(d, cd(pal[k], pal[j])); return d; }
-    // 응가 본체 색 = 가운데에 가장 많고, 바닥과 색이 충분히 다른 것(바닥과 너무 비슷하면 그다음)
-    var order = [];
-    for (k = 0; k < K; k++) if (!isBg[k] && center[k] / centerN >= 0.08) order.push(k);
-    order.sort(function (x, y) { return center[y] - center[x]; });
-    for (j = 0; j < order.length; j++) if (toBg(order[j]) >= 600) { fgSeed = order[j]; break; }
-    if (fgSeed < 0) return { ok: false, mask: null };   // 바닥과 색이 너무 비슷(흙바닥 등) — 동그랗게 간다
-    // 나머지 색: 바닥보다 응가 쪽(이미 응가로 본 색 중 가장 가까운 것)에 더 가까우면 응가 — 빨간 줄·흰 점액·밝은 부분이 남고,
-    // 그림자 진 잔디처럼 밝기만 다른 바닥은 바닥으로 간다
-    var isFg = []; isFg[fgSeed] = true;
-    for (var grow = true; grow;) {
-      grow = false;
-      for (k = 0; k < K; k++) {
-        if (isBg[k] || isFg[k]) continue;
-        var toFg = Infinity;
-        for (j = 0; j < K; j++) if (isFg[j]) toFg = Math.min(toFg, cd(pal[k], pal[j]));
-        if (toFg < toBg(k)) { isFg[k] = true; grow = true; }
+  // ════════ 응가 떼어 내기 ════════
+  // 11/16 실제 사진(흩어진 알갱이·강한 햇빛 그림자·보도블록 틈새)에서 그림자와 틈새를 응가로 잡던 것을 고침.
+  // 예전엔 사진 전체를 색 6묶음으로 나눠 "가운데에 많은 묶음 = 응가"로 봤다 — 응가와 진한 그림자가 한 묶음에 섞이고,
+  // 바닥에 걸친 알갱이는 바닥 묶음에 섞였다. 이제 칸마다 판정한다:
+  //  · 바닥 = 동그라미 가장자리 띠의 색. 그림자 = 바닥 색이 어두워지고 색이 옅어진(조금 푸르러진) 것 — 바닥 편.
+  //  · 응가 = 바닥·그림자와 가장 다르고 응가다운 색(갈색·황토 쪽)인 칸에서 시작 → 응가/바닥 색을 다시 배우며 세 번 다듬는다.
+  //  · 응가를 톡 누른 곳이 있으면 그 색에서 시작한다.
+  //  · 흩어진 알갱이도 부스러기만 아니면 모두 남긴다. 가는 선(틈새·풀잎)은 깎아서 지운다.
+  //  · 확실하지 않으면(응가로 본 칸이 바닥과 별로 다르지 않음) 떼어 내지 않고 바닥까지 그림으로 — 그림자까지 붙은 그림보다 낫다.
+  // 색 거리: 밝기 차이는 반만 본다(그림자 진 면·빛 받은 면을 같은 물질로 보게)
+  function wd(L1, a1, b1, L2, a2, b2) { var dl = (L1 - L2) * 0.5, da = a1 - a2, db = b1 - b2; return dl * dl + da * da + db * db; }
+  function minWd(pr, L, a, b) {
+    var m = Infinity;
+    for (var i = 0; i < pr.length; i++) { var q = pr[i], dl = (L - q[0]) * 0.5, da = a - q[1], db = b - q[2], d = dl * dl + da * da + db * db; if (d < m) m = d; }
+    return m;
+  }
+  // 칸 목록 pts에서 색 K묶음(Lab, 위 거리) — 밝기 순서로 고르게 시작
+  function kmeansLab(lf, pts, K) {
+    var S = pts.length, k, s;
+    if (!S) return [];
+    var order = pts.slice().sort(function (x, y) { return lf[x * 3] - lf[y * 3]; }), c = [], cnt = [];
+    for (k = 0; k < K; k++) { var z = order[Math.floor((k + 0.5) / K * S)]; c.push([lf[z * 3], lf[z * 3 + 1], lf[z * 3 + 2]]); }
+    for (var it = 0; it < 8; it++) {
+      var sum = c.map(function () { return [0, 0, 0]; }); cnt = c.map(function () { return 0; });
+      for (s = 0; s < S; s++) {
+        var o = pts[s] * 3, L = lf[o], A = lf[o + 1], B = lf[o + 2], bi = 0, bd = Infinity;
+        for (k = 0; k < c.length; k++) { var d = wd(L, A, B, c[k][0], c[k][1], c[k][2]); if (d < bd) { bd = d; bi = k; } }
+        sum[bi][0] += L; sum[bi][1] += A; sum[bi][2] += B; cnt[bi]++;
       }
+      for (k = 0; k < c.length; k++) if (cnt[k]) c[k] = [sum[k][0] / cnt[k], sum[k][1] / cnt[k], sum[k][2] / cnt[k]];
     }
-    for (k = 0; k < K; k++) if (!isFg[k]) isBg[k] = true;
-    var N = W * W, m = new Uint8Array(N);
-    for (y = 0; y < W; y++) for (x = 0; x < W; x++) {
-      var i = y * W + x;
-      m[i] = !isBg[lab[i]] && Math.hypot(x + 0.5 - R0, y + 0.5 - R0) < R0 * 0.97 ? 1 : 0;
+    var out = [];
+    for (k = 0; k < c.length; k++) if (cnt[k]) out.push({ c: c[k], share: cnt[k] / S });
+    return out;
+  }
+  // 응가다운 색: 갈색·황토·노랑 쪽(Lab 색상각 20~100°)이고 색이 어느 정도 있는 것. 초록·파랑은 거의 0
+  function poopLike(a, b) {
+    var C = Math.hypot(a, b), h = (Math.atan2(b, a) * 180 / Math.PI + 360) % 360;
+    var w = (h >= 20 && h <= 100) ? 1 : (h < 20 || h >= 340) ? 0.7 : h <= 125 ? 0.5 : 0.12;
+    return w * (C < 4 ? 0.15 : C < 10 ? 0.15 + 0.85 * (C - 4) / 6 : 1);
+  }
+  // 바닥 색마다 그림자 세 가지(어두워지고 색이 옅어지고 조금 푸르러짐)를 더한다
+  function withShadows(cs) {
+    var out = [];
+    cs.forEach(function (c) {
+      out.push(c);
+      [[0.45, 0.6, -3], [0.62, 0.72, -2], [0.8, 0.86, -1]].forEach(function (k) { out.push([c[0] * k[0], c[1] * k[1], c[2] * k[1] + k[2]]); });
+    });
+    return out;
+  }
+  // 자동 판정 + (누른 곳이 있으면) 그 위에 더하기:
+  //  · 누른 곳이 이미 응가로 잡혀 있으면 → 얼굴 붙일 덩어리만 그 덩어리로
+  //  · 빠져 있으면 → 누른 색을 응가 색에 더해 다시 나누되, 누른 곳이나 자동으로 잡은 응가와 이어진 덩어리만 남긴다
+  //    (누른 색이 풀 사이 흙처럼 바닥 곳곳에 있어도 그 조각들은 따라오지 않게)
+  function segment(lf, W, tap) {
+    var A = classify(lf, W, null, null), ca = A.ok ? cleanMask(A.m.slice(), W, null, null) : null;
+    var autoOk = !!(A.ok && ca && ca.ok && A.conf >= 6);
+    if (!tap) {
+      var d = A.dbg; if (ca) { d.frac = ca.frac; d.parts = ca.parts; }
+      if (!autoOk) { d.why = d.why || (ca && !ca.ok ? 'size' : 'unsure'); return { ok: false, dbg: d }; }
+      return { ok: true, mask: ca.mask, box: ca.box, main: ca.main, dbg: d };
     }
-    if (!anyBg) return { ok: false, mask: null };
-    // 가는 부스러기 지우기(깎았다 다시 붙이기)
-    var din = chamfer(m, W, W, 0);
-    var er = new Uint8Array(N); for (i = 0; i < N; i++) er[i] = din[i] > 2.5 ? 1 : 0;
+    var ti = tap[1] * W + tap[0];
+    if (autoOk && ca.mask[ti]) {
+      var c1 = cleanMask(A.m.slice(), W, tap, null);
+      if (c1.ok) { A.dbg.tap = 'in'; return { ok: true, mask: c1.mask, box: c1.box, main: c1.main, dbg: A.dbg }; }
+    }
+    var B = classify(lf, W, tap, A.ok ? A : null);
+    if (!B.ok) return { ok: false, dbg: B.dbg };
+    var c2 = cleanMask(B.m, W, tap, autoOk ? ca.mask : null);
+    B.dbg.tap = 'add'; B.dbg.frac = c2.frac; B.dbg.parts = c2.parts;
+    if (!c2.ok) return { ok: false, dbg: B.dbg };
+    return { ok: true, mask: c2.mask, box: c2.box, main: c2.main, dbg: B.dbg };
+  }
+  // 칸마다 응가/바닥 나누기. tap이 있으면 누른 색(과 prev의 응가 색)으로 시작한다
+  function classify(lf, W, tap, prev) {
+    var N = W * W, R0 = W / 2, p, i, o, x, y, rad = new Float32Array(N);
+    for (p = 0; p < N; p++) { x = p % W; y = (p / W) | 0; rad[p] = Math.hypot(x + 0.5 - R0, y + 0.5 - R0) / R0; }
+    var dbg = {};
+    // ① 바닥: 가장자리 띠의 색 세 묶음(15% 넘는 것만 — 띠에 걸친 응가 알갱이는 빠진다)
+    var ring = [];
+    for (p = 0; p < N; p += 3) if (rad[p] > 0.8 && rad[p] < 0.97) ring.push(p);
+    var ground = kmeansLab(lf, ring, 3).filter(function (g) { return g.share >= 0.15; }).map(function (g) { return g.c; });
+    if (!ground.length) return { ok: false, dbg: dbg };
+    var bgP = withShadows(ground), tc = null;
+    dbg.ground = ground.map(function (c) { return c.map(Math.round); });
+    // ② 응가 씨앗
+    var seeds = [], fgP;
+    if (tap) {
+      tc = [0, 0, 0]; var tn = 0;
+      for (y = Math.max(0, tap[1] - 4); y <= Math.min(W - 1, tap[1] + 4); y++) for (x = Math.max(0, tap[0] - 4); x <= Math.min(W - 1, tap[0] + 4); x++) {
+        o = (y * W + x) * 3; tc[0] += lf[o]; tc[1] += lf[o + 1]; tc[2] += lf[o + 2]; tn++;
+      }
+      tc = tc.map(function (v) { return v / tn; });
+      for (p = 0; p < N; p += 2) {
+        if (rad[p] > 0.97) continue;
+        var dx = (p % W) - tap[0], dy = ((p / W) | 0) - tap[1];
+        o = p * 3;
+        if (dx * dx + dy * dy < 30 * 30 && wd(lf[o], lf[o + 1], lf[o + 2], tc[0], tc[1], tc[2]) < 120) seeds.push(p);
+      }
+      fgP = kmeansLab(lf, seeds.length ? seeds : [tap[1] * W + tap[0]], 2).map(function (f) { return f.c; }).concat([tc]);
+      if (prev && prev.fgP) fgP = fgP.concat(prev.fgP);
+      // 누른 색이 바닥 색과 같으면 바닥에서 그 색을 뺀다(사용자가 고른 게 맞다고 본다)
+      bgP = bgP.filter(function (q) { return wd(q[0], q[1], q[2], tc[0], tc[1], tc[2]) > 60; });
+      if (!bgP.length) return { ok: false, dbg: dbg };
+    } else {
+      var cand = [];
+      for (p = 0; p < N; p += 2) {
+        if (rad[p] > 0.85) continue;
+        o = p * 3;
+        var d0 = Math.sqrt(minWd(bgP, lf[o], lf[o + 1], lf[o + 2]));
+        cand.push([d0 * poopLike(lf[o + 1], lf[o + 2]) * (1.1 - 0.25 * rad[p]), d0, p]);
+      }
+      cand.sort(function (u, v) { return v[0] - u[0]; });
+      var nS = Math.max(300, Math.floor(cand.length * 0.05));
+      if (cand.length && cand[0][0] >= 4) { dbg.seedBy = 'color'; for (i = 0; i < cand.length && seeds.length < nS; i++) if (cand[i][0] >= 4) seeds.push(cand[i][2]); }
+      else {
+        // 응가다운 색이 없으면(검은 변·회백색 변) 바닥·그림자와 가장 다른 칸
+        dbg.seedBy = 'contrast';
+        cand.sort(function (u, v) { return v[1] - u[1]; });
+        if (!cand.length || cand[0][1] < 7) return { ok: false, dbg: dbg };
+        for (i = 0; i < cand.length && seeds.length < nS; i++) if (cand[i][1] >= 7) seeds.push(cand[i][2]);
+      }
+      if (!seeds.length) return { ok: false, dbg: dbg };
+      fgP = kmeansLab(lf, seeds, 3).map(function (f) { return f.c; });
+    }
+    // ③ 나누기 → 응가·바닥 색 다시 배우기(자동은 두 번, 누른 곳은 한 번 — 누른 색은 늘 응가 쪽에 남긴다)
+    var m = new Uint8Array(N), rounds = tap ? 2 : 3;
+    for (var round = 0; round < rounds; round++) {
+      for (p = 0; p < N; p++) {
+        if (rad[p] > 0.97) { m[p] = 0; continue; }
+        o = p * 3;
+        m[p] = minWd(fgP, lf[o], lf[o + 1], lf[o + 2]) < minWd(bgP, lf[o], lf[o + 1], lf[o + 2]) ? 1 : 0;
+      }
+      if (round === rounds - 1) break;
+      var fs = [], bs = [];
+      for (p = 0; p < N; p += 3) if (rad[p] <= 0.97) (m[p] ? fs : bs).push(p);
+      if (fs.length < 40) return { ok: false, dbg: dbg };
+      var g2 = kmeansLab(lf, bs, 4).filter(function (g) { return g.share >= 0.06; }).map(function (g) { return g.c; });
+      var nb = withShadows(g2.length ? g2 : ground);
+      if (tc) nb = nb.filter(function (q) { return wd(q[0], q[1], q[2], tc[0], tc[1], tc[2]) > 60; });
+      if (nb.length) bgP = nb;
+      // 응가 색으로 배운 것 중 바닥·그림자와 거의 같은 색은 뺀다 — 그림자가 응가 쪽으로 번지지 않게
+      var f2 = kmeansLab(lf, fs, 3).map(function (f) { return f.c; }).filter(function (c) { return minWd(bgP, c[0], c[1], c[2]) > 30; });
+      if (tc) f2.push(tc);
+      if (!f2.length) return { ok: false, dbg: dbg };
+      fgP = f2;
+    }
+    dbg.fg = fgP.map(function (c) { return c.map(Math.round); });
+    // 얼마나 확실한지: 응가로 본 칸이 바닥보다 응가 색에 얼마나 더 가까운지(가운데값)
+    var ms = [];
+    for (p = 0; p < N; p += 5) if (m[p]) { o = p * 3; ms.push(Math.sqrt(minWd(bgP, lf[o], lf[o + 1], lf[o + 2])) - Math.sqrt(minWd(fgP, lf[o], lf[o + 1], lf[o + 2]))); }
+    ms.sort(function (u, v) { return u - v; });
+    var conf = ms.length ? Math.round(ms[ms.length >> 1] * 10) / 10 : 0;
+    dbg.conf = conf;
+    return { ok: true, m: m, fgP: fgP, bgP: bgP, conf: conf, dbg: dbg };
+  }
+  // 정리: 다수결로 자잘한 점 지우기 → 깎았다 붙이기(가는 틈새·풀잎 지우기) → 덩어리(부스러기는 버림) → 구멍 메우기
+  function cleanMask(m, W, tap, allowed) {
+    var N = W * W, R0 = W / 2, i, x, y;
+    m = modeFilter(modeFilter(m, W, W, 2), W, W, 2);
+    // 붙였다 깎기(닫기): 빛 받은 쪽과 그늘진 쪽 사이 작은 틈을 메워 한 알갱이로, 모양도 덜 각지게
+    var inv0 = new Uint8Array(N); for (i = 0; i < N; i++) inv0[i] = m[i] ? 0 : 1;
+    var d0 = chamfer(inv0, W, W, Infinity), cl = new Uint8Array(N);
+    for (i = 0; i < N; i++) cl[i] = m[i] || d0[i] <= 3 ? 1 : 0;
+    var d1 = chamfer(cl, W, W, 0);
+    for (i = 0; i < N; i++) m[i] = d1[i] > 3 ? 1 : 0;
+    var din = chamfer(m, W, W, 0), er = new Uint8Array(N);
+    for (i = 0; i < N; i++) er[i] = din[i] > 3 ? 1 : 0;
     var inv = new Uint8Array(N); for (i = 0; i < N; i++) inv[i] = er[i] ? 0 : 1;
     var dout = chamfer(inv, W, W, Infinity);
-    for (i = 0; i < N; i++) m[i] = er[i] || dout[i] <= 2.5 ? 1 : 0;
-    // 덩어리 나누기 — 가장 큰 것과 가운데 가까운 큰 덩어리만 남긴다
-    var comp = new Int32Array(N).fill(-1), sizes = [], cxs = [], cys = [], stack = new Int32Array(N);
+    for (i = 0; i < N; i++) m[i] = m[i] && (er[i] || dout[i] <= 3) ? 1 : 0;
+    var comp = new Int32Array(N).fill(-1), sizes = [], boxes = [], stack = new Int32Array(N);
     for (i = 0; i < N; i++) {
       if (!m[i] || comp[i] >= 0) continue;
-      var id = sizes.length, top = 0, n = 0, sx = 0, sy = 0;
+      var id = sizes.length, top = 0, n = 0, bx = [W, W, 0, 0];
       stack[top++] = i; comp[i] = id;
       while (top) {
-        var q = stack[--top], qx = q % W, qy = (q / W) | 0; n++; sx += qx; sy += qy;
+        var q = stack[--top], qx = q % W, qy = (q / W) | 0; n++;
+        if (qx < bx[0]) bx[0] = qx; if (qy < bx[1]) bx[1] = qy; if (qx > bx[2]) bx[2] = qx; if (qy > bx[3]) bx[3] = qy;
         if (qx > 0 && m[q - 1] && comp[q - 1] < 0) { comp[q - 1] = id; stack[top++] = q - 1; }
         if (qx < W - 1 && m[q + 1] && comp[q + 1] < 0) { comp[q + 1] = id; stack[top++] = q + 1; }
         if (qy > 0 && m[q - W] && comp[q - W] < 0) { comp[q - W] = id; stack[top++] = q - W; }
         if (qy < W - 1 && m[q + W] && comp[q + W] < 0) { comp[q + W] = id; stack[top++] = q + W; }
       }
-      sizes.push(n); cxs.push(sx / n); cys.push(sy / n);
+      sizes.push(n); boxes.push(bx);
     }
-    if (!sizes.length) return { ok: false, mask: null };
-    var big = 0; for (k = 1; k < sizes.length; k++) if (sizes[k] > sizes[big]) big = k;
-    var keep = sizes.map(function (s, k) { return k === big || (s >= sizes[big] * 0.2 && Math.hypot(cxs[k] - R0, cys[k] - R0) < R0 * 0.55); });
+    if (!sizes.length) return { ok: false, frac: 0, parts: 0 };
+    var big = 0, k;
+    for (k = 1; k < sizes.length; k++) if (sizes[k] > sizes[big]) big = k;
+    var minA = Math.max(150, sizes[big] * 0.04), keep = sizes.map(function (s) { return s >= minA; });
+    if (allowed) {   // 누른 곳이나 자동으로 잡은 응가와 겹치는 덩어리만
+      var touch = sizes.map(function () { return false; }), tid0 = tap ? comp[tap[1] * W + tap[0]] : -1;
+      for (i = 0; i < N; i++) if (comp[i] >= 0 && allowed[i]) touch[comp[i]] = true;
+      if (tid0 >= 0) touch[tid0] = true;
+      keep = keep.map(function (v, k) { return v && touch[k]; });
+      if (!keep.some(Boolean)) return { ok: false, frac: 0, parts: 0 };
+      big = keep.indexOf(true); for (k = 0; k < sizes.length; k++) if (keep[k] && sizes[k] > sizes[big]) big = k;
+    }
+    // 얼굴을 붙일 덩어리: 누른 곳의 덩어리(없으면 가장 가까운 남은 덩어리), 안 눌렀으면 가장 큰 덩어리
+    var main = big;
+    if (tap) {
+      var tid = comp[tap[1] * W + tap[0]];
+      if (tid >= 0 && keep[tid]) main = tid;
+      else {
+        var bd = Infinity;
+        for (k = 0; k < sizes.length; k++) if (keep[k]) { var b0 = boxes[k], cx = (b0[0] + b0[2]) / 2, cy = (b0[1] + b0[3]) / 2, d = Math.hypot(cx - tap[0], cy - tap[1]); if (d < bd) { bd = d; main = k; } }
+      }
+    }
     for (i = 0; i < N; i++) m[i] = comp[i] >= 0 && keep[comp[i]] ? 1 : 0;
-    // 구멍 메우기(바깥과 이어지지 않은 배경 = 응가 속 반짝이)
-    var seen = new Uint8Array(N); top = 0;
-    for (x = 0; x < W; x++) { if (!m[x]) { seen[x] = 1; stack[top++] = x; } var b = (W - 1) * W + x; if (!m[b] && !seen[b]) { seen[b] = 1; stack[top++] = b; } }
-    for (y = 0; y < W; y++) { var a = y * W; if (!m[a] && !seen[a]) { seen[a] = 1; stack[top++] = a; } a = y * W + W - 1; if (!m[a] && !seen[a]) { seen[a] = 1; stack[top++] = a; } }
-    while (top) {
-      q = stack[--top]; qx = q % W; qy = (q / W) | 0;
-      if (qx > 0 && !m[q - 1] && !seen[q - 1]) { seen[q - 1] = 1; stack[top++] = q - 1; }
-      if (qx < W - 1 && !m[q + 1] && !seen[q + 1]) { seen[q + 1] = 1; stack[top++] = q + 1; }
-      if (qy > 0 && !m[q - W] && !seen[q - W]) { seen[q - W] = 1; stack[top++] = q - W; }
-      if (qy < W - 1 && !m[q + W] && !seen[q + W]) { seen[q + W] = 1; stack[top++] = q + W; }
+    // 구멍 메우기(바깥과 이어지지 않은 바닥 = 응가 속 반짝이·주름)
+    var seen = new Uint8Array(N), top2 = 0;
+    for (x = 0; x < W; x++) { if (!m[x]) { seen[x] = 1; stack[top2++] = x; } var bb = (W - 1) * W + x; if (!m[bb] && !seen[bb]) { seen[bb] = 1; stack[top2++] = bb; } }
+    for (y = 0; y < W; y++) { var aa = y * W; if (!m[aa] && !seen[aa]) { seen[aa] = 1; stack[top2++] = aa; } aa = y * W + W - 1; if (!m[aa] && !seen[aa]) { seen[aa] = 1; stack[top2++] = aa; } }
+    while (top2) {
+      var q2 = stack[--top2], x2 = q2 % W, y2 = (q2 / W) | 0;
+      if (x2 > 0 && !m[q2 - 1] && !seen[q2 - 1]) { seen[q2 - 1] = 1; stack[top2++] = q2 - 1; }
+      if (x2 < W - 1 && !m[q2 + 1] && !seen[q2 + 1]) { seen[q2 + 1] = 1; stack[top2++] = q2 + 1; }
+      if (y2 > 0 && !m[q2 - W] && !seen[q2 - W]) { seen[q2 - W] = 1; stack[top2++] = q2 - W; }
+      if (y2 < W - 1 && !m[q2 + W] && !seen[q2 + W]) { seen[q2 + W] = 1; stack[top2++] = q2 + W; }
     }
-    var area = 0, x0 = W, y0 = W, x1 = 0, y1 = 0;
+    var area = 0, box = [W, W, 0, 0];
     for (i = 0; i < N; i++) {
       if (!m[i] && !seen[i]) m[i] = 1;
-      if (m[i]) { area++; var mx = i % W, my = (i / W) | 0; if (mx < x0) x0 = mx; if (mx > x1) x1 = mx; if (my < y0) y0 = my; if (my > y1) y1 = my; }
+      if (m[i]) { area++; var mx = i % W, my = (i / W) | 0; if (mx < box[0]) box[0] = mx; if (mx > box[2]) box[2] = mx; if (my < box[1]) box[1] = my; if (my > box[3]) box[3] = my; }
     }
-    var frac = area / (Math.PI * R0 * R0);
-    if (frac < 0.03 || frac > 0.8) return { ok: false, mask: null };
-    return { ok: true, mask: m, box: [x0, y0, x1, y1] };
+    var frac = area / (Math.PI * R0 * R0), parts = keep.filter(Boolean).length;
+    if (frac < 0.008 || frac > 0.75) return { ok: false, frac: Math.round(frac * 1000) / 1000, parts: parts };
+    return { ok: true, mask: m, box: box, main: boxes[main], frac: Math.round(frac * 1000) / 1000, parts: parts };
   }
   // 거리 지도(체임퍼): mask=1인 칸마다 가장 가까운 0 칸까지의 거리.
   // edge: 영상 밖을 어떻게 볼지 — 0이면 밖도 0 칸(배경까지 거리), Infinity면 밖은 없는 셈(응가까지 거리)
@@ -813,10 +961,10 @@
   // 기본 자리: 배경을 지웠으면 응가 덩어리 위쪽 가운데, 아니면 동그라미 가운데 조금 위
   function placeFace() {
     var W = art.W, P = PAD;
-    if (art.cutOk && art.box) {
-      var b = art.box, bw = b[2] - b[0], bh = b[3] - b[1];
+    if (art.cutOk && (art.main || art.box)) {
+      var b = art.main || art.box, bw = b[2] - b[0], bh = b[3] - b[1];
       face.x = P + (b[0] + b[2]) / 2; face.y = P + b[1] + bh * 0.42;
-      face.base = Math.max(22, Math.min(64, bw * 0.12));
+      face.base = Math.max(16, Math.min(64, Math.min(bw, bh * 1.6) * 0.15));
     } else { face.x = P + W / 2; face.y = P + W * 0.46; face.base = W * 0.075; }
     opt.size = 1; $('face-size').value = 1;
   }
@@ -1038,9 +1186,9 @@
       if (it.face && !opt.faceTouched) opt.face = it.face;
       paintControls(); render();
     });
-    var bgs = [{ id: 'cut', label: '지우기' }, { id: 'keep', label: '동그랗게' }];
+    var bgs = [{ id: 'cut', label: '응가만' }, { id: 'keep', label: '바닥까지' }];
     chipRow($('bgs'), bgs, opt.bg, function (it) {
-      if (it.id === 'cut' && !art.cutOk) { toast('이 사진은 배경을 잘 못 나눠요. 더 가까이 찍어 보세요.'); return; }
+      if (it.id === 'cut' && !art.cutOk) { toast('응가와 바닥을 확실히 나누지 못했어요. "다시 고르기"에서 응가를 톡 눌러 주세요.'); return; }
       if (opt.bg === it.id) return;
       opt.bg = it.id; buildSticker(); paintControls(); render();
     });
@@ -1059,6 +1207,12 @@
   });
   $('say').addEventListener('input', function () { opt.say = this.value.trim().slice(0, 16); requestRender(); });
   $('face-size').addEventListener('input', function () { opt.size = +this.value; requestRender(); });
+  $('repick').addEventListener('click', function () {
+    if (!src) return;
+    show('crop');
+    $('crop-lead').innerHTML = '<b>응가 하나를 톡 눌러 주세요.</b> 그 색을 기준으로 다시 떼어 내요.';
+    paintTapNote(); drawCrop();
+  });
   $('again').addEventListener('click', function () { src = null; art = null; sticker = null; show('pick'); });
 
   // ════════ 보내기 ════════
@@ -1136,7 +1290,7 @@
     function med(a) { a.sort(function (x, y) { return x - y; }); return a.length ? a[a.length >> 1] : 0; }
     return { lab: [med(Ls), med(As), med(Bs)].map(function (x) { return Math.round(x * 10) / 10; }), n: n, red: n ? red / n : 0, light: n ? light / n : 0 };
   }
-  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height } }; } };
+  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height } }; } };
 })();
 </script>
 </body>
