@@ -911,7 +911,8 @@
   }
   missionCard.addEventListener('click', function () {
     if (!missionNow) return;
-    if (missionHere) { location.href = 'walk.html'; return; }
+    // 진행 중이면 이어서, 아니면 산책 화면에서 바로 길 기록을 시작(?start=1 — 2026-11-16 1단계, 두 번 누르기 없앰)
+    if (missionHere) { location.href = activeRouteOn() ? 'walk.html' : 'walk.html?start=1'; return; }
     var marker = stampMarkers[missionNow.place.id];
     if (!marker) return;
     filter.set('stamp', true);   // 우리 개 발도장을 꺼 두었더라도 다시 켠다
@@ -1095,6 +1096,6 @@
     }
   })();
 </script>
-<script src="walk-fab.js?v=1"></script>
+<script src="walk-fab.js?v=2"></script>
 </body>
 </html>
