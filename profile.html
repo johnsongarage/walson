@@ -302,7 +302,8 @@
       toast.classList.add('show');
       setTimeout(function () { toast.classList.remove('show'); }, 1800);
     } else {
-      alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요)');   // 예전엔 뒤에 브라우저 오류 글(e.message)이 붙었다 — store.js는 성공 여부만 돌려준다
+      var err = WalsonStore.lastError();
+      alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요): ' + (err && err.message));
     }
   }
 })();

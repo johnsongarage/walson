@@ -49,10 +49,11 @@
     demoSpeed: 'petwalk_demo_speed', demoPath: 'petwalk_demo_path', demoStart: 'petwalk_demo_start'   // 시연 모드(시작점은 위치일 수 있음)
   };
 
-  function ls() { try { return window.localStorage; } catch (e) { return null; } }
-  // 글자 그대로 읽기·쓰기. 쓰기는 저장 공간이 꽉 찼거나 막혔으면 false
+  var lastError = null;   // 마지막 쓰기 실패의 브라우저 오류(알림에 덧붙이던 글을 그대로 보여 주려고)
+  function ls() { try { return window.localStorage; } catch (e) { lastError = e; return null; } }
+  // 글자 그대로 읽기·쓰기. 쓰기는 저장 공간이 꽉 찼거나 막혔으면 false(오류는 WalsonStore.lastError())
   function get(key) { var s = ls(); if (!s) return null; try { return s.getItem(key); } catch (e) { return null; } }
-  function set(key, value) { var s = ls(); if (!s) return false; try { s.setItem(key, value); return true; } catch (e) { return false; } }
+  function set(key, value) { var s = ls(); if (!s) return false; try { s.setItem(key, value); lastError = null; return true; } catch (e) { lastError = e; return false; } }
   function remove(key) { var s = ls(); if (!s) return; try { s.removeItem(key); } catch (e) { /* 지우지 못해도 그대로 */ } }
   // JSON. 없거나 깨졌거나 null이면 fallback
   function json(key, fallback) {
@@ -71,6 +72,7 @@
 
   window.WalsonStore = {
     KEYS: K,
+    lastError: function () { return lastError; },
     get: get, set: set, remove: remove, json: json, setJSON: setJSON, list: list, object: object, flag: flag, setFlag: setFlag,
     // 산책 기록
     walks: function () { return list(K.walks); },
