@@ -45,6 +45,8 @@
   .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .brand { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 22px; color: var(--accent-ink); text-decoration: none; }
   .tag { font-size: 12px; font-weight: 700; color: var(--ink-soft); background: #efe1cf; border-radius: 999px; padding: 5px 10px; }
+  .tag.back { color: var(--accent-ink); text-decoration: none; }
+  .tag[hidden] { display: none; }
   .step[hidden] { display: none; }
   h1 { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-weight: 400; font-size: 32px; line-height: 1.25; letter-spacing: -0.01em; margin: 6px 0 10px; }
   h2 { font-size: 20px; font-weight: 800; margin: 4px 0 6px; }
@@ -55,6 +57,8 @@
   .btn-main { border: 0; background: var(--accent); color: #fff; box-shadow: 0 6px 16px rgba(var(--shadow-rgb), 0.28); }
   .btn-sub { border: 1.5px solid #c9b59d; background: var(--panel); color: var(--ink); }
   .btn-main:active, .btn-sub:active { transform: scale(0.98); }
+  #done-btn { margin-top: 10px; }
+  #done-btn[hidden] { display: none; }
   .btn-main[disabled] { opacity: 0.55; }
   .pick { display: grid; gap: 10px; }
   .btn-text { display: block; margin: 14px auto 0; padding: 8px 12px; border: 0; background: none; font-family: inherit; font-size: 14px; font-weight: 700;
@@ -106,14 +110,15 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=6"></script>
+<script src="track.js?v=7"></script>
 <script src="save-image.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <a class="brand" href="index.html">왈슨</a>
-    <span class="tag">시험 중인 기능</span>
+    <span class="tag" id="tag-test">시험 중인 기능</span>
+    <a class="tag back" id="back-walk" href="walk-end.html" hidden>‹ 산책 끝 화면으로</a>
   </header>
 
   <!-- 1. 사진 고르기 -->
@@ -173,6 +178,7 @@
       <label class="field">얼굴 크기<input type="range" id="face-size" min="0.5" max="1.8" step="0.01" value="1"></label>
     </details>
     <button type="button" class="btn-main" id="send-btn">가족에게 보내기</button>
+    <button type="button" class="btn-sub" id="done-btn" hidden>다 했어요 · 산책 끝 화면으로</button>
     <div class="after"><button type="button" class="btn-text" id="again">다른 사진으로</button></div>
     <ul class="notes small">
       <li>보내는 건 이 그림 한 장뿐이에요. 원본 사진은 이 화면을 닫으면 사라져요.</li>
@@ -1226,10 +1232,29 @@
     ['l', 'M296 204 q12 14 0 30', 4]
   ];
   var DOG_COLORS = { c: '#f3e2c7', d: '#e2c9a3', e: '#c9955f', m: '#fff8ee', k: '#2b1d14', p: 'rgba(255,140,150,0.55)', w: '#9ad1f5' };
+  // 다듬은 그림 파일로 바꾸기(11/16 가르시아 "응아하는 개 이미지는 퀄리티 다듬어서 올릴 거야"):
+  // 파일 이름을 적으면 위 선 그림 대신 그 그림을 쓴다 — 투명 배경 PNG, 머리 왼쪽·엉덩이 오른쪽, 발바닥이 그림 맨 아래에 닿게.
+  // 자리 고르기·좌우 뒤집기(엉덩이를 응가 쪽으로)·끌기는 그대로
+  var DOG_IMG_SRC = '';
+  var dogImg = null;
+  if (DOG_IMG_SRC) {
+    var dogIm = new Image();
+    dogIm.onload = function () { dogImg = dogIm; if (sticker && art) { placeDog(); requestRender(); } };
+    dogIm.src = DOG_IMG_SRC;
+  }
   var dogPaths = null;   // Path2D는 한 번만 만든다
   var dog = null;        // { x, y, h, flip, inPhoto, pcx } — 카드 좌표, (x, y) = 발바닥 선 가운데, pcx = 응가 가운데(엉덩이를 그쪽으로)
   function drawDog(ctx, d) {
     if (!d) return;
+    if (dogImg) {   // 올린 그림 파일
+      var iw = d.h * dogImg.naturalWidth / dogImg.naturalHeight;
+      ctx.save();
+      ctx.fillStyle = 'rgba(74,63,53,0.16)'; ctx.beginPath(); ctx.ellipse(d.x, d.y + 4, iw * 0.45, d.h * 0.045, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.translate(d.x, d.y); if (d.flip) ctx.scale(-1, 1);
+      ctx.drawImage(dogImg, -iw / 2, -d.h, iw, d.h);
+      ctx.restore();
+      return;
+    }
     if (!dogPaths) dogPaths = DOG_POO.map(function (o) {
       if (o[0] === 'e') { var q = new Path2D(); q.ellipse(o[1], o[2], o[3], o[4], o[5] * Math.PI / 180, 0, Math.PI * 2); return q; }
       return new Path2D(o[1]);
@@ -1255,7 +1280,10 @@
     });
     ctx.restore();
   }
-  function dogBox(d) { var s = d.h / 300, l = d.flip ? d.x - 152 * s : d.x - 160 * s; return [l - 8 * s, d.y - 264 * s, l + 320 * s, d.y + 14 * s]; }
+  function dogBox(d) {
+    if (dogImg) { var w = d.h * dogImg.naturalWidth / dogImg.naturalHeight; return [d.x - w / 2, d.y - d.h, d.x + w / 2, d.y + 8]; }
+    var s = d.h / 300, l = d.flip ? d.x - 152 * s : d.x - 160 * s; return [l - 8 * s, d.y - 264 * s, l + 320 * s, d.y + 14 * s];
+  }
   // 자리: 응가와 덜 겹치는 곳(아래 왼쪽 → 아래 오른쪽 → 옆) — 응가만이면 카드 바탕에(응가 뒤), 바닥까지면 사진 바닥 위에
   function placeDog() {
     if (!sticker || !art) { dog = null; return; }
@@ -1468,7 +1496,31 @@
 
   // ════════ 보내기 ════════
   function fileName() { var d = new Date(); return 'walson-poop-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.png'; }
-  function track(what) { try { if (window.WalsonTrack) WalsonTrack.send('share_click', { what: what }); } catch (e) { /* 무시 */ } }
+  function track(what) { try { if (window.WalsonTrack) WalsonTrack.send('share_click', WALK_T ? { what: what, via: 'walk_end' } : { what: what }); } catch (e) { /* 무시 */ } }
+
+  // ════════ 산책 끝 화면에서 왔을 때(?walk=그 산책이 끝난 시각) ════════
+  // 11/16 1단계: 끝 화면 "응가는요?" 1번·2번 이상 → 여기 → [다 했어요]로 돌아간다.
+  // 그 산책 기록(petwalk_walks)에 고른 표정·상태만 적는다(poopToon) — 그림·사진은 남기지 않는다.
+  // (?from=은 쓰지 않는다 — track.js가 바깥에서 들어온 길(유입)로 기억해 버린다)
+  var WALK_T = (function () { var m = location.search.match(/[?&]walk=([^&#]+)/); try { return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; } })();
+  function saveToWalk(sent) {
+    if (!WALK_T || !art) return false;
+    var walks;
+    try { walks = JSON.parse(localStorage.getItem('petwalk_walks')) || []; } catch (e) { return false; }
+    for (var i = walks.length - 1; i >= 0; i--) {
+      var w = walks[i];
+      if (!w || String(w.endedAt || w.loggedAt || w.startedAt || w.date || '') !== WALK_T) continue;
+      var prev = w.poopToon || {};
+      w.poopToon = { face: opt.face, state: opt.state, at: new Date().toISOString(), sent: !!(sent || prev.sent) };
+      try { localStorage.setItem('petwalk_walks', JSON.stringify(walks)); return true; } catch (e) { return false; }
+    }
+    return false;
+  }
+  if (WALK_T) {
+    $('tag-test').hidden = true; $('back-walk').hidden = false; $('done-btn').hidden = false;
+    $('back-walk').addEventListener('click', function () { saveToWalk(false); });
+    $('done-btn').addEventListener('click', function () { saveToWalk(false); location.replace('walk-end.html'); });
+  }
   $('send-btn').addEventListener('click', function () {
     if (!art) return;
     function go(blob) {
@@ -1481,7 +1533,7 @@
         // 글: 제목·상태 + 만든 곳(?from=poop_share — 받은 가족이 눌러 들어오면 통계의 유입 칸에 남는다)
         navigator.share({ files: [file], text: title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
           '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share' })
-          .then(function () { track('poop_toon'); toast('보냈어요. 가족 반응도 알려 주세요!'); })
+          .then(function () { track('poop_toon'); saveToWalk(true); toast('보냈어요. 가족 반응도 알려 주세요!'); })
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;   // 공유 창을 그냥 닫음
             saveFile(blob);
@@ -1492,7 +1544,7 @@
     }
     function saveFile(blob) {
       if (window.WalsonSave) WalsonSave.download(blob, fileName());
-      track('poop_toon_save');
+      track('poop_toon_save'); saveToWalk(true);
       toast('그림을 저장했어요. 카톡에서 사진으로 보내 주세요.');
     }
     if (cardBlob && !cardDirty) go(cardBlob);

@@ -25,7 +25,7 @@
     stamp_new: ['count'],
     keyring_given: [],
     walk_type_done: ['type'],
-    share_click: ['what'],
+    share_click: ['what', 'via'],  // via: 어느 화면에서 보냈는지(응가 캐릭터를 산책 끝 화면에서 만들면 walk_end, 2026-11-16)
     store_visit: ['shop'],         // 가게 카운터 체크인 QR(visit.html) — 스팟 번호만, 하루 한 번
     shop_list_open: []             // [동네]에서 동반 가게 목록을 열었음(2026-11-16) — 지도가 실제로 쓰이는지 보려고, 값 없음
   };
