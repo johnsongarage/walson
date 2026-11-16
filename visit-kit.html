@@ -6,7 +6,7 @@
 <title>가게 방문 키트</title>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="stylesheet" href="pet-signs.css?v=1">
+<link rel="stylesheet" href="pet-signs.css?v=2">
 <style>
   /* 가게 방문 키트(2026-11-16, 가르시아 "그 방향으로 명함이랑 방문 키트 만들어줘").
      음식점·카페 사장님을 만나러 갈 때 한 번에 인쇄해 가는 것: ① 안내지(말하는 순서 그대로 — 생각보다 쉬워요 → 대신 해 드려요 → 공식 목록 → 덤: 왈슨)
@@ -105,7 +105,7 @@
   .pvbox.cardpdf { display: none; }
   @media print { body:not(.card-pdf) .pvbox.cardpdf { display: none; } }
 </style>
-<script src="pet-signs.js?v=1"></script>
+<script src="pet-signs.js?v=2"></script>
 </head>
 <body>
 <div class="ui">
@@ -128,6 +128,9 @@
       <label class="f">가게 이름<input id="shop" maxlength="24" placeholder="예: 다산동 ○○카페"></label>
       <label class="f">견본 표지판 — 크기 제한<select id="size">
         <option value="">제한 없음</option><option value="kg10">10kg 이하</option><option value="kg7">7kg 이하</option><option value="small">소형견만</option><option value="carry">안을 수 있는 크기만</option>
+      </select></label>
+      <label class="f">견본 표지판 — 크기<select id="fmt">
+        <option value="sq200">정사각 20cm (A4에 1장)</option><option value="sq148">정사각 14.8cm (A4에 2장)</option><option value="a4">A4 세로</option>
       </select></label>
       <label class="f">견본 표지판 — 매장 안 방식<select id="way">
         <option value="carry">안고 있거나 케이지·유모차만 (장비 없이)</option><option value="leash">목줄 고정 장치</option><option value="chair">전용 의자</option><option value="zone">전용 공간</option>
@@ -224,8 +227,8 @@
   function paint() {
     $('pg-leaf').innerHTML = leaf();
     var sign = { shop: st.shop, size: st.size, way: st.way || 'carry', bite: true, danger: true };
-    $('pg-sign').innerHTML = PetSigns.entrance(sign);
-    $('pg-inside').innerHTML = PetSigns.inside(sign);
+    $('pg-sign').innerHTML = PetSigns.page('entrance', sign, st.fmt || 'sq200');
+    $('pg-inside').innerHTML = PetSigns.page('inside', sign, st.fmt || 'sq200');
     var f = '', b = '', i;
     for (i = 0; i < 10; i++) f += '<div class="bc front">' + cardFront() + '</div>';
     // 뒷면 10장은 모두 같아서, 양면 인쇄 때 종이를 어느 쪽으로 넘겨도 칸만 맞으면 된다
@@ -250,8 +253,8 @@
     $(p[0]).value = st[p[1]] || '';
     $(p[0]).addEventListener('input', function () { st[p[1]] = $(p[0]).value.trim(); save(); paint(); });
   });
-  [['size', 'size'], ['way', 'way']].forEach(function (p) {
-    $(p[0]).value = st[p[1]] || (p[1] === 'way' ? 'carry' : '');
+  [['size', 'size'], ['way', 'way'], ['fmt', 'fmt']].forEach(function (p) {
+    $(p[0]).value = st[p[1]] || (p[1] === 'way' ? 'carry' : p[1] === 'fmt' ? 'sq200' : '');
     $(p[0]).addEventListener('change', function () { st[p[1]] = $(p[0]).value; save(); paint(); });
   });
   Array.prototype.forEach.call(document.querySelectorAll('#incl input'), function (cb) {

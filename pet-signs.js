@@ -74,5 +74,48 @@
       '<div class="label">' + svg('bowl') + '<div class="lt"><b>반려동물용<br>식기</b><span>손님용과 따로 보관·사용해요</span></div></div>' +
       '<div class="label">' + svg('poop') + '<div class="lt"><b>반려동물<br>배설물 전용</b><span>배변 봉투는 여기에 버려 주세요</span></div></div></div>';
   }
-  window.PetSigns = { svg: svg, entrance: entrance, inside: inside, labels: labels };
+  // ── 정사각 표지판(2026-11-16 가르시아 "A4는 벽에 붙이기엔 너무 커") ──
+  // 200×200mm로 그리고, 148mm는 같은 그림을 줄여 쓴다. 아이콘 칸(타일)에 짧은 문장 하나씩 — 법이 요구하는 문구는 그대로 담는다.
+  function tile(icon, html) { return '<div class="sqt">' + svg(icon) + '<div class="tx">' + html + '</div></div>'; }
+  function entranceSquare(st) {
+    st = st || {};
+    var way = st.way || 'carry', aw = animalsWord(st), size = SIZE[st.size] || '';
+    var kgIcon = st.size === 'kg10' || st.size === 'kg7';
+    var t1 = tile(kgIcon ? 'scale' : 'dog', size ? size + ' ' + aw + '만<br>함께 들어올 수 있어요' : aw + '와<br><b>함께 들어올 수 있어요</b>');
+    if (kgIcon) t1 = t1.replace('>KG<', '>' + (st.size === 'kg7' ? '7kg↓' : '10kg↓') + '<');
+    var t2 = tile('syringe', '<span class="em">예방접종 안 한<br>반려동물은 출입 불가</span>');
+    var t3 = {
+      carry: tile('hug', '매장 안에서는<br><b>안거나 케이지·유모차에</b>'),
+      leash: tile('leash', '<b>목줄 착용</b><br>자리에서는 고정 장치에'),
+      chair: tile('chair', '<b>목줄 착용</b><br>자리에서는 전용 의자에'),
+      zone: tile('zone', '<b>목줄 착용</b><br>전용 자리를 이용해 주세요')
+    }[way] || '';
+    var t4 = st.bite !== false ? tile('nobite', '공격성 있는 반려견은<br><b>출입 불가</b>') : tile('nokitchen', '주방·식재료 보관 장소<br><b>출입 불가</b>');
+    var box = st.danger !== false ? '<div class="sqbox"><b>맹견 출입 제한</b> 도사견 · 아메리칸 핏불테리어 · 아메리칸 스태퍼드셔 테리어 · 스태퍼드셔 불 테리어 · 로트와일러와 그 잡종</div>' : '';
+    return '<div class="sqs"><div class="eyebrow">PET-FRIENDLY</div><div class="sqtitle">반려동물 동반 영업장</div>' +
+      '<div class="sqgrid g2">' + t1 + t2 + t3 + t4 + '</div>' + box +
+      '<div class="sqfoot"><span class="shop">' + esc(st.shop) + '</span><span class="law">식품위생법 시행규칙에 따른 반려동물(개·고양이) 동반 영업장</span></div></div>';
+  }
+  function insideSquare(st) {
+    st = st || {};
+    var way = st.way || 'carry';
+    var stay = { carry: '<b>안거나 케이지·유모차에</b><br>두어 주세요', leash: '자리의<br><b>목줄 고정 장치</b>에', chair: '반려동물<br><b>전용 의자</b>에', zone: '반려동물<br><b>전용 자리</b>를 이용해요' }[way] || '';
+    return '<div class="sqs"><div class="eyebrow">PETIQUETTE</div><div class="sqtitle">함께 지켜 주세요</div>' +
+      '<div class="sqgrid g3">' +
+        tile(way === 'carry' ? 'hug' : way, '돌아다닐 수 없어요<br>' + stay) +
+        tile('walk', '주문·화장실 갈 땐<br><b>목줄 하고 함께</b>') +
+        tile('apart', '다른 손님·반려동물과<br><b>닿지 않게</b>') +
+        tile('nokitchen', '주방·식재료 보관 장소<br><b>출입 불가</b>') +
+        tile('poop', '배변 봉투는<br><b>전용 통에</b>') +
+        tile('dog', '함께 지켜 주셔서<br><b>고맙습니다</b>') +
+      '</div><div class="sqfoot"><span class="shop">' + esc(st.shop) + '</span></div></div>';
+  }
+  // A4 한 장에 담기: fmt 'a4'(기존) | 'sq200'(200mm 한 장) | 'sq148'(148mm 두 장). 정사각은 점선대로 잘라 쓴다.
+  function page(kind, st, fmt) {
+    if (fmt !== 'sq200' && fmt !== 'sq148') return kind === 'inside' ? inside(st) : entrance(st);
+    var one = kind === 'inside' ? insideSquare(st) : entranceSquare(st);
+    if (fmt === 'sq200') return '<div class="sqpage"><div class="sqcut w200">' + one + '</div></div>';
+    return '<div class="sqpage two"><div class="sqcut w148"><div class="sqzoom">' + one + '</div></div><div class="sqcut w148"><div class="sqzoom">' + one + '</div></div></div>';
+  }
+  window.PetSigns = { svg: svg, entrance: entrance, inside: inside, labels: labels, entranceSquare: entranceSquare, insideSquare: insideSquare, page: page };
 })();

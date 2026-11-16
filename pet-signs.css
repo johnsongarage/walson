@@ -23,3 +23,31 @@
 .label .lt { text-align: left; }
 .label .lt b { display: block; font-size: 14mm; font-weight: 900; line-height: 1.15; color: #111; }
 .label .lt span { display: block; font-size: 6mm; font-weight: 700; margin-top: 3mm; color: #555; }
+
+/* ── 정사각 표지판(200×200mm 기준, 148mm는 .sqzoom으로 줄임) — 2026-11-16 ── */
+.sqpage { height: 100%; width: 210mm; padding-top: 48.5mm; }
+.sqpage.two { padding-top: 0.5mm; }
+.sqcut { outline: 0.25mm dashed #aaa; outline-offset: 0; overflow: hidden; background: #fff; margin: 0 auto; }
+.sqcut.w200 { width: 200mm; height: 200mm; }
+.sqcut.w148 { width: 148mm; height: 148mm; }
+.sqzoom { width: 200mm; height: 200mm; transform: scale(0.74); transform-origin: top left; }
+.sqs { width: 200mm; height: 200mm; padding: 13mm 12mm 9mm; display: flex; flex-direction: column; align-items: center; text-align: center; color: #222; font-family: 'Pretendard', "Malgun Gothic", sans-serif; --sign-red: #a8322d; }
+.sqs .eyebrow { font-size: 5mm; }
+.sqtitle { font-size: 12.5mm; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2; margin-top: 1.5mm; }
+.sqgrid { width: 100%; display: grid; margin-top: 7mm; flex: 1; min-height: 0; }
+.sqgrid.g2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.sqgrid.g3 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.sqt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3mm; padding: 3mm 2mm; border-right: 0.3mm solid #d2d2d2; border-bottom: 0.3mm solid #d2d2d2; }
+.g2 .sqt:nth-child(2n), .g3 .sqt:nth-child(3n) { border-right: none; }
+.g2 .sqt:nth-child(n+3), .g3 .sqt:nth-child(n+4) { border-bottom: none; }
+.sqt svg { width: 25mm; height: 25mm; color: #333; }
+.g3 .sqt svg { width: 20mm; height: 20mm; }
+.sqt .tx { font-size: 5mm; line-height: 1.4; font-weight: 600; color: #333; }
+.g3 .sqt .tx { font-size: 4.3mm; }
+.sqt .tx b { color: #111; font-weight: 900; }
+.sqt .tx .em { color: var(--sign-red); font-weight: 900; }
+.sqbox { width: 100%; margin-top: 4mm; background: #f0f0f0; border-radius: 2mm; padding: 2.6mm 4mm; font-size: 3.4mm; line-height: 1.5; color: #444; }
+.sqbox b { color: #111; margin-right: 1.5mm; }
+.sqfoot { width: 100%; margin-top: 4mm; display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+.sqfoot .shop { font-size: 5.4mm; font-weight: 900; letter-spacing: .05em; color: #333; min-height: 6mm; }
+.sqfoot .law { font-size: 2.8mm; color: #888; }
