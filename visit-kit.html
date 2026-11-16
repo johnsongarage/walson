@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>가게 방문 키트</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="pet-signs.css?v=1">
+<style>
+  /* 가게 방문 키트(2026-11-16, 가르시아 "그 방향으로 명함이랑 방문 키트 만들어줘").
+     음식점·카페 사장님을 만나러 갈 때 한 번에 인쇄해 가는 것: ① 안내지(말하는 순서 그대로 — 생각보다 쉬워요 → 대신 해 드려요 → 공식 목록 → 덤: 왈슨)
+     ② 그 가게 이름을 넣은 견본 입구 표지판(pet-signs.js) ③ 명함(A4에 10장 앞·뒤 / 인쇄소용 90×50mm PDF).
+     반려견 업종(용품·미용 등)은 동반 기준과 상관없으니 이 키트 대신 partner-proposal.html(단골 도장 제안서)을 쓴다.
+     - 이름·직함·연락처·가게 이름은 이 브라우저(localStorage)에만. 공개 저장소에는 연락처를 적지 않는다.
+     - QR은 동반 준비 도우미로: 안내지 ?from=leaflet, 명함 ?from=card → 통계 시트에서 나눠 준 것 중 몇 명이 열었는지 센다.
+     - 운영자 도구라 메뉴에 없고 통계(track.js)도 넣지 않는다. 스팟 편집 위 "방문 키트"로 연다. */
+  :root { --bg: #f7ede2; --panel: #fffaf3; --line: #e6d6c1; --ink: #3a2e24; --soft: #6b5d4e; --accent: #b8563a; --yellow: #F2B833; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 14px 14px 40px; font-size: 14px; line-height: 1.55; }
+  .ui { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .lead { color: var(--soft); margin: 0 0 12px; font-size: 13px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { font-size: 15px; margin: 0 0 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+  label.f { display: block; font-size: 12px; font-weight: 800; color: var(--soft); }
+  label.f input, label.f select { display: block; width: 100%; margin-top: 3px; font: inherit; font-size: 14px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font-weight: 500; }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 4px; }
+  .checks label { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .btns button { font: inherit; font-weight: 800; font-size: 14px; padding: 11px 14px; border-radius: 999px; border: 1px solid #c99a1c; background: var(--yellow); color: var(--ink); cursor: pointer; }
+  .btns button.sub { background: #fff; border-color: var(--line); }
+  .hint { font-size: 12px; color: var(--soft); margin: 8px 0 0; }
+  .previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; max-width: 760px; margin: 0 auto; }
+  .pvbox h3 { font-size: 13px; margin: 0 0 6px; color: var(--soft); }
+  .pv { position: relative; overflow: hidden; background: #fff; box-shadow: 0 3px 14px rgba(58,46,36,.18); border-radius: 4px; }
+  .pv > .page { position: absolute; top: 0; left: 0; transform-origin: top left; }
+  .pvbox.off { opacity: .35; }
+
+  /* ── A4 안내지 ── */
+  .page { background: #fff; color: #222; font-family: 'Pretendard', "Malgun Gothic", sans-serif; overflow: hidden; }
+  .a4 { width: 210mm; height: 297mm; }
+  .leaf { height: 100%; padding: 13mm 16mm 10mm; display: flex; flex-direction: column; }
+  .leaf .eyebrow { text-align: center; }
+  .leaf .ptitle { text-align: center; font-size: 10mm; }
+  .leaf .lsub { text-align: center; font-size: 4.3mm; color: #555; margin: 2mm 0 4mm; font-weight: 600; }
+  .lsec { display: flex; gap: 5mm; padding: 3.4mm 0; border-bottom: 0.3mm solid #d6d6d6; }
+  .lsec:last-of-type { border-bottom: none; }
+  .lsec .n { flex: none; width: 10mm; height: 10mm; border-radius: 50%; background: #222; color: #fff; font-weight: 900; font-size: 5.4mm; display: flex; align-items: center; justify-content: center; margin-top: 0.5mm; }
+  .lsec .n.y { background: var(--yellow); color: #222; }
+  .lsec .lh { font-size: 5.6mm; margin: 0 0 1mm; font-weight: 900; color: #111; }
+  .lsec ul { margin: 0; padding-left: 5mm; }
+  .lsec li { font-size: 3.9mm; line-height: 1.5; color: #333; margin-bottom: 0.8mm; }
+  .lsec li b { color: #111; }
+  .lsec .ok { color: #2f6b3a; font-weight: 800; font-size: 3.6mm; }
+  .why { margin-top: 3mm; background: #f3f3f3; border-radius: 2.5mm; padding: 3mm 4.5mm; font-size: 3.7mm; line-height: 1.6; color: #333; }
+  .why b { color: #111; }
+  .lfoot { margin-top: auto; display: flex; align-items: center; gap: 5mm; padding-top: 4mm; border-top: 0.6mm solid #222; }
+  .lfoot .qr { width: 24mm; height: 24mm; flex: none; overflow: hidden; font-size: 2mm; }
+  .lfoot .qr svg { width: 100%; height: 100%; display: block; }
+  .lfoot .who { font-size: 4.2mm; line-height: 1.55; color: #333; }
+  .lfoot .who .nm { font-size: 6mm; font-weight: 900; color: #111; }
+  .lfoot .who .ct { font-size: 4.8mm; font-weight: 800; color: #111; }
+  .lfoot .brand { margin-left: auto; text-align: right; font-size: 3.4mm; color: #777; }
+  .lfoot .brand img { width: 14mm; display: block; margin: 0 0 1mm auto; border-radius: 2mm; }
+  .fine { font-size: 3.1mm; color: #888; margin-top: 2.5mm; }
+
+  /* ── 명함 90×50 ── */
+  .bc { width: 90mm; height: 50mm; position: relative; overflow: hidden; font-family: 'Pretendard', "Malgun Gothic", sans-serif; color: #222; background: #fff; }
+  .bc.front .bar { position: absolute; right: 0; top: 0; bottom: 0; width: 3.2mm; background: var(--yellow); }
+  .bc.front .top { position: absolute; left: 6mm; top: 6mm; display: flex; align-items: center; gap: 2.4mm; }
+  .bc.front .top img { width: 9mm; height: 9mm; border-radius: 1.8mm; }
+  .bc.front .top b { display: block; font-size: 4.6mm; font-weight: 900; line-height: 1.1; }
+  .bc.front .top span { display: block; font-size: 2.3mm; color: #666; font-weight: 600; }
+  .bc.front .role { position: absolute; left: 6mm; top: 19mm; right: 8mm; font-size: 2.9mm; font-weight: 800; color: var(--accent); }
+  .bc.front .nm { position: absolute; left: 6mm; bottom: 12mm; font-size: 5.2mm; font-weight: 900; letter-spacing: .02em; }
+  .bc.front .ttl { position: absolute; left: 6mm; bottom: 8.4mm; font-size: 2.6mm; color: #555; font-weight: 600; }
+  .bc.front .ct { position: absolute; left: 6mm; bottom: 4mm; font-size: 3mm; font-weight: 800; }
+  .bc.back { background: var(--yellow); display: flex; align-items: center; gap: 4mm; padding: 0 6mm; }
+  .bc.back .qr { width: 30mm; height: 30mm; background: #fff; border-radius: 2mm; padding: 1.4mm; flex: none; }
+  .bc.back .qr svg { width: 100%; height: 100%; display: block; }
+  .bc.back .tx b { display: block; font-size: 4.4mm; font-weight: 900; line-height: 1.3; }
+  .bc.back .tx span { display: block; font-size: 2.4mm; font-weight: 700; margin-top: 1.6mm; line-height: 1.45; color: #3a2e24; }
+  .bc.back .tx small { display: block; font-size: 2.1mm; margin-top: 1.2mm; color: #5a4a2a; }
+  /* A4 한 장에 10장(2열×5줄), 가운데 정렬이라 앞·뒷면 칸이 겹친다 */
+  .sheet10 { padding: 23.5mm 15mm; display: grid; grid-template-columns: 90mm 90mm; grid-auto-rows: 50mm; }
+  .sheet10 .bc { outline: 0.2mm dashed #bbb; outline-offset: -0.1mm; }
+
+  @page { size: A4; margin: 0; }
+  @media print {
+    html, body { background: #fff; padding: 0; margin: 0; }
+    .ui { display: none !important; }
+    .previews { display: block; max-width: none; }
+    .pvbox h3 { display: none; }
+    .pvbox.off { display: none; }
+    .pv { width: auto !important; height: auto !important; box-shadow: none; border-radius: 0; overflow: visible; }
+    .pv > .page { position: static; transform: none !important; break-after: page; }
+    .pvbox { break-inside: avoid; }
+    body.card-pdf .pvbox { display: none; }
+    body.card-pdf .pvbox.cardpdf { display: block; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  .pvbox.cardpdf { display: none; }
+  @media print { body:not(.card-pdf) .pvbox.cardpdf { display: none; } }
+</style>
+<script src="pet-signs.js?v=1"></script>
+</head>
+<body>
+<div class="ui">
+  <h1>가게 방문 키트</h1>
+  <p class="lead">음식점·카페 사장님을 만나러 갈 때 한 번에 뽑아 가는 것 — 안내지 · 그 가게 이름을 넣은 견본 표지판 · 명함.
+    반려견 업종(용품·미용 등)은 <a href="partner-proposal.html">단골 도장 제안서</a>를 쓰세요. 입력한 내용은 이 브라우저에만 저장돼요(연락처는 파일에 남기지 않아요).</p>
+
+  <div class="card">
+    <h2>내 정보 (안내지·명함)</h2>
+    <div class="grid">
+      <label class="f">이름<input id="me-name" maxlength="20" placeholder="예: 홍길동"></label>
+      <label class="f">직함<input id="me-title" maxlength="30"></label>
+      <label class="f">연락처 (카톡 채널·오픈채팅·전화)<input id="me-contact" maxlength="40" placeholder="예: 카톡 채널 '왈슨' / 010-…"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>찾아갈 가게 (안내지·견본 표지판)</h2>
+    <div class="grid">
+      <label class="f">가게 이름<input id="shop" maxlength="24" placeholder="예: 다산동 ○○카페"></label>
+      <label class="f">견본 표지판 — 크기 제한<select id="size">
+        <option value="">제한 없음</option><option value="kg10">10kg 이하</option><option value="kg7">7kg 이하</option><option value="small">소형견만</option><option value="carry">안을 수 있는 크기만</option>
+      </select></label>
+      <label class="f">견본 표지판 — 매장 안 방식<select id="way">
+        <option value="carry">안고 있거나 케이지·유모차만 (장비 없이)</option><option value="leash">목줄 고정 장치</option><option value="chair">전용 의자</option><option value="zone">전용 공간</option>
+      </select></label>
+    </div>
+    <div class="checks" id="incl">
+      <label><input type="checkbox" data-k="leaf" checked> 안내지</label>
+      <label><input type="checkbox" data-k="sign" checked> 견본 입구 표지판</label>
+      <label><input type="checkbox" data-k="inside"> 견본 매장 안내문</label>
+      <label><input type="checkbox" data-k="cardf"> 명함 앞면(10장)</label>
+      <label><input type="checkbox" data-k="cardb"> 명함 뒷면(10장)</label>
+    </div>
+    <div class="btns">
+      <button type="button" id="print-a4">고른 것 A4로 인쇄</button>
+      <button type="button" class="sub" id="print-card">인쇄소용 명함 PDF (90×50mm 앞·뒤)</button>
+    </div>
+    <p class="hint">명함을 집에서 뽑을 땐 앞면을 먼저 뽑고, 그 종이를 다시 넣어 뒷면을 뽑으세요(뒷면 10장은 모두 같아서 칸 위치만 맞으면 돼요). 인쇄소에 맡길 땐 "인쇄소용 명함 PDF"로 저장해 올리세요 — 재단 여백 규격은 인쇄소 안내를 따르세요.</p>
+  </div>
+</div>
+
+<div class="previews" id="previews">
+  <div class="pvbox" data-k="leaf"><h3>안내지</h3><div class="pv"><div class="page a4" id="pg-leaf"></div></div></div>
+  <div class="pvbox" data-k="sign"><h3>견본 입구 표지판</h3><div class="pv"><div class="page a4 sheet on" id="pg-sign"></div></div></div>
+  <div class="pvbox" data-k="inside"><h3>견본 매장 안내문</h3><div class="pv"><div class="page a4 sheet on" id="pg-inside"></div></div></div>
+  <div class="pvbox" data-k="cardf"><h3>명함 앞면(A4 10장)</h3><div class="pv"><div class="page a4 sheet10" id="pg-cardf"></div></div></div>
+  <div class="pvbox" data-k="cardb"><h3>명함 뒷면(A4 10장)</h3><div class="pv"><div class="page a4 sheet10" id="pg-cardb"></div></div></div>
+  <!-- 인쇄소용: 90×50 두 쪽 -->
+  <div class="pvbox cardpdf"><div class="pv"><div class="page bc front" id="pg-pdf-f"></div></div></div>
+  <div class="pvbox cardpdf"><div class="pv"><div class="page bc back" id="pg-pdf-b"></div></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  var KEY = 'walson_visit_kit';   // 이 브라우저에만: { name, title, contact, shop, size, way, incl:{} }
+  var BASE = 'https://johnsongarage.co.kr/walson/';
+  var $ = function (id) { return document.getElementById(id); };
+  var st = {};
+  try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { st = {}; }
+  if (!st.title) st.title = '반려동물 동반 준비 도우미';
+  st.incl = st.incl || { leaf: 1, sign: 1 };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* 저장 못 해도 진행 */ } }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function qr(url) {
+    if (!window.qrcode) return '<div style="font-size:2.4mm;word-break:break-all;">' + esc(url) + '</div>';
+    var q = qrcode(0, 'M'); q.addData(url); q.make();
+    return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  }
+
+  // ── 안내지: 말하는 순서 그대로 ──
+  function leaf() {
+    var shop = st.shop ? esc(st.shop) + ' 사장님께' : '다산동 사장님께';
+    return '<div class="leaf">' +
+      '<div class="eyebrow" style="font-size:5mm;font-weight:800;letter-spacing:.12em;color:#a8322d;">' + shop + '</div>' +
+      '<div class="ptitle" style="font-weight:900;line-height:1.25;margin:2mm 0 0;letter-spacing:-0.02em;">강아지 손님 받는 거,<br>생각보다 쉬워요</div>' +
+      '<div class="lsub">음식점·카페·빵집도 2026년 3월부터 기준만 갖추면 반려동물 손님을 받을 수 있어요.</div>' +
+      '<div class="lsec"><div class="n">1</div><div><div class="lh">생각보다 쉬워요</div><ul>' +
+        '<li><b>허가·인증은 필요 없어요.</b> 기준을 갖추고 지키면 돼요.</li>' +
+        '<li>손님이 <b>안고 있거나 케이지에 두는 경우만</b> 받으면, 의자·케이지·목줄 고리를 따로 안 사셔도 돼요. <span class="ok">✓ 남양주시 위생과 확인</span></li>' +
+        '<li>필요한 건 주방 앞 <b>접이식 칸막이</b>, 입구 <b>표지판</b>, <b>배설물 통</b>, <b>반려동물 그릇 따로</b>, 예방접종 확인 정도예요.</li>' +
+      '</ul></div></div>' +
+      '<div class="lsec"><div class="n">2</div><div><div class="lh">번거로운 건 제가 해 드려요 <span style="font-size:4mm;color:#a8322d;">무료</span></div><ul>' +
+        '<li>입구 <b>표지판·매장 안내문·라벨</b>을 가게에 맞춰 인쇄해 드려요 — 뒤에 붙인 견본이 그거예요.</li>' +
+        '<li>기준 <b>체크리스트</b>를 같이 점검해 드려요.</li>' +
+        '<li>시청 신청에 필요한 <b>체크리스트와 매장 사진</b> 준비를 도와드려요.</li>' +
+      '</ul></div></div>' +
+      '<div class="lsec"><div class="n">3</div><div><div class="lh">공식 목록에 오르면 정부 지도에도 나와요</div><ul>' +
+        '<li>남양주시청 위생과에 신청하면 식품안전나라 <b>"반려동물 동반 가능 업소"</b> 목록에 올라가요(선택).</li>' +
+        '<li>다산동은 아직 <b>3곳</b>뿐이에요(2026-11-16). 강아지 받아 주는 곳이 드물어서, 지금은 구리 갈매까지 가는 견주도 많아요.</li>' +
+      '</ul></div></div>' +
+      '<div class="lsec"><div class="n y">+</div><div><div class="lh">덤: 왈슨에도 올려 드려요</div><ul>' +
+        '<li>다산동 견주들이 보는 <b>왈슨 동네 지도</b>에 "강아지 동반 가능(사장님 확인)"으로 표시해요.</li>' +
+        '<li>원하시면 카운터 <b>단골 도장 QR</b>을 드리고, 강아지 손님이 몇 명 왔는지 숫자로 알려 드려요.</li>' +
+      '</ul></div></div>' +
+      '<div class="why"><b>왜 무료예요?</b> 다산동 강아지 산책 앱 "왈슨"을 만들고 있어요. 강아지를 받아 주는 동네 가게를 모으는 중이라 이건 그냥 해 드려요. ' +
+        '수수료·할인 요구는 없고, 그만두고 싶으시면 바로 지도에서 내려요. 손님 이름·연락처·위치는 받지 않아요. 받을지 말지는 사장님 판단이에요.</div>' +
+      '<div class="lfoot"><div class="qr">' + qr(BASE + 'pet-ready.html?from=leaflet' + (st.shop ? '&shop=' + encodeURIComponent(st.shop) : '')) + '</div>' +
+        '<div class="who">QR을 찍으면 체크리스트·표지판 인쇄 페이지가 열려요.<br>' +
+          '<span class="nm">' + esc(st.name || '') + '</span> ' + esc(st.title || '') + '<br><span class="ct">' + esc(st.contact || '') + '</span></div>' +
+        '<div class="brand"><img src="icons/walson-logo.webp" alt="">왈슨 · 다산동</div></div>' +
+      '<div class="fine">이 안내는 2026년 3월 식약처 발표와 남양주시청 안내(11월 확인)를 정리한 것으로 법률 자문이 아니에요. 확실하지 않으면 남양주시청 위생과(031-590-8462)에 확인해 주세요.</div>' +
+    '</div>';
+  }
+  // ── 명함 ──
+  function cardFront() {
+    return '<div class="bar"></div><div class="top"><img src="icons/walson-logo.webp" alt=""><div><b>왈슨</b><span>다산동 강아지 산책</span></div></div>' +
+      '<div class="role">강아지 손님 받을 준비, 대신 해 드려요</div>' +
+      '<div class="nm">' + esc(st.name || '') + '</div><div class="ttl">' + esc(st.title || '') + '</div><div class="ct">' + esc(st.contact || '') + '</div>';
+  }
+  function cardBack() {
+    return '<div class="qr">' + qr(BASE + 'pet-ready.html?from=card') + '</div>' +
+      '<div class="tx"><b>강아지 손님,<br>돈 거의 안 들이고<br>받는 법</b><span>표지판·안내문·시청 신청까지<br>대신 해 드려요 (무료)</span><small>johnsongarage.co.kr/walson</small></div>';
+  }
+  function paint() {
+    $('pg-leaf').innerHTML = leaf();
+    var sign = { shop: st.shop, size: st.size, way: st.way || 'carry', bite: true, danger: true };
+    $('pg-sign').innerHTML = PetSigns.entrance(sign);
+    $('pg-inside').innerHTML = PetSigns.inside(sign);
+    var f = '', b = '', i;
+    for (i = 0; i < 10; i++) f += '<div class="bc front">' + cardFront() + '</div>';
+    // 뒷면 10장은 모두 같아서, 양면 인쇄 때 종이를 어느 쪽으로 넘겨도 칸만 맞으면 된다
+    for (i = 0; i < 10; i++) b += '<div class="bc back">' + cardBack() + '</div>';
+    $('pg-cardf').innerHTML = f; $('pg-cardb').innerHTML = b;
+    $('pg-pdf-f').innerHTML = cardFront(); $('pg-pdf-b').innerHTML = cardBack();
+    Array.prototype.forEach.call(document.querySelectorAll('.pvbox[data-k]'), function (bx) { bx.classList.toggle('off', !st.incl[bx.getAttribute('data-k')]); });
+    fit();
+  }
+  function fit() {
+    Array.prototype.forEach.call(document.querySelectorAll('.pv'), function (pv) {
+      var pg = pv.firstElementChild, box = pv.parentNode;
+      if (getComputedStyle(box).display === 'none') return;
+      var w = box.clientWidth || 240, k = w / pg.offsetWidth;
+      pv.style.width = w + 'px'; pv.style.height = Math.round(pg.offsetHeight * k) + 'px';
+      pg.style.transform = 'scale(' + k + ')';
+    });
+  }
+
+  // ── 입력 ──
+  [['me-name', 'name'], ['me-title', 'title'], ['me-contact', 'contact'], ['shop', 'shop']].forEach(function (p) {
+    $(p[0]).value = st[p[1]] || '';
+    $(p[0]).addEventListener('input', function () { st[p[1]] = $(p[0]).value.trim(); save(); paint(); });
+  });
+  [['size', 'size'], ['way', 'way']].forEach(function (p) {
+    $(p[0]).value = st[p[1]] || (p[1] === 'way' ? 'carry' : '');
+    $(p[0]).addEventListener('change', function () { st[p[1]] = $(p[0]).value; save(); paint(); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#incl input'), function (cb) {
+    var k = cb.getAttribute('data-k');
+    cb.checked = !!st.incl[k];
+    cb.addEventListener('change', function () { if (cb.checked) st.incl[k] = 1; else delete st.incl[k]; save(); paint(); });
+  });
+
+  // ── 인쇄 ──
+  var pageStyle = document.createElement('style'); document.head.appendChild(pageStyle);
+  $('print-a4').addEventListener('click', function () {
+    if (!Object.keys(st.incl).length) { alert('인쇄할 것을 하나 이상 골라 주세요.'); return; }
+    document.body.classList.remove('card-pdf'); pageStyle.textContent = '@page { size: A4; margin: 0; }';
+    window.print();
+  });
+  $('print-card').addEventListener('click', function () {
+    if (!st.name && !confirm('이름이 비어 있어요. 그래도 명함 PDF를 만들까요?')) return;
+    document.body.classList.add('card-pdf'); pageStyle.textContent = '@page { size: 90mm 50mm; margin: 0; }';
+    window.print();
+  });
+  window.addEventListener('afterprint', function () { document.body.classList.remove('card-pdf'); pageStyle.textContent = '@page { size: A4; margin: 0; }'; });
+  window.addEventListener('resize', fit);
+  paint();
+})();
+</script>
+</body>
+</html>
