@@ -76,6 +76,38 @@
   .week .day.is-today .lbl { color: var(--accent); }
   .week-sum { font-size: 13px; color: var(--ink-soft); margin: 12px 0 0; }
 
+  /* 다녀왔어요(2026-11-16): 산책 뒤에 몇 분이었는지만 골라 적는다 */
+  .btn-sub {
+    display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; padding: 14px;
+    border-radius: 16px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink);
+    font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+  }
+  .btn-sub[hidden] { display: none; }
+  .btn-sub:active { transform: scale(0.98); }
+  .after-sheet { position: fixed; inset: 0; z-index: 2000; background: rgba(40, 32, 26, 0.55); display: flex; align-items: flex-end; justify-content: center; }
+  .after-sheet[hidden] { display: none; }
+  .after-card { width: 100%; max-width: 460px; background: var(--panel, #fffaf3); border-radius: 22px 22px 0 0;
+    padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .after-card h3 { margin: 0; font-size: 20px; font-weight: 800; }
+  .after-sub { margin: 6px 0 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .after-opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .after-opts button {
+    border: 2px solid var(--panel-border); background: #fff; color: var(--ink); border-radius: 14px; padding: 13px 2px;
+    font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .after-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .after-custom { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 15px; font-weight: 700; }
+  .after-custom[hidden] { display: none; }
+  .after-custom input { flex: 1; min-width: 0; padding: 12px; border-radius: 12px; border: 2px solid var(--panel-border); font: inherit; font-size: 16px; }
+  .after-card .btn-main { margin-top: 16px; border: none; width: 100%; font-family: inherit; cursor: pointer; }
+  .after-card .btn-main:disabled { opacity: 0.5; }
+  .after-close { display: block; width: 100%; margin-top: 6px; padding: 10px; background: none; border: none; font-family: inherit;
+    font-size: 14px; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
+  [data-theme="brutal"] .after-card { background: #fff; border: 3px solid #000; border-bottom: none; border-radius: 0; }
+  [data-theme="brutal"] .after-opts button { border: 3px solid #000; border-radius: 0; color: #000; font-weight: 900; }
+  [data-theme="brutal"] .after-opts button[aria-pressed="true"] { background: #000; color: #F2B833; }
+  [data-theme="brutal"] .after-custom input { border: 3px solid #000; border-radius: 0; }
+
   .last { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-decoration: none; color: var(--ink); }
   .last strong { font-size: 15px; font-weight: 700; }
   .last span { font-size: 13px; color: var(--ink-soft); }
@@ -153,7 +185,8 @@
     <div class="today-num"><span id="today-min">0</span><small>분</small></div>
     <p class="today-sub" id="today-sub">아직 오늘 산책 기록이 없어요.</p>
     <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
-    <p class="btn-note" id="go-note">시간만 재거나, 길까지 기록할 수 있어요.</p>
+    <button type="button" class="btn-sub" id="after-btn">다녀왔어요 · 몇 분인지만 적기</button>
+    <p class="btn-note" id="go-note">나갈 때 누르면 시간을 재 주고, 깜빡했으면 다녀와서 적어도 돼요.</p>
   </section>
 
   <section class="panel">
@@ -202,11 +235,25 @@
   </div>
 </div>
 
+<!-- 다녀왔어요(2026-11-16): 산책 전에 앱을 켜지 않아도 된다. 오늘 몇 분이었는지만 골라 적으면 끝 화면 → 영수증으로 이어진다 -->
+<div class="after-sheet" id="after-sheet" hidden>
+  <div class="after-card" role="dialog" aria-modal="true" aria-labelledby="after-title">
+    <h3 id="after-title">오늘 얼마나 걸었어요?</h3>
+    <p class="after-sub" id="after-sub">대충 골라도 돼요. 오늘 날짜로 적어요.</p>
+    <div class="after-opts" id="after-opts"></div>
+    <label class="after-custom" id="after-custom" hidden>
+      <input type="number" id="after-min" inputmode="numeric" min="1" max="240" placeholder="예: 25"> 분
+    </label>
+    <button type="button" class="btn-main" id="after-save">30분 적기</button>
+    <button type="button" class="after-close" id="after-close">닫기</button>
+  </div>
+</div>
+
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="backup.js?v=4"></script>
+<script src="backup.js?v=5"></script>
 <script src="steady-stamp.js?v=1"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
@@ -380,7 +427,7 @@
     document.getElementById('last-title').textContent =
       (last.date === todayKey ? '오늘' : Number(parts[1]) + '월 ' + Number(parts[2]) + '일') + ' 산책';
     document.getElementById('last-sub').textContent =
-      (last.durationMin || 0) + '분' + (last.distanceKm ? ' · ' + last.distanceKm.toFixed(1) + 'km' : ' · 시간만 기록');
+      (last.durationMin || 0) + '분' + (last.distanceKm ? ' · ' + last.distanceKm.toFixed(1) + 'km' : last.logged === 'after' ? ' · 다녀와서 적음' : ' · 시간만 기록');
     document.getElementById('last-panel').hidden = false;
     // 끝 화면에서 남긴 사진이 있으면 같이 보여 준다(이 휴대폰 안 저장소에서 읽음)
     if (last.photoKey && window.WalkPhotos) {
@@ -438,5 +485,107 @@
 })();
 </script>
 
+<script>
+// ── 다녀왔어요(2026-11-16, 가르시아 "다녀왔어요 기능 만들어줘") ──
+// 산책이 귀찮은 견주는 나가기 전에 앱을 켜지 않는다(11/16 기획 검토). 그래서 다녀와서 몇 분이었는지만 고르면
+// 오늘 날짜로 시간만 잰 산책과 같은 기록을 남기고 끝 화면 → 영수증으로 보낸다. 위치는 쓰지 않는다.
+// 기록 모양: go.html(시간만 재기)과 같고 logged: 'after'만 덧붙인다 — 보상(카드 성장·발도장·키링)에는 안 들어가고
+// 꾸준함 도장·오늘/최근 7일 시간에는 들어간다(시간만 잰 산책과 같은 대우). 어제 것은 받지 않는다(기록 순서가 날짜 순서와 어긋나지 않게).
+(function () {
+  var WALKS_KEY = 'petwalk_walks';
+  var CHOICES = [10, 20, 30, 45, 60, 90];
+  var LABEL = { 60: '1시간', 90: '1시간 반' };
+  var btn = document.getElementById('after-btn');
+  var sheet = document.getElementById('after-sheet');
+  var optsEl = document.getElementById('after-opts');
+  var customEl = document.getElementById('after-custom');
+  var minInput = document.getElementById('after-min');
+  var saveBtn = document.getElementById('after-save');
+  var subEl = document.getElementById('after-sub');
+  function loadJSON(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function todayKey() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+
+  // 시간 재는 산책이 진행 중이면 숨긴다 — 같은 산책을 두 번 적지 않게
+  var active = loadJSON('petwalk_active_walk', null);
+  if (active && active.startedAt) { btn.hidden = true; return; }
+
+  var picked = 30;
+  // 처음 고른 칸: 최근 10번 산책 시간의 가운데 값에 가장 가까운 칸(없으면 30분)
+  function typical() {
+    var mins = loadJSON(WALKS_KEY, []).filter(function (w) { return w && w.durationMin > 0; }).slice(-10)
+      .map(function (w) { return w.durationMin; }).sort(function (a, b) { return a - b; });
+    if (!mins.length) return 30;
+    var mid = mins[Math.floor(mins.length / 2)];
+    return CHOICES.reduce(function (best, c) { return Math.abs(c - mid) < Math.abs(best - mid) ? c : best; }, 30);
+  }
+  function minutes() {
+    if (picked !== 'custom') return picked;
+    var v = parseInt(minInput.value, 10);
+    return v >= 1 && v <= 240 ? v : null;
+  }
+  var buttons = [];
+  CHOICES.concat(['custom']).forEach(function (c) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = c === 'custom' ? '직접' : (LABEL[c] || c + '분');
+    b.addEventListener('click', function () {
+      picked = c;
+      paint();
+      if (c === 'custom') minInput.focus();
+    });
+    buttons.push({ el: b, v: c });
+    optsEl.appendChild(b);
+  });
+  function paint() {
+    buttons.forEach(function (x) { x.el.setAttribute('aria-pressed', x.v === picked ? 'true' : 'false'); });
+    customEl.hidden = picked !== 'custom';
+    var m = minutes();
+    saveBtn.disabled = !m;
+    saveBtn.textContent = m ? (LABEL[m] || m + '분') + ' 적기' : '몇 분인지 적어 주세요(1~240)';
+  }
+  minInput.addEventListener('input', paint);
+  function open() {
+    picked = typical();
+    minInput.value = '';
+    var today = loadJSON(WALKS_KEY, []).filter(function (w) { return w && w.date === todayKey(); });
+    if (today.length) {
+      var sum = today.reduce(function (s, w) { return s + (w.durationMin || 0); }, 0);
+      subEl.textContent = '오늘 이미 ' + today.length + '번(' + sum + '분) 적혀 있어요. 다른 산책이면 더 적어도 돼요.';
+    } else {
+      subEl.textContent = '대충 골라도 돼요. 오늘 날짜로 적어요.';
+    }
+    paint();
+    sheet.hidden = false;
+  }
+  function close() { sheet.hidden = true; }
+  btn.addEventListener('click', open);
+  document.getElementById('after-close').addEventListener('click', close);
+  sheet.addEventListener('click', function (e) { if (e.target === sheet) close(); });
+
+  saveBtn.addEventListener('click', function () {
+    var m = minutes();
+    if (!m) return;
+    saveBtn.disabled = true;
+    // 샘플을 보는 중이면 먼저 끄게 한다 — 샘플을 켠 채 적은 기록은 샘플을 끌 때 같이 지워지므로
+    var ready = (window.PetwalkSample && PetwalkSample.isOn()) ? PetwalkSample.leaveForRealRecord('다녀온 산책을 기록하면') : Promise.resolve(true);
+    ready.then(function (ok) {
+      if (!ok) { paint(); return; }
+      var walks = loadJSON(WALKS_KEY, []);   // 샘플을 껐으면 원래 기록이 돌아와 있으니 다시 읽는다
+      walks.push({
+        date: todayKey(), distanceKm: 0, durationMin: m, route: [], stampRoute: [],
+        rewardEligible: false, gapMin: 0, mode: 'time', logged: 'after', loggedAt: Date.now()
+      });
+      try { localStorage.setItem(WALKS_KEY, JSON.stringify(walks)); } catch (e) {
+        alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.');
+        paint();
+        return;
+      }
+      if (window.WalsonTrack) WalsonTrack.send('walk_complete', { mode: 'after', min_bucket: WalsonTrack.minBucket(m), eligible: 0 });
+      location.href = 'walk-end.html';
+    });
+  });
+})();
+</script>
 </body>
 </html>

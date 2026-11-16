@@ -210,7 +210,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="walk-receipt.js?v=1"></script>
+<script src="walk-receipt.js?v=2"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';        // walk.html·go.html이 저장하는 산책 기록
@@ -334,7 +334,7 @@
   function receiptData(i) {
     var w = walks[i];
     return {
-      no: i + 1, date: w.date, demo: !!w.demo, mode: w.mode === 'time' ? 'time' : 'gps',
+      no: i + 1, date: w.date, demo: !!w.demo, mode: w.mode === 'time' ? 'time' : 'gps', after: w.logged === 'after',
       durationMin: w.durationMin || 0, distanceKm: w.distanceKm || 0,
       feel: w.feel, sniff: w.sniff, poop: typeof w.poop === 'number' ? w.poop : undefined,
       stamps: info[i].stamps, steady: info[i].steady, note: noteText(i), name: profile.name || ''
@@ -499,7 +499,7 @@
       var b = document.createElement('button');
       b.type = 'button'; b.className = 'r-row';
       if (i === state.i) b.setAttribute('aria-current', 'true');
-      var meta = (w.durationMin || 0) + '분 · ' + (w.mode === 'time' ? '시간만' : '길 기록') + (w.demo ? ' · 데모' : '');
+      var meta = (w.durationMin || 0) + '분 · ' + (w.mode === 'time' ? (w.logged === 'after' ? '다녀와서 적음' : '시간만') : '길 기록') + (w.demo ? ' · 데모' : '');
       b.innerHTML = '<span class="r-no"></span><span class="r-main"><span class="r-date"></span><span class="r-meta"></span></span><span class="r-stamp"></span>';
       b.querySelector('.r-no').textContent = 'No.' + pad4(i + 1);
       b.querySelector('.r-date').textContent = dayText(w.date);

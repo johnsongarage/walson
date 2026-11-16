@@ -305,7 +305,7 @@
       var points = routeThumbnailPoints(w.route, 40);
       var thumbInner = points
         ? '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" style="color:var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="' + points + '"/></svg>'
-        : '<span class="no-route">' + (w.mode === 'time' ? '시간만' : '기록<br>없음') + '</span>';
+        : '<span class="no-route">' + (w.mode === 'time' ? (w.logged === 'after' ? '다녀와서<br>적음' : '시간만') : '기록<br>없음') + '</span>';
       // 끝 화면(walk-end.html)에서 답한 것
       var feelText = w.feel === 'enough' ? '충분했어요' : w.feel === 'short' ? '조금 아쉬워요' : '';
       var extra = (feelText ? '<span>' + feelText + '</span>' : '') + (w.sniff ? '<span>킁킁 ' + w.sniff + '</span>' : '');

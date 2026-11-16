@@ -6,7 +6,8 @@
 (function () {
   var SKIP = /^(petwalk_admin_token|petwalk_spot_draft|petwalk_sample_.*|walson_track_queue)$/;
   var ARRAY_MERGE = {   // 합치기 때 겹침을 가리는 기준
-    petwalk_walks: function (w) { return [w.date, w.durationMin, w.distanceKm || 0, w.photoKey || ''].join('|'); },
+    // loggedAt(다녀왔어요)·endedAt(길 기록)이 있으면 넣어서, 같은 날 같은 분 수의 다른 산책이 하나로 합쳐지지 않게(2026-11-16)
+    petwalk_walks: function (w) { return [w.date, w.durationMin, w.distanceKm || 0, w.photoKey || '', w.loggedAt || w.endedAt || ''].join('|'); },
     petwalk_pins: function (p) { return p.id || [p.lat, p.lng, p.memo].join('|'); },
     petwalk_visits: function (v) { return v.s + '|' + v.d; },
     petwalk_dex: function (d) { return d.i; }   // 강아지 도감(dex.html) — 같은 강아지는 하나만

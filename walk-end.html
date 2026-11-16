@@ -205,7 +205,7 @@
   if (!walk) { location.replace('index.html'); return; }
 
   var profile = loadJSON(PROFILE_KEY, {});
-  document.getElementById('sum-label').textContent = (profile.name ? profile.name + ', ' : '') + '산책 끝';
+  document.getElementById('sum-label').textContent = (profile.name ? profile.name + ', ' : '') + (walk.logged === 'after' ? '산책 적었어요' : '산책 끝');
   document.getElementById('sum-min').textContent = walk.durationMin || 0;
 
   // 오늘 합계 — 방금 것까지 포함

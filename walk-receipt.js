@@ -12,7 +12,7 @@
 // 그리기는 이 휴대폰 안에서만 하고 어디로도 보내지 않는다(저장·공유는 사용자가 고른 앱으로).
 //
 //   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', brutal, photoY: 0~1, logo })
-//   data = { no, date, demo, mode: 'time'|'gps', durationMin, distanceKm, feel, sniff, poop,
+//   data = { no, date, demo, mode: 'time'|'gps', after(다녀와서 적은 산책), durationMin, distanceKm, feel, sniff, poop,
 //            stamps: { hit, fresh } | null, steady: { days, got }, note, name }
 (function () {
   var FORMATS = {
@@ -65,7 +65,8 @@
     out.push({ t: 'pair', l: 'No.' + pad4(d.no) + (d.demo ? ' (데모)' : ''), r: dateText(d.date) });
     out.push({ t: 'rule' });
     if (rich) out.push({ t: 'pair', l: '품목', r: '수량', soft: true });
-    out.push({ t: 'pair', l: timeOnly ? '산책 (시간만)' : '산책 (길 기록)',
+    // 다녀와서 적은 산책(index.html "다녀왔어요")은 "자진 신고" — 잰 게 아니라 보호자가 적은 것임을 숨기지 않는다
+    out.push({ t: 'pair', l: d.after ? '산책 (자진 신고)' : timeOnly ? '산책 (시간만)' : '산책 (길 기록)',
       r: (d.durationMin || 0) + '분' + (!timeOnly && d.distanceKm ? ' · ' + km(d.distanceKm) + 'km' : '') });
     if (d.sniff) out.push({ t: 'dots', l: '킁킁', v: Math.max(1, Math.min(5, d.sniff | 0)) });
     else out.push({ t: 'pair', l: '킁킁', r: '안 적음', soft: true });
