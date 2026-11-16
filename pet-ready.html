@@ -7,15 +7,18 @@
 <meta name="description" content="음식점·카페·빵집 사장님을 위한 반려동물 동반출입 기준 체크리스트와 표지판·안내문 인쇄">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <style>
   /* 반려동물 동반출입 음식점 준비 도우미(2026-11-15, 가르시아 "2번 등록 도우미 만들어줘").
+     2026-11-16: 가르시아가 보여 준 카페 매장 안내문처럼 "한눈에" — 아이콘 한 줄 = 규칙 하나, 가는 선으로 나눈 흰 종이 디자인으로 인쇄물을 다시 만듦.
+       (그 안내문의 브랜드·문구를 베끼지 않고, 줄 구성만 참고) + 화면에서 인쇄물을 바로 미리 보기 + "자주 하는 오해"(3/13 기사 vs 3/19 식약처 브리핑).
      음식점·카페·빵집 사장님이 2026-03-01 시행 기준(식품위생법 시행규칙)을 스스로 점검하고, 표지판·안내문·라벨을 인쇄하게 돕는다.
      정리 근거: hq notes/petwalk-pet-restaurant-rules.md(서울 중구청 매뉴얼 2026-01, 식약처 2026-03-19 브리핑). 법률 자문이 아니라 정리 — 화면에 그렇게 적는다.
      - 체크 상태·가게 이름은 이 브라우저(localStorage)에만 둔다. 어디로도 보내지 않는다.
      - 예방접종 확인 기록지는 손님 이름·전화번호를 받지 않는 형태로만(필요 이상 개인정보를 만들지 않게).
-     - 카톡 안 브라우저 넘기기(inapp.js)는 넣지 않는다 — 사장님이 카톡으로 받은 링크를 그대로 보게. 통계(track.js)는 화면 열림만. */
-  :root { --bg: #f7ede2; --panel: #fffaf3; --line: #e6d6c1; --ink: #3a2e24; --soft: #6b5d4e; --accent: #b8563a; --ok: #3f7d4a; --yellow: #F2B833; --warn: #fff3d6; }
+     - 카톡 안 브라우저 넘기기(inapp.js)는 넣지 않는다 — 사장님이 카톡으로 받은 링크를 그대로 보게. 통계(track.js)는 화면 열림만.
+     - 맹견 목록은 동물보호법상 맹견(도사견·아메리칸 핏불테리어·아메리칸 스태퍼드셔 테리어·스태퍼드셔 불 테리어·로트와일러와 그 잡종). */
+  :root { --bg: #f7ede2; --panel: #fffaf3; --line: #e6d6c1; --ink: #3a2e24; --soft: #6b5d4e; --accent: #b8563a; --ok: #3f7d4a; --yellow: #F2B833; --warn: #fff3d6;
+          --sign-red: #a8322d; --sign-brown: #8a5a2b; }
   * { box-sizing: border-box; }
   html, body { margin: 0; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
   body { padding: 16px 16px 40px; font-size: 15px; line-height: 1.6; }
@@ -28,58 +31,68 @@
   .lead { color: var(--soft); margin: 10px 0 16px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
   .card h2 { font-size: 18px; margin: 0 0 8px; }
-  .card h3 { font-size: 15px; margin: 14px 0 6px; }
   .facts { margin: 0; padding-left: 18px; }
   .facts li { margin-bottom: 4px; }
   .note { background: var(--warn); border: 1px solid #f0d58c; border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--ink); margin-top: 10px; }
+  .myths { display: grid; gap: 8px; }
+  .myth { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .myth .x { font-size: 13.5px; color: var(--soft); text-decoration: line-through; text-decoration-color: rgba(168,50,45,.6); }
+  .myth .o { font-size: 14.5px; font-weight: 800; margin-top: 2px; }
+  .myth .o::before { content: '→ '; color: var(--ok); }
   .field { margin-bottom: 10px; }
-  .field label { display: block; font-size: 12px; font-weight: 800; color: var(--soft); margin-bottom: 4px; }
+  .field > label { display: block; font-size: 12px; font-weight: 800; color: var(--soft); margin-bottom: 4px; }
   .field input[type=text], .field select { width: 100%; font: inherit; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
   .opts { display: grid; gap: 6px; }
-  .opt { display: flex; gap: 8px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; cursor: pointer; font-size: 14px; }
+  .opt { display: flex; gap: 8px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .opt input { margin-top: 4px; }
-  .field label.opt { display: flex; font-size: 14px; font-weight: 600; color: var(--ink); margin: 0; }
-  .opt small { display: block; color: var(--soft); font-size: 12px; }
+  .opt small { display: block; color: var(--soft); font-size: 12px; font-weight: 500; }
   .check { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--line); }
   .check:last-child { border-bottom: none; }
   .check input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--ok); }
   .check b { display: block; font-size: 14.5px; }
   .check span { display: block; font-size: 13px; color: var(--soft); }
   .check .print-link { font-size: 12px; }
-  .check.na { opacity: .45; }
   .progress { display: flex; align-items: center; gap: 10px; margin: 4px 0 6px; font-weight: 800; font-size: 14px; }
   .bar { flex: 1; height: 10px; background: #efe0cd; border-radius: 99px; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .2s; }
   .done-msg { color: var(--ok); font-weight: 800; font-size: 14px; }
-  .prints { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-  .prints button { font: inherit; font-weight: 800; font-size: 14px; padding: 12px 10px; border-radius: 12px; border: 1px solid #c99a1c; background: var(--yellow); color: var(--ink); cursor: pointer; text-align: left; }
-  .prints button small { display: block; font-weight: 600; font-size: 12px; color: var(--soft); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tabs button { font: inherit; font-size: 13px; font-weight: 800; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  .tabs button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .print-btn { display: block; width: 100%; font: inherit; font-weight: 800; font-size: 15px; padding: 13px; border-radius: 999px; border: none; background: var(--yellow); color: var(--ink); cursor: pointer; margin-top: 10px; }
   .steps { margin: 0; padding-left: 20px; }
   .steps li { margin-bottom: 6px; }
   .src { font-size: 12px; color: var(--soft); }
   .src a { font-weight: 600; }
   .cta { display: block; text-align: center; background: var(--accent); color: #fff; text-decoration: none; border-radius: 999px; padding: 13px; font-weight: 800; margin-top: 10px; }
 
-  /* ── 인쇄물(A4) ── 화면에서는 미리 보기로 작게, 인쇄할 때는 고른 한 장만 */
-  .sheets { display: none; }
-  .sheet { width: 210mm; height: 297mm; background: #fff; color: #111; position: relative; overflow: hidden; font-family: 'Pretendard', "Malgun Gothic", sans-serif; }
-  .sign { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18mm 16mm; height: 100%; }
-  .sign .paw { font-size: 44mm; line-height: 1; }
-  .sign .big { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 21mm; line-height: 1.15; margin: 6mm 0 4mm; }
-  .sign .mid { font-size: 9mm; font-weight: 900; line-height: 1.35; }
-  .sign .rule { margin-top: 10mm; border-top: 1mm solid #111; padding-top: 7mm; font-size: 7mm; font-weight: 800; line-height: 1.6; }
-  .sign .shop { position: absolute; bottom: 12mm; left: 0; right: 0; text-align: center; font-size: 6mm; font-weight: 800; color: #444; }
-  .sign.entrance { background: var(--yellow); }
-  .inside { padding: 20mm 18mm; height: 100%; }
-  .inside h1 { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-weight: 400; font-size: 12.5mm; line-height: 1.2; margin: 0 0 8mm; }
-  .inside ol { margin: 0; padding-left: 10mm; }
-  .inside li { font-size: 8mm; font-weight: 800; line-height: 1.45; margin-bottom: 7mm; }
-  .inside li small { display: block; font-size: 5.5mm; font-weight: 600; color: #444; }
+  /* ── 인쇄물(A4) — 흰 종이, 아이콘 한 줄에 규칙 하나 ── */
+  .preview { position: relative; width: 100%; max-width: 420px; margin: 0 auto; overflow: hidden; border-radius: 6px; box-shadow: 0 3px 14px rgba(58,46,36,.18); background: #fff; }
+  .preview .sheet { position: absolute; top: 0; left: 0; transform-origin: top left; }
+  .sheet { width: 210mm; height: 297mm; background: #fff; color: #222; overflow: hidden; display: none; font-family: 'Pretendard', "Malgun Gothic", sans-serif; }
+  .sheet.on { display: block; }
+  .paper { height: 100%; padding: 22mm 20mm 16mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .eyebrow { font-size: 6mm; font-weight: 800; letter-spacing: .12em; color: var(--sign-red); }
+  .ptitle { font-size: 13mm; font-weight: 900; line-height: 1.25; margin: 2mm 0 0; letter-spacing: -0.02em; }
+  .psub { font-size: 6.4mm; font-weight: 800; color: var(--sign-brown); margin: 9mm 0 2mm; }
+  .rows { width: 100%; margin-top: 2mm; }
+  .prow { display: flex; align-items: center; gap: 8mm; padding: 6.5mm 2mm; border-bottom: 0.3mm solid #cfcfcf; text-align: left; }
+  .prow:last-child { border-bottom: none; }
+  .prow svg { width: 24mm; height: 24mm; flex: none; color: #333; }
+  .prow .t { font-size: 5.6mm; line-height: 1.5; font-weight: 600; color: #333; }
+  .prow .t b { color: #111; font-weight: 900; }
+  .prow .t .em { color: var(--sign-red); font-weight: 900; }
+  .pbox { width: 100%; margin-top: auto; background: #f0f0f0; border-radius: 2mm; padding: 4.5mm 6mm; font-size: 4.6mm; line-height: 1.55; color: #333; }
+  .pbox b { display: block; font-size: 5.2mm; color: #111; margin-bottom: 1mm; }
+  .pfoot { margin-top: 7mm; font-size: 6mm; font-weight: 900; letter-spacing: .06em; color: #333; min-height: 7mm; }
+  .plaw { font-size: 3.4mm; color: #888; margin-top: 1.5mm; }
   .labels { display: grid; grid-template-rows: repeat(3, 1fr); height: 100%; }
-  .label { border-bottom: 0.4mm dashed #888; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8mm; }
+  .label { border-bottom: 0.4mm dashed #999; display: flex; align-items: center; justify-content: center; gap: 10mm; padding: 8mm 14mm; }
   .label:last-child { border-bottom: none; }
-  .label b { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-weight: 400; font-size: 17mm; line-height: 1.15; }
-  .label span { font-size: 6.5mm; font-weight: 800; margin-top: 3mm; color: #333; }
+  .label svg { width: 38mm; height: 38mm; flex: none; color: #333; }
+  .label .lt { text-align: left; }
+  .label .lt b { display: block; font-size: 14mm; font-weight: 900; line-height: 1.15; color: #111; }
+  .label .lt span { display: block; font-size: 6mm; font-weight: 700; margin-top: 3mm; color: #555; }
   .log { padding: 14mm 12mm; height: 100%; }
   .log h1 { font-size: 9mm; margin: 0 0 2mm; }
   .log p { font-size: 4mm; margin: 0 0 5mm; color: #333; line-height: 1.5; }
@@ -89,10 +102,11 @@
   @page { size: A4; margin: 0; }
   @media print {
     html, body { background: #fff; padding: 0; margin: 0; }
-    .wrap { display: none; }
-    .sheets { display: block; }
-    .sheet { display: none; }
-    .sheet.on { display: block; }
+    .wrap > *:not(#print-card) { display: none !important; }
+    #print-card { border: none; padding: 0; margin: 0; background: none; }
+    #print-card > *:not(.preview) { display: none !important; }
+    .preview { width: auto !important; height: auto !important; box-shadow: none; border-radius: 0; overflow: visible; }
+    .preview .sheet { position: static; transform: none !important; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
@@ -103,17 +117,28 @@
 <div class="wrap">
   <header>
     <img src="icons/walson-logo.webp" alt="">
-    <div><div class="k">왈슨 · 다산동 사장님용</div><h1>강아지 손님 받을 준비,<br>체크리스트로 한 번에</h1></div>
+    <div><div class="k">왈슨 · 다산동 사장님용</div><h1>강아지 손님 받을 준비,<br>한 장씩 한눈에</h1></div>
   </header>
-  <p class="lead">음식점·카페·빵집도 <b>2026년 3월 1일부터</b> 기준을 갖추면 강아지·고양이 손님을 받을 수 있어요. 허가는 필요 없어요.
-    아래에서 우리 가게 방식을 고르고 하나씩 체크한 뒤, 필요한 <b>표지판·안내문·라벨을 바로 인쇄</b>하세요.</p>
+  <p class="lead">음식점·카페·빵집도 <b>2026년 3월 1일부터</b> 기준을 갖추면 강아지·고양이 손님을 받을 수 있어요. <b>허가는 필요 없어요.</b>
+    우리 가게 방식을 고르면 체크리스트와 <b>입구 표지판·매장 안내문</b>이 바로 만들어져요.</p>
+
+  <div class="card">
+    <h2>자주 하는 오해</h2>
+    <div class="myths">
+      <div class="myth"><div class="x">지자체 인증을 받아야 한다</div><div class="o">필수가 아니에요. 기준을 갖추고 지키면 돼요.</div></div>
+      <div class="myth"><div class="x">테이블을 전부 멀리 띄워야 한다</div><div class="o">안고 있거나 케이지·유모차·전용 의자를 쓰면 간격은 안 맞춰도 돼요.</div></div>
+      <div class="myth"><div class="x">오픈 주방이라 안 된다</div><div class="o">이동형·접이식 칸막이로 막아도 돼요.</div></div>
+      <div class="myth"><div class="x">사장님이 손님마다 접종을 직접 확인해야 한다</div><div class="o">손님이 직접 적거나 QR로 내는 방식도 돼요.</div></div>
+      <div class="myth"><div class="x">의자·케이지·목줄 고리를 다 사야 한다</div><div class="o">"안고 있거나 가져온 케이지·유모차만" 받으면 따로 안 갖춰도 돼요.</div></div>
+    </div>
+    <p class="src" style="margin:8px 0 0;">3월 초 기사에는 "인증 필수·까다롭다"로 나왔지만, 3월 19일 식약처 브리핑에서 위처럼 정리·완화됐어요.</p>
+  </div>
 
   <div class="card">
     <h2>먼저 알아 두실 것</h2>
     <ul class="facts">
       <li><b>대상 업종</b>: 일반음식점, 휴게음식점(카페 등), 제과점</li>
       <li><b>대상 동물</b>: 개와 고양이만</li>
-      <li><b>허가·인증 필요 없음</b>: 기준을 갖추고 지키면 영업할 수 있어요.</li>
       <li><b>공식 목록 등록은 선택</b>: 남양주시청 위생 담당 부서에 신청하면 식품안전나라 "반려동물 동반 가능 업소 현황"에 올라가요(다산동은 지금 3곳).</li>
       <li><b>안 지키면</b>: 시정명령부터 영업정지(5일~1개월)까지 처분이 있어요.</li>
     </ul>
@@ -123,7 +148,7 @@
 
   <div class="card">
     <h2>1. 우리 가게 방식 고르기</h2>
-    <div class="field"><label for="shop">가게 이름 (인쇄물 아래에 들어가요, 비워도 돼요)</label><input type="text" id="shop" maxlength="24" placeholder="예: 다산동 ○○카페"></div>
+    <div class="field"><label for="shop">가게 이름 (인쇄물 맨 아래에 들어가요, 비워도 돼요)</label><input type="text" id="shop" maxlength="24" placeholder="예: 다산동 ○○카페"></div>
     <div class="field"><label>받을 동물</label>
       <div class="opts" style="grid-template-columns:1fr 1fr;">
         <label class="opt"><input type="checkbox" id="a-dog" checked> 강아지</label>
@@ -132,16 +157,22 @@
     <div class="field"><label for="size">크기 제한</label>
       <select id="size">
         <option value="">제한 없음</option>
+        <option value="kg10">10kg 이하</option>
+        <option value="kg7">7kg 이하</option>
         <option value="small">소형견만</option>
-        <option value="mid">소·중형견만</option>
         <option value="carry">안을 수 있는 크기만</option>
       </select></div>
-    <div class="field"><label>매장 안에서 강아지를 어떻게 두나요? (자유롭게 못 돌아다니게 — 하나 이상)</label>
+    <div class="field"><label>매장 안에서 강아지를 어떻게 두나요? (자유롭게 못 돌아다니게)</label>
       <div class="opts" id="ways">
-        <label class="opt"><input type="radio" name="way" value="carry" checked><div><b>손님이 안고 있거나, 가져온 케이지·유모차에만</b><small>가장 가벼워요. 가게가 의자·케이지·목줄 고정 장치를 따로 갖추지 않아도 되고, 식탁 간격도 따로 안 맞춰도 돼요.</small></div></label>
-        <label class="opt"><input type="radio" name="way" value="leash"><div><b>목줄 고정 장치</b><small>테이블에 목줄을 거는 고리 등. 목줄 길이만큼 다른 손님·강아지와 닿지 않게 식탁 간격을 둬야 해요.</small></div></label>
-        <label class="opt"><input type="radio" name="way" value="chair"><div><b>반려동물 전용 의자</b><small>식탁 간격은 따로 안 맞춰도 돼요.</small></div></label>
-        <label class="opt"><input type="radio" name="way" value="zone"><div><b>별도 전용 공간</b><small>강아지 손님 자리를 따로 나눠 둬요.</small></div></label>
+        <label class="opt"><input type="radio" name="way" value="carry" checked><div>손님이 안고 있거나, 가져온 케이지·유모차에만<small>가장 가벼워요. 가게가 의자·케이지·목줄 고리를 따로 갖추지 않아도 되고, 식탁 간격도 안 맞춰도 돼요.</small></div></label>
+        <label class="opt"><input type="radio" name="way" value="leash"><div>목줄 고정 장치<small>테이블에 목줄을 거는 고리 등. 목줄 길이만큼 다른 손님·강아지와 닿지 않게 식탁 간격을 둬야 해요.</small></div></label>
+        <label class="opt"><input type="radio" name="way" value="chair"><div>반려동물 전용 의자<small>식탁 간격은 따로 안 맞춰도 돼요.</small></div></label>
+        <label class="opt"><input type="radio" name="way" value="zone"><div>별도 전용 공간<small>강아지 손님 자리를 따로 나눠 둬요.</small></div></label>
+      </div></div>
+    <div class="field"><label>더 넣을 안내 (선택)</label>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" id="x-bite" checked><div>사람을 물거나 공격할 수 있는 반려견은 입장 불가</div></label>
+        <label class="opt"><input type="checkbox" id="x-danger" checked><div>맹견 출입 제한<small>동물보호법상 맹견: 도사견, 아메리칸 핏불테리어, 아메리칸 스태퍼드셔 테리어, 스태퍼드셔 불 테리어, 로트와일러와 그 잡종</small></div></label>
       </div></div>
   </div>
 
@@ -152,15 +183,46 @@
     <p class="done-msg" id="done" hidden>다 갖췄어요! 아래 3번에서 인쇄물을 챙기고, 4번을 확인해 주세요.</p>
   </div>
 
-  <div class="card">
-    <h2>3. 인쇄하기 (A4 한 장씩)</h2>
-    <div class="prints">
-      <button type="button" data-print="entrance">입구 표지판<small>동반 영업장 · 크기 제한 · 예방접종</small></button>
-      <button type="button" data-print="inside">매장 안내문<small>이동 제한 · 목줄 · 함께 이동</small></button>
-      <button type="button" data-print="labels">라벨 3장<small>주방 출입 금지 · 반려동물 식기 · 배설물 통</small></button>
-      <button type="button" data-print="log">예방접종 확인 기록지<small>손님 이름·전화번호 없이</small></button>
+  <div class="card" id="print-card">
+    <h2>3. 인쇄물 (A4 한 장씩)</h2>
+    <div class="tabs" id="tabs">
+      <button type="button" data-sheet="entrance" aria-pressed="true">입구 표지판</button>
+      <button type="button" data-sheet="inside" aria-pressed="false">매장 안내문</button>
+      <button type="button" data-sheet="labels" aria-pressed="false">라벨 3장</button>
+      <button type="button" data-sheet="log" aria-pressed="false">예방접종 기록지</button>
     </div>
-    <p class="src" style="margin-top:8px;">휴대폰에서는 인쇄가 어려우면 이 주소를 컴퓨터에서 열어 주세요. 체크와 가게 이름은 이 기기에만 저장돼요.</p>
+    <div class="preview" id="preview">
+      <!-- 입구 표지판: 법이 요구하는 것 — "반려동물 동반 영업장" 문구, 종류·크기 제한, 미접종 출입 불가 표시 -->
+      <div class="sheet" id="sheet-entrance"><div class="paper">
+        <div class="eyebrow">PET-FRIENDLY</div>
+        <div class="ptitle" id="e-title">반려동물 동반 영업장</div>
+        <div class="psub">반려동물 출입 안내</div>
+        <div class="rows" id="e-rows"></div>
+        <div class="pbox" id="e-box"></div>
+        <div class="pfoot" id="e-shop"></div>
+        <div class="plaw">식품위생법 시행규칙에 따른 반려동물(개·고양이) 동반 영업장</div>
+      </div></div>
+      <!-- 매장 안내문: 이동 제한 안내(준수사항) + 함께 이동 + 배설물 -->
+      <div class="sheet" id="sheet-inside"><div class="paper">
+        <div class="eyebrow">PETIQUETTE</div>
+        <div class="ptitle">함께 지켜 주세요</div>
+        <div class="psub">매장 안 이용 안내</div>
+        <div class="rows" id="i-rows"></div>
+        <div class="pfoot" id="i-shop"></div>
+      </div></div>
+      <div class="sheet" id="sheet-labels"><div class="labels" id="labels"></div></div>
+      <div class="sheet" id="sheet-log"><div class="log">
+        <h1>반려동물 예방접종 확인 기록</h1>
+        <p>들어오실 때 예방접종 여부를 확인해요. <b>손님 이름·전화번호는 적지 않아요.</b> 증명서·동물병원 앱 화면 등으로 확인한 방법에 표시하거나, 손님이 직접 "손님 기재"에 표시해요.
+          예방접종을 하지 않은 반려동물은 들어올 수 없어요. <span id="l-shop"></span></p>
+        <table>
+          <thead><tr><th style="width:13%">날짜</th><th style="width:10%">시간</th><th style="width:15%">개 / 고양이</th><th style="width:9%">마리</th><th>확인 방법</th><th style="width:13%">확인자</th></tr></thead>
+          <tbody id="l-rows"></tbody>
+        </table>
+      </div></div>
+    </div>
+    <button type="button" class="print-btn" id="print-btn">이 장 인쇄하기</button>
+    <p class="src" style="margin-top:8px;">휴대폰에서 인쇄가 어려우면 이 주소를 컴퓨터에서 열어 주세요. 체크와 가게 이름은 이 기기에만 저장돼요.</p>
   </div>
 
   <div class="card">
@@ -173,60 +235,51 @@
   </div>
 
   <p class="src">이 페이지는 2026년 3월 19일까지 발표된 자료를 왈슨이 정리한 것이에요. 법률 자문이 아니고, 해석이 다를 수 있으니 확실하지 않으면 시청 위생 담당 부서에 확인해 주세요.
-    출처: 「반려동물 동반 출입 음식점 등 위생 및 안전관리 매뉴얼」(2026.1, 서울 중구청 게시), 식약처 브리핑(2026.3.19, 뉴스1·동아일보 보도),
+    출처: 「반려동물 동반 출입 음식점 등 위생 및 안전관리 매뉴얼」(2026.1, 서울 중구청 게시), 식약처 브리핑(2026.3.19, 뉴스1·동아일보 보도), 중앙일보(2026.3.13),
     <a href="https://www.foodsafetykorea.go.kr/portal/petKorea.do" target="_blank" rel="noopener">식품안전나라 반려동물 동반 가능 업소 현황</a>.</p>
-</div>
-
-<!-- 인쇄물 -->
-<div class="sheets">
-  <div class="sheet" id="sheet-entrance"><div class="sign entrance">
-    <div class="paw">🐾</div>
-    <div class="big" id="e-big">반려동물<br>동반 영업장</div>
-    <div class="mid" id="e-animals">강아지와 함께 들어오실 수 있어요</div>
-    <div class="rule" id="e-rules"></div>
-    <div class="shop" id="e-shop"></div>
-  </div></div>
-
-  <div class="sheet" id="sheet-inside"><div class="inside">
-    <h1>반려동물과 함께 오신 손님께</h1>
-    <ol id="i-list"></ol>
-    <div class="shop" id="i-shop" style="position:absolute;bottom:14mm;left:0;right:0;text-align:center;font-size:6mm;font-weight:800;color:#444;"></div>
-  </div></div>
-
-  <div class="sheet" id="sheet-labels"><div class="labels">
-    <div class="label"><b>반려동물<br>출입 금지</b><span>주방 · 식재료 보관 장소</span></div>
-    <div class="label"><b>반려동물용 식기</b><span>손님용과 따로 보관·사용해요</span></div>
-    <div class="label"><b>반려동물<br>배설물 전용</b><span>배변 봉투는 여기에 버려 주세요</span></div>
-  </div></div>
-
-  <div class="sheet" id="sheet-log"><div class="log">
-    <h1>반려동물 예방접종 확인 기록</h1>
-    <p>들어오실 때 예방접종 여부를 확인해요. <b>손님 이름·전화번호는 적지 않아요.</b> 증명서·동물병원 앱 화면 등으로 확인한 방법에 표시하거나, 손님이 직접 "접종함"에 표시해요.
-      예방접종을 하지 않은 반려동물은 들어올 수 없어요. <span id="l-shop"></span></p>
-    <table>
-      <thead><tr><th style="width:13%">날짜</th><th style="width:10%">시간</th><th style="width:15%">개 / 고양이</th><th style="width:9%">마리</th><th>확인 방법</th><th style="width:13%">확인자</th></tr></thead>
-      <tbody id="l-rows"></tbody>
-    </table>
-  </div></div>
 </div>
 
 <script>
 (function () {
-  var KEY = 'walson_pet_ready';   // 이 브라우저에만: { shop, dog, cat, size, way, done:{항목:1} }
+  var KEY = 'walson_pet_ready';   // 이 브라우저에만: { shop, dog, cat, size, way, bite, danger, done:{항목:1} }
   var $ = function (id) { return document.getElementById(id); };
   var st = {};
   try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { st = {}; }
   st.done = st.done || {};
+  if (st.bite === undefined) st.bite = true;
+  if (st.danger === undefined) st.danger = true;
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* 저장 못 해도 화면은 그대로 */ } }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
 
-  // 기준 항목 — 시설기준 1 + 준수사항 10(매뉴얼 순서). need(way): 이 방식일 때 해당하는지
+  // ── 선 아이콘(직접 그림, 48×48) ──
+  var DOG = '<path d="M14 15c-3 2-6 9-6 12 0 2 2 3 4 1l3-4"/><path d="M34 15c3 2 6 9 6 12 0 2-2 3-4 1l-3-4"/><path d="M15 14c4-4 14-4 18 0 3 4 3 13 0 18-2 4-5 6-9 6s-7-2-9-6c-3-5-3-14 0-18z"/><circle cx="19.5" cy="23" r="1.6" fill="currentColor" stroke="none"/><circle cx="28.5" cy="23" r="1.6" fill="currentColor" stroke="none"/><path d="M22 30h4l-2 2.4z" fill="currentColor"/>';
+  var I = {
+    dog: DOG,
+    scale: '<g transform="translate(0,-4) scale(.8) translate(6,0)">' + DOG + '</g><rect x="11" y="36" width="26" height="9" rx="1.5"/><text x="24" y="43" font-size="7" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="Pretendard,sans-serif" id="kgtext">kg↓</text>',
+    syringe: '<path d="M33 7l8 8"/><path d="M37 11L19 29l-6-6L31 5"/><path d="M13 23l-4 4M19 29l-4 4M9 33l6 6M11 35l-5 5"/><path d="M25 17l3 3M21 21l3 3"/>',
+    hug: '<circle cx="24" cy="9" r="5"/><path d="M12 44c0-12 4-22 12-22s12 10 12 22"/><path d="M15 31c5 4 13 4 18 0"/><g transform="translate(15,24) scale(.38)">' + DOG + '</g>',
+    cart: '<rect x="8" y="18" width="30" height="16" rx="3"/><path d="M8 18c4-9 26-9 30 0"/><path d="M38 22h4l2-6"/><circle cx="14" cy="40" r="3.5"/><circle cx="32" cy="40" r="3.5"/>',
+    leash: '<g transform="translate(-4,6) scale(.75)">' + DOG + '</g><path d="M26 36c6 0 8-10 12-18"/><circle cx="40" cy="14" r="4"/>',
+    chair: '<path d="M14 6v34M34 6v34M14 24h20M14 6h20M14 15h20"/><path d="M10 40h28"/>',
+    zone: '<rect x="6" y="10" width="36" height="28" rx="2" stroke-dasharray="4 3"/><g transform="translate(12,13) scale(.5)">' + DOG + '</g>',
+    walk: '<circle cx="14" cy="8" r="4"/><path d="M14 13v13l-4 14M14 26l5 14M14 17l7 6"/><path d="M21 23c4 4 7 8 9 12"/><g transform="translate(26,26) scale(.42)">' + DOG + '</g>',
+    apart: '<g transform="translate(-3,4) scale(.55)">' + DOG + '</g><g transform="translate(24,4) scale(.55)">' + DOG + '</g><path d="M24 8v34" stroke-dasharray="3 3"/><path d="M18 36h-8M30 36h8M12 33l-3 3 3 3M36 33l3 3-3 3"/>',
+    nokitchen: '<path d="M12 22h24v10a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8z"/><path d="M8 22h32M18 16c0-3 2-3 2-6M26 16c0-3 2-3 2-6"/><circle cx="24" cy="26" r="21" stroke-width="2.6"/><path d="M9 41L39 11" stroke-width="2.6"/>',
+    poop: '<path d="M14 18h20l-2 24H16z"/><path d="M14 18c2-4 4-6 10-6s8 2 10 6"/><path d="M19 30h10M20 36h8"/>',
+    bowl: '<path d="M6 26h36l-4 12H10z"/><path d="M14 26c0-5 4-8 10-8s10 3 10 8"/><path d="M20 12c0-2 2-2 2-4M26 12c0-2 2-2 2-4"/>',
+    nobite: '<g transform="translate(5,6) scale(.8)">' + DOG + '</g><circle cx="24" cy="24" r="21" stroke-width="2.6"/><path d="M9 39L39 9" stroke-width="2.6"/>',
+    cover: '<path d="M8 34h32"/><path d="M11 34c0-9 6-15 13-15s13 6 13 15"/><path d="M24 19v-4M21 15h6"/>'
+  };
+  function svg(name) { return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + '</svg>'; }
+
+  // ── 기준 항목 — 시설기준 1 + 준수사항 10(매뉴얼 순서) ──
   var ITEMS = [
     { id: 'kitchen', t: '주방·식재료 창고에 못 들어가게 칸막이·울타리', d: '고정형이 아니어도 돼요 — 이동형·접이식 칸막이도 인정돼요. 문이 있으면 "출입 금지" 라벨을 붙여 두세요.', print: 'labels' },
     { id: 'sign', t: '입구에 "반려동물 동반 영업장" 표지판', d: '받는 동물 종류와 크기 제한이 있으면 그것도 적어야 해요.', print: 'entrance' },
     { id: 'kitchen2', t: '주방·식재료 창고에 실제로 못 들어가게 관리', d: '칸막이를 둔 것 말고도, 직원이 평소에 막는 것까지예요.' },
     { id: 'inside', t: '매장 안에 "이동이 제한돼요" 안내문', d: '손님이 잘 보이는 곳에 붙여요.', print: 'inside' },
     { id: 'gear', t: '자유롭게 못 돌아다니게 하는 장비·공간', d: '', way: true },
-    { id: 'move', t: '주문·화장실 갈 때는 목줄 하고 함께, 그 외엔 자리에', d: '직원이 안내할 수 있게 공유해 두세요(매장 안내문에 들어 있어요).' },
+    { id: 'move', t: '주문·화장실 갈 때는 목줄 하고 함께, 그 외엔 자리에', d: '직원이 안내할 수 있게 공유해 두세요(매장 안내문에 들어 있어요).', print: 'inside' },
     { id: 'gap', t: '다른 손님·다른 강아지와 닿지 않게 식탁 간격', d: '', way: true },
     { id: 'cover', t: '음식에 털이 안 들어가게 뚜껑·덮개', d: '예외: 이미 포장된 음식, 손님이 덮개를 원하지 않을 때, 손님이 직접 덮을 수 있게 덮개를 비치했을 때.' },
     { id: 'bowl', t: '반려동물용 식기는 손님용과 따로 보관·사용하고 "반려동물용" 표시', d: '물그릇을 드릴 거라면 꼭 필요해요.', print: 'labels' },
@@ -235,7 +288,7 @@
   ];
   function wayText(id, way) {
     if (id === 'gear') return {
-      carry: '손님이 안고 있거나 가져온 케이지·유모차에만 둔다고 정했으니, 가게가 따로 갖출 장비는 없어요. 입구에서 그렇게 안내만 하면 돼요.',
+      carry: '손님이 안고 있거나 가져온 케이지·유모차에만 둔다고 정했으니, 가게가 따로 갖출 장비는 없어요. 입구 표지판에 그렇게 적혀 나가요.',
       leash: '테이블마다(또는 강아지 손님 자리에) 목줄을 걸 고정 장치를 달아요.',
       chair: '반려동물 전용 의자를 갖춰요.',
       zone: '강아지 손님 자리를 따로 나눠 둬요.' }[way];
@@ -258,8 +311,8 @@
       var s = document.createElement('span'); s.textContent = it.way ? wayText(it.id, way) : it.d;
       div.appendChild(b); div.appendChild(s);
       if (it.print) {
-        var a = document.createElement('a'); a.href = '#'; a.className = 'print-link'; a.textContent = '→ 인쇄물 보기';
-        a.addEventListener('click', function (e) { e.preventDefault(); printSheet(it.print); });
+        var a = document.createElement('a'); a.href = '#print-card'; a.className = 'print-link'; a.textContent = '→ 인쇄물 보기';
+        a.addEventListener('click', function () { show(it.print); });
         div.appendChild(a);
       }
       row.appendChild(cb); row.appendChild(div); box.appendChild(row);
@@ -277,13 +330,15 @@
   $('shop').value = st.shop || '';
   $('a-dog').checked = st.dog !== false; $('a-cat').checked = !!st.cat;
   $('size').value = st.size || '';
+  $('x-bite').checked = !!st.bite; $('x-danger').checked = !!st.danger;
   Array.prototype.forEach.call(document.querySelectorAll('input[name=way]'), function (r) {
     r.checked = r.value === (st.way || 'carry');
     r.addEventListener('change', function () { st.way = r.value; save(); paintList(); paintSheets(); });
   });
   $('shop').addEventListener('input', function () { st.shop = $('shop').value.trim(); save(); paintSheets(); });
-  $('a-dog').addEventListener('change', function () { st.dog = $('a-dog').checked; save(); paintSheets(); });
-  $('a-cat').addEventListener('change', function () { st.cat = $('a-cat').checked; save(); paintSheets(); });
+  [['a-dog', 'dog'], ['a-cat', 'cat'], ['x-bite', 'bite'], ['x-danger', 'danger']].forEach(function (p) {
+    $(p[0]).addEventListener('change', function () { st[p[1]] = $(p[0]).checked; save(); paintSheets(); });
+  });
   $('size').addEventListener('change', function () { st.size = $('size').value; save(); paintSheets(); });
 
   // ── 인쇄물 채우기 ──
@@ -291,42 +346,75 @@
     var dog = st.dog !== false, cat = !!st.cat;
     return dog && cat ? '강아지·고양이' : cat ? '고양이' : '강아지';
   }
-  var SIZE_TEXT = { small: '소형견만 들어올 수 있어요', mid: '소·중형견만 들어올 수 있어요', carry: '안을 수 있는 크기만 들어올 수 있어요' };
+  function row(icon, html) { return '<div class="prow">' + svg(icon) + '<div class="t">' + html + '</div></div>'; }
+  var SIZE = { kg10: '<b>10kg 이하</b>', kg7: '<b>7kg 이하</b>', small: '<b>소형</b>', carry: '<b>안을 수 있는 크기</b>의' };
   function paintSheets() {
-    var shop = st.shop || '', way = st.way || 'carry', aw = animalsWord();
-    $('e-animals').textContent = aw + '와 함께 들어오실 수 있어요';
-    var rules = [];
-    if (st.size && SIZE_TEXT[st.size]) rules.push(SIZE_TEXT[st.size]);
-    if (way === 'carry') rules.push('매장 안에서는 안고 계시거나 케이지·유모차에 두어 주세요');
-    rules.push('예방접종을 하지 않은 반려동물은 들어올 수 없어요');
-    $('e-rules').innerHTML = rules.map(function (r) { return '· ' + r.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }).join('<br>');
+    var shop = st.shop || '', way = st.way || 'carry', aw = animalsWord(), size = SIZE[st.size] || '';
+    // 입구 표지판
+    var r = '';
+    r += row(st.size && st.size.indexOf('kg') === 0 ? 'scale' : 'dog',
+      size ? size + ' ' + aw + '만<br><b>함께 들어오실 수 있어요.</b>' : aw + '와 <b>함께 들어오실 수 있어요.</b>');
+    r += row('syringe', '<span class="em">예방접종을 하지 않은 반려동물은<br>들어올 수 없어요.</span> 입구에서 접종 여부를 확인해요.');
+    var stay = {
+      carry: ['hug', '매장 안에서는 <b>안고 계시거나,<br>가져오신 케이지·유모차에</b> 두어 주세요.'],
+      leash: ['leash', '<b>목줄을 하고</b> 들어와 주세요.<br>자리에서는 목줄 고정 장치에 걸어 주세요.'],
+      chair: ['chair', '<b>목줄을 하고</b> 들어와 주세요.<br>자리에서는 반려동물 전용 의자를 이용해 주세요.'],
+      zone: ['zone', '<b>목줄을 하고</b> 들어와 주세요.<br>반려동물 전용 자리를 이용해 주세요.']
+    }[way];
+    r += row(stay[0], stay[1]);
+    if (st.bite) r += row('nobite', '사람이나 다른 동물을 <b>공격할 수 있는 반려견은<br>들어올 수 없어요.</b>');
+    $('e-rows').innerHTML = r;
+    var kg = document.getElementById('kgtext'); if (kg) kg.textContent = st.size === 'kg7' ? '7kg↓' : '10kg↓';
+    $('e-box').innerHTML = st.danger
+      ? '<b>다음 견종은 출입이 제한돼요</b>동물보호법상 맹견 — 도사견, 아메리칸 핏불테리어, 아메리칸 스태퍼드셔 테리어, 스태퍼드셔 불 테리어, 로트와일러와 그 잡종'
+      : '<b>주방·식재료 보관 장소에는 들어갈 수 없어요</b>다른 손님과 반려동물 모두 편하게 머물 수 있게 함께 지켜 주세요.';
     $('e-shop').textContent = shop;
-    var stay = { carry: '안고 계시거나, 가져오신 케이지·유모차에 두어 주세요.', leash: '자리의 목줄 고정 장치에 목줄을 걸어 주세요.', chair: '반려동물 전용 의자에 앉혀 주세요.', zone: '반려동물 전용 자리를 이용해 주세요.' }[way];
-    var items = [
-      ['매장 안에서는 반려동물이 자유롭게 돌아다닐 수 없어요.', stay],
-      ['주문하시거나 화장실에 가실 때는 목줄을 하고 함께 이동해 주세요.', ''],
-      ['다른 손님·다른 반려동물과 닿지 않게 살펴 주세요.', ''],
-      ['주방·식재료 보관 장소에는 들어갈 수 없어요.', ''],
-      ['배변 봉투는 반려동물 배설물 전용 통에 버려 주세요.', '']
-    ];
-    $('i-list').innerHTML = items.map(function (x) { return '<li>' + x[0] + (x[1] ? '<small>' + x[1] + '</small>' : '') + '</li>'; }).join('');
+    // 매장 안내문
+    var inStay = { carry: '안고 계시거나 케이지·유모차에 두어 주세요.', leash: '자리의 목줄 고정 장치에 걸어 주세요.', chair: '반려동물 전용 의자에 앉혀 주세요.', zone: '반려동물 전용 자리를 이용해 주세요.' }[way];
+    $('i-rows').innerHTML =
+      row(way === 'carry' ? 'hug' : way, '매장 안에서는 반려동물이 <b>자유롭게 돌아다닐 수 없어요.</b><br>' + inStay) +
+      row('walk', '주문하시거나 화장실에 가실 때는<br><b>목줄을 하고 함께 이동</b>해 주세요.') +
+      row('apart', '다른 손님·다른 반려동물과 <b>닿지 않게</b> 살펴 주세요.') +
+      row('nokitchen', '<b>주방·식재료 보관 장소</b>에는 들어갈 수 없어요.') +
+      row('poop', '배변 봉투는 <b>반려동물 배설물 전용 통</b>에 버려 주세요.');
     $('i-shop').textContent = shop;
+    // 라벨
+    $('labels').innerHTML =
+      '<div class="label">' + svg('nokitchen') + '<div class="lt"><b>반려동물<br>출입 금지</b><span>주방 · 식재료 보관 장소</span></div></div>' +
+      '<div class="label">' + svg('bowl') + '<div class="lt"><b>반려동물용<br>식기</b><span>손님용과 따로 보관·사용해요</span></div></div>' +
+      '<div class="label">' + svg('poop') + '<div class="lt"><b>반려동물<br>배설물 전용</b><span>배변 봉투는 여기에 버려 주세요</span></div></div>';
+    // 기록지
     $('l-shop').textContent = shop ? '(' + shop + ')' : '';
     var rows = '';
     for (var i = 0; i < 22; i++) rows += '<tr><td></td><td></td><td>개 · 고양이</td><td></td><td>□ 증명서 &nbsp;□ 앱 화면 &nbsp;□ 손님 기재</td><td></td></tr>';
     $('l-rows').innerHTML = rows;
   }
-  function printSheet(which) {
-    Array.prototype.forEach.call(document.querySelectorAll('.sheet'), function (s) { s.classList.toggle('on', s.id === 'sheet-' + which); });
-    paintSheets();
-    window.print();
+
+  // ── 미리 보기·인쇄 ──
+  var current = 'entrance';
+  function fit() {
+    var pv = $('preview'); pv.style.width = '';
+    var w = Math.min(pv.clientWidth, 420);
+    var sheet = document.querySelector('.sheet.on'); if (!sheet) return;
+    var sw = sheet.offsetWidth, sh = sheet.offsetHeight, k = w / sw;
+    pv.style.width = w + 'px'; pv.style.height = Math.round(sh * k) + 'px';
+    Array.prototype.forEach.call(document.querySelectorAll('.sheet'), function (s) { s.style.transform = 'scale(' + k + ')'; });
   }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-print]'), function (b) {
-    b.addEventListener('click', function () { printSheet(b.getAttribute('data-print')); });
+  function show(which) {
+    current = which;
+    Array.prototype.forEach.call(document.querySelectorAll('.sheet'), function (s) { s.classList.toggle('on', s.id === 'sheet-' + which); });
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-sheet') === which)); });
+    fit();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) {
+    b.addEventListener('click', function () { show(b.getAttribute('data-sheet')); });
   });
+  $('print-btn').addEventListener('click', function () { window.print(); });
+  window.addEventListener('resize', fit);
 
   paintList();
   paintSheets();
+  show('entrance');
 })();
 </script>
 </body>
