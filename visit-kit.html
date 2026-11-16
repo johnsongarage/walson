@@ -67,30 +67,6 @@
   .lfoot .brand img { width: 14mm; display: block; margin: 0 0 1mm auto; border-radius: 2mm; }
   .fine { font-size: 3.1mm; color: #888; margin-top: 2.5mm; }
 
-  /* ── 정사각 안내지 148×148 (A4 한 장에 2장, 2026-11-16 가르시아 "A4는 너무 커") ── */
-  .sq2 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
-  .sq { width: 148mm; height: 148mm; position: relative; overflow: hidden; background: #fff; display: flex; flex-direction: column; outline: 0.2mm dashed #bbb; outline-offset: -0.1mm; }
-  .sq .top { padding: 9mm 9mm 0; }
-  .sq .to { font-size: 4mm; font-weight: 800; color: #a8322d; letter-spacing: .04em; }
-  .sq .ti { font-size: 9.6mm; font-weight: 900; line-height: 1.22; letter-spacing: -0.02em; margin-top: 1.5mm; color: #111; }
-  .sq .rws { padding: 5mm 9mm 0; }
-  .sq .r { display: flex; gap: 3.4mm; align-items: flex-start; padding: 3.2mm 0; border-bottom: 0.25mm solid #e0e0e0; }
-  .sq .r:last-child { border-bottom: none; }
-  .sq .r .n { flex: none; width: 7mm; height: 7mm; border-radius: 50%; background: #222; color: #fff; font-weight: 900; font-size: 3.4mm; display: flex; align-items: center; justify-content: center; margin-top: 0.3mm; }
-  .sq .r .n.y { background: var(--yellow); color: #222; }
-  .sq .r .t { font-size: 4.3mm; line-height: 1.45; color: #333; }
-  .sq .r .t b { color: #111; font-weight: 900; }
-  .sq .r .t .ok { color: #2f6b3a; font-weight: 800; font-size: 3.2mm; white-space: nowrap; }
-  .sq .bot { margin-top: auto; background: var(--yellow); display: flex; gap: 4mm; align-items: center; padding: 5mm 9mm; }
-  .sq .bot .qr { width: 22mm; height: 22mm; flex: none; background: #fff; border-radius: 1.6mm; padding: 1mm; overflow: hidden; font-size: 1.8mm; word-break: break-all; }
-  .sq .bot .qr svg { width: 100%; height: 100%; display: block; }
-  .sq .bot .w { font-size: 2.9mm; line-height: 1.45; color: #3a2e24; flex: 1; min-width: 0; }
-  .sq .bot .w b { font-size: 3.1mm; color: #111; }
-  .sq .bot .nm { font-size: 4.4mm; font-weight: 900; color: #111; margin-top: 1.2mm; }
-  .sq .bot .ct { font-size: 3.4mm; font-weight: 800; color: #111; }
-  .sq .bot img { width: 11mm; border-radius: 2mm; flex: none; align-self: flex-start; }
-  .sq .fn { font-size: 2.2mm; color: #6b5a33; margin-top: 1mm; }
-
   /* ── 명함 90×50 ── */
   .bc { width: 90mm; height: 50mm; position: relative; overflow: hidden; font-family: 'Pretendard', "Malgun Gothic", sans-serif; color: #222; background: #fff; }
   .bc.front .bar { position: absolute; right: 0; top: 0; bottom: 0; width: 3.2mm; background: var(--yellow); }
@@ -158,8 +134,7 @@
       </select></label>
     </div>
     <div class="checks" id="incl">
-      <label><input type="checkbox" data-k="leafsq"> 정사각 안내지(A4에 2장)</label>
-      <label><input type="checkbox" data-k="leaf"> A4 안내지</label>
+      <label><input type="checkbox" data-k="leaf" checked> 안내지</label>
       <label><input type="checkbox" data-k="sign" checked> 견본 입구 표지판</label>
       <label><input type="checkbox" data-k="inside"> 견본 매장 안내문</label>
       <label><input type="checkbox" data-k="cardf"> 명함 앞면(10장)</label>
@@ -174,8 +149,7 @@
 </div>
 
 <div class="previews" id="previews">
-  <div class="pvbox" data-k="leafsq"><h3>정사각 안내지 (148×148mm, A4에 2장 — 점선대로 자르기)</h3><div class="pv"><div class="page a4 sq2" id="pg-leafsq"></div></div></div>
-  <div class="pvbox" data-k="leaf"><h3>A4 안내지</h3><div class="pv"><div class="page a4" id="pg-leaf"></div></div></div>
+  <div class="pvbox" data-k="leaf"><h3>안내지</h3><div class="pv"><div class="page a4" id="pg-leaf"></div></div></div>
   <div class="pvbox" data-k="sign"><h3>견본 입구 표지판</h3><div class="pv"><div class="page a4 sheet on" id="pg-sign"></div></div></div>
   <div class="pvbox" data-k="inside"><h3>견본 매장 안내문</h3><div class="pv"><div class="page a4 sheet on" id="pg-inside"></div></div></div>
   <div class="pvbox" data-k="cardf"><h3>명함 앞면(A4 10장)</h3><div class="pv"><div class="page a4 sheet10" id="pg-cardf"></div></div></div>
@@ -194,7 +168,7 @@
   var st = {};
   try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { st = {}; }
   if (!st.title) st.title = '반려동물 동반 준비 도우미';
-  st.incl = st.incl || { leafsq: 1, sign: 1 };
+  st.incl = st.incl || { leaf: 1, sign: 1 };
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* 저장 못 해도 진행 */ } }
   function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
   function qr(url) {
@@ -237,24 +211,6 @@
       '<div class="fine">이 안내는 2026년 3월 식약처 발표와 남양주시청 안내(11월 확인)를 정리한 것으로 법률 자문이 아니에요. 확실하지 않으면 남양주시청 위생과(031-590-8462)에 확인해 주세요.</div>' +
     '</div>';
   }
-  // ── 정사각 안내지: A4 안내지를 줄인 것(같은 순서, 한 줄씩) ──
-  function leafSquare() {
-    var to = st.shop ? esc(st.shop) + ' 사장님께' : '다산동 사장님께';
-    return '<div class="sq"><div class="top"><div class="to">' + to + '</div>' +
-      '<div class="ti">강아지 손님 받는 거,<br>생각보다 쉬워요</div></div>' +
-      '<div class="rws">' +
-        '<div class="r"><div class="n">1</div><div class="t"><b>허가 필요 없어요.</b> 손님이 안고 있거나 케이지에 두면 <b>장비도 필요 없어요.</b> <span class="ok">✓ 남양주시 위생과 확인</span></div></div>' +
-        '<div class="r"><div class="n">2</div><div class="t"><b>표지판·안내문·시청 서류</b>는 제가 대신 해 드려요. <b>무료</b>예요.</div></div>' +
-        '<div class="r"><div class="n">3</div><div class="t">공식 목록에 오르면 <b>정부 지도</b>에도 나와요. 다산동은 아직 <b>3곳</b>뿐이에요.</div></div>' +
-        '<div class="r"><div class="n y">+</div><div class="t">다산동 견주들이 보는 <b>왈슨 지도</b>에도 올려 드려요.</div></div>' +
-      '</div>' +
-      '<div class="bot"><div class="qr">' + qr(BASE + 'pet-ready.html?from=leaflet' + (st.shop ? '&shop=' + encodeURIComponent(st.shop) : '')) + '</div>' +
-        '<div class="w"><b>왜 무료예요?</b> 동네 강아지 산책 앱 "왈슨"이 강아지 받아 주는 가게를 모으는 중이에요. 수수료·할인 요구 없어요.' +
-          '<div class="nm">' + esc(st.name || '') + '</div><div class="ct">' + esc(st.contact || '') + '</div>' +
-          '<div class="fn">QR: 체크리스트·표지판 인쇄 · 법률 자문 아님 · 위생과 031-590-8462</div></div>' +
-        '<img src="icons/walson-logo.webp" alt=""></div></div>';
-  }
-
   // ── 명함 ──
   function cardFront() {
     return '<div class="bar"></div><div class="top"><img src="icons/walson-logo.webp" alt=""><div><b>왈슨</b><span>다산동 강아지 산책</span></div></div>' +
@@ -267,7 +223,6 @@
   }
   function paint() {
     $('pg-leaf').innerHTML = leaf();
-    $('pg-leafsq').innerHTML = leafSquare() + leafSquare();
     var sign = { shop: st.shop, size: st.size, way: st.way || 'carry', bite: true, danger: true };
     $('pg-sign').innerHTML = PetSigns.entrance(sign);
     $('pg-inside').innerHTML = PetSigns.inside(sign);
