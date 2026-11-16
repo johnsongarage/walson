@@ -101,16 +101,17 @@
   }
   .chips button:active { transform: scale(0.97); }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
-<script src="infra-pins.js?v=20"></script>
-<script src="shop-visits.js?v=3"></script>
+<script src="reward-rules.js?v=10"></script>
+<script src="infra-pins.js?v=21"></script>
+<script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=2"></script>
 <script src="walk-screen.js?v=2"></script>
 </head>
@@ -194,15 +195,10 @@
 
 <script>
 (function () {
-  var ACTIVE_KEY = 'petwalk_active_walk';  // { startedAt: 밀리초 } — 시간만 재는 산책이 진행 중일 때만 있다
-  var WALKS_KEY = 'petwalk_walks';
-  var PROFILE_KEY = 'petwalk_profile';
+  // 진행 중 산책(activeWalk — { startedAt: 밀리초 }, 시간만 재는 산책이 진행 중일 때만 있다)·산책 기록·주민증은 store.js(WalsonStore)로 읽고 쓴다
   var TOO_LONG_MIN = 180;                  // 이보다 길면 "깜빡했나요?"를 묻는다(기획표 V1-24의 3시간 기준)
   var FIX_CHOICES = [10, 20, 30, 45, 60, 90];
 
-  function loadJSON(key, fallback) {
-    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
-  }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
 
@@ -210,7 +206,7 @@
   (function paintGpsMission() {
     var R = window.RewardRules, box = document.getElementById('gps-mission');
     if (!R || !R.missions || !box) return;
-    var p = R.computeProgress(loadJSON(WALKS_KEY, []));
+    var p = R.computeProgress(WalsonStore.walks());
     var all = R.missions(p), now = R.currentMission(p);
     if (!all.length) return;
     var done = all.filter(function (m) { return m.done; }).length;
@@ -227,10 +223,10 @@
   var views = { start: document.getElementById('view-start'), ask: document.getElementById('view-ask'), walking: document.getElementById('view-walking'), fix: document.getElementById('view-fix') };
   function show(name) { Object.keys(views).forEach(function (k) { views[k].hidden = (k !== name); }); }
 
-  var active = loadJSON(ACTIVE_KEY, null);
+  var active = WalsonStore.activeWalk();
   var timer = null;
   // 길 기록 산책이 진행 중이면(walk.html이 저장해 둔 것 — 2026-11-16 이어 하기) 그 화면으로 — 산책 두 개가 겹치지 않게
-  var activeRoute = loadJSON('petwalk_active_route', null);
+  var activeRoute = WalsonStore.activeRoute();
   if (!(active && active.startedAt) && activeRoute && typeof activeRoute.startedAt === 'number') {
     location.replace('walk.html');
     return;
@@ -240,7 +236,7 @@
   function tick() { document.getElementById('clock').textContent = elapsedMin(); }
 
   function enterWalking() {
-    var profile = loadJSON(PROFILE_KEY, {});
+    var profile = WalsonStore.profile() || {};
     document.getElementById('who').textContent = WalkScreen.walkerLine(profile.name);
     var s = new Date(active.startedAt);
     document.getElementById('since').textContent = s.getHours() + '시 ' + pad2(s.getMinutes()) + '분에 출발';
@@ -290,7 +286,7 @@
 
   function startTimeWalk() {
     active = { startedAt: Date.now() };
-    try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(active)); } catch (e) {
+    if (!WalsonStore.saveActiveWalk(active)) {
       alert('저장 공간이 부족해서 산책을 시작하지 못했어요.');
       active = null;
       return;
@@ -302,19 +298,17 @@
   // 기록 저장 → 끝 화면으로. 시간만 잰 산책은 거리·길이 없고, 보상 횟수(주민증 성장·발도장)에는 넣지 않는다
   // — 버튼만 눌러 횟수를 채우는 걸 막기 위함(기획표 V1-22와 같은 기준). 오늘·주간 시간에는 들어간다.
   function finish(minutes) {
-    var walks = loadJSON(WALKS_KEY, []);
+    var walks = WalsonStore.walks();
     walks.push({
       date: dateKey(new Date(active.startedAt)), distanceKm: 0, durationMin: Math.max(1, minutes),
       route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time',
       startedAt: active.startedAt   // 끝 화면의 "○시 ○분 출발"(2026-11-16 2단계). 이 폰 안에만 있다
     });
-    try {
-      localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
-      localStorage.removeItem(ACTIVE_KEY);
-    } catch (e) {
+    if (!WalsonStore.saveWalks(walks)) {
       alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.');
       return;
     }
+    WalsonStore.clearActiveWalk();
     window.WalsonTrack && WalsonTrack.send('walk_complete', { mode: 'time', min_bucket: WalsonTrack.minBucket(minutes), eligible: 0 });
     location.replace('walk-end.html');
   }
@@ -353,7 +347,7 @@
 
   document.getElementById('cancel-btn').addEventListener('click', function () {
     if (!confirm('이 산책을 기록하지 않고 끝낼까요?')) return;
-    try { localStorage.removeItem(ACTIVE_KEY); } catch (e) { /* 무시 */ }
+    WalsonStore.clearActiveWalk();
     location.replace('index.html');
   });
 
@@ -364,7 +358,7 @@
     try { history.replaceState(null, '', location.pathname); } catch (e) { /* 주소에 남아도 다시 쓰지 않는다 */ }
     var started = Math.min(Date.now(), +fb[1]);
     active = { startedAt: started };
-    try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(active)); } catch (e) { active = null; }
+    if (!WalsonStore.saveActiveWalk(active)) active = null;
     if (active) {
       setLocPref('off');
       document.getElementById('fallback-note').hidden = false;

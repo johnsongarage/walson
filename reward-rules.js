@@ -209,7 +209,7 @@
   // 모든 산책(시간만 재기·다녀왔어요·길 기록)이 같이 들어간다 — 돈이 드는 보상이 아니라서 판정을 따지지 않는다.
   var GOAL_MINUTES = { small: 30, medium: 60, large: 90 };
   function dogSize() {
-    try { var p = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; if (GOAL_MINUTES[p.size]) return p.size; } catch (e) { /* 무시 */ }
+    try { var p = WalsonStore.profile() || {}; if (GOAL_MINUTES[p.size]) return p.size; } catch (e) { /* 무시 */ }   // 주민증(store.js)
     try { var s = localStorage.getItem('petwalk_dog_size'); if (GOAL_MINUTES[s]) return s; } catch (e) { /* 무시 */ }
     return 'medium';
   }

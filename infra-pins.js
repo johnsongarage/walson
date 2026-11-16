@@ -256,7 +256,7 @@
   }
   // 우리 개 크기(프로필, 이 휴대폰에만 있음)에 맞지 않거나 아직 모를 때 한 줄로 알려 준다. 맞으면 null.
   function dogSize() {
-    try { return (JSON.parse(localStorage.getItem('petwalk_profile')) || {}).size || ''; } catch (e) { return ''; }
+    try { return (WalsonStore.profile() || {}).size || ''; } catch (e) { return ''; }   // 주민증(store.js)
   }
   function fitNote(pin, size) {
     if (!pin || pin.cat !== 'spot') return null;

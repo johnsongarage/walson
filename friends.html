@@ -91,10 +91,11 @@
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 90%; background: #4a3f35; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 10; }
 
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
-<script src="mock-server.js?v=1"></script>
+<script src="reward-rules.js?v=10"></script>
+<script src="mock-server.js?v=2"></script>
 </head>
 <body>
 
@@ -179,7 +180,6 @@
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function loadJSON(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
   function toast(msg) {
     var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
     document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600);
@@ -313,7 +313,7 @@
 
   $('reset-btn').addEventListener('click', function () {
     if (!confirm('가짜 서버를 처음으로 되돌릴까요?\n도감·스친 기록·보낸 기록이 지워져요. 내 산책 기록은 그대로예요.')) return;
-    S.reset().then(function () { return S.register(loadJSON('petwalk_profile', null)); }).then(refresh);
+    S.reset().then(function () { return S.register(WalsonStore.profile()); }).then(refresh);
   });
 
   function renderLog() {
@@ -334,7 +334,7 @@
   }
 
   // 들어올 때: 내 강아지 올리기 → 안 보낸 산책 보내기 → 그리기
-  S.register(loadJSON('petwalk_profile', null))
+  S.register(WalsonStore.profile())   // 주민증(store.js)
     .then(function () { return Api.syncWalks(); })
     .then(function (r) { if (r && r.found) toast('새로 스친 강아지 ' + r.found + '마리'); })
     .then(refresh);

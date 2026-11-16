@@ -49,13 +49,14 @@
   .fine a { color: var(--ink-soft); }
   [hidden] { display: none !important; }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=20"></script>
-<script src="shop-visits.js?v=3"></script>
+<script src="infra-pins.js?v=21"></script>
+<script src="shop-visits.js?v=4"></script>
 </head>
 <body>
 
@@ -104,8 +105,7 @@
   // 단골 Lv(2026-11-15) — [동네] 지도의 가게 팝업·목록과 같은 셈(shop-visits.js): 처음 1번 Lv1, 5번마다 Lv↑
   $('count').textContent = ShopVisits.countText(r);
 
-  var profile = {};
-  try { profile = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; } catch (e) { profile = {}; }
+  var profile = WalsonStore.profile() || {};   // 주민증(store.js)
   var sampleOn = false;
   try { sampleOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sampleOn = false; }
   if (!profile.cardNo || sampleOn) $('cta-card').hidden = false;   // 처음 온 손님은 주민증 만들기로

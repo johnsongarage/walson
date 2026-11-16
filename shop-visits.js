@@ -8,7 +8,7 @@
 // 보상은 아직 없다 — 가게가 "몇 Lv부터 무엇을" 정하면 그때 붙인다(기획표 V3 혜택은 보류 중).
 // 2026-11-16: 도장 찍기(stamp)도 여기로 모았다 — visit.html과 앱 안 QR 찍기(qr-scan.js, [동네]·산책 화면)가 같이 쓴다.
 (function () {
-  var KEY = 'petwalk_visits';
+  var KEY = 'petwalk_visits';   // 이름만 알려 준다(ShopVisits.KEY) — 읽고 쓰기는 store.js(WalsonStore.visits)로
   var LEVEL_STEP = 5;   // 5번마다 Lv가 오른다
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -16,12 +16,7 @@
     d = d || new Date();
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   }
-  function load() {
-    try {
-      var v = JSON.parse(localStorage.getItem(KEY));
-      return Array.isArray(v) ? v : [];
-    } catch (e) { return []; }
-  }
+  function load() { return WalsonStore.visits(); }   // store.js — 없거나 깨졌으면 []
   function level(n) { return n > 0 ? 1 + Math.floor(n / LEVEL_STEP) : 0; }
 
   // { count: 도장 찍은 날 수, level, toNext: 다음 Lv까지 남은 횟수, today: 오늘 찍었는지 }
@@ -64,7 +59,7 @@
     var saved = true;
     if (!already) {
       visits.push({ s: id, d: today });
-      try { localStorage.setItem(KEY, JSON.stringify(visits)); } catch (e) { saved = false; }
+      saved = WalsonStore.saveVisits(visits);   // 저장 공간이 꽉 찼으면 false
       if (saved && window.WalsonTrack) WalsonTrack.send('store_visit', { shop: id });
     }
     var times = visits.filter(function (v) { return v && v.s === id; }).length;

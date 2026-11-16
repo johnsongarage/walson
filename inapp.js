@@ -16,9 +16,10 @@
   function hasRecords() {
     try {
       if (get('petwalk_sample_mode') === '1') return /cardNo|"date"/.test(get('petwalk_sample_backup') || '');
-      var p = JSON.parse(get('petwalk_profile') || '{}') || {};
-      var w = JSON.parse(get('petwalk_walks') || '[]') || [];
-      return !!(p.cardNo || p.name) || w.length > 0 || !!get('petwalk_visits') || !!get('petwalk_active_walk') || !!get('petwalk_active_route');
+      var S = window.WalsonStore;   // store.js — 이 파일보다 먼저 불러야 한다
+      var p = S.profile() || {};
+      var w = S.walks();
+      return !!(p.cardNo || p.name) || w.length > 0 || !!S.get(S.KEYS.visits) || !!S.activeWalk() || !!S.activeRoute();
     } catch (e) { return true; }   // 모르면 넘기지 않는다
   }
   function openExternal(url) {

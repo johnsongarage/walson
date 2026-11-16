@@ -67,9 +67,10 @@
   .hint a { color: var(--accent); font-weight: 700; }
   [hidden] { display: none !important; }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 </head>
 <body>
@@ -122,14 +123,13 @@
 </div>
 
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
+<script src="reward-rules.js?v=10"></script>
 <script>
 (function () {
-  var GIVEN_KEY = 'petwalk_keyring';      // { givenAt: 'YYYY-MM-DD HH:MM' } — 받은 뒤에만 있다
+  // 주민증·산책 기록·키링 받음({ givenAt: 'YYYY-MM-DD HH:MM' } — 받은 뒤에만 있다)은 store.js(WalsonStore)로 읽고 쓴다
   var K = window.RewardRules.KEYRING;
   var preview = /[?&]preview=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  function load(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
   var ch = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel;
@@ -138,8 +138,8 @@
   if (!K.open) $('preview-band').hidden = false;
   $('open').hidden = false;
 
-  var profile = load('petwalk_profile', {});
-  var p = window.RewardRules.computeProgress(load('petwalk_walks', []).filter(function (w) { return !(w && w.demo); }));   // 시연 모드(가짜 위치) 산책은 빼고
+  var profile = WalsonStore.profile() || {};
+  var p = window.RewardRules.computeProgress(WalsonStore.walks().filter(function (w) { return !(w && w.demo); }));   // 시연 모드(가짜 위치) 산책은 빼고
   var hasCard = !!(profile.name && profile.cardNo);
   var walksOk = p.walks >= K.minWalks;
 
@@ -208,7 +208,7 @@
   setInterval(tick, 1000);
 
   function paintGiven() {
-    var g = load(GIVEN_KEY, null);
+    var g = WalsonStore.keyring();
     var given = !!(g && g.givenAt);
     $('ticket').classList.toggle('is-given', given);
     $('t-given').hidden = !given;
@@ -221,9 +221,9 @@
   $('give-btn').addEventListener('click', function () {
     if (!confirm('직원 확인: 키링을 건네셨나요?\n누르면 이 휴대폰에 받은 날이 남고 다시 받을 수 없어요.')) return;
     var d = new Date();
-    try {
-      localStorage.setItem(GIVEN_KEY, JSON.stringify({ givenAt: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) }));
-    } catch (e) { alert('저장하지 못했어요. 직원 명단에 적어 주세요.'); return; }
+    if (!WalsonStore.saveKeyring({ givenAt: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) })) {
+      alert('저장하지 못했어요. 직원 명단에 적어 주세요.'); return;
+    }
     window.WalsonTrack && WalsonTrack.send('keyring_given');
     paintGiven();
   });

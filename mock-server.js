@@ -336,7 +336,7 @@
 
   // 아직 안 보낸 최근 7일 산책을 보낸다. 스친 강아지를 꺼 두었으면 아무것도 안 보낸다.
   function syncWalks() {
-    var walks = loadJSON('petwalk_walks', []);
+    var walks = WalsonStore.walks();   // 산책 기록(store.js)
     var db = loadDb();
     if (!db.visible) return Promise.resolve({ sent: 0, found: 0, off: true });
     var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 6);

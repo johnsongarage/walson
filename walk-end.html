@@ -113,9 +113,10 @@
   }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=2"></script>
 </head>
@@ -204,17 +205,16 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
+<script src="reward-rules.js?v=10"></script>
 <script src="steady-stamp.js?v=2"></script>
 <script src="walk-screen.js?v=2"></script>
-<script src="mock-server.js?v=1"></script>
+<script src="mock-server.js?v=2"></script>
 <script>
   // 서버 가정 시험판 — 방금 산책을 가짜 서버로 보내고 스친 강아지 수를 띄운다(꺼져 있으면 아무것도 안 함)
   (function () {
     if (!window.WalsonApi || !WalsonApi.isOn()) return;
     var banner = document.getElementById('met-banner'), text = document.getElementById('met-text');
-    var walk = null;
-    try { var ws = JSON.parse(localStorage.getItem('petwalk_walks')) || []; walk = ws[ws.length - 1]; } catch (e) { walk = null; }
+    var ws = WalsonStore.walks(), walk = ws[ws.length - 1];
     WalsonApi.server.getSettings().then(function (s) {
       if (!s.visible) return;
       banner.hidden = false; banner.style.display = 'flex';
@@ -229,18 +229,11 @@
 </script>
 <script>
 (function () {
-  var WALKS_KEY = 'petwalk_walks';
-  var PROFILE_KEY = 'petwalk_profile';
-
-  function loadJSON(key, fallback) {
-    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
-  }
-
-  var walks = loadJSON(WALKS_KEY, []);
+  var walks = WalsonStore.walks();   // 산책 기록·주민증은 store.js(WalsonStore)로 읽고 쓴다
   var walk = walks.length ? walks[walks.length - 1] : null;
   if (!walk) { location.replace('index.html'); return; }
 
-  var profile = loadJSON(PROFILE_KEY, {});
+  var profile = WalsonStore.profile() || {};
   var loggedAfter = walk.logged === 'after', timeOnly = walk.mode === 'time';
   var rang = window.WalkScreen ? WalkScreen.rang(profile.name) : '';
   document.getElementById('sum-label').textContent = (rang ? rang + ' ' : '') + (loggedAfter ? '다녀온 산책 적었어요' : '산책 다녀왔어요');
@@ -481,14 +474,14 @@
     }
     return step.then(function () {
       // 다른 탭에서 기록이 바뀌었을 수 있으니 다시 읽어 마지막 기록에 붙인다
-      var latest = loadJSON(WALKS_KEY, []);
+      var latest = WalsonStore.walks();
       var target = latest.length ? latest[latest.length - 1] : null;
       if (target) {
         if (answers.feel) target.feel = answers.feel; else delete target.feel;
         if (answers.sniff) target.sniff = Number(answers.sniff); else delete target.sniff;
         if (answers.poop !== undefined) target.poop = Number(answers.poop); else delete target.poop;
         if (key) target.photoKey = key; else delete target.photoKey;
-        try { localStorage.setItem(WALKS_KEY, JSON.stringify(latest)); } catch (e) {
+        if (!WalsonStore.saveWalks(latest)) {
           alert('저장하지 못했어요. 저장 공간을 확인해 주세요.');
           return false;
         }

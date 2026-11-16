@@ -4,24 +4,22 @@
 //   · 다녀왔어요 → 몇 분인지만 골라 적기([오늘]의 "다녀왔어요"와 같은 기록 모양) → 끝 화면 → 영수증
 // 산책이 진행 중이면 버튼이 "산책 중 · N분"으로 바뀌고 그 화면으로 돌아간다(시간 재기 go.html / 길 기록 walk.html).
 // 버튼·창은 이 파일이 만들어 붙인다(town.html은 <script> 한 줄만) — 다른 작업과 같은 줄을 고치지 않게 따로 둠.
-// 위치는 쓰지 않는다. 기록은 이 휴대폰 안(localStorage petwalk_walks)에만.
+// 위치는 쓰지 않는다. 기록은 이 휴대폰 안(localStorage petwalk_walks)에만 — store.js(WalsonStore)를 거쳐 읽고 쓰니 그 파일을 먼저 불러야 한다.
 (function () {
-  var WALKS_KEY = 'petwalk_walks';
   var CHOICES = [10, 20, 30, 45, 60, 90];
   var LABEL = { 60: '1시간', 90: '1시간 반' };
   // Phosphor Icons(MIT) regular — 탭바 [오늘]과 같은 발바닥
   var PAW = 'M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,212,120ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM44,120a12,12,0,1,1,12-12A12,12,0,0,1,44,120ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm0-40A12,12,0,1,1,80,60,12,12,0,0,1,92,48Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,48Zm23.12,100.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72ZM168,208a24,24,0,0,1-9.45-1.93,80.14,80.14,0,0,0-61.19,0,24,24,0,0,1-20.71-43.26,51.22,51.22,0,0,0,24.46-30.67,28,28,0,0,1,53.78,0,51.27,51.27,0,0,0,24.53,30.71A24,24,0,0,1,168,208Z';
 
-  function loadJSON(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayKey() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
   // 진행 중인 산책: 시간 재기(go.html, petwalk_active_walk) / 길 기록(walk.html, petwalk_active_route — 이어 하기가 들어오면)
   function activeWalk() {
-    var t = loadJSON('petwalk_active_walk', null);
+    var t = WalsonStore.activeWalk();
     if (t && typeof t.startedAt === 'number') return { href: 'go.html', label: '산책 중', startedAt: t.startedAt };
-    var r = loadJSON('petwalk_active_route', null);
+    var r = WalsonStore.activeRoute();
     if (r && typeof r.startedAt === 'number') return { href: 'walk.html', label: '길 기록 중', startedAt: r.startedAt };
     return null;
   }
@@ -125,7 +123,7 @@
   }
 
   function typical() {   // 최근 10번 산책 시간의 가운데 값에 가장 가까운 칸(없으면 30분) — [오늘]과 같은 규칙
-    var mins = loadJSON(WALKS_KEY, []).filter(function (w) { return w && w.durationMin > 0; }).slice(-10)
+    var mins = WalsonStore.walks().filter(function (w) { return w && w.durationMin > 0; }).slice(-10)
       .map(function (w) { return w.durationMin; }).sort(function (a, b) { return a - b; });
     if (!mins.length) return 30;
     var mid = mins[Math.floor(mins.length / 2)];
@@ -135,7 +133,7 @@
     var picked = typical();
     card.innerHTML = '';
     card.appendChild(el('h3', '', '오늘 얼마나 걸었어요?'));
-    var today = loadJSON(WALKS_KEY, []).filter(function (w) { return w && w.date === todayKey(); });
+    var today = WalsonStore.walks().filter(function (w) { return w && w.date === todayKey(); });
     var sum = today.reduce(function (s, w) { return s + (w.durationMin || 0); }, 0);
     card.appendChild(el('p', 'wf-sub', today.length
       ? '오늘 이미 ' + today.length + '번(' + sum + '분) 적혀 있어요. 다른 산책이면 더 적어도 돼요.'
@@ -205,12 +203,12 @@
   function record(m) {
     return leaveSample().then(function (ok) {
       if (!ok) return false;
-      var walks = loadJSON(WALKS_KEY, []);   // 샘플을 껐으면 원래 기록이 돌아와 있으니 다시 읽는다
+      var walks = WalsonStore.walks();   // 샘플을 껐으면 원래 기록이 돌아와 있으니 다시 읽는다
       walks.push({
         date: todayKey(), distanceKm: 0, durationMin: m, route: [], stampRoute: [],
         rewardEligible: false, gapMin: 0, mode: 'time', logged: 'after', loggedAt: Date.now()
       });
-      try { localStorage.setItem(WALKS_KEY, JSON.stringify(walks)); } catch (e) {
+      if (!WalsonStore.saveWalks(walks)) {
         alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.');
         return false;
       }

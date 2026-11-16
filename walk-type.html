@@ -79,9 +79,10 @@
   [hidden] { display: none !important; }
   .fine { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 14px 0 0; line-height: 1.6; }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=2"></script>
 <script src="image-editor.js?v=2"></script>
@@ -257,7 +258,7 @@
     ctx.fillStyle = T.color;
     ctx.fillRect(x, y, w, 26);
     ctx.textAlign = 'center';
-    var profile = load('petwalk_profile', {});
+    var profile = WalsonStore.profile() || {};
     ctx.fillStyle = '#6b5d4e';
     ctx.font = font(700, 40);
     ctx.fillText((profile.name ? profile.name + '의 ' : '우리 개의 ') + '산책 유형은', W / 2, 190);
@@ -301,7 +302,7 @@
     $('r-friend').textContent = T.friend;
     $('result-img').alt = '산책 유형 결과: ' + T.name;
     show('result');
-    var profile = load('petwalk_profile', {});
+    var profile = WalsonStore.profile() || {};
     var fontsReady = (document.fonts && document.fonts.load)
       ? Promise.all([document.fonts.load('96px "Black Han Sans"'), document.fonts.load('800 46px Pretendard')]).catch(function () {})
       : Promise.resolve();
@@ -348,7 +349,7 @@
     lr.textContent = '지난 결과 보기 · ' + TYPES[last.type].name;
     lr.addEventListener('click', function (e) { e.preventDefault(); showResult(last.type); });
   }
-  if (load('petwalk_profile', {}).cardNo) $('card-cta').hidden = true;
+  if ((WalsonStore.profile() || {}).cardNo) $('card-cta').hidden = true;
   show('intro');
 })();
 </script>

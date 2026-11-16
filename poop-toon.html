@@ -107,9 +107,10 @@
     padding: 12px 16px; border-radius: 14px; background: var(--ink); color: #fffaf3; font-size: 14px; font-weight: 700; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 20; }
   .toast[hidden] { display: none; }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=9"></script>
 <script src="save-image.js?v=2"></script>
 </head>
@@ -205,7 +206,6 @@
   var CARD_W = 1080, CARD_H = 1350;
   var STICKER = 900;       // 카드 위 스티커 크기(px)
   var INK = '#2b1d14';
-  var PROFILE_KEY = 'petwalk_profile';
   var NAME_KEY = 'petwalk_toon_name';   // 주민증이 없는 사람이 적은 강아지 이름(이 휴대폰에만)
 
   var FACES = [
@@ -281,7 +281,7 @@
 
   // 이름: 주민증 이름 → 전에 적은 이름
   try {
-    var prof = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}') || {};
+    var prof = WalsonStore.profile() || {};   // 주민증(store.js)
     opt.name = String(prof.name || localStorage.getItem(NAME_KEY) || '').slice(0, 10);
   } catch (e) { opt.name = ''; }
 
@@ -1713,14 +1713,13 @@
   var WALK_T = (function () { var m = location.search.match(/[?&]walk=([^&#]+)/); try { return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; } })();
   function saveToWalk(sent) {
     if (!WALK_T || !art) return false;
-    var walks;
-    try { walks = JSON.parse(localStorage.getItem('petwalk_walks')) || []; } catch (e) { return false; }
+    var walks = WalsonStore.walks();   // 없거나 깨졌으면 [] — 아래에서 못 찾고 false
     for (var i = walks.length - 1; i >= 0; i--) {
       var w = walks[i];
       if (!w || String(w.endedAt || w.loggedAt || w.startedAt || w.date || '') !== WALK_T) continue;
       var prev = w.poopToon || {};
       w.poopToon = { face: opt.face, state: opt.state, at: new Date().toISOString(), sent: !!(sent || prev.sent) };
-      try { localStorage.setItem('petwalk_walks', JSON.stringify(walks)); return true; } catch (e) { return false; }
+      return WalsonStore.saveWalks(walks);   // 저장 공간이 꽉 찼으면 false
     }
     return false;
   }

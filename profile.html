@@ -92,14 +92,15 @@
   .theme-opt .name .on { font-size: 11px; font-weight: 800; color: var(--accent); }
   .theme-opt .desc { display: block; font-size: 11px; color: var(--ink-soft); line-height: 1.4; margin-top: 3px; }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="save-image.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
+<script src="reward-rules.js?v=10"></script>
 <script src="backup.js?v=5"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="dog-tags.js?v=1"></script>
@@ -193,8 +194,6 @@
 
 <script>
 (function () {
-  var PROFILE_KEY = 'petwalk_profile'; // index.html이 견종 크기 기본값으로 같이 읽어감
-
   var photoBtn = document.getElementById('photo-btn');
   var photoInput = document.getElementById('photo-input');
   var photoPreview = document.getElementById('photo-preview');
@@ -221,9 +220,8 @@
 
   var photoDataUrl = null;
 
-  function loadProfile() {
-    try { return JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch (e) { return null; }
-  }
+  // 주민증(petwalk_profile — index.html이 견종 크기 기본값으로 같이 읽어감). store.js(WalsonStore)로 읽고 쓴다. 없으면 null
+  function loadProfile() { return WalsonStore.profile(); }
 
   function showPhoto(dataUrl) {
     if (!dataUrl) {
@@ -300,12 +298,11 @@
     profile.photo = (photoDataUrl && photoDataUrl.indexOf('icons/sample-') === 0) ? null : photoDataUrl;
     if (fSignal.value) profile.signal = fSignal.value; else delete profile.signal;
     if (fTag.value && window.DogTags && DogTags.fits(fTag.value, fSignal.value)) profile.tag = fTag.value; else delete profile.tag;
-    try {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    if (WalsonStore.saveProfile(profile)) {
       toast.classList.add('show');
       setTimeout(function () { toast.classList.remove('show'); }, 1800);
-    } catch (e) {
-      alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요): ' + e.message);
+    } else {
+      alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요)');   // 예전엔 뒤에 브라우저 오류 글(e.message)이 붙었다 — store.js는 성공 여부만 돌려준다
     }
   }
 })();
@@ -356,7 +353,7 @@
     if (!f) return;
     B.read(f).then(function (obj) {
       var s = B.summary(obj);
-      var mine = []; try { mine = JSON.parse(localStorage.getItem('petwalk_walks')) || []; } catch (e) { mine = []; }
+      var mine = WalsonStore.walks();
       var sampleOn = localStorage.getItem('petwalk_sample_mode') === '1';
       if (!confirm((s.at ? s.at + '에 만든 ' : '') + '기록 파일이에요' + (s.name ? ' (' + s.name + ')' : '') + '.\n산책 ' + s.walks + '개 · 사진 ' + s.photos + '장을 불러올까요?')) return;
       var merge = false;

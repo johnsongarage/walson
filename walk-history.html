@@ -199,9 +199,10 @@
   .empty .icon { margin-bottom: 10px; }
   .empty p { margin: 0; font-size: 13px; line-height: 1.6; }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=2"></script>
 </head>
@@ -269,14 +270,13 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
+<script src="reward-rules.js?v=10"></script>
 <script src="month-report.js?v=5"></script>
 <script src="walk-receipt.js?v=6"></script>
 <script src="image-editor.js?v=2"></script>
 <script>
 (function () {
-  var WALKS_KEY = 'petwalk_walks';        // walk.html·go.html·[오늘] "다녀왔어요"가 저장하는 산책 기록
-  var PROFILE_KEY = 'petwalk_profile';
+  // 산책 기록(walk.html·go.html·[오늘] "다녀왔어요"가 저장)·주민증은 store.js(WalsonStore)로 읽고 쓴다
   var CHOICE_KEY = 'walson_receipts';     // 산책별로 고른 것 { 산책 열쇠: { note, custom, photo, pos(위아래 0~100), px(좌우 0~100), zoom, stickers } } — 이 휴대폰에만
   var FMT_KEY = 'walson_receipt_fmt';     // 마지막에 고른 영수증 모양(스토리·피드)
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
@@ -357,10 +357,9 @@
   try { sample = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sample = false; }
   var R = window.RewardRules;
 
-  var walks = loadJSON(WALKS_KEY, []);
-  if (!Array.isArray(walks)) walks = [];
+  var walks = WalsonStore.walks();
   walks = walks.filter(function (w) { return w && typeof w.date === 'string' && w.date.length >= 10; });
-  var profile = loadJSON(PROFILE_KEY, {}) || {};
+  var profile = WalsonStore.profile() || {};
   // 샘플을 보는 중에는 고른 것을 저장하지 않는다(샘플을 끄면 산책 기록이 바뀌어서)
   var choices = sample ? {} : (loadJSON(CHOICE_KEY, {}) || {});
 
@@ -371,12 +370,12 @@
     dc.textContent = '데모 기록 지우기 (' + demoCount + '개)';
     dc.hidden = false;
     dc.addEventListener('click', function () {
-      var all = loadJSON(WALKS_KEY, []), gone = all.filter(function (w) { return w && w.demo; });
+      var all = WalsonStore.walks(), gone = all.filter(function (w) { return w && w.demo; });
       if (!gone.length) { location.reload(); return; }
       if (!confirm('시연 모드로 남긴 데모 산책 ' + gone.length + '개를 지울까요?\n진짜 산책 기록은 그대로 남아요.')) return;
       var keep = all.filter(function (w) { return !(w && w.demo); });
-      try { localStorage.setItem(WALKS_KEY, JSON.stringify(keep)); } catch (e) { alert('지우지 못했어요.'); return; }
-      try { localStorage.removeItem('petwalk_last_walk'); } catch (e) { /* 마지막 산책 요약은 다음 산책 때 다시 생김 */ }
+      if (!WalsonStore.saveWalks(keep)) { alert('지우지 못했어요.'); return; }
+      WalsonStore.remove(WalsonStore.KEYS.lastWalk);   // 마지막 산책 요약은 다음 산책 때 다시 생김
       var jobs = gone.map(function (w) { return (w.photoKey && window.WalkPhotos) ? WalkPhotos.remove(w.photoKey).catch(function () {}) : null; });
       Promise.all(jobs).then(function () { location.reload(); });
     });
@@ -385,7 +384,7 @@
   if (walks.length && window.MonthReport) {
     var rb = $('report-btn');
     rb.hidden = false;
-    rb.addEventListener('click', function () { MonthReport.open({ walks: loadJSON(WALKS_KEY, []), profile: profile }); });
+    rb.addEventListener('click', function () { MonthReport.open({ walks: WalsonStore.walks(), profile: profile }); });
   }
 
   if (!walks.length) {
@@ -724,8 +723,7 @@
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function key(y, m, d) { return y + '-' + pad2(m + 1) + '-' + pad2(d); }
-  var walks = [];
-  try { walks = JSON.parse(localStorage.getItem('petwalk_walks')) || []; } catch (e) { walks = []; }
+  var walks = WalsonStore.walks();
   var byDay = {};   // 'YYYY-MM-DD' → { walked: true, poop: 최대값 또는 undefined }
   walks.forEach(function (w) {
     if (!w || !w.date) return;

@@ -84,6 +84,7 @@
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 90%; background: #4a3f35; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 60; }
 
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 </head>
 <body>
@@ -156,7 +157,8 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 (function () {
-  var DEX_KEY = 'petwalk_dex', ME_KEY = 'petwalk_dex_me', PROFILE_KEY = 'petwalk_profile', CAMERA_KEY = 'petwalk_camera_explained';
+  // 도감(petwalk_dex)·내 번호(petwalk_dex_me)·주민증은 store.js(WalsonStore)로 읽고 쓴다
+  var CAMERA_KEY = 'petwalk_camera_explained';
   var SIGNAL = {
     g: { color: 'var(--green)', label: '초록불', desc: '다가와도 좋아요' },
     y: { color: 'var(--yellow)', label: '노랑불', desc: '천천히 인사해요' },
@@ -168,8 +170,7 @@
   var PALETTE = ['#e8b77a', '#c98a5a', '#f2d7b6', '#8a6a52', '#f0efe9', '#5a4636', '#d9a066', '#b9b2a8'];
 
   function $(id) { return document.getElementById(id); }
-  function loadJSON(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
-  function saveJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { alert('저장하지 못했어요. 저장 공간을 확인해 주세요.'); return false; } }
+  function saveDex(list) { if (WalsonStore.saveDex(list)) return true; alert('저장하지 못했어요. 저장 공간을 확인해 주세요.'); return false; }
   function toast(msg) {
     var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
     document.body.appendChild(t); setTimeout(function () { t.parentNode && t.parentNode.removeChild(t); }, 2600);
@@ -182,11 +183,10 @@
 
   // ── 내 번호 · 내 카드 내용 ──
   function myId() {
-    var id = null;
-    try { id = localStorage.getItem(ME_KEY); } catch (e) { id = null; }
+    var id = WalsonStore.get(WalsonStore.KEYS.dexMe);
     if (!id || !/^[a-z0-9]{8}$/.test(id)) {
       id = Math.random().toString(36).slice(2, 10).padEnd(8, '0');
-      try { localStorage.setItem(ME_KEY, id); } catch (e) { /* 이번만 */ }
+      WalsonStore.set(WalsonStore.KEYS.dexMe, id);   // 저장 못 하면 이번만
     }
     return id;
   }
@@ -213,7 +213,7 @@
     });
   }
   function myCard() {
-    var p = loadJSON(PROFILE_KEY, null);
+    var p = WalsonStore.profile();
     if (!p || !p.name) return Promise.resolve(null);
     var id = myId();
     return photoColor(p.photo).then(function (c) {
@@ -264,7 +264,7 @@
     if (SIGNAL[dog.g]) m.style.color = SIGNAL[dog.g].color;
     box.appendChild(m);
   }
-  function loadDex() { var d = loadJSON(DEX_KEY, []); return Array.isArray(d) ? d : []; }
+  function loadDex() { return WalsonStore.dex(); }
   function render() {
     var list = loadDex().slice().sort(function (a, b) { return (b.last || '') < (a.last || '') ? -1 : 1; });
     $('dex-count').textContent = list.length;
@@ -358,10 +358,10 @@
     } else {
       list.push({ i: dog.i, n: dog.n, s: dog.s, g: dog.g, c: dog.c, first: today, last: today, days: 1 });
     }
-    if (!saveJSON(DEX_KEY, list)) return;
+    if (!saveDex(list)) return;
     render();
     // 서로 넣으려면 상대도 내 카드를 찍어야 한다 — 바로 이어서 보여 주게
-    var mine = loadJSON(PROFILE_KEY, null);
+    var mine = WalsonStore.profile();
     $('add-sub').textContent = '도감에 넣었어요. ' + dog.n + '도 우리 개를 넣으려면 내 카드를 보여 주세요.';
     var acts = $('add-actions'); acts.innerHTML = '';
     var row = el('div', 'row');
@@ -385,7 +385,7 @@
   $('info-remove').addEventListener('click', function () {
     var list = loadDex(), d = list.filter(function (x) { return x.i === infoId; })[0];
     if (!d || !confirm(eul(d.n) + ' 도감에서 뺄까요?')) return;
-    saveJSON(DEX_KEY, list.filter(function (x) { return x.i !== infoId; }));
+    saveDex(list.filter(function (x) { return x.i !== infoId; }));
     closeAll(); render();
   });
 

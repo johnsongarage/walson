@@ -145,9 +145,10 @@
     #print-sheet .ps-note { margin: 0 0 4mm; font-size: 8.5pt; line-height: 1.5; color: #333; }
   }
 </style>
+<script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
-<script src="inapp.js?v=2"></script>
+<script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=2"></script>
 </head>
@@ -229,12 +230,12 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=9"></script>
+<script src="reward-rules.js?v=10"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="id-card.js?v=4"></script>
 <script src="image-editor.js?v=2"></script>
 <script src="steady-stamp.js?v=2"></script>
-<script src="mock-server.js?v=1"></script>
+<script src="mock-server.js?v=2"></script>
 <script>
   (function () {
     if (!window.WalsonApi || !WalsonApi.isOn()) return;
@@ -245,28 +246,20 @@
 (function () {
   var IC = window.WalsonIdCard, RR = window.RewardRules, CS = window.CardShared || {};
   var canvas = document.getElementById('card-canvas');
-  var WALKS_KEY = 'petwalk_walks', PROFILE_KEY = 'petwalk_profile';
-  // 특기·특이 사항 — 예전 자라는 카드와 같은 저장값(목록 번호)이라 전에 받은 것이 그대로 이어진다
-  var PICK_KEY = 'petwalk_reward_card';
-
-  function loadJSON(key) {
-    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
-  }
-  function saveJSON(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 실패해도 화면은 그대로 */ }
-  }
+  // 산책 기록·주민증·특기와 특이 사항은 store.js(WalsonStore)로 읽고 쓴다
   function $(id) { return document.getElementById(id); }
 
-  var walks = loadJSON(WALKS_KEY) || [];
-  var profile = loadJSON(PROFILE_KEY) || {};
+  var walks = WalsonStore.walks();
+  var profile = WalsonStore.profile() || {};
   var hasCard = !!profile.name;
   var progress = RR.computeProgress(walks);
   var rank = RR.rankFor(progress.walks), next = RR.nextRank(progress.walks);
   var skills = CS.SKILLS || [], passives = CS.PASSIVES || [];
-  var pick = loadJSON(PICK_KEY);
+  // 특기·특이 사항 — 예전 자라는 카드와 같은 저장값(petwalk_reward_card, 목록 번호)이라 전에 받은 것이 그대로 이어진다
+  var pick = WalsonStore.rewardCard();
   if (!pick || !skills[pick.skill] || !passives[pick.passive]) {
     pick = { skill: Math.floor(Math.random() * skills.length), passive: Math.floor(Math.random() * passives.length) };
-    saveJSON(PICK_KEY, pick);
+    WalsonStore.saveRewardCard(pick);   // 저장 실패해도 화면은 그대로
   }
   var steadyInfo = RR.steady ? RR.steady(walks) : null;
   var photo = null, side = 'front';
@@ -346,7 +339,7 @@
           b.setAttribute('aria-pressed', i === pick[kind] ? 'true' : 'false');
           b.addEventListener('click', function () {
             pick[kind] = i;
-            saveJSON(PICK_KEY, pick);
+            WalsonStore.saveRewardCard(pick);   // 저장 실패해도 화면은 그대로
             openList = null;
             renderTraits();
             if (side === 'back') render();
