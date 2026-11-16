@@ -1,4 +1,4 @@
-// 산책 보상 규칙 — my-card.html(자라는 카드)·walk.html(산책 중 미션·발도장)·walk-end.html(이번 산책으로 받은 것)·[기록] 영수증 등이 같이 쓴다.
+// 산책 보상 규칙 — my-card.html([주민증] 자라는 주민증)·walk.html(산책 중 미션·발도장)·walk-end.html(이번 산책으로 받은 것)·[기록] 영수증 등이 같이 쓴다.
 // 숫자를 조정할 땐 이 파일만 고치면 된다. (2026-09-24 보상 재도입, PROJECT_CONTEXT.md "결정 번복" 참고)
 // 빌드 도구 없이 <script src="reward-rules.js?v=1">로 불러오고 전역 window.RewardRules로 쓴다.
 // 이 파일을 고치면 ?v= 번호를 올리고 두 HTML 파일에서 같이 올릴 것(card-shared.js와 같은 캐시 문제).
@@ -9,7 +9,18 @@
     { name: '은',   minWalks: 15, stops: ['#7d858c', '#e3e7ea', '#ffffff', '#e3e7ea', '#7d858c'], width: 14, ring: '#b8c0c6' },
     { name: '금',   minWalks: 30, stops: ['#c99a3a', '#f0cf7a', '#fff6d9', '#f0cf7a', '#c99a3a'], width: 16, ring: '#e2b45a' }
   ];
-  var SLOT_RULES = { skill: 1, passive: 3 }; // 칸이 열리는 누적 산책 횟수
+  var SLOT_RULES = { skill: 1, passive: 3 }; // 칸이 열리는 누적 산책 횟수(주민증 뒷면 특기·특이 사항)
+
+  // ── 주민 등급(2026-11-16 가르시아 "자라는 카드를 주민증에 합쳐") ──
+  // 예전 테두리(종이 0 · 나무 5 · 은 15 · 금 30)와 같은 숫자 — 길 기록 산책(5분·200m)만 센다(11/15 결정 그대로).
+  // 주민증 부제가 "남양주 다산동 ○○"로 바뀌고, 정착 주민부터 사진 귀퉁이에 승급 도장이 찍힌다(id-card.js).
+  // FRAME_TIERS는 예전 카드 그림용으로 남겨 둔다(옛 화면이 캐시에 남아 있어도 깨지지 않게).
+  var RANKS = [
+    { level: 0, name: '새내기 주민', short: '새내기', to: '새내기 주민으로', be: '새내기 주민이 돼요', minWalks: 0 },
+    { level: 1, name: '정착 주민',   short: '정착',   to: '정착 주민으로',   be: '정착 주민이 돼요',   minWalks: 5 },
+    { level: 2, name: '토박이',      short: '토박이', to: '토박이로',        be: '토박이가 돼요',      minWalks: 15 },
+    { level: 3, name: '터줏대감',    short: '터줏대감', to: '터줏대감으로',  be: '터줏대감이 돼요',    minWalks: 30 }
+  ];
 
   // 공원 두 곳은 OSM 공원 중심 좌표(2026-09-25 확인). 공원 경계를 못 받아와서 반경은 넉넉히 잡음 —
   // 수변공원은 왕숙천을 따라 길게 뻗어 있어 가장자리를 걸으면 놓칠 수 있다.
@@ -62,17 +73,20 @@
   // 저장한다 — 조작 방지 도입(2026-09-25) 전 기록엔 이 값이 없어서 그대로 보상에 넣는다. 발도장은
   // 걷는 속도 구간의 점(stampRoute)으로만 판정하고, stampRoute가 없는 예전 기록만 전체 경로를 쓴다.
   function computeProgress(walks) {
-    var eligible = (walks || []).filter(function (w) { return w.rewardEligible !== false; });
-    var visited = {};
+    var eligible = (walks || []).filter(function (w) { return w && w.rewardEligible !== false; });
+    var visited = {}, visitedAt = {};   // visitedAt: 처음 찍은 산책의 날짜(주민증 뒷면 발도장 기록)
     eligible.forEach(function (w) {
       (w.stampRoute || w.route || []).forEach(function (p) {
         PLACES.forEach(function (pl) {
-          if (!pl.pending && !visited[pl.id] && distanceKm(p, pl.center) <= pl.radiusKm) visited[pl.id] = true;
+          if (!pl.pending && !visited[pl.id] && distanceKm(p, pl.center) <= pl.radiusKm) { visited[pl.id] = true; visitedAt[pl.id] = w.date || ''; }
         });
       });
     });
     var km = eligible.reduce(function (s, w) { return s + (w.distanceKm || 0); }, 0);
-    return { walks: eligible.length, km: km, visited: visited };
+    // rankDates: 그 등급이 된 날 = 그 횟수째 길 기록 산책을 한 날(새내기는 없음 — 주민증 발급일을 쓴다)
+    var rankDates = RANKS.map(function (r) { var w = r.minWalks ? eligible[r.minWalks - 1] : null; return w ? (w.date || '') : null; });
+    // firstDate: 첫 길 기록 산책 날(주민증 뒷면 "전입" — 주민증 발급일과 둘 중 이른 날)
+    return { walks: eligible.length, km: km, visited: visited, visitedAt: visitedAt, rankDates: rankDates, firstDate: eligible.reduce(function (m, w) { return w.date && (!m || w.date < m) ? w.date : m; }, null) };
   }
 
   function tierFor(walks) {
@@ -86,12 +100,23 @@
     return null;
   }
 
+  function rankFor(walks) {
+    var r = RANKS[0];
+    RANKS.forEach(function (x) { if (walks >= x.minWalks) r = x; });
+    return r;
+  }
+  function nextRank(walks) {
+    for (var i = 0; i < RANKS.length; i++) if (RANKS[i].minWalks > walks) return RANKS[i];
+    return null;
+  }
+
+  // 말은 주민증 말(2026-11-16) — 예전 "스킬 칸·특성 칸·○ 테두리" 대신 특기·특이 사항·승급
   function nextGoalText(p) {
     var goals = [];
-    if (p.walks < SLOT_RULES.skill) goals.push({ left: SLOT_RULES.skill - p.walks, what: '스킬 칸이 열려요' });
-    if (p.walks < SLOT_RULES.passive) goals.push({ left: SLOT_RULES.passive - p.walks, what: '특성 칸이 열려요' });
-    var nt = nextTier(p.walks);
-    if (nt) goals.push({ left: nt.minWalks - p.walks, what: nt.name + ' 테두리가 돼요' });
+    if (p.walks < SLOT_RULES.skill) goals.push({ left: SLOT_RULES.skill - p.walks, what: '주민증에 특기가 생겨요' });
+    if (p.walks < SLOT_RULES.passive) goals.push({ left: SLOT_RULES.passive - p.walks, what: '주민증에 특이 사항이 생겨요' });
+    var nr = nextRank(p.walks);
+    if (nr) goals.push({ left: nr.minWalks - p.walks, what: nr.be });
     goals.sort(function (a, b) { return a.left - b.left; });
     if (goals.length) return '산책 ' + goals[0].left + '회 더 하면 ' + goals[0].what;
     var remaining = PLACES.filter(function (pl) { return !pl.pending && !p.visited[pl.id]; });
@@ -102,10 +127,10 @@
   // 산책 한 번 전후의 진행도를 비교해서 이번에 새로 얻은 보상 문구 목록을 돌려준다.
   function newUnlocks(before, after) {
     var out = [];
-    if (before.walks < SLOT_RULES.skill && after.walks >= SLOT_RULES.skill) out.push('스킬 칸이 열렸어요');
-    if (before.walks < SLOT_RULES.passive && after.walks >= SLOT_RULES.passive) out.push('특성 칸이 열렸어요');
-    var bt = tierFor(before.walks), at = tierFor(after.walks);
-    if (at !== bt) out.push(at.name + ' 테두리로 올라갔어요');
+    if (before.walks < SLOT_RULES.skill && after.walks >= SLOT_RULES.skill) out.push('특기가 생겼어요');
+    if (before.walks < SLOT_RULES.passive && after.walks >= SLOT_RULES.passive) out.push('특이 사항이 생겼어요');
+    var br = rankFor(before.walks), ar = rankFor(after.walks);
+    if (ar !== br) out.push(ar.to + ' 승급했어요');
     PLACES.forEach(function (pl) {
       if (after.visited[pl.id] && !before.visited[pl.id]) out.push(pl.name + ' 발도장을 받았어요');
     });
@@ -202,6 +227,9 @@
 
   window.RewardRules = {
     FRAME_TIERS: FRAME_TIERS,
+    RANKS: RANKS,
+    rankFor: rankFor,
+    nextRank: nextRank,
     KEYRING: KEYRING,
     SLOT_RULES: SLOT_RULES,
     PLACES: PLACES,

@@ -66,7 +66,7 @@
       onText: function (text) {
         var id = ShopVisits.idFromQr(text);
         if (!id) return /dex\.html#d=/.test(text)
-          ? '강아지 도감 QR이에요. 산책을 마치고 [카드] → 도감에서 찍어 주세요.'
+          ? '강아지 도감 QR이에요. 산책을 마치고 [주민증] → 도감에서 찍어 주세요.'
           : '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
         var shop = ShopVisits.findShop(id);
         if (!shop) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
