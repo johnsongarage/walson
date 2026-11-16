@@ -114,6 +114,9 @@
     <div class="who" id="my-who"></div>
     <p class="sub">상대 휴대폰 카메라나 왈슨의 "상대 QR 찍기"로 찍으면 돼요.</p>
     <div class="qr" id="my-qr"></div>
+    <!-- 카드 주소 보내기(2026-11-16 가르시아): 키링을 신청할 때 운영자에게 이 주소를 보낸다 — 키링 뒷면 QR·NFC에 그대로 들어간다 -->
+    <button type="button" class="btn btn-main" id="share-btn">카드 주소 보내기 · 키링 신청용</button>
+    <p class="sub" style="margin:8px 0 12px;">이 주소에는 강아지 이름·크기·신호등·털색만 들어가요. 주소를 받은 사람은 누구나 열어 볼 수 있어요.</p>
     <button type="button" class="btn btn-sub" data-close>닫기</button>
   </div>
 </div>
@@ -288,6 +291,16 @@
   document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeAll); });
   document.querySelectorAll('.sheet').forEach(function (s) { s.addEventListener('click', function (e) { if (e.target === s) closeAll(); }); });
 
+  // ── 카드 주소 보내기(2026-11-16) ── 키링 뒷면 QR·NFC에 넣을 주소를 운영자에게(카톡 1:1 등).
+  // 휴대폰 공유 창이 있으면 그걸로, 없으면 복사, 그것도 안 되면 주소를 띄워 길게 눌러 복사하게 한다.
+  var shareUrl = '', shareName = '';
+  function copyFallback() { window.prompt('이 주소를 길게 눌러 복사해 주세요', shareUrl); }
+  function copyUrl() {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(shareUrl).then(function () { toast('카드 주소를 복사했어요. 카톡에 붙여 보내 주세요'); }, copyFallback);
+    } else copyFallback();
+  }
+
   function showMyCard() {
     myCard().then(function (card) {
       closeAll();
@@ -296,6 +309,7 @@
         return;
       }
       whoBlock($('my-who'), card);
+      shareUrl = cardUrl(card); shareName = card.n;
       var box = $('my-qr');
       if (!window.qrcode) { box.textContent = 'QR을 그리지 못했어요(인터넷 연결 확인).'; }
       else { var qr = qrcode(0, 'M'); qr.addData(cardUrl(card)); qr.make(); box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
@@ -303,6 +317,15 @@
     });
   }
   $('show-btn').addEventListener('click', showMyCard);
+  $('share-btn').addEventListener('click', function () {
+    if (!shareUrl) return;
+    if (navigator.share) {
+      navigator.share({ title: '왈슨 강아지 도감 카드', text: shareName + ' 도감 카드예요 (키링 신청)', url: shareUrl })
+        .catch(function (e) { if (!e || e.name !== 'AbortError') copyUrl(); });   // 공유 창을 그냥 닫은 건 그대로 둔다
+      return;
+    }
+    copyUrl();
+  });
 
   // ── 받은 강아지 넣기 ──
   function offerAdd(dog) {

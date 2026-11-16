@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=7"></script>
+<script src="reward-rules.js?v=8"></script>
 <script src="infra-pins.js?v=20"></script>
 <script src="shop-visits.js?v=3"></script>
 <script src="qr-scan.js?v=2"></script>
@@ -705,7 +705,7 @@
     if (walking || leaving || !/[?&]start=1/.test(location.search)) return;
     try { history.replaceState(null, '', location.pathname); } catch (e) { /* 새로 고침하면 산책 나가기로 간다 */ }
     if (window.PetwalkSample && PetwalkSample.isOn()) return;   // 샘플을 보는 중이면 산책 나가기에서 끄기를 먼저 묻는다
-    if (!locationExplained) {
+    if (!locationExplained && !isDemo()) {   // 시연 모드는 가짜 위치라 권한을 묻지 않는다(2026-11-16)
       // CLAUDE.md — 위치 권한을 묻기 전에 왜 필요한지 먼저 설명한다(산책 나가기를 거치지 않고 온 경우)
       if (!confirm('길을 기록하려면 위치 정보가 필요해요.\n위치는 이 휴대폰 안에서만 쓰고 어디로도 보내지 않아요. 허용할까요?')) return;
       locationExplained = true;

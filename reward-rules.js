@@ -178,6 +178,28 @@
     };
   }
 
+  // ── 오늘 목표(2026-11-16 가르시아 "그렇게 진행해줘" — 목표 달성 도장, 보상 체감 재검토 제안 2) ──
+  // 크기별 하루 산책 목표(분) — 11/12 기획서 제안값(소 30 · 중 60 · 대 90). 크기를 모르면 중형으로 본다.
+  // 끝난 뒤 확인하는 용도 — 모자라도 혼내지 않는다(10/28 조사: 견주가 원하는 건 "오늘 할 만큼 했다"는 확인).
+  // 모든 산책(시간만 재기·다녀왔어요·길 기록)이 같이 들어간다 — 돈이 드는 보상이 아니라서 판정을 따지지 않는다.
+  var GOAL_MINUTES = { small: 30, medium: 60, large: 90 };
+  function dogSize() {
+    try { var p = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; if (GOAL_MINUTES[p.size]) return p.size; } catch (e) { /* 무시 */ }
+    try { var s = localStorage.getItem('petwalk_dog_size'); if (GOAL_MINUTES[s]) return s; } catch (e) { /* 무시 */ }
+    return 'medium';
+  }
+  function goalMinutes(size) { return GOAL_MINUTES[size || dogSize()] || 60; }
+  // 그날(date) 산책 시간 합계와 목표. uptoIndex를 주면 기록 순서로 그 산책까지만 센다(영수증 — 그 산책을 마친 때의 상태)
+  function dayGoal(walks, date, uptoIndex, size) {
+    var target = goalMinutes(size), total = 0;
+    (walks || []).forEach(function (w, i) {
+      if (!w || w.date !== date) return;
+      if (uptoIndex != null && i > uptoIndex) return;
+      total += w.durationMin || 0;
+    });
+    return { target: target, total: total, reached: total >= target, left: Math.max(0, target - total) };
+  }
+
   window.RewardRules = {
     FRAME_TIERS: FRAME_TIERS,
     KEYRING: KEYRING,
@@ -196,6 +218,10 @@
     STEADY_STEPS: STEADY_STEPS,
     STEADY_MIN_MINUTES: STEADY_MIN_MINUTES,
     steady: steady,
-    steadyLevel: steadyLevel
+    steadyLevel: steadyLevel,
+    GOAL_MINUTES: GOAL_MINUTES,
+    dogSize: dogSize,
+    goalMinutes: goalMinutes,
+    dayGoal: dayGoal
   };
 })();
