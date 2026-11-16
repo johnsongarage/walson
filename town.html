@@ -27,15 +27,15 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
+<script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=8"></script>
 <script src="infra-pins.js?v=20"></script>
 <script src="shop-visits.js?v=3"></script>
 <script src="qr-scan.js?v=2"></script>
 <script src="map-deco.js?v=2"></script>
-<script src="demo-geo.js?v=5"></script>
+<script src="demo-geo.js?v=6"></script>
 <style>
   /* [동네] — 지도가 주인공인 곳(2026-11-14, 화면 구조 C안: SPEC_STAGE0.md 4절).
      보여 주는 것: 동네 시설 핀, 주의 구역, 내 발도장(공원·아울렛), 산책 중에 내가 찍어 둔 핀.
@@ -298,9 +298,9 @@
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=3"></script>
+<script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=5"></script>
+<script src="track.js?v=6"></script>
 <script src="geo.js?v=4"></script>
 </head>
 <body>
@@ -373,7 +373,7 @@
   }
 
   var map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
   document.getElementById('zoom-in').addEventListener('click', function () { map.zoomIn(); });
   document.getElementById('zoom-out').addEventListener('click', function () { map.zoomOut(); });
 
@@ -736,7 +736,11 @@
     shopLink.appendChild(document.createTextNode('동반 가게 ' + shops.length + '곳'));
     shopLink.hidden = false;
   }
-  shopLink.addEventListener('click', function () { openSheet(sheet); renderShopList(); });
+  var shopListSent = false;   // 통계: 동반 가게 목록을 연 것(화면을 연 동안 한 번만, 값 없음)
+  shopLink.addEventListener('click', function () {
+    openSheet(sheet); renderShopList();
+    if (!shopListSent && window.WalsonTrack) { shopListSent = true; WalsonTrack.send('shop_list_open'); }
+  });
 
   // ── QR 찍기(2026-11-16) — 가게 카운터의 체크인 QR을 앱 안에서 찍는다(qr-scan.js) ──
   // 휴대폰 카메라로 찍으면 브라우저(사파리 등)가 열려 홈 화면 앱에는 도장이 안 남을 수 있어서 앱 안에서 찍게 한다.

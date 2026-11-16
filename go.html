@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="walk-screen.css?v=2">
 <style>
   /* 산책 중 전용 화면(2026-11-14, 기획표 V1-18 — 화면 구조 C안: SPEC_STAGE0.md 4절).
      하단 탭이 없다. 할 일은 하나: 끝내기. 지도도 없고 위치도 읽지 않는다.
@@ -16,10 +17,12 @@
      시간만 재는 산책은 시작 시각만 저장해 두고(petwalk_active_walk) 지금 시각과의 차이로 시간을
      보여 주므로, 화면을 끄거나 앱을 닫아도 시간은 맞는다.
      끝내면 기록을 petwalk_walks에 넣고 끝 화면(walk-end.html)으로 넘어간다.
+     2026-11-16 2단계(시안 ⑬): 산책 중 화면은 위치를 쓰는 산책(walk.html)과 같은 모양(walk-screen.css·js) —
+     큰 시간 + 메뉴(가게 QR 찍기) + 끝내기 두 번. 미션 카드·지도 보기는 위치를 쓸 때만이라 여기엔 없다.
      아직 없는 것: 어두운 주머니 모드와 잠금 풀기(방식 미정), 시간 칩으로 미리 끝 시각 정하기. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
-    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-ink: #9c4530; --accent-tint: #f3ddd2;
     --shadow-rgb: 74, 63, 53;
   }
   * { box-sizing: border-box; }
@@ -75,13 +78,8 @@
   .fallback { margin: 18px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); font-size: 13px; line-height: 1.55; color: var(--ink); word-break: keep-all; }
   .fallback[hidden] { display: none; }
 
-  /* 산책 중 */
-  .walking { align-items: center; justify-content: center; text-align: center; }
-  .who { font-size: 18px; font-weight: 700; color: var(--ink-soft); margin: 0 0 10px; }
-  .clock { font-size: 96px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
-  .clock small { font-size: 28px; font-weight: 700; letter-spacing: 0; margin-left: 4px; }
-  .since { font-size: 14px; color: var(--ink-soft); margin: 14px 0 0; }
-  .note { font-size: 13px; line-height: 1.6; color: var(--ink-soft); margin: 26px 0 0; }
+  /* 산책 중 — 모양은 walk-screen.css(ws-*). 위치를 못 써서 시간만 재기로 넘어온 경우의 안내만 여기서 */
+  #view-walking .fallback { max-width: 320px; margin-top: 14px; text-align: left; }
 
   .btn-main {
     width: 100%; border: none; border-radius: 999px; padding: 18px; margin-top: 28px;
@@ -104,13 +102,17 @@
   .chips button:active { transform: scale(0.97); }
 </style>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=3"></script>
+<script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=5"></script>
+<script src="track.js?v=6"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=8"></script>
+<script src="infra-pins.js?v=20"></script>
+<script src="shop-visits.js?v=3"></script>
+<script src="qr-scan.js?v=2"></script>
+<script src="walk-screen.js?v=1"></script>
 </head>
 <body>
 
@@ -145,15 +147,40 @@
     <p class="mode-note">고른 건 기억해요. 산책 나가기 화면이나 프로필에서 언제든 바꿀 수 있어요.</p>
   </section>
 
-  <!-- 산책 중 -->
-  <section class="view walking" id="view-walking" hidden>
-    <p class="who" id="who">산책 중</p>
-    <div class="clock"><span id="clock">0</span><small>분</small></div>
-    <p class="since" id="since"></p>
-    <button type="button" class="btn-main" id="end-btn">끝내기</button>
-    <p class="note">화면을 꺼도 괜찮아요. 다녀와서 끝내기만 눌러 주세요.<br>끝났다는 알림은 울리지 않아요.</p>
-    <p class="fallback" id="fallback-note" hidden>위치를 쓸 수 없어서 시간만 재고 있어요(출발 시각은 그대로). 휴대폰 설정에서 이 앱(또는 브라우저)의 위치를 허용한 뒤, 산책 나가기 화면의 "바꾸기"로 다시 켤 수 있어요.</p>
-    <button type="button" class="btn-text" id="cancel-btn">이 산책 기록하지 않기</button>
+  <!-- 산책 중 — 시간만(2026-11-16 2단계, 시안 ⑬). 위치를 쓰는 산책(walk.html)과 같은 모양이고 미션 카드·지도 보기만 없다 -->
+  <section class="view ws-screen is-embedded" id="view-walking" hidden>
+    <header class="ws-top">
+      <div class="ws-chip is-time"><span class="ws-dot" aria-hidden="true"></span><span>시간만 재는 중 · 위치 안 씀</span></div>
+      <div class="ws-menu-wrap" id="menu-wrap" hidden>
+        <button type="button" class="ws-icon-btn" id="menu-btn" aria-label="메뉴" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="ws-menu" id="menu" hidden>
+          <!-- 가게 QR 찍기 — 산책 중 들른 가게의 체크인 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js). 위치는 읽지 않는다 -->
+          <button type="button" id="qr-scan-link">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2z"/></svg>
+            <span>가게 QR 찍기</span>
+          </button>
+        </div>
+      </div>
+    </header>
+    <p class="ws-tip">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <span>화면을 꺼도 시간은 계속 가요</span>
+    </p>
+    <div class="ws-clock-area">
+      <span class="ws-who" id="who">산책 중</span>
+      <div class="ws-clock"><span id="clock">0</span><small>분</small></div>
+      <span class="ws-since" id="since"></span>
+      <p class="ws-note">오늘 목표·이번 주 기록·꾸준함 도장에 들어가요. 발도장·미션·카드 성장은 위치를 쓸 때만이에요.</p>
+      <p class="fallback" id="fallback-note" hidden>위치를 쓸 수 없어서 시간만 재고 있어요(출발 시각은 그대로). 휴대폰 설정에서 이 앱(또는 브라우저)의 위치를 허용한 뒤, 산책 나가기 화면의 "바꾸기"로 다시 켤 수 있어요.</p>
+    </div>
+    <div class="ws-notice" id="walk-notice" role="status" hidden><span class="ws-notice-icon" aria-hidden="true"></span><span class="ws-notice-text"></span></div>
+    <footer class="ws-bottom">
+      <!-- 끝내기는 두 번 눌러야(0단계와 같음) — 주머니 속에서 잘못 눌려 끝나지 않게 -->
+      <button type="button" class="ws-end" id="end-btn"><span class="ws-end-label">끝내기</span></button>
+      <button type="button" class="ws-text-btn" id="cancel-btn">이 산책 기록하지 않기</button>
+    </footer>
   </section>
 
   <!-- 끝내기를 너무 늦게 누른 경우 -->
@@ -214,7 +241,7 @@
 
   function enterWalking() {
     var profile = loadJSON(PROFILE_KEY, {});
-    document.getElementById('who').textContent = (profile.name ? profile.name + '와(과) ' : '') + '산책 중';
+    document.getElementById('who').textContent = WalkScreen.walkerLine(profile.name);
     var s = new Date(active.startedAt);
     document.getElementById('since').textContent = s.getHours() + '시 ' + pad2(s.getMinutes()) + '분에 출발';
     tick();
@@ -278,7 +305,8 @@
     var walks = loadJSON(WALKS_KEY, []);
     walks.push({
       date: dateKey(new Date(active.startedAt)), distanceKm: 0, durationMin: Math.max(1, minutes),
-      route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time'
+      route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time',
+      startedAt: active.startedAt   // 끝 화면의 "○시 ○분 출발"(2026-11-16 2단계). 이 폰 안에만 있다
     });
     try {
       localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
@@ -291,7 +319,8 @@
     location.replace('walk-end.html');
   }
 
-  document.getElementById('end-btn').addEventListener('click', function () {
+  // 끝내기는 두 번(walk-screen.js) — 첫 번째는 4초 동안 "한 번 더 누르면 끝나요"만
+  WalkScreen.twoTap(document.getElementById('end-btn'), '끝내기', function () {
     var min = elapsedMin();
     if (min <= TOO_LONG_MIN) { finish(min); return; }
     // 3시간이 넘으면 끝내기를 잊은 것으로 보고 실제 시간을 고르게 한다
@@ -313,6 +342,14 @@
     keep.onclick = function () { finish(min); };
     show('fix');
   });
+
+  // 가게 QR 찍기(메뉴) — 결과는 알림 띠로. 위치는 쓰지 않는다
+  if (window.WalsonQR && window.ShopVisits) {
+    var showNotice = WalkScreen.notice(document.getElementById('walk-notice'));
+    var menuCtl = WalkScreen.menu(document.getElementById('menu-btn'), document.getElementById('menu'));
+    document.getElementById('menu-wrap').hidden = false;
+    document.getElementById('qr-scan-link').addEventListener('click', function () { menuCtl.close(); WalkScreen.scanShop(showNotice); });
+  }
 
   document.getElementById('cancel-btn').addEventListener('click', function () {
     if (!confirm('이 산책을 기록하지 않고 끝낼까요?')) return;

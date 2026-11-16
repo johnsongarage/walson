@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>산책</title>
+<title>산책 중</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
@@ -11,1539 +11,387 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="왈슨">
 <meta name="theme-color" content="#f7ede2">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
+<script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=8"></script>
 <script src="infra-pins.js?v=20"></script>
 <script src="shop-visits.js?v=3"></script>
 <script src="qr-scan.js?v=2"></script>
-<script src="demo-geo.js?v=5"></script>
+<script src="demo-geo.js?v=6"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
-
-<!-- 본문용 Pretendard(한국어 웹에서 널리 쓰이는 서체, 시스템 기본 서체보다 완성도 높음)
-     + 타이틀/브랜드 포인트용 Black Han Sans(카드 화면들과 이미 공유 중인 서체,
-     PROJECT_CONTEXT.md "카드 퀄리티 개선: 타이틀 폰트" 참고) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
-
+<link rel="stylesheet" href="walk-screen.css?v=2">
 <style>
+  /* 산책 중 화면 — 위치를 쓰는 산책(2026-11-16 2단계, 가르시아 "시안대로 2단계 바로 진행해줘", 시안 캔버스 ⑪·⑫).
+     예전엔 지도가 바탕인 화면이었다. 이제 11/13 C안대로 큰 시간이 주인공이고, 위치를 쓰면 미션 카드·알림 띠가 더해진다.
+     지도는 기본으로 숨기고 [지도 보기]를 누를 때 처음 만든다(그때만 지도 그림을 받음) — 펼치면 내 위치와 미션 장소가 같이 보이게.
+     시설 핀·추천 루트·발자국은 뺐다(시설은 [동네]에서). 산책 전 화면은 없다 — 시작은 산책 나가기(go.html)에서 한다. */
   :root {
-    /* 색 토큰 (2026-09-23 리디자인) — 기존 크림/코랄 파스텔 정체성은 유지하되,
-       인터랙션 색(--accent)은 흰 텍스트 대비 WCAG AA(4.5:1)를 만족하도록 더 짙은
-       테라코타로 보정함(기존 #d98a72는 흰 텍스트와 대비 2.7:1로 미달이었음). */
-    --bg: #f7ede2;
-    --bg-deep: #efe0cd;
-    --panel: #fffaf3;
-    --panel-border: #e6d6c1;
-    --ink: #4a3f35;
-    --ink-soft: #6b5d4e;
-    --accent: #b8563a;       /* 인터랙션(버튼/링크/내 경로선) — 흰 텍스트 대비 4.7:1 */
-    --accent-light: #c96b4f; /* 버튼 입체감용 그라데이션 밝은 쪽 */
-    --accent-tint: #f2b6a0;  /* 장식용 옅은 코랄(텍스트-배경 쌍에는 쓰지 않음) */
-    --ok: #5f8f5a;
-    --warn: #c98a2e;
-    --locate: #3b7dc4;
-    --shadow-rgb: 74, 63, 53; /* --ink를 그대로 그림자 색으로 써서 순수 검정 그림자 방지 */
-    --radius-pill: 999px;
-    --radius-lg: 20px;
-    --radius-md: 12px;
-    --radius-sm: 10px;
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-ink: #9c4530; --accent-tint: #f3ddd2;
+    --locate: #2f7fd8; --shadow-rgb: 74, 63, 53;
   }
   * { box-sizing: border-box; }
-  html, body {
-    margin: 0; height: 100%;
-    font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    color: var(--ink); background: var(--bg);
-  }
+  html, body { margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { display: flex; flex-direction: column; }
+
+  /* 지도 보기(펼침) */
+  .map-view { position: fixed; inset: 0; z-index: 50; background: #efe3d2; }
+  .map-view[hidden] { display: none; }
+  body.map-open { overflow: hidden; }   /* 지도를 펼친 동안 뒤 화면이 같이 밀리지 않게 */
   #map { position: absolute; inset: 0; z-index: 0; }
+  /* 지도 컬러톤: 라벤더 파스텔(예전 산책 화면·[동네]와 같은 값) */
+  .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
+  .map-top { position: absolute; z-index: 500; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; right: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
+  .map-top > * { pointer-events: auto; }
+  .map-sheet { position: absolute; z-index: 500; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 12px;
+    padding: 18px 20px calc(22px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border-radius: 24px 24px 0 0;
+    box-shadow: 0 -6px 20px rgba(var(--shadow-rgb), 0.14); }
+  .map-sheet b { font-size: 17px; font-weight: 800; }
+  .map-sheet p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
+  .map-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .map-actions button { height: 52px; border-radius: 16px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #pin-btn { border: 1.5px solid #c9b59d; background: var(--panel); color: var(--ink); }
+  #map-close { border: 0; background: var(--accent); color: #fff; }
 
-  /* 지도 컬러톤: 라벤더 파스텔 (색 비교 페이지 map-color-test.html 5종 중 선택, PROJECT_CONTEXT.md 참고 —
-     그 페이지는 2026-11-16 서비스 줄이기 때 내림, git 기록에 남음). 다른 톤으로 바꾸려면 이 filter 값만 바꾸면 됨. */
-  .leaflet-tile-pane {
-    filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%);
-  }
-
-  /* 아이콘: Phosphor Icons(MIT 라이선스, jsdelivr에서 실제 SVG를 받아와 인라인으로 박아둠 —
-     이모지 대신 얇은 선 굵기의 일관된 벡터 아이콘으로 "애플 느낌"의 정돈된 톤을 내기 위함.
-     data-icon 속성이 붙은 요소는 스크립트 시작 시 renderStaticIcons()가 채워 넣는다(아래 참고),
-     동적으로 생기는 요소(깃발 마커/내 위치 버튼/팝업 등)는 svgIcon()을 직접 호출해서 채움. */
-  .icon { display: inline-flex; flex-shrink: 0; }
-  .icon svg { display: block; }
-
-  /* ── 상단바: 전체 폭 스크림 대신 떠 있는 캡슐 두 개(타이틀칩 / 카드칩)로 재구성 ── */
-  /* z-index 12(2026-11-16): 메뉴를 열면 펼침 목록이 시설 칩·미션 줄(10)·알림 띠 밑에 깔려 위쪽 항목이 안 눌렸다 — 그 위로 올린다 */
-  .top-bar {
-    position: absolute; top: 14px; left: 14px; right: 14px; z-index: 12;
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-    pointer-events: none;
-  }
-  .title-chip {
-    pointer-events: auto; display: flex; align-items: center; gap: 8px;
-    background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-    padding: 10px 16px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(var(--shadow-rgb), 0.12);
-    max-width: calc(100% - 54px);
-  }
-  .title-chip .icon { color: var(--accent); }
-  /* 산책 중 기록 끊김/화면 켜두기 안내 — 제목 칩 바로 아래에 잠깐 떴다 사라진다 */
-  /* ── 동네 시설 필터 칩(2026-11-14): 앱을 열자마자 "볼 것"이 있게 첫 화면에 시설 핀을 띄우고,
-     종류별로 켜고 끈다. 오른쪽 줌/내 위치 컨트롤 열(약 48px)을 피해서 right를 띄우고, 칩이
-     많아지면 가로로 스크롤된다. 데이터와 색/아이콘은 infra-pins.js가 갖고 있다. ── */
-  .infra-chips {
-    position: absolute; top: 66px; left: 14px; right: 62px; z-index: 10;
-    display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px;
-    scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  }
-  .infra-chips::-webkit-scrollbar { display: none; }
-  .infra-caveat {
-    position: absolute; top: 104px; left: 18px; right: 62px; z-index: 9; margin: 0;
-    font-size: 11px; font-weight: 700; color: var(--ink-soft); pointer-events: none;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 6px var(--bg);
-  }
-  .infra-chip {
-    flex-shrink: 0; display: flex; align-items: center; gap: 5px;
-    min-height: 32px; padding: 0 9px 0 7px; border-radius: var(--radius-pill);
-    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink-soft);
-    font-family: 'Pretendard', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer;
-    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
-    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
-  }
-  .infra-chip:active { transform: scale(0.96); }
-  .infra-chip .dot {
-    width: 18px; height: 18px; border-radius: 50%; color: #fff; opacity: 0.45;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .infra-chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink-soft); }
-  .infra-chip[aria-pressed="true"] .dot { opacity: 1; }
-  .infra-chip .count { font-weight: 500; color: var(--ink-soft); }
-
-  .infra-popup { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
-  .infra-popup-cat { font-size: 11px; font-weight: 700; }
-  .infra-popup-name { font-size: 14px; font-weight: 700; color: var(--ink); }
-  .infra-popup-note { color: var(--ink); }
-  .infra-popup-tags { display: flex; flex-wrap: wrap; gap: 4px; }
-  .infra-popup-tags span {
-    font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: var(--radius-pill);
-    background: var(--bg-deep); color: var(--ink);
-  }
-  .infra-popup-source { font-size: 11px; color: var(--ink-soft); }
-  .infra-popup-links { display: flex; gap: 12px; margin-top: 2px; }
-  .infra-popup-links a { font-size: 12px; font-weight: 700; color: var(--accent); text-decoration: none; }
-
-  /* 다음 미션 줄(2026-11-15) — 칩·주의 문구 아래. 길 기록 중엔 남은 거리와 방향(지도 위쪽이 북쪽) */
-  .mission-bar {
-    position: absolute; top: 124px; left: 14px; right: 62px; z-index: 10;
-    display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
-    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px;
-    font-size: 13px; font-weight: 700; color: var(--ink); box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.15);
-  }
-  .mission-bar[hidden] { display: none; }
-  .mission-bar .mb-flag { flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
-  .mission-bar .mb-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mission-bar .mb-text small { font-size: 11px; font-weight: 800; color: var(--accent); margin-right: 4px; }
-  .mission-bar .mb-dir { flex-shrink: 0; display: flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 800; color: var(--accent); }
-  .mission-bar .mb-dir svg { transition: transform 0.4s ease; }
-  .mission-bar.is-done .mb-flag { background: #3f7d4a; }
-  .walk-notice.is-good { border-color: var(--accent); }
-  .walk-notice.is-good .icon { color: var(--accent); }
-  .walk-notice {
-    position: absolute; top: 170px; left: 14px; z-index: 10; max-width: min(340px, calc(100% - 82px));
-    display: flex; align-items: flex-start; gap: 8px;
-    background: var(--panel); border: 1px solid var(--warn); border-radius: 14px;
-    padding: 10px 12px; font-size: 13px; line-height: 1.5; font-weight: 600; color: var(--ink);
-    box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.15);
-    opacity: 0; transform: translateY(-6px); pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-  .walk-notice.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
-  .walk-notice .icon { color: var(--warn); flex-shrink: 0; margin-top: 1px; }
-  .title-chip .title {
-    font-family: 'Black Han Sans', 'Pretendard', sans-serif;
-    font-size: 16px; letter-spacing: -0.01em; white-space: nowrap;
-  }
-  .title-chip .status {
-    font-size: 12px; color: var(--ink-soft); font-weight: 500;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    border-left: 1px solid var(--panel-border); padding-left: 10px;
-  }
-  /* 카드/기록/프로필/코스 관리로 늘어난 링크들을 칩으로 따로 늘어놓는 대신, 메뉴 버튼
-     하나 + 드롭다운으로 묶음(2026-09-23) — 지도 화면에 기능이 계속 추가될 걸 감안해서
-     화면이 안 복잡해지게. */
-  .menu-wrap { position: relative; flex-shrink: 0; pointer-events: auto; }
-  /* 줌/내 위치 컨트롤과 크기(34px)·둥글기(--radius-md)를 맞춰서 세로로 나란히 놓였을 때
-     한 줄로 정렬돼 보이게 함(2026-09-23, "정렬이 안 맞아 보인다" 피드백으로 맞춤 — 이전엔
-     40px에 --radius-lg라 아래 줌 컨트롤보다 크고 둥글어서 어긋나 보였음). */
-  .menu-btn {
-    width: 34px; height: 34px; padding: 0; border: 1px solid var(--panel-border);
-    background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border-radius: var(--radius-md); color: var(--ink); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(var(--shadow-rgb), 0.12);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .menu-btn:active { transform: scale(0.94); box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); }
-
-  .menu-dropdown {
-    position: absolute; top: calc(100% + 8px); right: 0; z-index: 20; min-width: 168px;
-    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-    box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.2);
-    padding: 8px; display: flex; flex-direction: column; gap: 2px;
-    opacity: 0; transform: translateY(-6px) scale(0.98); pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-  }
-  .menu-dropdown a[hidden] { display: none; } /* 아래 display:flex가 hidden 속성을 덮지 않게 */
-  .menu-dropdown.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-  .menu-dropdown a {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
-    text-decoration: none; color: var(--ink); font-size: 14px; font-weight: 700;
-  }
-  .menu-dropdown a .icon { color: var(--accent); }
-  .menu-dropdown a:active { background: var(--bg-deep); }
-  /* 관리자 도구 링크 — 나머지 항목보다 덜 중요한 임시 링크라 강조색 대신 톤 낮춘 색 사용 */
-  .menu-dropdown a.tool-item, .menu-dropdown a.tool-item .icon { color: var(--ink-soft); }
-
-  /* ── 하단바: 떠 있는 액션 그룹. 주 행동(산책 시작)이 시각적으로 더 무겁게 ──
-     버튼에 상단 하이라이트 + 하단 그라데이션으로 "볼록한" 입체감을 주고,
-     눌렀을 때(:active)는 반대로 안쪽 그림자를 넣어 "눌리는" 느낌을 낸다. */
-  .bottom-bar {
-    position: absolute; bottom: 18px; left: 14px; right: 14px; z-index: 10;
-    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
-  }
-  .btn {
-    border: none; border-radius: var(--radius-pill); padding: 14px 20px;
-    font-family: 'Pretendard', sans-serif; font-size: 14px; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; gap: 7px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
-  }
-  .btn:active { transform: scale(0.96) translateY(1px); }
-  .btn-primary {
-    background: linear-gradient(180deg, var(--accent-light) 0%, var(--accent) 100%);
-    color: white; padding: 16px 26px; font-size: 15px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15),
-      0 6px 16px rgba(var(--shadow-rgb), 0.3);
-  }
-  .btn-primary:hover { filter: brightness(1.05); }
-  .btn-primary:active { box-shadow: inset 0 3px 8px rgba(0,0,0,0.28); }
-  /* 산책 종료를 한 번 누른 상태(2026-11-16) — 4초 안에 한 번 더 눌러야 끝난다(주머니 속에서 잘못 눌려 끝나지 않게) */
-  #walk-btn.is-armed { filter: brightness(0.8); }
-  .btn-secondary {
-    background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
-    color: var(--ink); border: 1px solid var(--panel-border);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -2px 4px rgba(0,0,0,0.04),
-      0 4px 12px rgba(var(--shadow-rgb), 0.12);
-  }
-  .btn-secondary:hover { background: linear-gradient(180deg, #fffefb 0%, var(--bg-deep) 100%); }
-  .btn-secondary:active { box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-
-  .pin-marker {
-    width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-    background: var(--accent); border: 2px solid white;
-    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.35);
-  }
-
-  /* 추천 루트 시작점 깃발 마커 (div 아이콘 — JS에서 svgIcon('path')로 채움) */
-  .route-flag {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: var(--panel); border: 2px solid var(--ok); color: var(--ok);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 3px 10px rgba(var(--shadow-rgb), 0.3);
-  }
-  .leaflet-popup-content-wrapper {
-    background: var(--panel); color: var(--ink);
-    border-radius: var(--radius-md); box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.2);
-  }
+  /* 지도 위 표시 — 출발점(흰 점) · 지금 위치(파란 점) · 미션 장소(깃발) · 내가 꽂은 핀 */
+  .wm-start { border-radius: 50%; background: #fff; border: 3px solid var(--ink); box-sizing: border-box; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+  .wm-me { position: relative; border-radius: 50%; background: var(--locate); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--locate), 0 2px 10px rgba(0,0,0,0.35); }
+  .wm-me::after { content: ''; position: absolute; inset: -11px; border-radius: 50%; background: var(--locate); opacity: 0.3; }
+  .wm-flag { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
+    color: #fff; border: 3px solid #fff; box-sizing: border-box; box-shadow: 0 3px 10px rgba(var(--shadow-rgb), 0.35); }
+  .pin-marker { width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--ink); border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.35); }
+  .leaflet-popup-content-wrapper { background: var(--panel); color: var(--ink); border-radius: 12px; box-shadow: 0 10px 28px rgba(var(--shadow-rgb), 0.2); }
   .leaflet-popup-tip { background: var(--panel); }
   .leaflet-popup-content { font-family: 'Pretendard', sans-serif; font-size: 13px; line-height: 1.6; margin: 12px 14px; }
-  .popup-title { display: flex; align-items: center; gap: 5px; font-weight: 800; }
-  .popup-warning { display: flex; align-items: center; gap: 5px; color: var(--warn); margin-top: 4px; }
-  .popup-warning .icon { color: var(--warn); }
-
-  /* 핀 팝업 — 메모(있으면) + 삭제 버튼. X는 팝업만 닫고, 이 버튼이 핀 자체를 지운다. */
   .pin-popup { display: flex; flex-direction: column; gap: 8px; min-width: 120px; }
   .pin-popup-memo { color: var(--ink); }
   .pin-popup-empty { color: var(--ink-soft); font-style: italic; }
-  .pin-delete-btn {
-    display: flex; align-items: center; gap: 5px; align-self: flex-start;
-    border: none; background: none; padding: 2px 0; cursor: pointer;
-    font-family: 'Pretendard', sans-serif; font-size: 12px; font-weight: 700;
-    color: #b3392b;
-  }
-  .pin-delete-btn:hover { text-decoration: underline; }
-
-  /* 추천 루트를 켰을 때만 나타나는 코스/견종 크기 선택 패널 (하단바 바로 위).
-     display:none 대신 opacity/transform 전환으로 부드럽게 나타나도록 함(JS는
-     is-visible 클래스만 토글 — index.html의 toggleRecommendedRoutes 참고).
-     bottom 값은 92px가 기본값일 뿐, 실제로는 JS의 positionRoutePanel()이 하단바의
-     실측 높이를 재서 매번 다시 계산해 인라인으로 덮어쓴다 — 모바일처럼 하단바 버튼이
-     2줄로 줄바꿈되는 화면에서 고정값만 쓰면 이 패널과 겹치는 문제가 있었음(버그로 발견). */
-  .route-panel {
-    position: absolute; bottom: 92px; left: 14px; right: 14px; z-index: 10;
-    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-    padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;
-    font-size: 13px; box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.16);
-    opacity: 0; transform: translateY(10px) scale(0.98); pointer-events: none;
-    transition: opacity 0.22s ease, transform 0.22s ease;
-  }
-  .route-panel.is-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-
-  .route-panel-row { display: flex; align-items: center; gap: 12px; }
-  .route-panel label {
-    white-space: nowrap; font-weight: 700; color: var(--ink);
-    display: flex; align-items: center; gap: 6px; width: 92px; flex-shrink: 0;
-  }
-  .route-panel .icon { color: var(--accent); }
-  .route-panel select {
-    appearance: none; -webkit-appearance: none; -moz-appearance: none;
-    flex: 1; min-width: 0; padding: 9px 32px 9px 12px; border-radius: var(--radius-sm);
-    border: 1px solid var(--panel-border); font-family: 'Pretendard', sans-serif; font-size: 13px;
-    background-color: #fff; color: var(--ink);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234a3f35' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 12px center;
-  }
-
-  /* 확대/축소·내 위치 컨트롤: Leaflet 기본 각진 회색 버튼 대신 앱 톤에 맞춘
-     둥근 사각형(--radius-md) + 글로시 입체감으로 재도색. margin-top: 72px는 페이지가 뜨기
-     전 잠깐 쓰이는 기본값일 뿐 — 실제로는 JS의 positionZoomControl()이 위 메뉴 버튼의
-     실측 높이를 재서 매번 인라인으로 덮어쓴다(칩이 하나 더 늘면서 고정값과 겹쳤던 버그,
-     route-panel/하단바와 같은 종류의 문제). margin-right는 Leaflet 기본값(10px)이 메뉴
-     버튼의 오른쪽 여백(top-bar의 right:14px)과 안 맞아 두 컬럼이 어긋나 보였던 것을
-     14px로 맞춰서 고침("정렬이 안 맞아 보인다" 피드백, 2026-09-23). Leaflet은 각 컨트롤
-     자체에 margin-right:10px를 개별로 주기 때문에(컨테이너가 아니라 .leaflet-control에),
-     컨테이너에 margin-right를 더하면 10+14로 겹쳐 더 밀려버려서 — 컨트롤 쪽 마진을 직접
-     14px로 덮어씀. */
-  .leaflet-top.leaflet-right { margin-top: 72px; }
-  .leaflet-right .leaflet-control { margin-right: 14px; }
-  .leaflet-bar {
-    border: none !important; border-radius: var(--radius-md) !important;
-    overflow: hidden; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.18) !important;
-  }
-  .leaflet-bar a {
-    background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%) !important;
-    color: var(--ink) !important;
-    width: 34px !important; height: 34px !important; line-height: 34px !important;
-    display: flex !important; align-items: center; justify-content: center;
-    border-bottom: 1px solid var(--panel-border) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
-  }
-  .leaflet-bar a:last-child { border-bottom: none !important; }
-  .leaflet-bar a:hover { background: linear-gradient(180deg, #fffefb 0%, var(--bg-deep) 100%) !important; }
-  .leaflet-bar a:active { box-shadow: inset 0 2px 6px rgba(0,0,0,0.12); }
-
-  .locate-btn {
-    width: 34px; height: 34px; margin-top: 8px; padding: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
-    color: var(--ink); border: none; border-radius: var(--radius-md);
-    cursor: pointer;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 14px rgba(var(--shadow-rgb), 0.18);
-    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .locate-btn:hover { background: linear-gradient(180deg, #fffefb 0%, var(--bg-deep) 100%); }
-  .locate-btn:active { transform: scale(0.94); box-shadow: inset 0 2px 6px rgba(0,0,0,0.12); }
-
-  /* 내 위치 점 — 살아있는 느낌을 주기 위해 은은한 파동 링을 추가(모션 의도: "지금 여기"라는
-     실시간성 전달). prefers-reduced-motion에서는 정적인 점으로만 표시됨. */
-  /* 산책 출발점 — 지금 위치(파란 점)와 헷갈리지 않게 작고 흰 점 */
-  .walk-start-dot { border-radius: 50%; background: #fff; border: 3px solid var(--accent, #b8563a); box-sizing: border-box; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-  .my-location-dot {
-    position: relative; border-radius: 50%;
-    background: var(--locate); border: 3px solid white;
-    box-shadow: 0 0 0 2px var(--locate), 0 2px 10px rgba(0, 0, 0, 0.35);
-  }
-  .my-location-dot::after {
-    content: ''; position: absolute; inset: -11px; border-radius: 50%;
-    background: var(--locate); opacity: 0.35;
-    animation: locate-pulse 2.2s ease-out infinite;
-  }
-  @keyframes locate-pulse {
-    0% { transform: scale(0.4); opacity: 0.45; }
-    100% { transform: scale(1.7); opacity: 0; }
-  }
-  /* 발자국 잔상 — 걸은 길 뒤로 찍히는 🐾. 바깥 span은 진행 방향 회전+좌우 엇갈림(인라인 style),
-     안쪽 svg는 찍힐 때 톡 튀어나오는 모션만 담당(두 transform이 서로 덮어쓰지 않게 분리). */
-  .footprint { pointer-events: none; }
-  .footprint span { display: block; width: 14px; height: 14px; }
-  .footprint svg { display: block; fill: var(--accent); opacity: 0.85; animation: footprint-pop 0.35s ease-out; }
-  @keyframes footprint-pop {
-    0% { transform: scale(0.2); opacity: 0; }
-    70% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 0.85; }
-  }
-  /* 줌아웃하면 발자국이 뭉개져서 점 덩어리가 되므로 가까이 볼 때만 보여주고, 멀리선 경로선만 */
-  .footprints-off .footprint { display: none; }
-  @media (prefers-reduced-motion: reduce) {
-    .footprint svg { animation: none; }
-    .my-location-dot::after { animation: none; display: none; }
-    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .walk-notice { transition: none; }
-  }
+  .pin-delete-btn { align-self: flex-start; border: none; background: none; padding: 2px 0; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #b3392b; }
 </style>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=3"></script>
+<script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=5"></script>
+<script src="track.js?v=6"></script>
 <script src="geo.js?v=4"></script>
+<script src="walk-screen.js?v=1"></script>
 </head>
 <body>
 
-<div id="map"></div>
-
-<div class="top-bar">
-  <!-- 화면 구조 C안(2026-11-14): 이 화면은 "산책" 모드라 하단 탭이 없다. 첫 화면은 index.html([오늘])이고,
-       제목 칩의 ← 로 돌아간다. 지도 구경은 town.html([동네])에서. -->
-  <div class="title-chip">
-    <a href="index.html" aria-label="오늘로 돌아가기" style="color:inherit;text-decoration:none;font-weight:800;padding:0 4px 0 0;">←</a>
-    <span class="title">산책</span>
-    <span class="status" id="status-text">대기 중</span>
-  </div>
-  <!-- 카드/기록/프로필/코스 관리 링크를 각각 칩으로 따로 늘어놓다가, 화면에 기능이
-       계속 추가될 걸 감안해서 메뉴 버튼 하나 + 드롭다운으로 합침(2026-09-23). -->
-  <div class="menu-wrap" id="menu-wrap">
-    <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴" aria-expanded="false">
-      <span class="icon" data-icon="list"></span>
-    </button>
-    <div class="menu-dropdown" id="menu-dropdown">
-      <!-- 가게 QR 찍기(2026-11-16) — 산책 중 들른 가게의 체크인 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js) -->
-      <a href="#" id="qr-scan-link" hidden><span class="icon" id="qr-scan-icon"></span><span>가게 QR 찍기</span></a>
-      <!-- 화면 켜 두기(2026-11-16, 기본 꺼짐) — 켜면 산책 중 화면이 저절로 꺼지지 않아 길이 자세히 남는다 -->
-      <a href="#" id="keep-screen-toggle"><span class="icon" data-icon="deviceMobile"></span><span id="keep-screen-label">화면 켜 두기 · 꺼짐</span></a>
-      <a href="index.html"><span class="icon" data-icon="pawPrint"></span><span>오늘</span></a>
-      <a href="town.html"><span class="icon" data-icon="mapPin"></span><span>동네 지도</span></a>
-      <a href="start.html"><span class="icon" data-icon="dog"></span><span>주민증 만들기</span></a>
-      <a href="my-card.html"><span class="icon" data-icon="medal"></span><span>내 카드</span></a>
-      <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
-      <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
-      <a href="privacy.html"><span class="icon" data-icon="warning"></span><span>개인정보 안내</span></a>
-      <a href="#" id="install-link" hidden><span class="icon" data-icon="plus"></span><span>홈 화면에 추가</span></a>
-      <!-- 시연 모드(가짜 위치) — 시험·시연용. 데모 산책은 통계로 보내지 않고 키링 조건에서 뺀다(demo-geo.js) -->
-      <a href="#" id="demo-toggle" class="tool-item"><span class="icon" data-icon="play"></span><span id="demo-toggle-label">시연 모드(가짜 위치) 켜기</span></a>
-      <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
-           일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
-      <a href="spot-editor.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 편집 (운영자)</span></a>
+<div class="ws-screen" id="screen">
+  <header class="ws-top">
+    <div class="ws-chip"><span class="ws-dot" aria-hidden="true"></span><span>길 기록 중 · 위치 사용</span></div>
+    <div class="ws-menu-wrap">
+      <button type="button" class="ws-icon-btn" id="menu-btn" aria-label="메뉴" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="ws-menu" id="menu" hidden>
+        <!-- 가게 QR 찍기(2026-11-16) — 산책 중 들른 가게의 체크인 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js) -->
+        <button type="button" id="qr-scan-link" hidden>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2z"/></svg>
+          <span>가게 QR 찍기</span>
+        </button>
+        <!-- 화면 켜 두기(2026-11-16 0단계, 기본 꺼짐) — 켜면 화면이 저절로 꺼지지 않아 길이 자세히 남는다 -->
+        <button type="button" id="keep-screen-toggle">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></svg>
+          <span id="keep-screen-label">화면 켜 두기 · 꺼짐</span>
+        </button>
+        <!-- 시연 모드(가짜 위치) — 시험·시연용. 데모 산책은 통계로 보내지 않고 키링 조건에서 뺀다(demo-geo.js) -->
+        <button type="button" id="demo-toggle" class="is-tool">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>
+          <span id="demo-toggle-label">시연 모드(가짜 위치) 켜기</span>
+        </button>
+      </div>
     </div>
-  </div>
+  </header>
+  <p class="ws-tip" id="pocket-tip">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+    <span id="pocket-tip-text">화면을 꺼서 주머니에 넣어도 돼요</span>
+  </p>
+  <main class="ws-clock-area">
+    <span class="ws-who" id="who">산책 중</span>
+    <div class="ws-clock"><span id="clock">0</span><small>분</small></div>
+    <span class="ws-since" id="since"></span>
+  </main>
+  <section class="ws-mission" id="mission-card" aria-label="미션" hidden></section>
+  <div class="ws-notice" id="walk-notice" role="status" hidden><span class="ws-notice-icon" aria-hidden="true"></span><span class="ws-notice-text" id="walk-notice-text"></span></div>
+  <footer class="ws-bottom">
+    <button type="button" class="ws-map-btn" id="map-btn">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3.5 6.5v13L9 17l6 2.5 5.5-2.5v-13L15 6.5 9 4z"/><path d="M9 4v13M15 6.5v13"/></svg>
+      <span>지도 보기</span>
+    </button>
+    <button type="button" class="ws-end" id="walk-btn"><span class="ws-end-label">끝내기</span></button>
+    <p class="ws-hint">주머니 속에서 잘못 눌려도 끝나지 않게 두 번 눌러요</p>
+  </footer>
 </div>
 
-<div class="infra-chips" id="infra-chips" role="group" aria-label="동네 시설 종류"></div>
-<!-- 상시 주의 문구(기획표 V1-21): 핀이 없는 곳을 "안전하다"고 읽지 않게 지도 위에 늘 띄워 둔다 -->
-<p class="infra-caveat" id="infra-caveat">핀이 없다고 안전한 건 아니에요 · 바닥은 직접 확인</p>
-
-<div class="mission-bar" id="mission-bar" hidden aria-live="polite"></div>
-<div class="walk-notice" id="walk-notice" role="status" aria-live="polite">
-  <span class="icon" data-icon="warning"></span><span id="walk-notice-text"></span>
-</div>
-
-<div class="route-panel" id="route-panel">
-  <div class="route-panel-row">
-    <label for="route-select"><span class="icon" data-icon="path"></span>코스 선택</label>
-    <select id="route-select"></select>
+<!-- 지도 보기(펼침, 시안 ⑫) — 처음 열 때 지도를 만든다 -->
+<div class="map-view" id="map-view" hidden>
+  <div id="map"></div>
+  <div class="map-top">
+    <div class="ws-chip is-dark"><span class="ws-dot" aria-hidden="true"></span><span id="map-chip-text">0분 · 길 기록 중</span></div>
+    <button type="button" class="ws-icon-btn" id="map-close-x" aria-label="지도 닫기">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
   </div>
-  <div class="route-panel-row">
-    <label for="dog-size-select"><span class="icon" data-icon="dog"></span>우리 아이 크기</label>
-    <select id="dog-size-select"></select>
-  </div>
-</div>
-
-
-<div class="bottom-bar" id="bottom-bar">
-  <!-- 추천 루트는 숨김(2026-11-14 가르시아 결정). 이유: "내 위치 주변으로 보기"를 허락하면 내 위치 근처
-       좌표가 공개 경로 서버(router.project-osrm.org)로 나간다. 기획표에서도 "내림"(V1-13, 메리트 약함).
-       코드는 그대로 두고 버튼만 감춘다 — 다시 켜려면 아래 style을 지우고 privacy.html에 다시 적을 것.
-       .btn이 display:flex라 hidden 속성이 안 먹어서 인라인 style로 감춘다. -->
-  <button class="btn btn-secondary" id="route-btn" style="display:none;">
-    <span class="icon" data-icon="path"></span>
-    <span class="btn-label">추천 루트</span>
-  </button>
-  <button class="btn btn-secondary" id="pin-btn" disabled>
-    <span class="icon" data-icon="mapPin"></span>
-    <span class="btn-label">핀 꽂기</span>
-  </button>
-  <button class="btn btn-primary" id="walk-btn">
-    <span class="icon" id="walk-icon" data-icon="play"></span>
-    <span class="btn-label">산책 시작</span>
-  </button>
+  <section class="map-sheet" aria-label="지금까지 걸은 길">
+    <b id="map-mission">지금까지 걸은 길</b>
+    <p>펼칠 때 내 위치와 미션 장소가 같이 보이게 맞춰요. 점선은 화면이 꺼져 있던 동안이에요. 시설 핀은 [동네]에서 봐요.</p>
+    <div class="map-actions">
+      <button type="button" id="pin-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+        <span>핀 꽂기</span>
+      </button>
+      <button type="button" id="map-close">지도 닫기</button>
+    </div>
+  </section>
 </div>
 
 <script>
 (function () {
-  // Phosphor Icons(MIT) 경로 데이터 — 이모지 대신 쓰는 벡터 아이콘. jsdelivr에서 실제
-  // @phosphor-icons/core 패키지의 regular SVG를 그대로 받아와 박아둔 것이라 임의로 그린
-  // 아이콘이 아니다(index.html 상단 CSS 주석 참고). currentColor라 버튼 글자색을 그대로 따라간다.
-  var ICON_PATHS = {
-    path: 'M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z',
-    wrench: 'M226.76,69a8,8,0,0,0-12.84-2.88l-40.3,37.19-17.23-3.7-3.7-17.23,37.19-40.3A8,8,0,0,0,187,29.24,72,72,0,0,0,88,96,72.34,72.34,0,0,0,94,124.94L33.79,177c-.15.12-.29.26-.43.39a32,32,0,0,0,45.26,45.26c.13-.13.27-.28.39-.42L131.06,162A72,72,0,0,0,232,96,71.56,71.56,0,0,0,226.76,69ZM160,152a56.14,56.14,0,0,1-27.07-7,8,8,0,0,0-9.92,1.77L67.11,211.51a16,16,0,0,1-22.62-22.62L109.18,133a8,8,0,0,0,1.77-9.93,56,56,0,0,1,58.36-82.31l-31.2,33.81a8,8,0,0,0-1.94,7.1L141.83,108a8,8,0,0,0,6.14,6.14l26.35,5.66a8,8,0,0,0,7.1-1.94l33.81-31.2A56.06,56.06,0,0,1,160,152Z',
-    footprints: 'M208.06,184H152a8,8,0,0,0-8,8v12a36,36,0,0,0,72.05,0V192A8,8,0,0,0,208.06,184Zm-8,20a20,20,0,0,1-40,0v-4h40ZM104,160h-56a8,8,0,0,0-8,8v12A36,36,0,0,0,112,180V168A8,8,0,0,0,104,160Zm-8,20a20,20,0,0,1-40,0v-4H96ZM76,16C64.36,16,53.07,26.31,44.2,45c-13.93,29.38-18.56,73,.29,96a8,8,0,0,0,6.2,2.93h50.55a8,8,0,0,0,6.2-2.93c18.85-23,14.22-66.65.29-96C98.85,26.31,87.57,16,76,16ZM97.15,128H54.78c-11.4-18.1-7.21-52.7,3.89-76.11C65.14,38.22,72.17,32,76,32s10.82,6.22,17.3,19.89C104.36,75.3,108.55,109.9,97.15,128Zm57.61,40h50.55a8,8,0,0,0,6.2-2.93c18.85-23,14.22-66.65.29-96C202.93,50.31,191.64,40,180,40s-22.89,10.31-31.77,29c-13.93,29.38-18.56,73,.29,96A8.05,8.05,0,0,0,154.76,168Zm8-92.11C169.22,62.22,176.25,56,180,56s10.82,6.22,17.29,19.89c11.1,23.41,15.29,58,3.9,76.11H158.85C147.45,133.9,151.64,99.3,162.74,75.89Z',
-    list: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z',
-    mapPin: 'M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z',
-    cards: 'M184,72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V88A16,16,0,0,0,184,72Zm0,128H40V88H184V200ZM232,56V176a8,8,0,0,1-16,0V56H64a8,8,0,0,1,0-16H216A16,16,0,0,1,232,56Z',
-    compass: 'M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z',
-    dog: 'M239.71,125l-16.42-88a16,16,0,0,0-19.61-12.58l-.31.09L150.85,40h-45.7L52.63,24.56l-.31-.09A16,16,0,0,0,32.71,37.05L16.29,125a15.77,15.77,0,0,0,9.12,17.52A16.26,16.26,0,0,0,32.12,144,15.48,15.48,0,0,0,40,141.84V184a40,40,0,0,0,40,40h96a40,40,0,0,0,40-40V141.85a15.5,15.5,0,0,0,7.87,2.16,16.31,16.31,0,0,0,6.72-1.47A15.77,15.77,0,0,0,239.71,125ZM32,128h0L48.43,40,90.5,52.37Zm144,80H136V195.31l13.66-13.65a8,8,0,0,0-11.32-11.32L128,180.69l-10.34-10.35a8,8,0,0,0-11.32,11.32L120,195.31V208H80a24,24,0,0,1-24-24V123.11L107.92,56h40.15L200,123.11V184A24,24,0,0,1,176,208Zm48-80L165.5,52.37,207.57,40,224,128ZM104,140a12,12,0,1,1-12-12A12,12,0,0,1,104,140Zm72,0a12,12,0,1,1-12-12A12,12,0,0,1,176,140Z',
-    warning: 'M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z',
-    medal: 'M216,96A88,88,0,1,0,72,163.83V240a8,8,0,0,0,11.58,7.16L128,225l44.43,22.21A8.07,8.07,0,0,0,176,248a8,8,0,0,0,8-8V163.83A87.85,87.85,0,0,0,216,96ZM56,96a72,72,0,1,1,72,72A72.08,72.08,0,0,1,56,96ZM168,227.06l-36.43-18.21a8,8,0,0,0-7.16,0L88,227.06V174.37a87.89,87.89,0,0,0,80,0ZM128,152A56,56,0,1,0,72,96,56.06,56.06,0,0,0,128,152Zm0-96A40,40,0,1,1,88,96,40,40,0,0,1,128,56Z',
-    pawPrint: 'M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,212,120ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM44,120a12,12,0,1,1,12-12A12,12,0,0,1,44,120ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm0-40A12,12,0,1,1,80,60,12,12,0,0,1,92,48Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,48Zm23.12,100.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72ZM168,208a24,24,0,0,1-9.45-1.93,80.14,80.14,0,0,0-61.19,0,24,24,0,0,1-20.71-43.26,51.22,51.22,0,0,0,24.46-30.67,28,28,0,0,1,53.78,0,51.27,51.27,0,0,0,24.53,30.71A24,24,0,0,1,168,208Z',
-    play: 'M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z',
-    stop: 'M200,40H56A16,16,0,0,0,40,56V200a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,160H56V56H200V200Z',
-    plus: 'M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z',
-    minus: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z',
-    trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z',
-    x: 'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z',
-    deviceMobile: 'M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16ZM72,64H184V192H72Zm8-32h96a8,8,0,0,1,8,8v8H72V40A8,8,0,0,1,80,32Zm96,192H80a8,8,0,0,1-8-8v-8H184v8A8,8,0,0,1,176,224Z'
-  };
-  function svgIcon(name, size) {
-    var d = ICON_PATHS[name];
-    if (!d) return '';
-    size = size || 18;
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="' + d + '"/></svg>';
-  }
-  // 정적 마크업에 미리 넣어둔 data-icon 자리표시자를 실제 SVG로 채운다(HTML에 긴 path
-  // 문자열을 중복해서 쓰지 않기 위해 — ICON_PATHS가 단일 출처).
-  document.querySelectorAll('[data-icon]').forEach(function (el) {
-    el.innerHTML = svgIcon(el.getAttribute('data-icon'));
-  });
-
-  var walkBtn = document.getElementById('walk-btn');
-  var walkIcon = document.getElementById('walk-icon');
-  var pinBtn = document.getElementById('pin-btn');
-  var routeBtn = document.getElementById('route-btn');
-  var routeBtnLabel = routeBtn.querySelector('.btn-label');
-  var routePanel = document.getElementById('route-panel');
-  var routeSelect = document.getElementById('route-select');
-  var dogSizeSelect = document.getElementById('dog-size-select');
-  var statusText = document.getElementById('status-text');
-  var bottomBar = document.getElementById('bottom-bar');
-  var menuWrap = document.getElementById('menu-wrap');
-  var menuBtn = document.getElementById('menu-btn');
-  var menuDropdown = document.getElementById('menu-dropdown');
-
-  // route-panel(코스/견종 크기 선택)이 하단바와 겹치는 버그 수정용 — 하단바는
-  // flex-wrap: wrap이라 버튼이 4개(추천 루트/핀 꽂기/산책 시작/카드 만들기)로 늘어나면
-  // 좁은 화면(모바일)에서 2줄로 줄바꿈되며 높이가 커진다. route-panel의 bottom 값을
-  // CSS에 고정값으로 박아두면 하단바가 늘어난 만큼을 못 따라가서 겹쳐 보였음 — 대신
-  // 하단바의 실측 높이(offsetHeight)를 재서 그 바로 위로 매번 다시 배치한다.
-  function positionRoutePanel() {
-    var base = bottomBar.offsetHeight + 28; // 28 = 하단바 자체 bottom(18) + 여백(10)
-    routePanel.style.bottom = base + 'px';
-  }
-  positionRoutePanel();
-  window.addEventListener('resize', positionRoutePanel);
-
-  // 줌 컨트롤(topright)이 top-bar 우측 메뉴 버튼과 겹치지 않게, 그 실측 높이를 재서
-  // 여백을 맞춘다 — 위 positionRoutePanel과 같은 이유로 만든 함수. 메뉴가 버튼 하나로
-  // 줄어들면서(드롭다운은 position:absolute라 버튼 자체 높이에 영향 없음) 이제 거의 항상
-  // 고정 높이지만, 계속 재사용할 수 있게 그대로 둠. .leaflet-top.leaflet-right는
-  // initMap()이 줌 컨트롤을 추가한 뒤에야 DOM에 생기므로 initMap() 호출 이후에만 쓸 수 있다.
-  function positionZoomControl() {
-    var zoomWrap = document.querySelector('.leaflet-top.leaflet-right');
-    if (!zoomWrap || !menuWrap) return;
-    zoomWrap.style.marginTop = (menuWrap.offsetHeight + 14 + 10) + 'px'; // top-bar top(14) + 여백(10)
-  }
-  window.addEventListener('resize', positionZoomControl);
-
-  // 메뉴 버튼을 누르면 드롭다운 토글, 바깥을 클릭하면 닫힘.
-  // 관리자 도구 링크는 운영자 기기(스팟 편집 페이지에 토큰을 넣은 브라우저)에서만 보인다
-  try {
-    if (InfraPins.isAdminDevice()) {
-      Array.prototype.forEach.call(document.querySelectorAll('[data-admin]'), function (a) { a.hidden = false; });
-    }
-  } catch (e) { /* 링크만 안 보인다 */ }
-
-  menuBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    var willOpen = !menuDropdown.classList.contains('is-open');
-    menuDropdown.classList.toggle('is-open', willOpen);
-    menuBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-  });
-  document.addEventListener('click', function (e) {
-    if (!menuWrap.contains(e.target)) {
-      menuDropdown.classList.remove('is-open');
-      menuBtn.setAttribute('aria-expanded', 'false');
-    }
-  });
-
-  // 가게 QR 찍기(2026-11-16) — 산책 화면을 떠나지 않고 찍는다. 도장은 shop-visits.js가 남기고(하루 한 번, 위치는 안 읽음),
-  // 결과는 아래 알림 띠로. 휴대폰 카메라로 찍으면 브라우저가 열려 홈 화면 앱에 도장이 안 남을 수 있어서 만들었다.
-  (function () {
-    var link = document.getElementById('qr-scan-link');
-    if (!window.WalsonQR || !window.ShopVisits) return;
-    document.getElementById('qr-scan-icon').innerHTML = WalsonQR.icon(18);
-    link.hidden = false;
-    link.addEventListener('click', function (e) {
-      e.preventDefault();
-      menuDropdown.classList.remove('is-open');
-      menuBtn.setAttribute('aria-expanded', 'false');
-      WalsonQR.scan({
-        title: '가게 QR 찍기',
-        hint: '가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
-        onText: function (text) {
-          var id = ShopVisits.idFromQr(text);
-          if (!id) return /dex\.html#d=/.test(text)
-            ? '강아지 도감 QR이에요. 산책을 마치고 [카드] → 도감에서 찍어 주세요.'
-            : '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
-          var shop = ShopVisits.findShop(id);
-          if (!shop) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
-          var r = ShopVisits.stamp(id);
-          showWalkNotice((shop.name || '가게') + (r.already ? ' · 오늘 도장은 이미 찍었어요' : ' 방문 도장을 찍었어요 · ' + ShopVisits.countText(r)), true);
-          return true;
-        }
-      });
-    });
-  })();
-
-  // "홈 화면에 추가"(2026-09-26) — 안드로이드/크롬은 브라우저가 주는 설치 창(beforeinstallprompt)을
-  // 띄우고, 아이폰 사파리는 그런 API가 없어서 공유 버튼 경로를 안내한다. 이미 홈 화면 앱으로
-  // 열었으면 메뉴에서 숨긴다. 서비스워커(sw.js)는 설치 조건 때문에 두는 것이고 캐싱은 안 함.
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(function (err) {
-      console.warn('서비스워커 등록 실패:', err);
-    });
-  }
-  var installLink = document.getElementById('install-link');
-  var deferredInstallPrompt = null;
-  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // 아이패드 데스크톱 모드
-  installLink.hidden = isStandalone;
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault(); // 브라우저 기본 배너 대신 메뉴에서 원할 때 띄운다
-    deferredInstallPrompt = e;
-  });
-  window.addEventListener('appinstalled', function () {
-    deferredInstallPrompt = null;
-    installLink.hidden = true;
-  });
-  installLink.addEventListener('click', function (e) {
-    e.preventDefault();
-    menuDropdown.classList.remove('is-open');
-    menuBtn.setAttribute('aria-expanded', 'false');
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      deferredInstallPrompt.userChoice.finally(function () { deferredInstallPrompt = null; });
-    } else if (isIOS) {
-      alert('사파리 아래쪽의 공유 버튼(□↑)을 누르고 "홈 화면에 추가"를 선택하세요.');
-    } else {
-      alert('브라우저 메뉴(⋮)에서 "앱 설치" 또는 "홈 화면에 추가"를 선택하세요.');
-    }
-  });
-
-  var map, watchId = null, walking = false, walkStartTime = null;
-  var routeCoords = []; // Leaflet 좌표 순서: [lat, lng] (Mapbox와 반대이니 주의)
-  var routeSamples = []; // routeCoords와 같은 점 + GPS 측정 시각 — 구간 속도 계산용
-  var routeLine;
-  // 시연 모드면 배속 시계로 잰다(10배속이면 10배 빨리 흐름) — demo-geo.js
-  function isDemo() { return !!(window.PetwalkDemoGeo && PetwalkDemoGeo.on); }
-  function nowMs() { return isDemo() ? PetwalkDemoGeo.now() : Date.now(); }
-  (function () {
-    var t = document.getElementById('demo-toggle'), label = document.getElementById('demo-toggle-label');
-    if (!t || !window.PetwalkDemoGeo) return;
-    label.textContent = isDemo() ? '시연 모드 끄기(진짜 위치로)' : '시연 모드(가짜 위치) 켜기';
-    t.addEventListener('click', function (e) {
-      e.preventDefault();
-      if (walking && !confirm('산책 기록 중이에요. 시연 모드를 바꾸면 지금 산책은 저장되지 않아요. 계속할까요?')) return;
-      if (walking) clearActiveRoute();   // 버린 산책을 다음에 열 때 이어 하지 않게
-      if (isDemo()) PetwalkDemoGeo.disable(); else PetwalkDemoGeo.enable();
-    });
-  })();
-  var myLocationMarker = null;
-  var startMarker = null;   // 산책 출발점(작은 흰 점)
-  var lastFix = null;   // 마지막으로 받은 내 위치(화면 메모리에만) — 다음 미션 줄의 거리·방향에 쓴다
-  function setMyLocation(coord) {
-    lastFix = coord;
-    if (window.paintMissionBar) paintMissionBar();
-    if (myLocationMarker) myLocationMarker.setLatLng(coord);
-    else myLocationMarker = L.marker(coord, {
-      icon: L.divIcon({ className: 'my-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] }),
-      interactive: false, zIndexOffset: 1000
-    }).addTo(map);
-  }
-  function markStart(coord) {
-    if (startMarker) map.removeLayer(startMarker);
-    startMarker = L.marker(coord, {
-      icon: L.divIcon({ className: 'walk-start-dot', iconSize: [14, 14], iconAnchor: [7, 7] }),
-      interactive: false, zIndexOffset: 500
-    }).addTo(map);
-  }
-  // CLAUDE.md 규칙(권한 요청 전 이유 설명 필수)을 지키되, "한 번 동의했는데 새로고침마다
-  // 또 물어본다"는 피드백을 받아 localStorage에 저장하는 걸로 바꿈 — 예전엔 이 값이 그냥
-  // 메모리 변수(세션당 한 번)라 새로고침/앱 재실행마다 초기화돼서 매번 다시 물어봤었음.
-  // 브라우저 자체 위치 권한은 원래도 한 번 허용하면 계속 기억되는데, 우리 쪽 설명
-  // confirm()만 계속 다시 뜬 것.
-  var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';
-  var locationPermissionExplained = false;
-  try { locationPermissionExplained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 기본값(다시 안내)으로 진행 */ }
-
-  function markLocationExplained() {
-    locationPermissionExplained = true;
-    try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 저장 실패해도 이번 세션은 계속 진행 */ }
-  }
-
-  // 산책 루트 추천 (2026-09-07 추가): 다른 유저 데이터 기반 추천은 회원/백엔드가 필요해서
-  // "서비스 다이어트"로 보류된 B 영역에 해당함(PROJECT_CONTEXT.md 참고) — 대신 다산동 공원
-  // 몇 곳을 큐레이션한 루트를 지도에 얹는 방식으로 프로토타입에서도 바로 검증 가능하게 함.
-  // 중앙공원/수변공원 루트는 OSM에서 확인한 실제 공원 중심(2026-09-25)에 맞춰 옮긴 사각 루프라
-  // 공원 산책로를 정확히 따라가진 않는다 — 정확한 코스는 코스 관리 도구(course-builder.html, 11/16 내림)로 그렸었다.
-  // 아울렛 루트는 사용자가 준 네이버 지도 좌표(스페이스원)로 옮긴 작은 마름모라 건물을 실제로
-  // 한 바퀴 도는 모양은 아니다. (추천 루트는 11/14부터 숨김)
-  // 세 루트는 일부러 짧음/중간/김 순으로 거리 차이를 뚜렷하게 둠 — 전부 비슷하게 짧으면
-  // 아래 견종 크기별 "다소 길 수 있는 코스" 경고가 실제로 갈릴 일이 없어서 기능 확인이 안 됨.
-  //
-  // waypoints는 "여기를 순서대로 지나가는 실제 도로 경로를 그려줘"라고 라우팅 엔진에 넘기는
-  // 경유점일 뿐, 화면에 그리는 선 자체가 아니다 — 실제 그려지는 좌표(geometry)는 아래
-  // fetchRoadRoute()가 OSRM에서 받아와 채운다(영역/직선이 아니라 진짜 도로를 따라가게 하기 위함).
-  //
-  // 각 waypoints는 route.origin을 기준으로 한 상대적인 도형(짧음/중간/긴 루프)이기도 하다.
-  // "내 위치 주변으로 추천"일 때는 origin이 내 위치에 오도록 도형을 통째로 옮기는데(아래
-  // anchorWaypoints 참고), 그러면 "아울렛 둘레길"/"다산 중앙공원" 같은 다산동 지명이 실제
-  // 위치와 안 맞게 된다 — 그래서 실제 위치 기준일 때는 genericName/genericDesc(지명 없는
-  // 설명)를 대신 쓴다. 루트마다 origin을 따로 두는 이유: 지명 루트는 실제 공원 위치에 두면서도,
-  // 내 위치 기준으로 옮겼을 때 도형이 내 위치에서 멀리 떨어지지 않게 하기 위함.
-  var DEFAULT_CENTER = [37.6212, 127.1525]; // 지도 초기 중심 — 아울렛·다산중앙공원·다산수변공원의 가운데
-  var RECOMMENDED_ROUTES = [
-    {
-      name: '아울렛 둘레길', genericName: '짧은 코스',
-      desc: '짧게 한 바퀴, 시간 없을 때 추천', genericDesc: '짧게 한 바퀴, 시간 없을 때 추천',
-      origin: [37.61603, 127.15268],
-      waypoints: [
-        [37.61603, 127.15268], [37.61633, 127.15228], [37.61663, 127.15268],
-        [37.61633, 127.15308], [37.61603, 127.15268]
-      ]
-    },
-    {
-      name: '다산 중앙공원 한 바퀴', genericName: '중간 코스',
-      desc: '공원을 크게 도는 평탄한 코스', genericDesc: '넓게 한 바퀴 도는 평탄한 코스',
-      origin: [37.62105, 127.15787],
-      waypoints: [
-        [37.62185, 127.15777], [37.62475, 127.15777], [37.62475, 127.16147],
-        [37.62185, 127.16147], [37.62185, 127.15777]
-      ]
-    },
-    {
-      name: '수변공원 산책로', genericName: '긴 코스',
-      desc: '물길을 따라 걷는 여유로운 장거리 코스', genericDesc: '여유롭게 걷는 장거리 코스',
-      origin: [37.62351, 127.13989],
-      waypoints: [
-        [37.62151, 127.14219], [37.62641, 127.14219], [37.62641, 127.14839],
-        [37.62151, 127.14839], [37.62151, 127.14219]
-      ]
-    }
-  ];
-
-  // course-builder.html(코스 관리자 도구 — 11/16 내림, 예전에 저장한 코스만 남아 있으면 읽힘)에서 저장한 코스를 불러와 합친다 — 두 화면이 같은
-  // 오리진(kery27.github.io)이라 localStorage를 공유하므로, 코드를 복사해 index.html에
-  // 붙여넣지 않아도 저장하는 즉시 여기 "코스 선택" 목록에 나타난다.
-  // ⚠️ isAuthored: true로 표시해서 위 3개 예시 루트와 다르게 취급함 — 예시 루트는 가짜
-  // 기준점(DEFAULT_CENTER) 주변의 "상대적 도형"이라 anchorWaypoints()로 실제 위치에 맞게
-  // 옮기지만(위 "내 위치 주변으로 옮기기" 참고), 직접 그린 코스는 지도의 실제 좌표를 그대로
-  // 찍은 것이라 옮기면 안 됨 — getRouteGeometry()/buildRecommendedLayer()에서 이 플래그로
-  // 분기 처리한다.
-  var COURSE_BUILDER_STATE_KEY = 'petwalk_course_builder_state';
-  function loadAuthoredRoutes() {
-    try {
-      var raw = JSON.parse(localStorage.getItem(COURSE_BUILDER_STATE_KEY));
-      if (!raw || !Array.isArray(raw.drafts)) return [];
-      return raw.drafts
-        .filter(function (d) { return d && d.name && Array.isArray(d.waypoints) && d.waypoints.length >= 2; })
-        .map(function (d) {
-          return {
-            name: d.name, genericName: d.genericName || d.name,
-            desc: d.desc || '', genericDesc: d.genericDesc || d.desc || '',
-            waypoints: d.waypoints, isAuthored: true
-          };
-        });
-    } catch (e) { return []; }
-  }
-  RECOMMENDED_ROUTES = RECOMMENDED_ROUTES.concat(loadAuthoredRoutes());
-
-  // 견종별 정확한 데이터베이스는 프로토타입 범위를 벗어나서(품종별 실측 보행 속도 자료가 없음),
-  // 대신 소/중/대형견 3단계 크기 프로필로 가볍게 근사한다 — 코스 소요 시간이 크기마다 달라지고,
-  // 권장 거리를 넘는 코스는 지도에서 색으로 바로 구분되게 한다(아래 buildRecommendedLayer 참고).
-  var DOG_SIZE_KEY = 'petwalk_dog_size';
-  var DOG_SIZE_PROFILES = {
-    small: { label: '소형견 (말티즈·포메라니안·치와와 등)', speedKmh: 2.5, maxRecommendedKm: 1.0 },
-    medium: { label: '중형견 (비글·시바견·웰시코기 등)', speedKmh: 3.5, maxRecommendedKm: 2.0 },
-    large: { label: '대형견 (리트리버·진돗개·허스키 등)', speedKmh: 4.5, maxRecommendedKm: 4.0 }
-  };
-  // 크기 기본값 우선순위: 이 화면에서 직접 고른 적 있으면(DOG_SIZE_KEY) 그걸 그대로 쓰고,
-  // 없으면 profile.html에 등록해둔 크기(PROFILE_KEY)를 대신 쓴다 — 프로필을 등록해두면
-  // "우리 아이 크기"를 매번 다시 고를 필요가 없어짐. 둘 다 없으면 중형견 기본값.
-  var PROFILE_KEY = 'petwalk_profile';
-  var dogSize = 'medium';
-  try {
-    var savedDogSize = localStorage.getItem(DOG_SIZE_KEY);
-    if (savedDogSize && DOG_SIZE_PROFILES[savedDogSize]) {
-      dogSize = savedDogSize;
-    } else {
-      var profile = JSON.parse(localStorage.getItem(PROFILE_KEY));
-      if (profile && profile.size && DOG_SIZE_PROFILES[profile.size]) dogSize = profile.size;
-    }
-  } catch (e) { /* 스토리지 접근 불가 환경 — 기본값(중형견)으로 계속 진행 */ }
-
-  var recommendedLayer = null;
-  var recommendedVisible = false;
-  var routeAnchor = null; // 실제 위치를 받아오면 [lat,lng], 못 받아오면 null(=다산동 예시 좌표 그대로)
-  var routeAnchorResolved = false; // 위치 요청을 한 번 시도했는지(성공/실패 무관) — 매번 다시 묻지 않기 위함
-  var selectedRouteIndex = 0; // 여러 루트를 한꺼번에 보여주지 않고, 고른 것 하나만 지도에 표시
-
-  // 산책 보상 개념 자체를 없애기로 한 결정(2026-09-02, PROJECT_CONTEXT.md "최종 결정: 보상
-  // 개념 자체를 폐기" 참고)에 따라, 아래 기록은 달성/실패를 판정하지 않는 순수 정보성 통계다.
-  // 스트릭이 끊겨도 페널티 문구 없이 그냥 조용히 0으로 보여준다.
+  var $ = function (id) { return document.getElementById(id); };
   var WALKS_KEY = 'petwalk_walks';
   var LAST_WALK_KEY = 'petwalk_last_walk';
-  var PINS_KEY = 'petwalk_pins'; // 산책 중 남긴 핀 — 예전엔 지도 위 표시만 하고 저장 안 했음(TODO였던 부분)
-
-  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-  function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
-
-  function loadWalks() {
-    try { return JSON.parse(localStorage.getItem(WALKS_KEY)) || []; } catch (e) { return []; }
-  }
-
-  function loadPins() {
-    try { return JSON.parse(localStorage.getItem(PINS_KEY)) || []; } catch (e) { return []; }
-  }
-
-  // id는 Date.now()를 그대로 쓴다 — 한 사람이 같은 밀리초에 핀을 두 번 찍을 일은 없으니
-  // 별도 ID 생성 로직 없이 "언제 찍었는지"와 "어느 핀인지"를 한 값으로 겸함.
-  function savePin(lat, lng, memo) {
-    var pins = loadPins();
-    var id = Date.now();
-    pins.push({ id: id, lat: lat, lng: lng, memo: memo || null });
-    try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) { /* 저장 실패해도 화면엔 이미 표시됨 */ }
-    return id;
-  }
-
-  function deletePin(id) {
-    var pins = loadPins().filter(function (p) { return p.id !== id; });
-    try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) { /* 저장 실패해도 화면에서는 이미 지워짐 */ }
-  }
-
-  // 핀 마커를 만드는 로직 — 방금 찍은 핀(pinBtn 클릭)과 저장돼 있던 핀(앱 재실행 시 복원)
-  // 둘 다 이 함수를 통해서 만든다(그리기 방식이 갈라지지 않게 하나로 통일). 팝업의 X는
-  // 팝업을 닫을 뿐이고, 안의 "핀 삭제" 버튼이 핀 자체를 지도와 저장소에서 지운다.
-  function addPinMarker(id, lat, lng, memo) {
-    var icon = L.divIcon({ className: 'pin-marker', iconSize: [28, 28], iconAnchor: [14, 28] });
-    var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
-
-    var wrap = document.createElement('div');
-    wrap.className = 'pin-popup';
-    var memoEl = document.createElement('div');
-    memoEl.className = memo ? 'pin-popup-memo' : 'pin-popup-empty';
-    memoEl.textContent = memo || '메모 없음';
-    wrap.appendChild(memoEl);
-
-    var delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'pin-delete-btn';
-    delBtn.innerHTML = svgIcon('trash', 14) + '<span>이 핀 삭제</span>';
-    delBtn.addEventListener('click', function () {
-      map.removeLayer(marker);
-      deletePin(id);
-    });
-    wrap.appendChild(delBtn);
-
-    marker.bindPopup(wrap);
-    return marker;
-  }
-
-  function restoreSavedPins() {
-    loadPins().forEach(function (p) { addPinMarker(p.id, p.lat, p.lng, p.memo); });
-  }
-
-  // ── 동네 시설 핀(2026-11-14) ──
-  // 산책을 하기 전에도 앱을 열 이유가 있게, 첫 화면 지도에 공용 시설(공원·화장실·동물병원 등)을
-  // 종류별 핀으로 띄운다. 데이터는 infra-pins.js(배포본에 박아둔 것 + 이 기기에서 운영자가 찍은 것)
-  // 에서만 읽고, 여기서 외부로 보내는 것은 없다. 위의 "핀 꽂기"(개인 메모 핀)와는 별개 레이어다.
-  // 순서(우선순위)·보이는 확대 단계·처음엔 꺼 둠은 운영자가 스팟 편집에서 정한 것을 [동네]와 같이 쓴다
-  // (infra-pins.js layout, 2026-11-15). 산책 화면은 좁아서 묶음으로 접지 않고 우선순위 순서로 한 줄에 둔다.
-  var infraLayers = {};                           // 종류 key → L.layerGroup
-  var infraLayout = null, infraFilter = null;     // initInfraLayer에서 채운다
-
-  // 팝업은 [동네]와 같은 모양(사진 중심) — infra-pins.js가 만든다
-  function buildInfraPopup(pin) { return InfraPins.popupEl(pin); }
-
-  function syncInfraVisibility() {
-    var zoom = map.getZoom();
-    Object.keys(infraLayers).forEach(function (key) {
-      // 레이어마다 정해 둔 확대 단계부터 보인다(멀리 보면 핀이 뭉쳐서 지도를 가리므로)
-      var show = zoom >= infraLayout.byKey[key].minZoom && !infraFilter.isOff(key);
-      if (show && !map.hasLayer(infraLayers[key])) map.addLayer(infraLayers[key]);
-      if (!show && map.hasLayer(infraLayers[key])) map.removeLayer(infraLayers[key]);
-    });
-  }
-
-  function initInfraLayer() {
-    var chipsEl = document.getElementById('infra-chips');
-    if (!window.InfraPins || !chipsEl) return;
-    infraLayout = InfraPins.layout();
-    infraFilter = InfraPins.filterState(infraLayout);
-
-    var counts = {};
-    InfraPins.all().forEach(function (pin) {
-      if (!InfraPins.category(pin.cat) || typeof pin.lat !== 'number' || typeof pin.lng !== 'number') return;
-      if (!infraLayers[pin.cat]) infraLayers[pin.cat] = L.layerGroup();
-      counts[pin.cat] = (counts[pin.cat] || 0) + 1;
-      var m = InfraPins.markerFor(pin); // 동반 스팟은 크게, 나머지는 작게
-      L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: infraLayout.byKey[pin.cat].z + m.zIndexOffset / 20 })
-        .bindPopup(buildInfraPopup(pin), InfraPins.POPUP_OPTS)
-        .addTo(infraLayers[pin.cat]);
-    });
-
-    // 핀이 하나도 없는 종류는 칩을 만들지 않는다(눌러도 아무것도 안 나오는 버튼을 두지 않기 위함).
-    infraLayout.list.forEach(function (layer) {
-      var cat = InfraPins.category(layer.key);   // 발도장·내 핀·그림 강아지는 [동네]에만 있다
-      if (!cat || !counts[cat.key]) return;
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'infra-chip';
-      chip.setAttribute('aria-pressed', infraFilter.isOff(cat.key) ? 'false' : 'true');
-      chip.innerHTML = '<span class="dot" style="background:' + cat.color + '">' + InfraPins.iconSvg(cat.key, 11) + '</span>';
-      var label = document.createElement('span');
-      label.textContent = cat.label;
-      chip.appendChild(label);
-      var count = document.createElement('span');
-      count.className = 'count';
-      count.textContent = counts[cat.key];
-      chip.appendChild(count);
-      chip.addEventListener('click', function () {
-        infraFilter.toggle(cat.key);
-        chip.setAttribute('aria-pressed', infraFilter.isOff(cat.key) ? 'false' : 'true');
-        syncInfraVisibility();
-      });
-      chipsEl.appendChild(chip);
-    });
-
-    map.on('zoomend', syncInfraVisibility);
-    syncInfraVisibility();
-  }
-
-  function computeStreakDays(walks) {
-    var days = {};
-    walks.forEach(function (w) { days[w.date] = true; });
-    var streak = 0;
-    var d = new Date();
-    while (days[dateKey(d)]) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    }
-    return streak;
-  }
-
-  function walksThisMonthCount(walks) {
-    var ym = dateKey(new Date()).slice(0, 7);
-    return walks.filter(function (w) { return w.date.slice(0, 7) === ym; }).length;
-  }
-
-  function showIdleStats() {
-    var walks = loadWalks();
-    if (!walks.length) return;
-    // 위쪽 칩 안에 들어가게 짧게(2026-11-16 — 360px 폰에서 "…일째"가 잘렸음)
-    statusText.textContent = '이번 달 ' + walksThisMonthCount(walks) + '번 · 연속 ' + computeStreakDays(walks) + '일';
-  }
-
-  // 두 GPS 좌표([lat, lng]) 사이 거리(km) — 하버사인 공식
-  function haversineKm(a, b) {
-    var R = 6371;
-    var toRad = function (deg) { return deg * Math.PI / 180; };
-    var dLat = toRad(b[0] - a[0]);
-    var dLng = toRad(b[1] - a[1]);
-    var lat1 = toRad(a[0]), lat2 = toRad(b[0]);
-    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
-    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-  }
-
-  function computeRouteDistanceKm(coords) {
-    var total = 0;
-    for (var i = 1; i < coords.length; i++) total += haversineKm(coords[i - 1], coords[i]);
-    return total;
-  }
+  var PINS_KEY = 'petwalk_pins';          // 산책 중 꽂은 핀(메모) — 지도 보기 안에서 꽂고 지운다
+  var PROFILE_KEY = 'petwalk_profile';
+  var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';
+  var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(공용 장소)
 
   // 최소한의 조작 방지(2026-09-25) — 완벽히 막는 게 아니라 "명백히 산책이 아닌 것"만 거른다.
-  // 실제 산책이 잘못 걸러지지 않도록 기준은 보수적으로 잡았다(반려견과 뛰는 속도 ~10km/h는 통과).
   var WALK_RULES = {
     maxAccuracyM: 50,      // 이보다 부정확한 GPS 점은 버림(튀는 점 때문에 거리가 부풀려지는 것 방지)
     maxWalkSpeedKmh: 15,   // 이보다 빠른 구간(차/자전거)은 산책 거리·발도장에서 뺌
     minRewardMinutes: 5,   // 이보다 짧은 산책은 기록만 남고 보상 횟수엔 안 들어감
     minRewardKm: 0.2
   };
+  // 화면 꺼짐(2026-09-26) · 주머니 산책(2026-11-16): 모바일 브라우저는 화면이 꺼지거나 다른 앱으로 가면 위치를 못 받는다.
+  // 끊긴 구간은 앞뒤 점을 직선으로 잇고, 걷는 속도면 거리·바로 판정에 넣는다(산책 끝 판정 analyzeWalk와 같은 기준).
+  var GAP_MS = 60 * 1000;
+  // 앱이 아예 닫혀도(아이폰이 숨겨 둔 앱을 정리) 이어지게 진행 중인 산책을 이 휴대폰에만 저장한다. 시연 모드 산책은 저장 안 함.
+  var ACTIVE_ROUTE_KEY = 'petwalk_active_route';   // { v:1, startedAt, samples:[[lat,lng,ms]], liveKm, visited, gapMs, savedAt }
+  var ROUTE_STALE_MS = 3 * 60 * 60 * 1000;
+  // 화면 켜 두기는 기본 꺼짐(0단계) — 켠 사람만 Wake Lock
+  var KEEP_SCREEN_KEY = 'petwalk_keep_screen';
+  var POCKET_TIP = '화면을 꺼서 주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
+  var KEEP_TIP = '화면을 켜 둘게요 — 길이 자세히 남아요. 주머니에 넣을 땐 전원 버튼으로 꺼 주세요.';
+  var REST_RADIUS_KM = 0.05, REST_ASK_MS = 20 * 60 * 1000;
 
-  // samples: [{ c: [lat,lng], t: ms }] → 걷는 속도 구간만 합친 거리와 그 구간의 점들
-  function analyzeWalk(samples) {
-    var walkKm = 0, fastKm = 0, walkingPoints = [];
-    for (var i = 1; i < samples.length; i++) {
-      var a = samples[i - 1], b = samples[i];
-      var km = haversineKm(a.c, b.c);
-      var hours = (b.t - a.t) / 3600000;
-      if (hours <= 0) continue;
-      if (km / hours > WALK_RULES.maxWalkSpeedKmh) {
-        fastKm += km;
-      } else {
-        walkKm += km;
-        walkingPoints.push(a.c, b.c);
-      }
-    }
-    return { walkKm: walkKm, fastKm: fastKm, walkingPoints: walkingPoints };
+  function isDemo() { return !!(window.PetwalkDemoGeo && PetwalkDemoGeo.on); }
+  function nowMs() { return isDemo() ? PetwalkDemoGeo.now() : Date.now(); }
+  function loadJSON(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch (e) { return fb; } }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function loadWalks() { return loadJSON(WALKS_KEY, []); }
+  function keepScreen() { try { return localStorage.getItem(KEEP_SCREEN_KEY) === '1'; } catch (e) { return false; } }
+  function haversineKm(a, b) {
+    var R = 6371, t = Math.PI / 180;
+    var dLat = (b[0] - a[0]) * t, dLng = (b[1] - a[1]) * t;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a[0] * t) * Math.cos(b[0] * t) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
   }
-
-  // 발자국 잔상(2026-09-26, PROJECT_CONTEXT.md "동화책 속 산책 지도" 2번) — 걸어간 길 뒤로 🐾가
-  // 일정 간격으로 좌우 엇갈려 찍힌다. 차/자전거 속도 구간(WALK_RULES)엔 안 찍어서 "걸은 곳"만 남는다.
-  var FOOTPRINT = { stepKm: 0.018, minZoom: 17 }; // 줌 17에서 약 20px 간격
-  var footprintLayer; // initMap에서 만듦
-  var footprintCarryKm = 0, footprintCount = 0;
-  var PAW_SVG = '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">' +
-    '<ellipse cx="10" cy="13.6" rx="4.6" ry="4"/><circle cx="3.9" cy="8.4" r="2"/>' +
-    '<circle cx="7.6" cy="4.6" r="2"/><circle cx="12.4" cy="4.6" r="2"/><circle cx="16.1" cy="8.4" r="2"/></svg>';
-
-  // 북쪽 0°, 시계 방향 — CSS rotate와 같은 방향이라 그대로 쓰면 발가락이 진행 방향을 향한다
   function bearingDeg(a, b) {
-    var dx = (b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180);
-    var dy = b[0] - a[0];
-    return Math.atan2(dx, dy) * 180 / Math.PI;
+    var t = Math.PI / 180, y = Math.sin((b[1] - a[1]) * t) * Math.cos(b[0] * t);
+    var x = Math.cos(a[0] * t) * Math.sin(b[0] * t) - Math.sin(a[0] * t) * Math.cos(b[0] * t) * Math.cos((b[1] - a[1]) * t);
+    return (Math.atan2(y, x) / t + 360) % 360;
   }
-
-  function resetFootprints() {
-    footprintLayer.clearLayers();
-    footprintCarryKm = 0;
-    footprintCount = 0;
-  }
-
-  function placeFootprint(coord, angle) {
-    var side = footprintCount++ % 2 ? 4 : -4;
-    L.marker(coord, {
-      icon: L.divIcon({
-        className: 'footprint', iconSize: [14, 14], iconAnchor: [7, 7],
-        html: '<span style="transform: rotate(' + angle.toFixed(0) + 'deg) translateX(' + side + 'px)">' + PAW_SVG + '</span>'
-      }),
-      interactive: false, keyboard: false
-    }).addTo(footprintLayer);
-  }
-
-  // a → b 구간에 stepKm마다 발자국을 찍는다. 앞 구간에서 남은 거리(carry)를 이어받아서
-  // GPS 점 간격과 상관없이 발자국 간격이 일정하게 유지된다.
-  function addFootprints(a, b, isFast) {
-    var d = haversineKm(a.c, b.c);
-    if (isFast) { footprintCarryKm = 0; return; }
-    if (d === 0) return;
-    var angle = bearingDeg(a.c, b.c);
-    var next = FOOTPRINT.stepKm - footprintCarryKm;
-    while (next <= d) {
-      var f = next / d;
-      placeFootprint([a.c[0] + (b.c[0] - a.c[0]) * f, a.c[1] + (b.c[1] - a.c[1]) * f], angle);
-      next += FOOTPRINT.stepKm;
-    }
-    footprintCarryKm = d - (next - FOOTPRINT.stepKm);
-  }
-
+  function kmText(km) { return km < 1 ? Math.round(km * 100) * 10 + 'm' : km.toFixed(1) + 'km'; }
   function isFastSegment(a, b) {
     var hours = (b.t - a.t) / 3600000;
     return hours > 0 && haversineKm(a.c, b.c) / hours > WALK_RULES.maxWalkSpeedKmh;
   }
-
-  // 발자국이 보이는 줌에선 경로선을 옅게 깔아 발자국이 주인공이 되게 하고, 줌아웃하면 선만 진하게
-  function updateFootprintVisibility() {
-    var show = map.getZoom() >= FOOTPRINT.minZoom;
-    map.getContainer().classList.toggle('footprints-off', !show);
-    routeLine.setStyle(show ? { opacity: 0.3, weight: 4 } : { opacity: 0.9, weight: 5 });
-  }
-
-  // Chaikin 코너 커팅(각 변의 25%/75% 지점에 점을 찍어 꼭짓점을 대체 → 반복할수록 둥글게 깎임).
-  // 아래 fetchRoadRoute()가 실패했을 때만 쓰는 대체용 — 실제 도로 경로를 못 받아오면 최소한
-  // 직각으로 꺾이는 사각형 대신 둥근 근사 경로라도 보여준다.
-  function chaikinSmooth(points, iterations) {
-    var pts = points;
-    for (var iter = 0; iter < iterations; iter++) {
-      var next = [];
-      for (var i = 0; i < pts.length - 1; i++) {
-        var p0 = pts[i], p1 = pts[i + 1];
-        next.push([p0[0] * 0.75 + p1[0] * 0.25, p0[1] * 0.75 + p1[1] * 0.25]);
-        next.push([p0[0] * 0.25 + p1[0] * 0.75, p0[1] * 0.25 + p1[1] * 0.75]);
-      }
-      next.push(next[0]); // 루프 닫힘 유지
-      pts = next;
+  // samples: [{ c: [lat,lng], t: ms }] → 걷는 속도 구간만 합친 거리와 그 구간의 점들(발도장 판정용)
+  function analyzeWalk(samples) {
+    var walkKm = 0, fastKm = 0, walkingPoints = [];
+    for (var i = 1; i < samples.length; i++) {
+      var a = samples[i - 1], b = samples[i];
+      var km = haversineKm(a.c, b.c), hours = (b.t - a.t) / 3600000;
+      if (hours <= 0) continue;
+      if (km / hours > WALK_RULES.maxWalkSpeedKmh) fastKm += km;
+      else { walkKm += km; walkingPoints.push(a.c, b.c); }
     }
-    return pts;
+    return { walkKm: walkKm, fastKm: fastKm, walkingPoints: walkingPoints };
   }
-
-  // waypoints를 실제 도로 네트워크를 따라 잇는 경로로 바꿔주는 라우팅 엔진 호출.
-  // 가입/키 없이 쓸 수 있는 OSRM 공개 데모 서버(router.project-osrm.org)를 사용함 — 다만
-  // 이름 그대로 "데모"용 공개 서버라 실제 서비스로 트래픽이 늘면(공개 OSM 타일 서버와 같은
-  // 이유, PROJECT_CONTEXT.md "지도 API 변경" 참고) 자체 호스팅 OSRM이나 유료 라우팅 API로
-  // 옮겨야 한다. 실패(네트워크 오류/응답 이상/타임아웃)하면 null을 돌려주고, 호출부에서
-  // chaikinSmooth로 대체한다.
-  function fetchRoadRoute(waypoints) {
-    var coordStr = waypoints.map(function (p) { return p[1] + ',' + p[0]; }).join(';'); // OSRM은 lng,lat 순서
-    var url = 'https://router.project-osrm.org/route/v1/foot/' + coordStr + '?overview=full&geometries=geojson';
-    var controller = new AbortController();
-    var timeoutId = setTimeout(function () { controller.abort(); }, 6000);
-    return fetch(url, { signal: controller.signal })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.code !== 'Ok' || !data.routes || !data.routes[0]) throw new Error('OSRM 응답 이상: ' + data.code);
-        return data.routes[0].geometry.coordinates.map(function (c) { return [c[1], c[0]]; }); // [lng,lat] → [lat,lng]
-      })
-      .catch(function (err) {
-        console.warn('실제 도로 경로를 불러오지 못해 대략적인 경로로 대체합니다:', err);
-        return null;
-      })
-      .finally(function () { clearTimeout(timeoutId); });
-  }
-
-  // route.waypoints는 route.origin을 기준으로 한 상대적 도형이다.
-  // anchor가 있으면(=실제 위치를 받아왔으면) origin이 anchor에 오도록 도형을 통째로 평행이동시켜서,
-  // "다산동 예시 루트"가 아니라 "내 위치 근처의 같은 모양 루트"가 되게 한다.
-  function anchorWaypoints(waypoints, anchor, origin) {
-    if (!anchor) return waypoints;
-    var dLat = anchor[0] - origin[0];
-    var dLng = anchor[1] - origin[1];
-    return waypoints.map(function (p) { return [p[0] + dLat, p[1] + dLng]; });
-  }
-
-  // 도로 경로(geometry)는 한 번 받아오면 route 객체에 캐시해서, 견종 크기를 바꿔 다시 그릴 때
-  // 매번 다시 요청하지 않게 한다(거리/시간 재계산만 필요하고 경로 모양은 안 바뀌므로). routeAnchor는
-  // 세션 중 한 번 정해지면 안 바뀌므로(아래 resolveRouteAnchor) 이 캐시도 계속 유효하다.
-  function getRouteGeometry(route) {
-    if (route.geometry) return Promise.resolve(route.geometry);
-    // 직접 그린 코스(isAuthored)는 실제 좌표를 찍은 것이라 옮기지 않는다 — anchorWaypoints는
-    // 다산동 예시 루트(가짜 기준점 주변 상대 도형)에만 적용.
-    var waypoints = route.isAuthored ? route.waypoints : anchorWaypoints(route.waypoints, routeAnchor, route.origin);
-    return fetchRoadRoute(waypoints).then(function (geo) {
-      route.isFallback = !geo;
-      route.geometry = geo || chaikinSmooth(waypoints, 3);
-      return route.geometry;
-    });
-  }
-
-  // 처음엔 여러 루트를 한꺼번에 다 보여줬는데, "코스 선택"에서 고른 루트 하나만 지도에
-  // 표시하도록 바꿈(2026-09-23) — selectedRouteIndex가 가리키는 루트만 그린다. 선택된
-  // 견종 크기 기준으로 매번 새로 그린다 — 크기를 바꾸면 코스별 소요 시간과 "적합/무리"
-  // 색상이 즉시 다시 계산돼야 하므로, 캐시-무효화보다 매번 재계산이 더 단순함(경로 모양 자체는
-  // getRouteGeometry가 캐시하므로 이 부분은 네트워크 호출 없이 빠르게 끝남).
-  function buildRecommendedLayer() {
-    var profile = DOG_SIZE_PROFILES[dogSize];
-    var route = RECOMMENDED_ROUTES[selectedRouteIndex];
-    var layer = L.layerGroup();
-    return getRouteGeometry(route).then(function (geometry) {
-      var distanceKm = computeRouteDistanceKm(geometry);
-      var minutes = Math.max(1, Math.round(distanceKm / profile.speedKmh * 60));
-      var tooLong = distanceKm > profile.maxRecommendedKm;
-
-      var line = L.polyline(geometry, {
-        color: tooLong ? '#c98a2e' : '#5f8f5a', weight: 4, opacity: 0.85,
-        dashArray: route.isFallback ? '8 8' : null // 실제 도로 경로는 실선, 대체 경로만 점선으로 구분
-      });
-      var flagIcon = L.divIcon({
-        className: 'route-flag', html: svgIcon('path', 16),
-        iconSize: [30, 30], iconAnchor: [15, 26]
-      });
-      var marker = L.marker(geometry[0], { icon: flagIcon });
-      var warning = tooLong
-        ? '<div class="popup-warning">' + svgIcon('warning', 14) + '<span>' +
-          profile.label.split(' (')[0] + '에게는 다소 길 수 있는 코스예요</span></div>'
-        : '';
-      var fallbackNote = route.isFallback
-        ? '<br><small>(실제 도로 경로를 불러오지 못해 대략적으로 표시)</small>'
-        : '';
-      // 내 위치 기준으로 옮긴 "예시" 루트는 "아울렛 둘레길"처럼 다산동 지명을 쓰면 실제
-      // 장소와 안 맞으니, 이때는 지명 없는 일반 이름/설명(genericName/genericDesc)을 대신
-      // 쓴다 — 하지만 직접 그린 코스(isAuthored)는 옮기지 않고 실제 위치 그대로라 이름도
-      // 항상 원래 이름을 쓴다.
-      var useGeneric = routeAnchor && !route.isAuthored;
-      var displayName = useGeneric ? route.genericName : route.name;
-      var displayDesc = useGeneric ? route.genericDesc : route.desc;
-      marker.bindPopup(
-        '<div class="popup-title">' + svgIcon('path', 15) + '<span>' + displayName + '</span></div>' +
-        displayDesc + '<br>' +
-        distanceKm.toFixed(1) + 'km · 약 ' + minutes + '분' + warning + fallbackNote
-      );
-
-      line.addTo(layer);
-      marker.addTo(layer);
-      return layer;
-    });
-  }
-
-  // route-select 드롭다운 옵션을 채운다 — routeAnchor 유무에 따라 다산동 지명/일반 이름 중
-  // 하나를 보여줘야 해서(위 buildRecommendedLayer의 displayName 로직과 동일한 기준), 위치
-  // anchor가 바뀔 때마다(resolveRouteAnchor 완료 시, locateMe 성공 시) 다시 호출해준다.
-  function populateRouteSelect() {
-    routeSelect.innerHTML = '';
-    RECOMMENDED_ROUTES.forEach(function (route, i) {
-      var opt = document.createElement('option');
-      opt.value = i;
-      var useGeneric = routeAnchor && !route.isAuthored;
-      opt.textContent = useGeneric ? route.genericName : route.name;
-      if (i === selectedRouteIndex) opt.selected = true;
-      routeSelect.appendChild(opt);
-    });
-  }
-  populateRouteSelect();
-
-  routeSelect.addEventListener('change', function () {
-    selectedRouteIndex = parseInt(routeSelect.value, 10);
-    refreshRecommendedLayer();
-  });
-
-  // 추천 루트가 켜져 있을 때 화면을 다시 그린다(코스 선택/견종 크기가 바뀔 때 공용으로 씀) —
-  // 꺼져 있으면 아무 것도 안 함(다음에 켤 때 buildRecommendedLayer가 최신 상태로 그림).
-  function refreshRecommendedLayer() {
-    if (!recommendedVisible) return;
-    var oldLayer = recommendedLayer;
-    buildRecommendedLayer().then(function (layer) {
-      if (oldLayer) map.removeLayer(oldLayer);
-      recommendedLayer = layer;
-      if (recommendedVisible) recommendedLayer.addTo(map);
-    });
-  }
-
-  // "추천 루트"를 처음 켤 때 위치를 한 번 시도한다 — 성공하면 그 위치를 anchor로 써서 루트를
-  // 내 위치 근처로 옮기고, 거부/실패하면 null로 남아서 다산동 예시 좌표를 그대로 쓴다. 한 번
-  // 시도한 뒤에는(routeAnchorResolved) 매번 다시 위치를 묻지 않고 결과를 재사용한다 — 단,
-  // 사용자가 우리 확인창 자체를 거부한 경우는 resolved를 세우지 않아서 다음에 다시 물어볼 수
-  // 있게 둔다(브라우저 권한을 아직 진짜로 요청한 게 아니라서).
-  function resolveRouteAnchor() {
-    if (routeAnchorResolved) return Promise.resolve(routeAnchor);
-    if (!navigator.geolocation) {
-      routeAnchorResolved = true;
-      return Promise.resolve(null);
-    }
-    if (!locationPermissionExplained) {
-      if (!confirm('내 위치 주변으로 추천 루트를 보여드리려면 위치 정보 접근 권한이 필요합니다. 허용할까요?')) {
-        return Promise.resolve(null);
-      }
-      markLocationExplained();
-    }
-    return new Promise(function (resolve) {
-      WalsonGeo.locate(
-        function (pos) {
-          routeAnchor = [pos.coords.latitude, pos.coords.longitude];
-          routeAnchorResolved = true;
-          resolve(routeAnchor);
-        },
-        function () {
-          routeAnchorResolved = true; // 실패는 매번 재시도하지 않고 다산동 예시로 계속 진행
-          resolve(null);
-        }
-      );
-    });
-  }
-
-  function toggleRecommendedRoutes() {
-    recommendedVisible = !recommendedVisible;
-    if (recommendedVisible) {
-      routeBtn.disabled = true;
-      routeBtnLabel.textContent = '불러오는 중...';
-      resolveRouteAnchor().then(function () {
-        populateRouteSelect(); // anchor가 방금 정해졌을 수 있으니 옵션 라벨(다산동 지명/일반 이름) 갱신
-        return buildRecommendedLayer();
-      }).then(function (layer) {
-        recommendedLayer = layer;
-        routeBtn.disabled = false;
-        if (recommendedVisible) { // 로딩 중 사용자가 다시 꺼버렸을 수도 있음
-          recommendedLayer.addTo(map);
-          routeBtnLabel.textContent = '추천 루트 숨기기';
-          positionRoutePanel(); // 버튼 텍스트가 막 바뀐 뒤라 하단바 줄바꿈이 달라졌을 수 있음
-          routePanel.classList.add('is-visible');
-          positionRoutePanel(); // 보상 패널이 떠 있으면 코스 패널 위로 올려야 함
-        }
-      });
-    } else {
-      if (recommendedLayer) map.removeLayer(recommendedLayer);
-      recommendedLayer = null;
-      routeBtnLabel.textContent = '추천 루트';
-      routePanel.classList.remove('is-visible');
-      positionRoutePanel();
-    }
-  }
-
-  routeBtn.addEventListener('click', toggleRecommendedRoutes);
-
-  Object.keys(DOG_SIZE_PROFILES).forEach(function (key) {
-    var opt = document.createElement('option');
-    opt.value = key;
-    opt.textContent = DOG_SIZE_PROFILES[key].label;
-    if (key === dogSize) opt.selected = true;
-    dogSizeSelect.appendChild(opt);
-  });
-
-  dogSizeSelect.addEventListener('change', function () {
-    dogSize = dogSizeSelect.value;
-    try { localStorage.setItem(DOG_SIZE_KEY, dogSize); } catch (e) { /* 저장 실패해도 이번 세션 선택은 유지 */ }
-    // 경로 모양(geometry)은 route 객체에 캐시돼 있어 네트워크 호출 없이 바로 재계산만 하므로
-    // 빠르게 끝남 — 로딩 문구를 따로 띄우지 않아도 됨.
-    refreshRecommendedLayer();
-  });
-
-  // 산책 기록 리스트(walk-history.html)에서 코스 모양 썸네일을 그릴 수 있게, 실제 걸은
-  // 경로도 같이 저장한다 — 다만 GPS 포인트를 다 저장하면(watchPosition은 초 단위로 찍힘)
-  // 금방 커지니, 썸네일 하나 그리는 데 필요한 정도로만 듬성듬성 줄인다(최대 60개점).
+  // [기록] 썸네일용으로 듬성듬성 줄인다(최대 60개 점)
   function simplifyRoute(coords, maxPoints) {
     if (coords.length <= maxPoints) return coords.slice();
-    var step = Math.ceil(coords.length / maxPoints);
-    var out = [];
+    var step = Math.ceil(coords.length / maxPoints), out = [];
     for (var i = 0; i < coords.length; i += step) out.push(coords[i]);
     var last = coords[coords.length - 1];
     if (out[out.length - 1][0] !== last[0] || out[out.length - 1][1] !== last[1]) out.push(last);
     return out;
   }
-
-  // [오늘]·[기록]·[카드](my-card.html)가 읽어가도록 이번 산책 기록을 저장하고, 총 누적
-  // 거리/스트릭을 계산해 돌려준다. route는 썸네일용 전체 경로, stampRoute는 걷는 속도 구간의
-  // 점만 모은 것(발도장 판정용 — 차 타고 공원 옆을 지나가도 도장이 안 찍히게).
-  // rewardEligible이 false면 기록은 남지만 카드 성장·발도장(reward-rules.js)의 보상 횟수에는 안 들어간다.
-  // gapMin: 화면 꺼짐 등으로 GPS 기록이 끊긴 시간(분) — 정보용, 보상 판정엔 안 씀
-  // endMs: 끝난 시각을 따로 정할 때(이어 하기에서 지난 산책을 정리할 때) — 없으면 지금
-  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible, gapMin, endMs) {
-    var walks = loadWalks();
-    var ended = endMs ? new Date(endMs) : new Date();
-    walks.push({
-      date: dateKey(ended), distanceKm: distanceKm, durationMin: durationMin,
-      route: simplifyRoute(route, 60),
-      stampRoute: stampRoute.length ? simplifyRoute(stampRoute, 60) : [],
-      rewardEligible: rewardEligible,
-      gapMin: gapMin || 0,
-      // 끝난 시각 — 서버 가정 시험판(mock-server.js)이 시간대(아침/낮/저녁/밤)만 뽑아 쓴다. 이 폰 안에만 있다
-      endedAt: ended.getTime()
-    });
-    // 시연 모드(가짜 위치)로 걸은 산책 — 기록·카드 시험엔 쓰되 키링(실제 보상)과 통계에서는 뺀다
-    if (isDemo()) walks[walks.length - 1].demo = true;
-    localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
-
-    var totalDistanceKm = walks.reduce(function (sum, w) { return sum + w.distanceKm; }, 0);
-    localStorage.setItem(LAST_WALK_KEY, JSON.stringify({
-      distanceKm: distanceKm, totalDistanceKm: totalDistanceKm, durationMin: durationMin
-    }));
-
-    return { totalDistanceKm: totalDistanceKm, streak: computeStreakDays(walks) };
+  // 마지막 점에서 REST_RADIUS_KM 안에 처음 들어온 시각 = 멈춰 선 시각. 한 번도 그 밖에 나간 적이 없으면 null
+  function estimateRestStart(samples) {
+    if (!samples || samples.length < 2) return null;
+    var last = samples[samples.length - 1].c;
+    for (var i = samples.length - 2; i >= 0; i--) {
+      if (haversineKm(samples[i].c, last) > REST_RADIUS_KM) return samples[i + 1].t;
+    }
+    return null;
   }
 
-  initMap();
-  positionZoomControl();
-  // 시연 모드: 출발점 핀을 끌어 옮긴다(demo-geo.js). 산책 중엔 못 옮기고, 옮기면 내 위치 점도 그리로
-  if (isDemo()) PetwalkDemoGeo.attachStartMarker(map, { busy: function () { return walking; }, onMove: function () { locateMe(true); } });
-  restoreSavedPins();
-  initInfraLayer();
-  showIdleStats();
-  // 앱을 열면 바로 내 위치를 보여달라는 요청(2026-09-23) — locateMe()가 이미 권한 이유를
-  // 먼저 설명하는 confirm()을 포함하고 있어(CLAUDE.md 규칙), 자동 호출해도 안내 없이
-  // 위치를 요청하는 건 아니다. 거부/실패해도 지도는 다산동 기본 위치로 그대로 남는다.
-  locateMe(true);
+  // ── 상태 ──
+  var walking = false, leaving = false, walkStartTime = null, watchId = null;
+  var routeCoords = [], routeSamples = [], liveKm = 0, liveVisited = {}, walkGapMs = 0, lastFix = null;
+  var wakeLock = null, routeSavedAt = 0;
+  var locationExplained = false;
+  try { locationExplained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 다시 묻는다 */ }
 
-  // Mapbox는 무료 티어도 카드 등록이 필요해 반감이 있어 배제 (2026-09-02 결정,
-  // PROJECT_CONTEXT.md "지도 API 변경" 참고) → 가입/토큰 없는 Leaflet + OpenStreetMap으로 대체.
-  function initMap() {
-    map = L.map('map', { zoomControl: false })
-      .setView(DEFAULT_CENTER, 15);
+  var showWalkNotice = WalkScreen.notice($('walk-notice'));
+  var menuCtl = WalkScreen.menu($('menu-btn'), $('menu'));
+  $('who').textContent = WalkScreen.walkerLine(loadJSON(PROFILE_KEY, {}).name);
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+  // ── 큰 시간 ──
+  function tick() {
+    if (!walkStartTime) return;
+    var m = Math.max(0, Math.floor((nowMs() - walkStartTime) / 60000));
+    $('clock').textContent = m;
+    $('map-chip-text').textContent = m + '분 · 길 기록 중';
+  }
+  function paintSince() {
+    var s = new Date(walkStartTime);
+    $('since').textContent = s.getHours() + '시 ' + pad2(s.getMinutes()) + '분에 출발';
+  }
+  setInterval(tick, 5000);
 
-    // 손가락 핀치/휠 줌 외에 명시적인 +/- 버튼도 요청받아 추가 — 기본 위치(topleft)는 제목과
-    // 겹쳐서 topright로 옮김(위 .leaflet-top.leaflet-right 여백 조정과 함께 봐야 함).
-    L.control.zoom({ position: 'topright' }).addTo(map);
-    // Leaflet 기본 +/- 글자 대신 나머지 UI와 통일된 선 아이콘으로 교체.
-    var zoomInBtn = document.querySelector('.leaflet-control-zoom-in');
-    var zoomOutBtn = document.querySelector('.leaflet-control-zoom-out');
-    if (zoomInBtn) zoomInBtn.innerHTML = svgIcon('plus', 16);
-    if (zoomOutBtn) zoomOutBtn.innerHTML = svgIcon('minus', 16);
-
-    // 내 위치 버튼 — 줌 컨트롤과 같은 모서리(topright)에 추가하면 Leaflet이 자동으로
-    // 그 바로 아래에 쌓아준다(별도 위치 계산 불필요).
-    var LocateControl = L.Control.extend({
-      options: { position: 'topright' },
-      onAdd: function () {
-        var btn = L.DomUtil.create('button', 'locate-btn');
-        btn.type = 'button';
-        btn.innerHTML = svgIcon('compass', 18);
-        btn.title = '내 위치로 이동';
-        L.DomEvent.disableClickPropagation(btn);
-        // locateMe에 클릭 이벤트 객체가 그대로 넘어가 silent 인자로 오인되지 않도록 감싸서 호출.
-        L.DomEvent.on(btn, 'click', function () { locateMe(); });
-        return btn;
+  // ── 미션 카드(2026-11-15 지도 미션) ── 다음 미션 = 발도장 장소 중 순서대로 안 간 첫 곳(reward-rules.js)
+  var FLAG_SVG = WalkScreen.ICONS.stamp;
+  var ARROW_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3l6 9h-4v9h-4v-9H6z" fill="currentColor"/></svg>';
+  // 지난 산책들의 진행도는 산책 중에 바뀌지 않으니 한 번만 센다(위치를 받을 때마다 기록 전체를 다시 훑지 않게)
+  var baseProgress = null;
+  function missionProgress() {
+    if (!baseProgress) baseProgress = window.RewardRules.computeProgress(loadWalks());
+    var visited = {};
+    Object.keys(baseProgress.visited).forEach(function (id) { visited[id] = true; });
+    Object.keys(liveVisited).forEach(function (id) { if (liveVisited[id] === 'got') visited[id] = true; });
+    return { walks: baseProgress.walks, km: baseProgress.km, visited: visited };
+  }
+  function missionNow() {
+    var R = window.RewardRules;
+    if (!R || !R.missions) return null;
+    var p = missionProgress();
+    return { all: R.missions(p), now: R.currentMission(p) };
+  }
+  function targetText(pl) { return pl.name + (pl.kind === 'building' ? ' 앞까지' : '까지'); }
+  function paintMission() {
+    var card = $('mission-card'), M = missionNow();
+    if (!M || !M.all.length) { card.hidden = true; return; }
+    var done = M.all.filter(function (m) { return m.done; }).length, now = M.now;
+    var html = '<span class="ws-flag" aria-hidden="true">' + FLAG_SVG + '</span><span class="ws-mbody">';
+    var dir = '';
+    if (!now) {
+      card.className = 'ws-mission is-done';
+      html += '<span class="ws-m1">발도장 ' + done + '/' + M.all.length + '</span><span class="ws-m2">미션을 다 했어요</span>';
+    } else {
+      var here = lastFix && window.RewardRules.distanceKm(lastFix, now.place.center) <= now.place.radiusKm;
+      var pending = liveVisited[now.place.id] === 'pending';
+      card.className = 'ws-mission' + (here ? ' is-here' : '');
+      html += '<span class="ws-m1">미션 ' + now.no + ' · 발도장 ' + done + '/' + M.all.length + '</span>' +
+        '<span class="ws-m2"></span>' +
+        '<span class="ws-m3">' + (pending ? '도착! 5분·200m 넘게 걸으면 찍혀요' : here ? '도착했어요' : '도착하면 한 번만 꺼내 열어 주세요') + '</span>';
+      if (lastFix) {
+        var km = window.RewardRules.distanceKm(lastFix, now.place.center);
+        dir = here ? '<span class="ws-mdir">도착</span>'
+          : '<span class="ws-mdir"><span style="display:flex;transform:rotate(' + Math.round(bearingDeg(lastFix, now.place.center)) + 'deg)">' + ARROW_SVG + '</span>' + kmText(km) + '</span>';
       }
+    }
+    card.innerHTML = html + '</span>' + dir;
+    if (now) card.querySelector('.ws-m2').textContent = targetText(now.place);   // 장소 이름은 글자로만 넣는다
+    card.hidden = false;
+  }
+
+  // 걷는 속도로 들어온 점 하나를 보고 발도장 장소 안이면 알린다. eligible: 지금까지 5분·200m를 넘었는지
+  function checkLiveStamp(coord, eligible) {
+    var R = window.RewardRules;
+    if (!R || !R.placeAt) return;
+    Object.keys(liveVisited).forEach(function (id) {   // 도착했지만 5분·200m 전이라 미뤄 둔 도장 — 기준을 넘는 순간 받는다
+      if (liveVisited[id] === 'pending' && eligible) { liveVisited[id] = 'got'; announceStamp(id); }
     });
-    map.addControl(new LocateControl());
-
-    routeLine = L.polyline([], { color: '#b8563a', weight: 5, opacity: 0.9 }).addTo(map);
-    footprintLayer = L.layerGroup().addTo(map);
-    map.on('zoomend', updateFootprintVisibility);
-    updateFootprintVisibility();
+    var pl = R.placeAt(coord);
+    if (!pl || liveVisited[pl.id]) return;
+    if (missionProgress().visited[pl.id]) { liveVisited[pl.id] = 'old'; return; }   // 예전에 이미 받은 곳
+    if (eligible) { liveVisited[pl.id] = 'got'; announceStamp(pl.id); }
+    else {
+      liveVisited[pl.id] = 'pending';
+      showWalkNotice(pl.name + ' 도착! ' + WALK_RULES.minRewardMinutes + '분·' + Math.round(WALK_RULES.minRewardKm * 1000) + 'm 넘게 걸으면 발도장이 찍혀요.', 'info');
+    }
+  }
+  function announceStamp(id) {
+    var R = window.RewardRules;
+    var pl = R.PLACES.filter(function (x) { return x.id === id; })[0];
+    if (!pl) return;
+    var p = missionProgress(), all = R.missions(p);
+    var done = all.filter(function (m) { return m.done; }).length, next = R.currentMission(p);
+    showWalkNotice(pl.name + ' 발도장 받았어요 (' + done + '/' + all.length + ')' + (next ? ' · 다음 미션: ' + next.place.name : ' · 미션을 다 했어요'), 'stamp');
+    // 진동은 이 화면을 한 번이라도 누른 뒤에만 된다(브라우저 규칙) — 주머니에서 막 꺼내 연 화면은 조용히 넘어간다
+    try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate([90, 60, 90]); } catch (e) { /* 진동 없는 기기(아이폰 등) */ }
   }
 
-  // silent가 true면(앱 시작 시 자동 호출) 실패해도 alert 없이 조용히 넘어간다 — 사용자가
-  // 아직 아무 버튼도 안 눌렀는데 에러 팝업이 뜨면 방해가 됨. 버튼을 직접 눌렀을 때(silent
-  // 생략/false)는 기존처럼 alert로 알려준다. 권한이 왜 필요한지 설명하는 confirm()은
-  // silent 여부와 무관하게 항상 먼저 보여준다(CLAUDE.md 규칙, 자동 호출이라고 생략하지 않음).
-  function locateMe(silent) {
-    if (!navigator.geolocation) {
-      if (!silent) alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
-      return;
-    }
-    if (!locationPermissionExplained && !isDemo()) {   // 시연 모드는 가짜 위치라 권한을 묻지 않는다(2026-11-16)
-      if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 허용할까요?')) return;
-      markLocationExplained();
-    }
-    WalsonGeo.locate(
-      function (pos) {
-        var coord = [pos.coords.latitude, pos.coords.longitude];
-        if (myLocationMarker) {
-          myLocationMarker.setLatLng(coord);
-        } else {
-          myLocationMarker = L.marker(coord, {
-            icon: L.divIcon({ className: 'my-location-dot', iconSize: [20, 20], iconAnchor: [10, 10] })
-          }).addTo(map);
-        }
-        map.setView(coord, 17, { animate: true });
-
-        // 추천 루트 anchor도 이 위치로 갱신 — resolveRouteAnchor가 다시 위치를 묻지 않도록
-        // 캐시를 채워두고, 이미 루트가 켜져 있으면 새 위치 기준으로 다시 그린다.
-        routeAnchor = coord;
-        routeAnchorResolved = true;
-        RECOMMENDED_ROUTES.forEach(function (r) { r.geometry = null; }); // 이전 anchor로 캐시된 경로 무효화
-        populateRouteSelect(); // 다산동 지명 → 일반 이름으로 옵션 라벨 갱신
-        refreshRecommendedLayer();
-      },
-      function (info) {
-        console.warn('현재 위치를 가져오지 못했습니다:', info.raw || info.message);
-        if (!silent) alert(info.message);
-      }
-    );
-  }
-
-  // 산책 종료 직후 보상 알림(2026-09-25 지도 위 패널) → 2026-11-16 끝 화면(walk-end.html)의 "오늘 달라진 것"으로 옮김.
-  // 시간 재기·다녀왔어요와 같은 길로 끝나게 — 패널을 닫으면 끝 화면 질문·영수증을 놓치던 문제(가르시아 "그렇게 진행해줘").
-
-  // 산책 종료는 두 번 눌러야(2026-11-16 0단계) — 첫 번째는 4초 동안 "한 번 더 누르면 끝나요"만 보여 준다.
-  // 화면을 켜 둔 채 주머니에 넣었을 때 잘못 눌려 산책이 끝나 버리지 않게.
-  var endArmedAt = 0, endArmTimer = null;
-  function disarmEnd() {
-    endArmedAt = 0;
-    clearTimeout(endArmTimer);
-    walkBtn.classList.remove('is-armed');
-    if (walking) walkBtn.querySelector('.btn-label').textContent = '산책 종료';
-  }
-  walkBtn.addEventListener('click', function () {
-    if (walking) {
-      if (endArmedAt && Date.now() - endArmedAt < 4000) { disarmEnd(); stopWalk(); return; }
-      endArmedAt = Date.now();
-      walkBtn.classList.add('is-armed');
-      walkBtn.querySelector('.btn-label').textContent = '한 번 더 누르면 끝나요';
-      clearTimeout(endArmTimer);
-      endArmTimer = setTimeout(disarmEnd, 4000);
-      return;
-    }
-    // 샘플을 보는 중이면 먼저 끄게 한다(2026-11-15) — 샘플을 켠 채 한 산책은 샘플을 끌 때 같이 지워지므로
-    if (window.PetwalkSample && PetwalkSample.isOn()) {
-      PetwalkSample.leaveForRealRecord('산책을 시작하면').then(function (ok) { if (ok) startWalk(); });
-      return;
-    }
-    startWalk();
-  });
-
-  // 화면 꺼짐 대응(2026-09-26) — 모바일 브라우저는 화면이 꺼지거나 다른 앱으로 넘어가면
-  // watchPosition이 멈춘다(PWA 한계, PROJECT_CONTEXT.md "결정된 사항" 제약 참고). 그래서
-  // 1) 산책 중엔 Wake Lock으로 화면이 저절로 꺼지지 않게 막고(탭이 가려지면 브라우저가 풀어버리므로
-  //    다시 보일 때 재요청), 2) 그래도 끊겼으면 GPS 점 사이 시간 간격으로 알아채서 알려준다.
-  //    끊긴 구간은 앞뒤 점을 직선으로 이어 거리에 넣고(실제보다 짧게 잡힘), 발자국은 안 찍는다.
-  // 주머니 산책(2026-11-16 가르시아 "0번 고치고 1번, 3번도 진행해줘") — 화면을 켜 두라고 하는 대신
-  // "주머니에 넣어도 돼요, 발도장 장소에서 한 번만 꺼내 열어 주세요"로 바꿨다. 다시 열면 바로 새 위치를
-  // 한 번 읽고, 걷는 속도면 끊긴 구간의 직선도 바로 판정 거리에 넣는다(산책 끝 판정 analyzeWalk와 같은 기준).
-  // 앱이 아예 닫혀도(아이폰이 숨겨 둔 앱을 정리) 이어지게 진행 중인 산책을 이 휴대폰에 저장한다(아래 saveActiveRoute).
-  var GAP_MS = 60 * 1000; // GPS 점 사이가 이보다 벌어지면 "기록이 끊겼다"고 본다
-  var wakeLock = null, walkGapMs = 0, noticeTimer = null;
-  // 0단계(2026-11-16): 화면 켜 두기(Wake Lock)는 기본 꺼짐 — 켜 둔 채 주머니에 넣으면 배터리를 쓰고 잘못 눌릴 수 있어서.
-  // 길을 자세히 남기고 싶은 사람만 메뉴의 "화면 켜 두기"로 켠다(이 휴대폰에 기억).
-  var KEEP_SCREEN_KEY = 'petwalk_keep_screen';
-  function keepScreen() { try { return localStorage.getItem(KEEP_SCREEN_KEY) === '1'; } catch (e) { return false; } }
-  var POCKET_TIP = '화면을 꺼서 주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
-  var KEEP_TIP = '화면을 켜 둘게요 — 길이 자세히 남아요. 주머니에 넣을 땐 전원 버튼으로 꺼 주세요.';
-  var walkNotice = document.getElementById('walk-notice');
-
-  var WARN_ICON = null;
-  function showWalkNotice(text, good) {
-    document.getElementById('walk-notice-text').textContent = text;
-    var ic = walkNotice.querySelector('.icon');
-    if (WARN_ICON === null) WARN_ICON = ic.innerHTML;
-    ic.innerHTML = good ? FLAG_SVG : WARN_ICON;
-    walkNotice.classList.toggle('is-good', !!good);
-    walkNotice.classList.add('is-visible');
-    clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(function () { walkNotice.classList.remove('is-visible'); }, 8000);
-  }
-  walkNotice.addEventListener('click', function () { walkNotice.classList.remove('is-visible'); });
-
+  // ── 화면 켜 두기 ──
   function requestWakeLock() {
     if (!('wakeLock' in navigator)) return Promise.resolve(false);
     return navigator.wakeLock.request('screen').then(function (lock) {
       wakeLock = lock;
       lock.addEventListener('release', function () { if (wakeLock === lock) wakeLock = null; });
       return true;
-    }).catch(function (err) {
-      console.warn('화면 켜두기 요청 실패:', err.message);
-      return false;
-    });
+    }).catch(function () { return false; });
   }
   function releaseWakeLock() {
     if (wakeLock) wakeLock.release().catch(function () {});
     wakeLock = null;
   }
-  // 메뉴 "화면 켜 두기"(기본 꺼짐, 2026-11-16) — 켜면 산책 중 화면이 저절로 꺼지지 않는다(이 휴대폰에 기억)
-  (function () {
-    var t = document.getElementById('keep-screen-toggle'), label = document.getElementById('keep-screen-label');
-    function paint() { label.textContent = '화면 켜 두기 · ' + (keepScreen() ? '켬' : '꺼짐'); }
-    paint();
-    t.addEventListener('click', function (e) {
-      e.preventDefault();
-      var on = !keepScreen();
-      try { if (on) localStorage.setItem(KEEP_SCREEN_KEY, '1'); else localStorage.removeItem(KEEP_SCREEN_KEY); } catch (err) { /* 저장 못 하면 바뀌지 않는다 */ }
-      paint();
-      menuDropdown.classList.remove('is-open');
-      menuBtn.setAttribute('aria-expanded', 'false');
-      if (!walking) { showWalkNotice(keepScreen() ? '산책하는 동안 화면을 켜 둘게요.' : '산책하는 동안 화면이 저절로 꺼져요.', true); return; }
-      if (keepScreen()) { requestWakeLock(); showWalkNotice(KEEP_TIP, true); }
-      else { releaseWakeLock(); showWalkNotice(POCKET_TIP, true); }
-    });
-  })();
-  document.addEventListener('visibilitychange', function () {
-    if (!walking) return;
-    if (document.visibilityState === 'visible') {
-      if (!wakeLock && keepScreen()) requestWakeLock();
-      freshFix();   // 주머니에서 꺼내 열었을 때 — 기다리지 않고 지금 위치를 바로 읽어 발도장을 판정한다
-    } else {
-      saveActiveRoute(true);   // 숨겨지는 순간 저장 — 이대로 앱이 닫혀도 다시 열면 이어진다
-    }
+  function paintKeepScreen() {
+    $('keep-screen-label').textContent = '화면 켜 두기 · ' + (keepScreen() ? '켬' : '꺼짐');
+    $('pocket-tip-text').textContent = keepScreen() ? '화면을 켜 두는 중 · 주머니에 넣을 땐 전원 버튼으로' : '화면을 꺼서 주머니에 넣어도 돼요';
+  }
+  paintKeepScreen();
+  $('keep-screen-toggle').addEventListener('click', function () {
+    var on = !keepScreen();
+    try { if (on) localStorage.setItem(KEEP_SCREEN_KEY, '1'); else localStorage.removeItem(KEEP_SCREEN_KEY); } catch (err) { /* 저장 못 하면 바뀌지 않는다 */ }
+    paintKeepScreen();
+    menuCtl.close();
+    if (keepScreen()) { if (walking) requestWakeLock(); showWalkNotice(KEEP_TIP, 'info'); }
+    else { releaseWakeLock(); showWalkNotice(POCKET_TIP, 'info'); }
   });
-  window.addEventListener('pagehide', function () { if (walking) saveActiveRoute(true); });
-  function freshFix() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(onWalkFix, function () { /* 못 읽으면 watchPosition이 이어서 준다 */ },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+
+  // ── 가게 QR 찍기 ──
+  if (window.WalsonQR && window.ShopVisits) {
+    $('qr-scan-link').hidden = false;
+    $('qr-scan-link').addEventListener('click', function () { menuCtl.close(); WalkScreen.scanShop(showWalkNotice); });
   }
 
-  // ── 길 기록 이어 하기(2026-11-16) ──
-  // 시간만 재는 산책(go.html)은 시작 시각을 저장해 두지만, 길 기록은 메모리에만 있어서 아이폰이 숨겨 둔 왈슨을
-  // 정리하면(릴스를 오래 보다 돌아오는 등) 산책이 통째로 사라졌다. 진행 중인 산책을 이 휴대폰에만 저장해 두고,
-  // 산책 화면을 다시 열면 이어서 기록한다. 끝내거나 버리면 지운다. 어디로도 보내지 않는다.
-  // 시연 모드(가짜 위치·배속 시계) 산책은 저장하지 않는다 — 다시 열면 시계가 맞지 않는다.
-  var ACTIVE_ROUTE_KEY = 'petwalk_active_route';   // { v:1, startedAt, samples:[[lat,lng,ms]], liveKm, visited, gapMs, savedAt }
-  var ROUTE_STALE_MS = 3 * 60 * 60 * 1000;          // 마지막 위치 뒤 3시간이 지났으면 이어 하지 않고 정리를 묻는다
-  var routeSavedAt = 0;
+  // ── 시연 모드 ──
+  (function () {
+    var t = $('demo-toggle'), label = $('demo-toggle-label');
+    if (!window.PetwalkDemoGeo) { t.hidden = true; return; }
+    label.textContent = isDemo() ? '시연 모드 끄기(진짜 위치로)' : '시연 모드(가짜 위치) 켜기';
+    t.addEventListener('click', function () {
+      if (walking && !confirm('산책 기록 중이에요. 시연 모드를 바꾸면 지금 산책은 저장되지 않아요. 계속할까요?')) return;
+      // 버린 산책을 다음에 열 때 이어 하지 않게 — 먼저 산책을 멈춰야 화면이 넘어가는 순간(pagehide) 다시 저장되지 않는다
+      if (walking) {
+        walking = false;
+        if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        releaseWakeLock();
+        clearActiveRoute();
+      }
+      leaving = true;
+      // 켜면 가짜 위치로 바로 새 산책(시연하려고 켜는 것이므로), 끄면 산책 나가기로(산책 중이 아닌 화면은 거기)
+      if (isDemo()) PetwalkDemoGeo.disable(); else location.replace('walk.html?start=1&demo=1');
+    });
+  })();
+
+  // ── 진행 중인 산책 저장(이어 하기) ──
   function saveActiveRoute(now) {
-    if (!walking || isDemo()) return;
+    if (!walking || leaving || isDemo()) return;   // 끝내거나 버리고 떠나는 중이면 다시 저장하지 않는다
     var t = Date.now();
     if (!now && t - routeSavedAt < 10000) return;   // 위치를 받을 때마다 쓰지 않고 10초에 한 번(숨겨질 때는 바로)
     routeSavedAt = t;
-    var samples = routeSamples.map(function (p) {
-      return [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t];
-    });
+    var samples = routeSamples.map(function (p) { return [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t]; });
     try {
       localStorage.setItem(ACTIVE_ROUTE_KEY, JSON.stringify({
         v: 1, startedAt: walkStartTime, samples: samples, liveKm: liveKm, visited: liveVisited, gapMs: walkGapMs, savedAt: t
@@ -1551,156 +399,40 @@
     } catch (e) { /* 저장 공간이 모자라도 산책은 계속된다 — 이어 하기만 안 될 뿐 */ }
   }
   function loadActiveRoute() {
-    try {
-      var a = JSON.parse(localStorage.getItem(ACTIVE_ROUTE_KEY));
-      return a && a.v === 1 && typeof a.startedAt === 'number' ? a : null;
-    } catch (e) { return null; }
+    var a = loadJSON(ACTIVE_ROUTE_KEY, null);
+    return a && a.v === 1 && typeof a.startedAt === 'number' ? a : null;
   }
-  function clearActiveRoute() {
-    try { localStorage.removeItem(ACTIVE_ROUTE_KEY); } catch (e) { /* 무시 */ }
-  }
-  function kmText(km) { return km < 1 ? Math.round(km * 100) * 10 + 'm' : km.toFixed(1) + 'km'; }
+  function clearActiveRoute() { try { localStorage.removeItem(ACTIVE_ROUTE_KEY); } catch (e) { /* 무시 */ } }
 
-  // ── 지도 미션(2026-11-15 가르시아: 어디 가야 하는지 알려 주고, 발도장은 산책 중에 바로 판정) ──
-  // 다음 미션 = 발도장 장소 중 순서대로 안 간 첫 곳(reward-rules.js). 위치를 알면 남은 거리와 방향을 보여 준다.
-  // 산책 중 바로 판정: 정확도가 괜찮고(50m 이하) 걷는 속도로 들어온 점이 발도장 반경 안이면 그 자리에서 알린다.
-  // 산책을 마칠 때 저장되는 판정(걷는 속도 점, 5분·200m 이상)과 같은 기준이라, 여기서 받았다고 한 도장은 끝나도 그대로다.
-  // 위치·진행은 이 휴대폰 안에서만 쓰고 보내지 않는다(통계에는 새 발도장 "개수"만 — 산책 끝에 원래대로).
-  var FLAG_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M7 4h11l-2.6 4.2L18 12.4H7z" fill="currentColor"/></svg>';
-  var ARROW_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l6 9h-4v9h-4v-9H6z" fill="currentColor"/></svg>';
-  var liveVisited = {};         // 이번 산책에서 받은(또는 도착한) 발도장 { id: 'got' | 'pending' }
-  var liveKm = 0;               // 이번 산책에서 걷는 속도로 걸은 거리(바로 판정의 200m 기준용)
-  var missionBar = document.getElementById('mission-bar');
-  function missionProgress() {
-    var p = window.RewardRules.computeProgress(loadWalks());
-    Object.keys(liveVisited).forEach(function (id) { if (liveVisited[id] === 'got') p.visited[id] = true; });
-    return p;
-  }
-  function bearingDeg(a, b) {
-    var t = Math.PI / 180, y = Math.sin((b[1] - a[1]) * t) * Math.cos(b[0] * t);
-    var x = Math.cos(a[0] * t) * Math.sin(b[0] * t) - Math.sin(a[0] * t) * Math.cos(b[0] * t) * Math.cos((b[1] - a[1]) * t);
-    return (Math.atan2(y, x) / t + 360) % 360;
-  }
-  function paintMissionBar() {
-    var R = window.RewardRules;
-    if (!R || !R.missions) return;
-    var p = missionProgress();
-    var all = R.missions(p), now = R.currentMission(p);
-    if (!all.length) { missionBar.hidden = true; return; }
-    var done = all.filter(function (m) { return m.done; }).length;
-    missionBar.className = 'mission-bar' + (now ? '' : ' is-done');
-    missionBar.innerHTML = '<span class="mb-flag">' + FLAG_SVG + '</span>';
-    var text = document.createElement('span');
-    text.className = 'mb-text';
-    var small = document.createElement('small');
-    small.textContent = now ? '미션 ' + now.no + ' · ' + done + '/' + all.length : '발도장 ' + done + '/' + all.length;
-    text.appendChild(small);
-    text.appendChild(document.createTextNode(now ? now.place.name + (now.place.kind === 'building' ? ' 앞까지' : '까지') : '미션을 다 했어요'));
-    missionBar.appendChild(text);
-    if (now && lastFix) {
-      var km = R.distanceKm(lastFix, now.place.center);
-      var dir = document.createElement('span');
-      dir.className = 'mb-dir';
-      if (km <= now.place.radiusKm) {
-        dir.textContent = '도착';
-      } else {
-        dir.innerHTML = ARROW_SVG;
-        dir.firstChild.style.transform = 'rotate(' + Math.round(bearingDeg(lastFix, now.place.center)) + 'deg)';
-        dir.appendChild(document.createTextNode(km < 1 ? Math.round(km * 100) * 10 + 'm' : km.toFixed(1) + 'km'));
-      }
-      missionBar.appendChild(dir);
-    }
-    missionBar.hidden = false;
-  }
-  window.paintMissionBar = paintMissionBar;
-  paintMissionBar();
-  // 걷는 속도로 들어온 점 하나를 보고 발도장 장소 안이면 알린다. eligible: 지금까지 5분·200m를 넘었는지
-  function checkLiveStamp(coord, eligible) {
-    var R = window.RewardRules;
-    if (!R || !R.placeAt) return;
-    // 도착했지만 5분·200m 전이라 미뤄 둔 도장 — 기준을 넘는 순간 받는다
-    Object.keys(liveVisited).forEach(function (id) {
-      if (liveVisited[id] === 'pending' && eligible) { liveVisited[id] = 'got'; announceStamp(id); }
-    });
-    var pl = R.placeAt(coord);
-    if (!pl || liveVisited[pl.id]) return;
-    var before = R.computeProgress(loadWalks());
-    if (before.visited[pl.id]) { liveVisited[pl.id] = 'old'; return; }   // 예전에 이미 받은 곳
-    if (eligible) { liveVisited[pl.id] = 'got'; announceStamp(pl.id); }
-    else {
-      liveVisited[pl.id] = 'pending';
-      showWalkNotice(pl.name + ' 도착! ' + WALK_RULES.minRewardMinutes + '분·' + Math.round(WALK_RULES.minRewardKm * 1000) + 'm 넘게 걸으면 발도장이 찍혀요.', true);
-    }
-    paintMissionBar();
-  }
-  function announceStamp(id) {
-    var R = window.RewardRules;
-    var pl = R.PLACES.filter(function (x) { return x.id === id; })[0];
-    if (!pl) return;
-    var p = missionProgress(), all = R.missions(p);
-    var done = all.filter(function (m) { return m.done; }).length;
-    var next = R.currentMission(p);
-    showWalkNotice(pl.name + ' 발도장 받았어요 (' + done + '/' + all.length + ')' +
-      (next ? ' · 다음 미션: ' + next.place.name : ' · 미션을 다 했어요'), true);
-    try { if (navigator.vibrate) navigator.vibrate([90, 60, 90]); } catch (e) { /* 진동 없는 기기(아이폰 등) */ }
-    paintMissionBar();
-  }
-
-  function startWalk() {
-    if (!navigator.geolocation) {
-      alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
-      return;
-    }
-    if (!isDemo()) window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
-    routeCoords = [];
-    routeSamples = [];
-    liveVisited = {};
-    liveKm = 0;
-    routeLine.setLatLngs(routeCoords);
-    resetFootprints();
-    if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
-    walkGapMs = 0;
-    walkStartTime = nowMs();
-    enterWalking();
-    showWalkNotice(keepScreen() ? KEEP_TIP : POCKET_TIP, true);
-    saveActiveRoute(true);
-  }
-
-  // 산책 중 화면·위치 받기 시작 — 새로 시작할 때와 이어 할 때(resumeActiveRoute) 같이 쓴다
+  // ── 위치 받기 ──
   function enterWalking() {
     walking = true;
-    if (keepScreen()) requestWakeLock();   // 켠 사람만 — 켜 둔 채로 보면 길이 촘촘하게 남는다. 기본은 화면이 저절로 꺼지고, 다시 열 때 이어진다
-    walkIcon.innerHTML = svgIcon('stop', 18);
-    walkBtn.querySelector('.btn-label').textContent = '산책 종료';
-    pinBtn.disabled = false;
-    statusText.textContent = '산책 기록 중...';
+    if (keepScreen()) requestWakeLock();
+    paintSince();
+    tick();
     watchId = navigator.geolocation.watchPosition(onWalkFix, function (err) {
-      // 위치 권한이 꺼져 있고 아직 한 점도 못 받았으면 시간만 재기로 이어 간다(2026-11-16 1단계 — 출발 시각 그대로)
+      // 위치 권한이 꺼져 있고 아직 한 점도 못 받았으면 시간만 재기로 이어 간다(1단계 — 출발 시각 그대로)
       if (err && err.code === 1 && walking && !routeSamples.length && !isDemo()) { fallbackToTime(); return; }
-      statusText.textContent = '위치 확인 실패: ' + err.message;
     }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
   }
   function fallbackToTime() {
     var started = Math.round(walkStartTime || Date.now());
     walking = false;
+    leaving = true;
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
     releaseWakeLock();
     clearActiveRoute();
     location.replace('go.html?fallback=' + started);
   }
-
-  // 위치 한 점 받기 — watchPosition과, 다시 열었을 때 바로 읽는 위치(freshFix)가 같이 쓴다
+  // 위치 한 점 — watchPosition과, 다시 열었을 때 바로 읽는 위치(freshFix)가 같이 쓴다
   function onWalkFix(pos) {
     if (!walking) return;
     var coord = [pos.coords.latitude, pos.coords.longitude];
-    // 파란 점(지금 위치)은 위치를 받을 때마다 옮긴다 — 예전엔 산책 시작 때 찍힌 자리에 그대로 남아
-    // 출발점처럼 보였다(2026-11-15). 정확도가 낮은 점도 점은 옮기되, 길(선)에는 넣지 않는다.
-    setMyLocation(coord);
-    if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) return;
+    lastFix = coord;   // 정확도가 낮은 점도 지금 위치·미션 거리에는 쓰되, 길(선)에는 넣지 않는다
+    if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) { paintMission(); if (mapOpen) drawMap(false); return; }
     var t = pos.timestamp || Date.now();
     var last = routeSamples[routeSamples.length - 1];
-    if (last && t <= last.t) return;   // 이미 받은 시각의 위치(브라우저가 기억해 둔 것)가 다시 오면 길에 넣지 않는다
-    if (!routeCoords.length) markStart(coord);
+    if (last && t <= last.t) { paintMission(); return; }   // 이미 받은 시각의 위치(브라우저가 기억해 둔 것)는 길에 넣지 않는다
     routeCoords.push(coord);
     routeSamples.push({ c: coord, t: t });
     if (routeSamples.length >= 2) {
@@ -1711,157 +443,283 @@
         var gapMin = Math.max(1, Math.round(gap / 60000));
         showWalkNotice(fast
           ? '다시 이어서 기록해요 · 그 사이 ' + gapMin + '분은 걷는 속도보다 빨라서 거리에서 뺐어요.'
-          : '다시 이어서 기록해요 · 그 사이 ' + gapMin + '분(' + kmText(segKm) + ')은 직선으로 셌어요.', !fast);
+          : '다시 이어서 기록해요 · 그 사이 ' + gapMin + '분(' + kmText(segKm) + ')은 직선으로 셌어요.', fast ? 'warn' : 'info');
       }
-      addFootprints(prev, cur, gap > GAP_MS || fast);
-      // 산책 중 바로 판정 — 차·자전거 속도 구간만 뺀다. 끊긴 구간도 걷는 속도면 직선으로 넣는다(산책 끝 판정과 같은 기준).
-      // 그래서 주머니에 넣었다가 발도장 장소에서 한 번 열면 그 자리에서 찍힌다(2026-11-16).
+      // 산책 중 바로 판정 — 차·자전거 속도 구간만 뺀다. 끊긴 구간도 걷는 속도면 직선으로 넣는다(주머니 산책)
       if (!fast) {
         liveKm += segKm;
         var eligibleNow = (nowMs() - walkStartTime) / 60000 >= WALK_RULES.minRewardMinutes && liveKm >= WALK_RULES.minRewardKm;
         checkLiveStamp(coord, eligibleNow);
       }
     }
-    routeLine.setLatLngs(routeCoords);
-    map.panTo(coord, { animate: true, duration: 0.5 });
+    paintMission();
+    if (mapOpen) drawMap(false);
     saveActiveRoute(false);
   }
-
-  // 마지막 점에서 REST_RADIUS_KM 안에 처음 들어온 시각 = 멈춰 선 시각. 한 번도 그 밖에 나간 적이 없으면 null
-  var REST_RADIUS_KM = 0.05, REST_ASK_MS = 20 * 60 * 1000;
-  function pad2w(n) { return n < 10 ? '0' + n : '' + n; }
-  function estimateRestStart(samples) {
-    if (!samples || samples.length < 2) return null;
-    var last = samples[samples.length - 1].c;
-    for (var i = samples.length - 2; i >= 0; i--) {
-      if (haversineKm(samples[i].c, last) > REST_RADIUS_KM) return samples[i + 1].t;
-    }
-    return null;
+  function freshFix() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(onWalkFix, function () { /* 못 읽으면 watchPosition이 이어서 준다 */ },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
   }
+  document.addEventListener('visibilitychange', function () {
+    if (!walking) return;
+    if (document.visibilityState === 'visible') {
+      if (!wakeLock && keepScreen()) requestWakeLock();
+      tick();
+      freshFix();   // 주머니에서 꺼내 열었을 때 — 기다리지 않고 지금 위치를 바로 읽어 발도장을 판정한다
+    } else {
+      saveActiveRoute(true);   // 숨겨지는 순간 저장 — 이대로 앱이 닫혀도 다시 열면 이어진다
+    }
+  });
+  window.addEventListener('pagehide', function () { if (walking) saveActiveRoute(true); });
 
-  // opts.endMs: 끝난 시각을 정해 저장할 때(이어 하기에서 오래된 산책을 정리할 때 — 마지막 위치 시각)
+  // ── 기록 저장 · 끝내기 ──
+  // endMs: 끝난 시각을 따로 정할 때(이어 하기에서 지난 산책을 정리할 때) — 없으면 지금
+  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible, gapMin, endMs) {
+    var walks = loadWalks();
+    var ended = endMs ? new Date(endMs) : new Date();
+    walks.push({
+      date: dateKey(ended), distanceKm: distanceKm, durationMin: durationMin,
+      route: simplifyRoute(route, 60),
+      stampRoute: stampRoute.length ? simplifyRoute(stampRoute, 60) : [],
+      rewardEligible: rewardEligible,
+      gapMin: gapMin || 0,
+      endedAt: ended.getTime(),  // 서버 가정 시험판(mock-server.js)이 시간대만 뽑아 쓴다. 이 폰 안에만 있다
+      startedAt: walkStartTime   // 끝 화면의 "○시 ○분 출발"(2026-11-16 2단계). 이 폰 안에만 있다
+    });
+    if (isDemo()) walks[walks.length - 1].demo = true;   // 시연 모드 산책 — 키링(실제 보상)과 통계에서 뺀다
+    localStorage.setItem(WALKS_KEY, JSON.stringify(walks));
+    var total = walks.reduce(function (sum, w) { return sum + (w.distanceKm || 0); }, 0);
+    try { localStorage.setItem(LAST_WALK_KEY, JSON.stringify({ distanceKm: distanceKm, totalDistanceKm: total, durationMin: durationMin })); } catch (e) { /* 무시 */ }
+  }
+  // opts.endMs: 끝난 시각을 정해 저장할 때(오래된 산책 정리 — 마지막 위치 시각)
   function stopWalk(opts) {
     opts = opts || {};
     walking = false;
+    leaving = true;
     clearActiveRoute();
-    walkIcon.innerHTML = svgIcon('play', 18);
-    walkBtn.querySelector('.btn-label').textContent = '산책 시작';
-    pinBtn.disabled = true;
     releaseWakeLock();
-    walkNotice.classList.remove('is-visible');
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    var endMs = opts.endMs || nowMs();
+    if (routeCoords.length < 2) {
+      // 길이 안 남았어도(위치를 거의 못 받음 — 실내·높은 건물 사이) 걸은 시간은 남긴다.
+      // 시간만 잰 산책과 같은 모양(보상 제외)에 noRoute를 붙여 끝 화면이 왜 길이 없는지 알려 준다
+      var mins = Math.round((endMs - walkStartTime) / 60000);
+      if (mins < 1) { alert('1분이 안 된 산책이라 저장하지 않았어요.'); location.replace('go.html'); return; }
+      var walks = loadWalks(), ended = new Date(opts.endMs || Date.now());
+      walks.push({ date: dateKey(ended), distanceKm: 0, durationMin: mins, route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time', noRoute: true, endedAt: ended.getTime(), startedAt: walkStartTime });
+      if (isDemo()) walks[walks.length - 1].demo = true;
+      try { localStorage.setItem(WALKS_KEY, JSON.stringify(walks)); } catch (e) { alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.'); }
+      if (window.WalsonTrack && !isDemo()) WalsonTrack.send('walk_complete', { mode: 'time', min_bucket: WalsonTrack.minBucket(mins), eligible: 0 });
+      location.replace('walk-end.html');
+      return;
     }
-
-    if (routeCoords.length >= 2) {
-      var progressBefore = window.RewardRules.computeProgress(loadWalks());
-      var analysis = analyzeWalk(routeSamples);
-      var distanceKm = analysis.walkKm;
-      var endMs = opts.endMs || nowMs();
-      var durationMin = Math.max(1, Math.round((endMs - walkStartTime) / 60000));
-      // 끝내기를 깜빡했을 때(2026-11-15): 마지막으로 움직인 뒤 한 자리에 오래 머물렀으면 그때 끝난 걸로 할지 묻는다
-      var restEnd = opts.endMs ? null : estimateRestStart(routeSamples);
-      if (restEnd && nowMs() - restEnd >= REST_ASK_MS) {
-        var movedMin = Math.max(1, Math.round((restEnd - walkStartTime) / 60000));
-        var t = new Date(restEnd);
-        if (confirm('끝내기를 깜빡하셨나요?\n' + t.getHours() + '시 ' + pad2w(t.getMinutes()) + '분부터 ' +
-            Math.round((nowMs() - restEnd) / 60000) + '분 동안 같은 자리에 있었어요.\n\n' +
-            '확인: 그때 끝난 걸로 저장(' + movedMin + '분)\n취소: 지금까지(' + durationMin + '분) 그대로 저장')) {
-          durationMin = movedMin;
-        }
+    var progressBefore = window.RewardRules.computeProgress(loadWalks());
+    var analysis = analyzeWalk(routeSamples);
+    var distanceKm = analysis.walkKm;
+    var durationMin = Math.max(1, Math.round((endMs - walkStartTime) / 60000));
+    // 끝내기를 깜빡했을 때(2026-11-15): 마지막으로 움직인 뒤 한 자리에 오래 머물렀으면 그때 끝난 걸로 할지 묻는다
+    var restEnd = opts.endMs ? null : estimateRestStart(routeSamples);
+    if (restEnd && nowMs() - restEnd >= REST_ASK_MS) {
+      var movedMin = Math.max(1, Math.round((restEnd - walkStartTime) / 60000));
+      var t = new Date(restEnd);
+      if (confirm('끝내기를 깜빡하셨나요?\n' + t.getHours() + '시 ' + pad2(t.getMinutes()) + '분부터 ' +
+          Math.round((nowMs() - restEnd) / 60000) + '분 동안 같은 자리에 있었어요.\n\n' +
+          '확인: 그때 끝난 걸로 저장(' + movedMin + '분)\n취소: 지금까지(' + durationMin + '분) 그대로 저장')) {
+        durationMin = movedMin;
       }
-      var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
-      var gapMin = Math.round(walkGapMs / 60000);
-      var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, gapMin, opts.endMs);
-      // 바로 끝 화면으로 넘어가니 칩에는 짧게만 — 끊긴 구간·보상 제외 안내는 끝 화면 "오늘 달라진 것"에 나온다(2026-11-16)
-      statusText.textContent = '산책 끝 · ' + durationMin + '분';
+    }
+    var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
+    saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, Math.round(walkGapMs / 60000), opts.endMs);
+    // 통계: 걸은 시간은 구간만, 발도장은 새로 찍힌 개수만(어느 장소인지는 보내지 않는다)
+    if (window.WalsonTrack && !isDemo()) {
+      WalsonTrack.send('walk_complete', { mode: 'gps', min_bucket: WalsonTrack.minBucket(durationMin), eligible: rewardEligible ? 1 : 0 });
       var progressAfter = window.RewardRules.computeProgress(loadWalks());
-      // 통계: 걸은 시간은 구간만, 발도장은 새로 찍힌 개수만(어느 장소인지는 보내지 않는다)
-      if (window.WalsonTrack && !isDemo()) {
-        WalsonTrack.send('walk_complete', { mode: 'gps', min_bucket: WalsonTrack.minBucket(durationMin), eligible: rewardEligible ? 1 : 0 });
-        var newStamps = Object.keys(progressAfter.visited).filter(function (k) { return !progressBefore.visited[k]; }).length;
-        if (newStamps) WalsonTrack.send('stamp_new', { count: newStamps });
-      }
-      // 끝 화면으로 — 무엇이 달라졌는지(발도장·카드·꾸준함·목표)는 끝 화면이 기록을 비교해서 보여 준다. 통계는 sendBeacon이라 바로 넘어가도 된다
-      location.href = 'walk-end.html';
-    } else {
-      statusText.textContent = '산책 종료 (이동 기록 없음)';
+      var newStamps = Object.keys(progressAfter.visited).filter(function (k) { return !progressBefore.visited[k]; }).length;
+      if (newStamps) WalsonTrack.send('stamp_new', { count: newStamps });
     }
-    // 경로 공유(다른 사용자에게 보여주기)는 백엔드 연동 전까지 보류 — 로컬 기록/썸네일 용도로만
-    // 저장한다(PROJECT_CONTEXT.md "서비스 다이어트" 참고). walk-history.html에서 씀.
+    // 끝 화면 하나로(2단계) — 보상(새 발도장·카드 성장·다음 미션)은 끝 화면에서 보여 준다
+    location.replace('walk-end.html');
   }
+  WalkScreen.twoTap($('walk-btn'), '끝내기', function () { stopWalk(); });
 
-  pinBtn.addEventListener('click', function () {
-    if (!walking || routeCoords.length === 0) return;
-    var last = routeCoords[routeCoords.length - 1];
+  // ── 지도 보기(시안 ⑫) — 처음 열 때 만든다 ──
+  var map = null, routeLayer = null, markLayer = null, pinLayer = null, mapOpen = false;
+  function initMap() {
+    map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
+    WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
+    routeLayer = L.layerGroup().addTo(map);
+    markLayer = L.layerGroup().addTo(map);
+    pinLayer = L.layerGroup().addTo(map);
+    loadJSON(PINS_KEY, []).forEach(function (p) { addPinMarker(p.id, p.lat, p.lng, p.memo); });
+  }
+  // 걸은 길: 걷는 구간은 실선, 화면이 꺼져 있던 동안(GAP_MS 넘게 끊김)은 점선으로
+  function drawMap(fit) {
+    routeLayer.clearLayers();
+    markLayer.clearLayers();
+    var solid = { color: '#b8563a', weight: 5, opacity: 0.9 }, dashed = { color: '#b8563a', weight: 4, opacity: 0.85, dashArray: '2 10', lineCap: 'round' };
+    var run = [];
+    for (var i = 1; i < routeSamples.length; i++) {
+      var a = routeSamples[i - 1], b = routeSamples[i];
+      if (b.t - a.t > GAP_MS) {
+        if (run.length > 1) L.polyline(run, solid).addTo(routeLayer);
+        L.polyline([a.c, b.c], dashed).addTo(routeLayer);
+        run = [b.c];
+      } else {
+        if (!run.length) run.push(a.c);
+        run.push(b.c);
+      }
+    }
+    if (run.length > 1) L.polyline(run, solid).addTo(routeLayer);
+    if (routeCoords.length) L.marker(routeCoords[0], { icon: L.divIcon({ className: 'wm-start', iconSize: [14, 14], iconAnchor: [7, 7] }), interactive: false }).addTo(markLayer);
+    var M = missionNow(), now = M && M.now;
+    if (now) {
+      L.circle(now.place.center, { radius: now.place.radiusKm * 1000, color: '#b8563a', weight: 2, dashArray: '6 6', fillColor: '#b8563a', fillOpacity: 0.07, interactive: false }).addTo(markLayer);
+      L.marker(now.place.center, { icon: L.divIcon({ className: '', html: '<div class="wm-flag">' + FLAG_SVG + '</div>', iconSize: [36, 36], iconAnchor: [18, 18] }), interactive: false, zIndexOffset: 500 }).addTo(markLayer);
+    }
+    if (lastFix) L.marker(lastFix, { icon: L.divIcon({ className: 'wm-me', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false, zIndexOffset: 1000 }).addTo(markLayer);
+    // 아래 판: 미션까지 거리(직선 1.3배 · 분당 60m로 어림 — shop-visits.js와 같은 셈)
+    var line = '지금까지 걸은 길';
+    if (now && lastFix) {
+      var m = Math.round(window.RewardRules.distanceKm(lastFix, now.place.center) * 1000);
+      line = m <= now.place.radiusKm * 1000 ? now.place.name + '에 와 있어요' : '미션까지 ' + kmText(m / 1000) + (window.ShopVisits ? ' · ' + ShopVisits.walkText(m) : '');
+    } else if (M && M.all.length && !now) line = '미션을 다 했어요';
+    $('map-mission').textContent = line;
+    if (fit) fitMap(now);
+  }
+  // 펼칠 때 내 위치와 미션 장소가 같이 보이게(2026-11-16 결정). 없으면 걸은 길, 그것도 없으면 동네 가운데.
+  // 위 칩과 아래 판에 가리지 않게 그만큼 비워 두고 맞춘다
+  function fitMap(now) {
+    var pts = [];
+    if (lastFix) pts.push(lastFix);
+    if (now) pts.push(now.place.center);
+    var top = document.querySelector('.map-top'), sheet = document.querySelector('.map-sheet');
+    var opts = { paddingTopLeft: [28, (top ? top.offsetTop + top.offsetHeight : 70) + 24], paddingBottomRight: [28, (sheet ? sheet.offsetHeight : 200) + 24], maxZoom: 17, animate: false };
+    if (pts.length === 2) map.fitBounds(L.latLngBounds(pts), opts);
+    else if (pts.length === 1) map.setView(pts[0], 16, { animate: false });
+    else if (routeCoords.length > 1) map.fitBounds(L.latLngBounds(routeCoords), opts);
+  }
+  function openMap() {
+    $('map-view').hidden = false;
+    document.body.classList.add('map-open');
+    mapOpen = true;
+    if (!map) initMap(); else map.invalidateSize();
+    drawMap(true);
+  }
+  function closeMap() { $('map-view').hidden = true; document.body.classList.remove('map-open'); mapOpen = false; }
+  $('map-btn').addEventListener('click', openMap);
+  $('map-close').addEventListener('click', closeMap);
+  $('map-close-x').addEventListener('click', closeMap);
+
+  // 핀 꽂기 — 지금 위치에 메모 핀(이 휴대폰에만 저장). 팝업의 "이 핀 삭제"로 지운다
+  function addPinMarker(id, lat, lng, memo) {
+    var marker = L.marker([lat, lng], { icon: L.divIcon({ className: 'pin-marker', iconSize: [28, 28], iconAnchor: [14, 28] }) }).addTo(pinLayer);
+    var wrap = document.createElement('div');
+    wrap.className = 'pin-popup';
+    var memoEl = document.createElement('div');
+    memoEl.className = memo ? 'pin-popup-memo' : 'pin-popup-empty';
+    memoEl.textContent = memo || '메모 없음';
+    wrap.appendChild(memoEl);
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'pin-delete-btn';
+    del.textContent = '이 핀 삭제';
+    del.addEventListener('click', function () {
+      pinLayer.removeLayer(marker);
+      var pins = loadJSON(PINS_KEY, []).filter(function (p) { return p.id !== id; });
+      try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) { /* 화면에서는 이미 지워짐 */ }
+    });
+    wrap.appendChild(del);
+    marker.bindPopup(wrap);
+    return marker;
+  }
+  $('pin-btn').addEventListener('click', function () {
+    if (!walking || !lastFix) { alert('아직 지금 위치를 못 받았어요. 잠시 뒤 다시 눌러 주세요.'); return; }
     var memo = prompt('이 지점에 남길 메모가 있나요? (선택)');
-    var id = savePin(last[0], last[1], memo); // localStorage에 저장 — 앱을 다시 열어도 남아있음
-    var marker = addPinMarker(id, last[0], last[1], memo);
+    if (memo === null) return;
+    var pins = loadJSON(PINS_KEY, []), id = Date.now();
+    pins.push({ id: id, lat: lastFix[0], lng: lastFix[1], memo: memo || null });
+    try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) { /* 화면엔 표시됨 */ }
+    var marker = addPinMarker(id, lastFix[0], lastFix[1], memo);
     if (memo) marker.openPopup();
   });
 
-  // ── 앱이 닫혔다 다시 열렸을 때 길 기록 이어 하기(위 saveActiveRoute, 2026-11-16) ──
+  // ── 시작 ──
+  function startWalk() {
+    if (!navigator.geolocation) { alert('이 브라우저에서는 위치 정보를 사용할 수 없어요.'); leaving = true; location.replace('go.html'); return; }
+    if (!isDemo()) window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
+    routeCoords = []; routeSamples = []; liveVisited = {}; liveKm = 0; walkGapMs = 0;
+    walkStartTime = nowMs();
+    enterWalking();
+    paintMission();
+    showWalkNotice(keepScreen() ? KEEP_TIP : POCKET_TIP, 'info');
+    saveActiveRoute(true);
+  }
+
+  // ── 앱이 닫혔다 다시 열렸을 때 이어 하기 ──
   (function resumeActiveRoute() {
     var a = loadActiveRoute();
-    if (!a || isDemo()) return;   // 시연 모드 중엔 진짜 산책을 건드리지 않는다(끄면 다시 이어진다)
+    if (!a) return;
+    if (isDemo()) {
+      // 시연 모드 중엔 진짜 산책을 건드리지 않는다 — 끄고 이어 갈지 묻는다
+      // (여기서 산책 나가기로 보내면 산책 나가기가 진행 중인 산책을 보고 다시 여기로 보내서 멈추지 않는다)
+      leaving = true;
+      if (confirm('길 기록 중인 진짜 산책이 있어요.\n시연 모드를 끄고 이어서 기록할까요?\n\n취소: 시연 모드를 그대로 두고 [오늘]로')) PetwalkDemoGeo.disable();
+      else location.replace('index.html');
+      return;
+    }
     var samples = (Array.isArray(a.samples) ? a.samples : []).filter(function (p) {
       return Array.isArray(p) && isFinite(p[0]) && isFinite(p[1]) && isFinite(p[2]);
     }).map(function (p) { return { c: [p[0], p[1]], t: p[2] }; });
     var lastT = samples.length ? samples[samples.length - 1].t : a.startedAt;
     routeSamples = samples;
     routeCoords = samples.map(function (p) { return p.c; });
+    lastFix = routeCoords.length ? routeCoords[routeCoords.length - 1] : null;
     liveKm = +a.liveKm || 0;
     liveVisited = a.visited && typeof a.visited === 'object' ? a.visited : {};
     walkGapMs = +a.gapMs || 0;
     walkStartTime = a.startedAt;
-    routeLine.setLatLngs(routeCoords);
-    resetFootprints();
-    for (var i = 1; i < routeSamples.length; i++) {
-      var p0 = routeSamples[i - 1], p1 = routeSamples[i];
-      addFootprints(p0, p1, p1.t - p0.t > GAP_MS || isFastSegment(p0, p1));
-    }
-    if (routeCoords.length) {
-      markStart(routeCoords[0]);
-      map.setView(routeCoords[routeCoords.length - 1], 17, { animate: false });
-    }
-
     // 마지막 위치 뒤로 오래 지났으면(끝내기를 잊은 산책) 이어 하지 않고, 그때 끝난 걸로 저장할지 묻는다
     if (Date.now() - Math.max(lastT, a.savedAt || 0) > ROUTE_STALE_MS) {
-      if (routeSamples.length < 2) { clearActiveRoute(); routeLine.setLatLngs([]); resetFootprints(); return; }
+      if (routeSamples.length < 2) { clearActiveRoute(); return; }
       var t = new Date(lastT);
-      var when = (t.getMonth() + 1) + '월 ' + t.getDate() + '일 ' + t.getHours() + '시 ' + pad2w(t.getMinutes()) + '분';
+      var when = (t.getMonth() + 1) + '월 ' + t.getDate() + '일 ' + t.getHours() + '시 ' + pad2(t.getMinutes()) + '분';
       if (confirm('끝내지 않은 길 기록 산책이 있어요.\n마지막으로 위치를 받은 ' + when + '에 끝난 걸로 저장할까요?\n\n' +
           '확인: 그때 끝난 걸로 저장\n취소: 저장하지 않고 지우기')) {
         walking = true;
         stopWalk({ endMs: lastT });
       } else {
         clearActiveRoute();
-        routeLine.setLatLngs([]);
-        resetFootprints();
-        if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
       }
       return;
     }
-
     enterWalking();
     freshFix();
-    showWalkNotice('산책을 이어서 기록해요. 닫혀 있던 동안은 직선으로 이어져요.', true);
-    paintMissionBar();
+    paintMission();
+    showWalkNotice('산책을 이어서 기록해요. 닫혀 있던 동안은 직선으로 이어져요.', 'info');
     saveActiveRoute(true);
   })();
 
-  // ── 산책 나가기의 "산책 시작"(위치 쓰기)이나 [동네] 미션 카드로 왔으면 바로 시작(2026-11-16 1단계 — 두 번 누르기 없앰) ──
+  // ── 산책 나가기의 "산책 시작"(위치 사용)이나 [동네] 미션 카드로 왔으면 바로 시작(?start=1, 1단계) ──
   (function autoStart() {
-    if (!/[?&]start=1/.test(location.search)) return;
-    try { history.replaceState(null, '', location.pathname); } catch (e) { /* 새로 고침하면 한 번 더 시작될 뿐 — 아래에서 막는다 */ }
-    if (walking) return;   // 이어 하기로 이미 산책 중
-    if (!locationPermissionExplained) return;   // 위치를 쓰는 이유 설명에 "취소"를 눌렀으면 버튼으로(CLAUDE.md)
-    if (window.PetwalkSample && PetwalkSample.isOn()) return;   // 샘플을 보는 중이면 버튼으로(끄기를 먼저 묻는다)
+    if (walking || leaving || !/[?&]start=1/.test(location.search)) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* 새로 고침하면 산책 나가기로 간다 */ }
+    if (window.PetwalkSample && PetwalkSample.isOn()) return;   // 샘플을 보는 중이면 산책 나가기에서 끄기를 먼저 묻는다
+    if (!locationExplained && !isDemo()) {   // 시연 모드는 가짜 위치라 권한을 묻지 않는다(2026-11-16)
+      // CLAUDE.md — 위치 권한을 묻기 전에 왜 필요한지 먼저 설명한다(산책 나가기를 거치지 않고 온 경우)
+      if (!confirm('길을 기록하려면 위치 정보가 필요해요.\n위치는 이 휴대폰 안에서만 쓰고 어디로도 보내지 않아요. 허용할까요?')) return;
+      locationExplained = true;
+      try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 다음에 다시 묻는다 */ }
+    }
     startWalk();
   })();
+
+  // 산책 중이 아니면 이 화면은 할 일이 없다 — 산책 나가기로(시작은 거기서 한다)
+  if (!walking && !leaving) { leaving = true; location.replace('go.html'); }
+
+  // "홈 화면에 추가"(PWA) 조건 때문에 서비스워커를 둔다(캐싱은 안 함)
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () { /* 무시 */ });
 })();
 </script>
-
 </body>
 </html>
