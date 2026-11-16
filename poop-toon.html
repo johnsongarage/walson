@@ -170,6 +170,7 @@
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="12" r="5"/><circle cx="17" cy="12" r="5"/><circle cx="9.5" cy="10.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="13.5" r="1.6" fill="currentColor"/></svg>
       눈알 굴리기
     </button>
+    <div class="group"><span class="g-label">눈매</span><div class="chips" id="eyes"></div></div>
     <div class="group"><span class="g-label">오늘 응가</span><div class="chips" id="states"></div></div>
     <!-- 멘트(11/17): 상황에 맞는 것 중에서 고르고, 누르면 다른 말로 -->
     <div class="group"><span class="g-label">멘트</span><div class="chips">
@@ -214,6 +215,12 @@
     { id: 'worry', label: '걱정', say: '나 오늘 좀 이상해…' },
     { id: 'sleepy', label: '나른', say: '아 시원하다…' }
   ];
+  // 눈매(11/17 가르시아 "개구진 눈빛 말고 진지하거나 예쁜 버전, 마스카라 들어간 거라던가 케이팝 여성 보컬 같은 눈매도"):
+  // 표정(입·볼·눈썹·땀)과 따로 고른다. 아이돌 눈매는 아이라인 꼬리·애교살·반짝이로 그린 일반적인 메이크업 느낌 — 특정 사람을 따라 그리지 않는다
+  var EYES = [
+    { id: 'round', label: '동글' }, { id: 'serious', label: '진지' }, { id: 'lash', label: '마스카라' }, { id: 'idol', label: '아이돌' }
+  ];
+  var EYES_KEY = 'petwalk_toon_eyes';   // 마지막에 고른 눈매(이 휴대폰에만)
   var STATES = [
     { id: 'usual', label: '평소대로', face: 'proud' },
     { id: 'diff', label: '평소와 달랐어요', face: 'worry' },
@@ -267,7 +274,8 @@
   var tapPt = null;                        // 자리 맞추기에서 응가를 톡 누른 곳(사진 좌표) — 그 색을 기준으로 떼어 낸다
   var art = null;                          // 그림으로 바꾼 결과(작업 데이터)
   var sticker = null;                      // 지금 배경 방식으로 그린 스티커 캔버스
-  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1 };
+  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1, eyes: 'round' };
+  try { var savedEyes = localStorage.getItem(EYES_KEY); if (savedEyes && EYES.some(function (e) { return e.id === savedEyes; })) opt.eyes = savedEyes; } catch (e) { /* 기본 */ }
   var face = { x: 0, y: 0, base: 40, pupils: [[0.3, -0.2], [-0.25, 0.25]] };   // 작업 좌표(여백 포함)
   var cardBlob = null, cardDirty = true, blobTimer = null;
 
@@ -1218,25 +1226,8 @@
       ctx.fillStyle = 'rgba(255,140,150,0.55)';
       [-1, 1].forEach(function (sd) { ctx.beginPath(); ctx.ellipse(cx + sd * Re * 2.25, cy + Re * 1.35, Re * 0.55, Re * 0.32, 0, 0, Math.PI * 2); ctx.fill(); });
     }
-    // 눈알
-    [-1, 1].forEach(function (sd, n) {
-      var x = cx + sd * ex, y = ey, R = Re;
-      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
-      ctx.lineWidth = Math.max(2, R * 0.14); ctx.strokeStyle = INK; ctx.stroke();
-      var pr = R * (f === 'wow' ? 0.3 : 0.5), mo = R - pr - R * 0.12, pd = face.pupils[n];
-      var px = x + pd[0] * mo, py = y + pd[1] * mo;
-      if (f === 'sleepy') py = y + Math.abs(pd[1]) * mo * 0.5 + mo * 0.35;
-      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fillStyle = '#1b1210'; ctx.fill();
-      ctx.beginPath(); ctx.arc(px - pr * 0.35, py - pr * 0.35, pr * 0.28, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
-      if (f === 'sleepy') {   // 반쯤 감은 눈꺼풀
-        ctx.save(); ctx.beginPath(); ctx.arc(x, y, R - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.clip();
-        ctx.fillStyle = lid; ctx.fillRect(x - R, y - R, R * 2, R * 1.05);
-        ctx.restore();
-        ctx.beginPath(); ctx.moveTo(x - R * 0.98, y + R * 0.05); ctx.lineTo(x + R * 0.98, y + R * 0.05);
-        ctx.lineWidth = Math.max(2, R * 0.16); ctx.strokeStyle = INK; ctx.stroke();
-        ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.lineWidth = Math.max(2, R * 0.14); ctx.stroke();
-      }
-    });
+    // 눈알(눈매별)
+    [-1, 1].forEach(function (sd, n) { drawEye(ctx, cx + sd * ex, ey, Re, sd, n, f, lid, opt.eyes); });
     // 걱정 눈썹·땀
     if (f === 'worry') {
       ctx.lineCap = 'round'; ctx.lineWidth = Math.max(3, Re * 0.2); ctx.strokeStyle = INK;
@@ -1273,6 +1264,137 @@
       ctx.beginPath(); ctx.moveTo(cx - mw * 0.45, my + Re * 0.2); ctx.quadraticCurveTo(cx, my + Re * 0.55, cx + mw * 0.45, my + Re * 0.2); ctx.stroke();
     }
     return { cx: cx, top: cy - Re * 1.8, right: cx + ex + Re };
+  }
+  // ── 눈 하나 그리기. sd: −1 왼쪽 눈, +1 오른쪽 눈(바깥쪽 = sd 방향), n: 눈알 굴린 자리 번호, f: 표정, st: 눈매 ──
+  function drawEye(ctx, x, y, R, sd, n, f, lid, st) {
+    var lw = Math.max(2, R * 0.14), pd = face.pupils[n];
+    ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (st !== 'serious' && st !== 'lash' && st !== 'idol') {   // 동글(처음부터 있던 눈 — 그대로)
+      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.lineWidth = lw; ctx.stroke();
+      var pr = R * (f === 'wow' ? 0.3 : 0.5), mo = R - pr - R * 0.12;
+      var px = x + pd[0] * mo, py = y + pd[1] * mo;
+      if (f === 'sleepy') py = y + Math.abs(pd[1]) * mo * 0.5 + mo * 0.35;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fillStyle = '#1b1210'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px - pr * 0.35, py - pr * 0.35, pr * 0.28, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+      if (f === 'sleepy') {   // 반쯤 감은 눈꺼풀
+        ctx.save(); ctx.beginPath(); ctx.arc(x, y, R - lw / 2, 0, Math.PI * 2); ctx.clip();
+        ctx.fillStyle = lid; ctx.fillRect(x - R, y - R, R * 2, R * 1.05);
+        ctx.restore();
+        ctx.beginPath(); ctx.moveTo(x - R * 0.98, y + R * 0.05); ctx.lineTo(x + R * 0.98, y + R * 0.05);
+        ctx.lineWidth = Math.max(2, R * 0.16); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.lineWidth = lw; ctx.stroke();
+      }
+      return;
+    }
+    // 눈 모양: 진지·아이돌은 아몬드(안쪽 끝 → 위 곡선 → 바깥 끝 → 아래 곡선), 마스카라는 살짝 납작한 동그라미
+    var P = function (dx, dy) { return [x + sd * dx * R, y + dy * R]; };
+    var E, U, shape = new Path2D(), irisR, wow = f === 'wow';
+    if (st === 'lash') {
+      shape.ellipse(x, y, R * 0.98, R * 0.9, 0, 0, Math.PI * 2);
+      irisR = R * (wow ? 0.42 : 0.6);
+    } else {
+      E = st === 'idol'
+        ? { a: P(-1.0, 0.16), c1: P(-0.08, -1.55), b: P(1.08, -0.22), c2: P(0.12, 1.15) }
+        : { a: P(-1.0, 0.08), c1: P(0.02, -1.1), b: P(1.0, -0.04), c2: P(0, 0.82) };
+      shape.moveTo(E.a[0], E.a[1]); shape.quadraticCurveTo(E.c1[0], E.c1[1], E.b[0], E.b[1]);
+      shape.quadraticCurveTo(E.c2[0], E.c2[1], E.a[0], E.a[1]); shape.closePath();
+      U = new Path2D(); U.moveTo(E.a[0], E.a[1]); U.quadraticCurveTo(E.c1[0], E.c1[1], E.b[0], E.b[1]);   // 위 눈꺼풀 선
+      irisR = R * (st === 'idol' ? (wow ? 0.44 : 0.64) : (wow ? 0.3 : 0.44));
+    }
+    var off = st === 'serious' ? 0.1 : 0.15;
+    var ix = x + pd[0] * R * off, iy = y + (st === 'idol' ? 0.0 : 0.04) * R + pd[1] * R * off * 0.5;
+    if (f === 'sleepy') iy = y + R * 0.2;
+    // 흰자 + 눈동자(흰자 안에서만)
+    ctx.fillStyle = '#fff'; ctx.fill(shape);
+    ctx.save(); ctx.clip(shape);
+    if (st === 'serious') {
+      ctx.beginPath(); ctx.arc(ix, iy, irisR, 0, Math.PI * 2); ctx.fillStyle = '#2a1a14'; ctx.fill();
+      ctx.beginPath(); ctx.arc(ix - irisR * 0.38, iy - irisR * 0.36, irisR * 0.22, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+    } else {
+      var g = ctx.createLinearGradient(ix, iy - irisR, ix, iy + irisR);
+      g.addColorStop(0, '#1b1210'); g.addColorStop(1, st === 'idol' ? '#8a5636' : '#5f3a26');
+      ctx.beginPath(); ctx.arc(ix, iy, irisR, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath(); ctx.arc(ix, iy + irisR * 0.05, irisR * 0.48, 0, Math.PI * 2); ctx.fillStyle = '#120b08'; ctx.fill();
+      ctx.fillStyle = '#fff';   // 반짝임: 큰 점 + 작은 점
+      ctx.beginPath(); ctx.ellipse(ix + sd * irisR * 0.3, iy - irisR * 0.36, irisR * 0.27, irisR * 0.2, -sd * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ix - sd * irisR * 0.36, iy + irisR * 0.38, irisR * 0.11, 0, Math.PI * 2); ctx.fill();
+      if (st === 'idol') sparkle(ctx, ix - sd * irisR * 0.28, iy - irisR * 0.62, irisR * 0.2, '#fff');
+    }
+    if (f === 'sleepy') {   // 나른: 위 눈꺼풀을 반쯤 내린다
+      ctx.fillStyle = lid; ctx.fillRect(x - R * 1.7, y - R * 2, R * 3.4, R * 2.05);
+      ctx.beginPath(); ctx.moveTo(x - R * 1.2, y + R * 0.05); ctx.lineTo(x + R * 1.2, y + R * 0.05); ctx.lineWidth = lw * 1.6; ctx.stroke();
+    }
+    ctx.restore();
+    ctx.lineWidth = st === 'lash' ? lw * 0.9 : lw; ctx.stroke(shape);
+    var sleepy = f === 'sleepy';
+    if (st === 'serious') {
+      if (!sleepy) { ctx.lineWidth = lw * 1.7; ctx.stroke(U); }   // 짙은 위 눈꺼풀
+      if (f !== 'worry') {   // 곧고 굵은 눈썹(안쪽이 조금 낮게)
+        var b1 = P(-0.8, -1.02), b2 = P(0.95, -1.2);
+        ctx.beginPath(); ctx.moveTo(b1[0], b1[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineWidth = Math.max(3, R * 0.22); ctx.stroke();
+      }
+    } else if (st === 'lash') {
+      if (!sleepy) {
+        ctx.beginPath(); ctx.ellipse(x, y, R * 0.98, R * 0.9, 0, Math.PI * 1.06, Math.PI * 1.94); ctx.lineWidth = lw * 1.7; ctx.stroke();
+        lashes(ctx, x, y, R * 0.98, R * 0.9, sd, [38, 60, 82], R * 0.5, lw * 0.95);
+        lashes(ctx, x, y, R * 0.98, R * 0.9, sd, [118, 136], R * 0.22, lw * 0.65);
+      } else lidLashes(ctx, x, y + R * 0.05, R, sd, lw);
+    } else {   // 아이돌: 아이라인 꼬리 + 속눈썹 조금 + 애교살 + 반짝이
+      if (!sleepy) {
+        ctx.lineWidth = lw * 1.9; ctx.stroke(U);
+        var tip = P(1.55, -0.62), in1 = P(0.86, -0.36);
+        ctx.beginPath(); ctx.moveTo(in1[0], in1[1]); ctx.lineTo(tip[0], tip[1]); ctx.lineTo(E.b[0], E.b[1] + R * 0.06); ctx.closePath();
+        ctx.fillStyle = INK; ctx.fill(); ctx.lineWidth = lw * 0.6; ctx.stroke();
+        lashesOn(ctx, E, sd, [0.62, 0.76], R * 0.34, lw * 0.85);
+      } else {
+        lidLashes(ctx, x, y + R * 0.05, R, sd, lw);
+        var t2 = P(1.5, -0.2), t1 = P(1.05, 0.0);
+        ctx.beginPath(); ctx.moveTo(t1[0], t1[1]); ctx.lineTo(t2[0], t2[1]); ctx.lineWidth = lw * 1.3; ctx.stroke();
+      }
+      // 애교살: 아래 눈꺼풀 밑 옅은 반달
+      var s1 = P(-0.78, 0.62), sc = P(0.05, 1.28), s2 = P(0.86, 0.48), sc2 = P(0.05, 0.98);
+      ctx.beginPath(); ctx.moveTo(s1[0], s1[1]); ctx.quadraticCurveTo(sc[0], sc[1], s2[0], s2[1]); ctx.quadraticCurveTo(sc2[0], sc2[1], s1[0], s1[1]); ctx.closePath();
+      ctx.fillStyle = 'rgba(255,238,232,0.78)'; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(s1[0], s1[1]); ctx.quadraticCurveTo(sc[0], sc[1], s2[0], s2[1]); ctx.lineWidth = Math.max(1.5, lw * 0.45); ctx.strokeStyle = 'rgba(120,64,52,0.45)'; ctx.stroke();
+      ctx.strokeStyle = INK;
+      var g1 = P(1.2, 0.42), g2 = P(1.02, 0.74);   // 눈꼬리 반짝이
+      sparkle(ctx, g1[0], g1[1], R * 0.15, '#fff6c8'); sparkle(ctx, g2[0], g2[1], R * 0.09, '#ffd9e6');
+    }
+  }
+  // 4갈래 반짝이
+  function sparkle(ctx, x, y, s, color) {
+    ctx.beginPath(); ctx.moveTo(x, y - s); ctx.quadraticCurveTo(x, y, x + s, y); ctx.quadraticCurveTo(x, y, x, y + s);
+    ctx.quadraticCurveTo(x, y, x - s, y); ctx.quadraticCurveTo(x, y, x, y - s); ctx.fillStyle = color; ctx.fill();
+  }
+  // 타원 가장자리에서 바깥으로 말려 올라가는 속눈썹(각도: 0 = 맨 위, 90 = 바깥 옆, 180 = 맨 아래)
+  function lashes(ctx, x, y, rx, ry, sd, degs, L, lw) {
+    ctx.lineWidth = lw;
+    degs.forEach(function (d) {
+      var t = d * Math.PI / 180, nx = sd * Math.sin(t), ny = -Math.cos(t), bx = x + nx * rx, by = y + ny * ry;
+      var tx = bx + nx * L + sd * L * 0.3, ty = by + ny * L - L * (d < 100 ? 0.2 : -0.05);
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + nx * L * 0.75, by + ny * L * 0.75, tx, ty); ctx.stroke();
+    });
+  }
+  // 아몬드 위 눈꺼풀 곡선(t 자리)에서 바깥 위로 뻗는 속눈썹
+  function lashesOn(ctx, E, sd, ts, L, lw) {
+    ctx.lineWidth = lw;
+    ts.forEach(function (t) {
+      var u = 1 - t, bx = u * u * E.a[0] + 2 * u * t * E.c1[0] + t * t * E.b[0], by = u * u * E.a[1] + 2 * u * t * E.c1[1] + t * t * E.b[1];
+      var dx = 2 * u * (E.c1[0] - E.a[0]) + 2 * t * (E.b[0] - E.c1[0]), dy = 2 * u * (E.c1[1] - E.a[1]) + 2 * t * (E.b[1] - E.c1[1]);
+      var len = Math.hypot(dx, dy) || 1, nx = dy / len, ny = -dx / len;
+      if (ny > 0) { nx = -nx; ny = -ny; }   // 위쪽으로
+      var tx = bx + nx * L + sd * L * 0.45, ty = by + ny * L;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + nx * L * 0.8, by + ny * L * 0.8, tx, ty); ctx.stroke();
+    });
+  }
+  // 감은 눈꺼풀 선의 바깥쪽에서 아래로 늘어진 속눈썹(나른)
+  function lidLashes(ctx, x, y, R, sd, lw) {
+    ctx.lineWidth = lw * 0.9;
+    [0.45, 0.7, 0.92].forEach(function (k, i) {
+      var bx = x + sd * R * k;
+      ctx.beginPath(); ctx.moveTo(bx, y); ctx.quadraticCurveTo(bx + sd * R * 0.08, y + R * 0.22, bx + sd * R * (0.18 + i * 0.04), y + R * 0.3); ctx.stroke();
+    });
   }
   // 눈꺼풀 색 = 얼굴 자리의 그림 색(조금 어둡게)
   function sampleColor() {
@@ -1534,6 +1656,11 @@
       fitLines();
       paintControls(); render();
     });
+    chipRow($('eyes'), EYES, opt.eyes, function (it) {
+      opt.eyes = it.id;
+      try { localStorage.setItem(EYES_KEY, it.id); } catch (e) { /* 이번만 */ }
+      paintControls(); render();
+    });
     var bgs = [{ id: 'cut', label: '응가만' }, { id: 'keep', label: '바닥까지' }];
     chipRow($('bgs'), bgs, opt.bg, function (it) {
       if (it.id === 'cut' && !art.cutOk) { toast('응가와 바닥을 확실히 나누지 못했어요. "다시 고르기"에서 응가를 톡 눌러 주세요.'); return; }
@@ -1544,6 +1671,7 @@
     $('say').placeholder = sl ? sl.text : ''; $('cap').placeholder = cl ? cl.text : '';
     $('name').value = opt.name;
     document.body.setAttribute('data-face', opt.face);
+    document.body.setAttribute('data-eyes', opt.eyes);
     document.body.setAttribute('data-state', opt.state);
     document.body.setAttribute('data-bg', opt.bg);
   }
