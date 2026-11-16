@@ -11,7 +11,9 @@
 //   확인되는 걸음에만 준다는 11/15 결정). 지금은 농담 문구만 둔다.
 // 그리기는 이 휴대폰 안에서만 하고 어디로도 보내지 않는다(저장·공유는 사용자가 고른 앱으로).
 //
-//   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', photoY: 0~1, logo })   (화면 테마는 11/16부터 차분 하나뿐)
+//   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', photoY: 0~1, photoX: 0~1, photoZoom: 1~, logo, layout })   (화면 테마는 11/16부터 차분 하나뿐)
+//     photoX·photoZoom(2026-11-16 한 화면 편집기 시안): 사진을 좌우로 옮기고 키운다. 없으면 예전 그대로(가운데·꽉 채우기).
+//     layout: 빈 객체를 넘기면 { W, H, photoH }를 채워 준다(편집기가 '사진 칸을 끌었는지' 가리는 데 씀).
 //   data = { no, date, demo, mode: 'time'|'gps', after(다녀와서 적은 산책), durationMin, distanceKm, feel, sniff, poop,
 //            stamps: { hit, fresh } | null, steady: { days, got }, goal: { target, total, reached } | null, note, name }
 (function () {
@@ -283,14 +285,15 @@
   }
 
   // 사진 칸: 꽉 차게 놓고 위·아래 위치(posY 0~1)만 고른다. 사진이 없으면 앱 그림(성난 치와와)
-  function drawPhoto(ctx, img, W, h, posY, logo) {
+  function drawPhoto(ctx, img, W, h, posY, logo, posX, zoom) {
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, W, h); ctx.clip();
     if (img && img.width) {
-      var s = Math.max(W / img.width, h / img.height);
+      var s = Math.max(W / img.width, h / img.height) * Math.max(1, zoom || 1);
       var pw = img.width * s, ph = img.height * s;
       var p = posY == null ? 0.4 : Math.max(0, Math.min(1, posY));
-      ctx.drawImage(img, (W - pw) / 2, -(ph - h) * p, pw, ph);
+      var q = posX == null ? 0.5 : Math.max(0, Math.min(1, posX));
+      ctx.drawImage(img, -(pw - W) * q, -(ph - h) * p, pw, ph);
     } else {
       ctx.fillStyle = '#f1b732';   // 앱 그림(walson-logo.webp) 바탕과 같은 노랑 — 다르면 그림 둘레에 네모가 비친다
       ctx.fillRect(0, 0, W, h);
@@ -325,7 +328,8 @@
 
     ctx.fillStyle = '#f3ddd2';
     ctx.fillRect(0, 0, W, H);
-    drawPhoto(ctx, photo, W, photoH, opts.photoY, opts.logo);
+    drawPhoto(ctx, photo, W, photoH, opts.photoY, opts.logo, opts.photoX, opts.photoZoom);
+    if (opts.layout) { opts.layout.W = W; opts.layout.H = H; opts.layout.photoH = photoH; }
 
     // 영수증 종이 — 아래 가운데를 기준으로 살짝 기울여 사진 위에 올린다
     ctx.save();
