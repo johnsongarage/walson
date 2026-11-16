@@ -3,26 +3,83 @@
 // 입력 st: { shop, dog(기본 true), cat, size:''|'kg10'|'kg7'|'small'|'carry', way:'carry'|'leash'|'chair'|'zone', bite, danger }
 // 입구 표지판은 법이 요구하는 것을 담는다: "반려동물 동반 영업장" 문구, 종류·크기 제한, 미접종 출입 불가 표시(hq notes/petwalk-pet-restaurant-rules.md).
 (function () {
-  // ── 선 아이콘(직접 그림, 48×48) ──
-  var DOG = '<path d="M14 15c-3 2-6 9-6 12 0 2 2 3 4 1l3-4"/><path d="M34 15c3 2 6 9 6 12 0 2-2 3-4 1l-3-4"/><path d="M15 14c4-4 14-4 18 0 3 4 3 13 0 18-2 4-5 6-9 6s-7-2-9-6c-3-5-3-14 0-18z"/><circle cx="19.5" cy="23" r="1.6" fill="currentColor" stroke="none"/><circle cx="28.5" cy="23" r="1.6" fill="currentColor" stroke="none"/><path d="M22 30h4l-2 2.4z" fill="currentColor"/>';
+  // ── 선 아이콘(직접 그림, 48×48, 선 굵기 1.7로 통일) — 2026-11-16 다시 그림 ──
+  // 작게 넣는 그림(g)은 줄인 만큼 선을 굵게 해서, 어디서나 선 굵기가 같아 보이게 한다.
+  var SW = 1.7;
+  function g(k, cx, cy, ox, oy, inner, pk) {
+    return '<g transform="translate(' + cx + ' ' + cy + ') scale(' + k + ') translate(' + (-ox) + ' ' + (-oy) + ')" stroke-width="' + (SW / (k * (pk || 1))).toFixed(2) + '">' + inner + '</g>';
+  }
+  var DOT = ' fill="currentColor" stroke="none"';
+  // 강아지 얼굴(가운데 24,22)
+  var HEAD =
+    '<path d="M15.5 16c0-4.6 3.8-7.5 8.5-7.5s8.5 2.9 8.5 7.5v8.5c0 6-3.8 11-8.5 11s-8.5-5-8.5-11z"/>' +
+    '<path d="M15.6 13.2c-4.6-.4-8.1 2.6-8.1 7.8 0 4.4 1.3 8.5 4.2 8.5 2.2 0 3.6-2.3 3.8-5.5"/>' +
+    '<path d="M32.4 13.2c4.6-.4 8.1 2.6 8.1 7.8 0 4.4-1.3 8.5-4.2 8.5-2.2 0-3.6-2.3-3.8-5.5"/>';
+  var FACE = HEAD +
+    '<circle cx="20" cy="19.6" r="1.45"' + DOT + '/><circle cx="28" cy="19.6" r="1.45"' + DOT + '/>' +
+    '<path d="M22 25.300c0-.9.9-1.400 2-1.400s2 .5 2 1.400c0 1-1 1.700-2 1.700s-2-.7-2-1.700z"' + DOT + '/>' +
+    '<path d="M20.800 29.600c1 1.500 2.500 1.400 3.200-.4.7 1.800 2.200 1.900 3.200.4"/>';
+  // 아주 작게 넣을 때: 눈·코만(입 선은 뭉개져서 뺀다)
+  var FACE_S = HEAD +
+    '<circle cx="20" cy="20" r="1.9"' + DOT + '/><circle cx="28" cy="20" r="1.9"' + DOT + '/>' +
+    '<path d="M21.400 26.600c0-1.200 1.200-2 2.600-2s2.600.8 2.600 2c0 1.400-1.300 2.400-2.600 2.400s-2.600-1-2.600-2.400z"' + DOT + '/>';
+  // 앉아 있는 강아지(48×48 가득, 가운데 24,24)
+  function sit(pk, small) {
+    return g(0.62, 24, 14.8, 24, 22, small ? FACE_S : FACE, pk) +
+      '<path d="M18.4 23c-3.300 3.500-4.800 8.800-4.800 17M29.600 23c3.300 3.500 4.800 8.800 4.800 17"/>' +
+      '<path d="M11.500 40h25"/><path d="M21 40v-9.500M27 40v-9.500"/>' +
+      '<path d="M34.500 37.600c3.300-.3 5.500-2.600 5.500-6.100"/>';
+  }
+  // 발바닥(가운데 0,0 — translate로 놓는다)
+  function paw(x, y, k) {
+    return '<g transform="translate(' + x + ' ' + y + ') scale(' + (k || 1) + ')"' + DOT + '>' +
+      '<path d="M-3.4 2.3c0-2.2 1.6-4 3.4-4s3.4 1.8 3.4 4c0 1.6-1.4 2.3-3.4 2.3s-3.4-.7-3.4-2.3z"/>' +
+      '<circle cx="-4" cy="-2.4" r="1.25"/><circle cx="-1.4" cy="-4.4" r="1.25"/><circle cx="1.4" cy="-4.4" r="1.25"/><circle cx="4" cy="-2.4" r="1.25"/></g>';
+  }
+  var BAN = '<circle cx="24" cy="24" r="21.200" stroke-width="2.100"/><path d="M9 39L39 9" stroke-width="2.100"/>';
   var I = {
-    dog: DOG,
-    scale: '<g transform="translate(0,-4) scale(.8) translate(6,0)">' + DOG + '</g><rect x="11" y="36" width="26" height="9" rx="1.5"/><text x="24" y="43" font-size="7" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="Pretendard,sans-serif">KG</text>',
-    syringe: '<path d="M33 7l8 8"/><path d="M37 11L19 29l-6-6L31 5"/><path d="M13 23l-4 4M19 29l-4 4M9 33l6 6M11 35l-5 5"/><path d="M25 17l3 3M21 21l3 3"/>',
-    hug: '<circle cx="24" cy="9" r="5"/><path d="M12 44c0-12 4-22 12-22s12 10 12 22"/><path d="M15 31c5 4 13 4 18 0"/><g transform="translate(15,24) scale(.38)">' + DOG + '</g>',
-    cart: '<rect x="8" y="18" width="30" height="16" rx="3"/><path d="M8 18c4-9 26-9 30 0"/><path d="M38 22h4l2-6"/><circle cx="14" cy="40" r="3.5"/><circle cx="32" cy="40" r="3.5"/>',
-    leash: '<g transform="translate(-4,6) scale(.75)">' + DOG + '</g><path d="M26 36c6 0 8-10 12-18"/><circle cx="40" cy="14" r="4"/>',
-    chair: '<path d="M14 6v34M34 6v34M14 24h20M14 6h20M14 15h20"/><path d="M10 40h28"/>',
-    zone: '<rect x="6" y="10" width="36" height="28" rx="2" stroke-dasharray="4 3"/><g transform="translate(12,13) scale(.5)">' + DOG + '</g>',
-    walk: '<circle cx="14" cy="8" r="4"/><path d="M14 13v13l-4 14M14 26l5 14M14 17l7 6"/><path d="M21 23c4 4 7 8 9 12"/><g transform="translate(26,26) scale(.42)">' + DOG + '</g>',
-    apart: '<g transform="translate(-3,4) scale(.55)">' + DOG + '</g><g transform="translate(24,4) scale(.55)">' + DOG + '</g><path d="M24 8v34" stroke-dasharray="3 3"/><path d="M18 36h-8M30 36h8M12 33l-3 3 3 3M36 33l3 3-3 3"/>',
-    nokitchen: '<path d="M12 22h24v10a8 8 0 0 1-8 8h-8a8 8 0 0 1-8-8z"/><path d="M8 22h32M18 16c0-3 2-3 2-6M26 16c0-3 2-3 2-6"/><circle cx="24" cy="26" r="21" stroke-width="2.6"/><path d="M9 41L39 11" stroke-width="2.6"/>',
-    poop: '<path d="M14 18h20l-2 24H16z"/><path d="M14 18c2-4 4-6 10-6s8 2 10 6"/><path d="M19 30h10M20 36h8"/>',
-    bowl: '<path d="M6 26h36l-4 12H10z"/><path d="M14 26c0-5 4-8 10-8s10 3 10 8"/><path d="M20 12c0-2 2-2 2-4M26 12c0-2 2-2 2-4"/>',
-    nobite: '<g transform="translate(5,6) scale(.8)">' + DOG + '</g><circle cx="24" cy="24" r="21" stroke-width="2.6"/><path d="M9 39L39 9" stroke-width="2.6"/>',
-    cover: '<path d="M8 34h32"/><path d="M11 34c0-9 6-15 13-15s13 6 13 15"/><path d="M24 19v-4M21 15h6"/>'
+    dog: sit(1),
+    // 얼굴 + 무게 꼬리표
+    scale: g(0.74, 24, 15.5, 24, 22, FACE) + '<rect x="9.5" y="33.5" width="29" height="10.5" rx="2.2"/>' +
+      '<text x="24" y="41.4" font-size="7.4" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="Pretendard,sans-serif">KG</text>',
+    // 주사기(45° 기울임)
+    syringe: '<g transform="rotate(45 24 24)">' +
+      '<path d="M19 7.5h10M24 7.5v6.5"/><path d="M16.5 14h15"/>' +
+      '<rect x="19" y="14" width="10" height="18" rx="1.6"/>' +
+      '<path d="M19 19.5h4M19 24h4M19 28.5h4"/>' +
+      '<path d="M22 32h4l-.8 3.2h-2.4z"/><path d="M24 35.2v8.3"/></g>',
+    // 안고 있기: 사람 + 품 안의 강아지
+    hug: '<circle cx="24" cy="7.800" r="4.600"/>' +
+      '<path d="M9.500 44v-9c0-7.600 5.500-13 14.500-13s14.500 5.400 14.500 13v9"/>' +
+      g(0.46, 24, 30, 24, 22, FACE_S) +
+      '<path d="M14.500 35.500c0 3.300 2.400 5.500 5.500 5.500h8c3.100 0 5.500-2.200 5.500-5.500"/>',
+    // 목줄: 앉은 강아지 + 줄 + 손잡이 고리
+    leash: g(0.82, 19, 26.500, 24, 24, sit(0.82)) + '<path d="M24 24.500c7.500 1 12-5 14.200-14.200"/><circle cx="39.500" cy="6.800" r="3.500"/>',
+    // 전용 의자: 의자 위 강아지
+    chair: '<rect x="9.500" y="4.500" width="5" height="25" rx="2.500"/><rect x="9.500" y="26.500" width="29" height="5" rx="2.500"/>' +
+      '<path d="M13 31.500v12M35 31.500v12M13 38h22"/>' + g(0.52, 26, 15.700, 24, 22, FACE),
+    // 전용 자리: 점선 칸 안의 강아지
+    zone: '<rect x="4.5" y="4.5" width="39" height="39" rx="4" stroke-dasharray="4.2 3.6"/>' + g(0.68, 24, 24.500, 24, 24, sit(0.68)),
+    // 함께 이동: 걷는 사람 + 줄 + 강아지
+    walk: '<circle cx="13" cy="7.6" r="4.3"/><path d="M13 13.5v14M13 27.5l-5 14M13 27.5l5.5 14M13 17.5l8.5 5.5"/>' +
+      '<path d="M21.5 23c4.5 1.2 7.5 3 9.5 5.5"/>' + g(0.5, 35, 33, 24, 24, sit(0.5, true)),
+    // 닿지 않게: 두 마리 사이 거리 화살표
+    apart: g(0.5, 11.5, 17, 24, 22, FACE) + g(0.5, 36.5, 17, 24, 22, FACE) +
+      '<path d="M24 5v24" stroke-dasharray="3 3"/><path d="M8 38h32M12.5 33.8L8 38l4.5 4.2M35.5 33.8L40 38l-4.5 4.2"/>',
+    // 주방 출입 금지: 냄비 + 금지
+    nokitchen: '<path d="M14 21.5h20v9.5a6 6 0 0 1-6 6h-8a6 6 0 0 1-6-6z"/><path d="M11.5 21.5h25M14 25.5h-3.2M34 25.5h3.2"/>' +
+      '<path d="M19.5 17c0-2.4 1.8-2.6 1.8-5M26.5 17c0-2.4 1.8-2.6 1.8-5"/>' + BAN,
+    // 배설물 전용 통: 뚜껑 있는 통 + 발바닥
+    poop: '<path d="M11 13.5h26M19.5 13.5v-4h9v4"/><path d="M13.5 13.5l2.2 27a2.5 2.5 0 0 0 2.5 2.3h11.6a2.5 2.5 0 0 0 2.5-2.3l2.2-27"/>' + paw(24, 29, 1.15),
+    // 반려동물 식기: 그릇 + 사료 + 발바닥
+    bowl: '<path d="M6.5 24.5h35l-3.2 13.2a2.6 2.6 0 0 1-2.5 2H12.2a2.6 2.6 0 0 1-2.5-2z"/>' +
+      '<path d="M11.500 24.500c0-2.600 2-4.500 4.300-4.500 1 0 1.900.3 2.600.9.800-2.200 2.900-3.700 5.600-3.700s4.800 1.500 5.600 3.700c.7-.6 1.600-.9 2.600-.9 2.300 0 4.300 1.900 4.300 4.500"/>' + paw(24, 33.4, 0.95),
+    // 공격성 있는 반려견 불가: 찌푸린 얼굴 + 금지
+    nobite: g(0.8, 24, 24.500, 24, 22, HEAD + '<path d="M17.600 16.800l4.800 2.400M30.400 16.800l-4.800 2.400"/>' +
+      '<circle cx="20.300" cy="21.400" r="1.500"' + DOT + '/><circle cx="27.700" cy="21.400" r="1.500"' + DOT + '/>' +
+      '<path d="M20.300 30.800c2.200-2 5.200-2 7.400 0"/>') + BAN
   };
-  function svg(name) { return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + '</svg>'; }
+  function svg(name) { return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="' + SW + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + '</svg>'; }
 
   function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   function row(icon, html) { return '<div class="prow">' + svg(icon) + '<div class="t">' + html + '</div></div>'; }
