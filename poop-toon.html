@@ -671,6 +671,8 @@
     var w = (h >= 20 && h <= 100) ? 1 : (h < 20 || h >= 340) ? 0.7 : h <= 125 ? 0.5 : 0.12;
     return w * (C < 4 ? 0.15 : C < 10 ? 0.15 + 0.85 * (C - 4) / 6 : 1);
   }
+  // 초록 계열(색상 100~200°, 채도 12 넘게). 풀밭 위에서는 응가로 보지 않는다(아래 classify)
+  function isGreen(a, b) { var h = (Math.atan2(b, a) * 180 / Math.PI + 360) % 360; return Math.hypot(a, b) >= 12 && h >= 100 && h <= 200; }
   // 바닥 색마다 그림자 세 가지(어두워지고 색이 옅어지고 조금 푸르러짐)를 더한다
   function withShadows(cs) {
     var out = [];
@@ -690,24 +692,24 @@
     if (!tap) {
       var d = A.dbg; if (ca) { d.frac = ca.frac; d.parts = ca.parts; }
       if (!autoOk) { d.why = d.why || (ca && !ca.ok ? 'size' : 'unsure'); return { ok: false, dbg: d }; }
-      return finish(ca.mask, A.m, W, null, d);
+      return finish(ca.mask, A.m, W, null, d, lf);
     }
     var ti = tap[1] * W + tap[0];
     if (autoOk && ca.mask[ti]) {
       var c1 = cleanMask(A.m.slice(), W, tap, null);
-      if (c1.ok) { A.dbg.tap = 'in'; return finish(c1.mask, A.m, W, tap, A.dbg); }
+      if (c1.ok) { A.dbg.tap = 'in'; return finish(c1.mask, A.m, W, tap, A.dbg, lf); }
     }
     var B = classify(lf, W, tap, A.ok ? A : null);
     if (!B.ok) return { ok: false, dbg: B.dbg };
     var c2 = cleanMask(B.m, W, tap, autoOk ? ca.mask : null);
     B.dbg.tap = 'add'; B.dbg.frac = c2.frac; B.dbg.parts = c2.parts;
     if (!c2.ok) return { ok: false, dbg: B.dbg };
-    return finish(c2.mask, B.m, W, tap, B.dbg);
+    return finish(c2.mask, B.m, W, tap, B.dbg, lf);
   }
   // 마무리: 가는 곁가지를 깎고 덩어리·얼굴 자리를 다시 잡는다. raw = 처음 칸마다 판정(응가 1/바닥 0) — 구멍 메울 때 쓴다
-  function finish(mask, raw, W, tap, dbg) {
-    var t = trimThin(mask, W, tap);
-    dbg.trim = t.trimmed;
+  function finish(mask, raw, W, tap, dbg, lf) {
+    var t = trimThin(mask, W, tap, lf);
+    dbg.trim = t.trimmed; if (t.odd) dbg.odd = t.odd;
     if (!t.ok) { dbg.why = 'trim'; return { ok: false, dbg: dbg }; }
     return { ok: true, mask: t.mask, box: t.box, main: t.main, rMain: t.rMain, raw: raw, dbg: dbg };
   }
@@ -715,7 +717,7 @@
   // 덩어리마다 가장 굵은 곳의 반지름(안쪽 거리의 최댓값)을 재고, 그 THIN_RATIO배보다 가는 곁가지(풀잎·틈새)는 깎았다 다시 붙여(열기) 없앤다.
   // 알갱이가 여러 개면 알갱이마다 제 굵기로 잰다(작은 알갱이가 큰 알갱이 기준에 지워지지 않게). 깎는 굵기는 THIN_CAP까지만
   // (큰 더미에 붙은 작은 진짜 덩어리가 더미 굵기에 비해 가늘다고 지워지지 않게)
-  function trimThin(m, W, tap) {
+  function trimThin(m, W, tap, lf) {
     var N = W * W, i, k, ratio = window.__toonThin != null ? window.__toonThin : THIN_RATIO;
     var din = chamfer(m, W, W, 0), lab = labelComps(m, W), comp = lab.comp, n = lab.sizes.length;
     var rmax = new Float32Array(n);
@@ -740,16 +742,25 @@
         for (k = 0; k < sizes.length; k++) if (sizes[k] >= minA) { var d = Math.hypot((bx2[k][0] + bx2[k][2]) / 2 - tap[0], (bx2[k][1] + bx2[k][3]) / 2 - tap[1]); if (d < bd) { bd = d; main = k; } }
       }
     }
+    // 따로 떨어진 덩어리인데 색이 응가와 전혀 다르고 희끗한 것(종이·비닐·마른 풀 뭉치)은 버린다 — 11/17 가르시아 휴대폰:
+    // 사진 구석의 흰 종이가 따로 잡혔다. 알갱이 여러 개는 색이 비슷해 남고, 회백색 변이면 응가 자체가 희어 남는다
+    var odd = null, nOdd = 0;
+    if (lf) {
+      var sum = sizes.map(function () { return [0, 0, 0]; });
+      for (i = 0; i < N; i++) if (out[i]) { var s3 = sum[l2.comp[i]]; s3[0] += lf[i * 3]; s3[1] += lf[i * 3 + 1]; s3[2] += lf[i * 3 + 2]; }
+      var mean = sum.map(function (s3, q) { return [s3[0] / sizes[q], s3[1] / sizes[q], s3[2] / sizes[q]]; });
+      odd = mean.map(function (c, q) { var o2 = q !== main && c[0] > 70 && Math.hypot(c[1], c[2]) < 12 && de2(c, mean[main]) > 900; if (o2) nOdd++; return o2; });
+    }
     var box = [W, W, 0, 0], rMain = 0;
     for (i = 0; i < N; i++) {
       if (!out[i]) continue;
       var c2 = l2.comp[i];
-      if (sizes[c2] < minA) { out[i] = 0; continue; }
+      if (sizes[c2] < minA || (odd && odd[c2])) { out[i] = 0; continue; }
       if (c2 === main && din[i] > rMain) rMain = din[i];
       var x = i % W, y = (i / W) | 0;
       if (x < box[0]) box[0] = x; if (x > box[2]) box[2] = x; if (y < box[1]) box[1] = y; if (y > box[3]) box[3] = y;
     }
-    return { ok: true, mask: out, box: box, main: bx2[main], rMain: rMain, trimmed: before ? Math.round((1 - after / before) * 1000) / 1000 : 0 };
+    return { ok: true, mask: out, box: box, main: bx2[main], rMain: rMain, odd: nOdd, trimmed: before ? Math.round((1 - after / before) * 1000) / 1000 : 0 };
   }
   function labelComps(m, W) {
     var N = W * W, comp = new Int32Array(N).fill(-1), sizes = [], boxes = [], stack = new Int32Array(N);
@@ -843,6 +854,12 @@
     if (!ground.length) return { ok: false, dbg: dbg };
     var bgP = withShadows(ground), tc = null;
     dbg.ground = ground.map(function (c) { return c.map(Math.round); });
+    // 풀밭이면(가장자리 바닥 색에 초록이 있으면) 초록 계열 칸은 응가로 보지 않는다 — 11/17 가르시아 휴대폰: 사진을 조금 끌어
+    // 가장자리 띠에 그늘진 진초록만 남자, 가운데 햇빛 받은 연두 잔디를 '바닥과 다른 색'으로 보고 응가 색으로 배워 응가에 붙였다.
+    // 초록빛 변도 있지만 풀밭 위에선 잔디와 가를 수 없다(아스팔트·흙 위에선 그대로 응가로 본다)
+    var grassy = ground.some(function (c) { return isGreen(c[1], c[2]); });
+    dbg.grassy = grassy;
+    function noGreen(cs) { return grassy ? cs.filter(function (c) { return !isGreen(c[1], c[2]); }) : cs; }
     // ② 응가 씨앗
     var seeds = [], fgP;
     if (tap) {
@@ -851,14 +868,28 @@
         o = (y * W + x) * 3; tc[0] += lf[o]; tc[1] += lf[o + 1]; tc[2] += lf[o + 2]; tn++;
       }
       tc = tc.map(function (v) { return v / tn; });
+      // 풀밭에서 누른 곳이 초록이면 응가 위를 지나는 풀잎을 눌렀을 수 있다 — 둘레(반지름 18칸)에 초록 아닌 응가다운 색이 있으면 그 색으로.
+      // 둘레에 응가 색이 전혀 없으면 누른 걸 믿는다(초록빛 변일 수도 있다 — 이때는 초록을 빼지 않는다. 잔디와 같으면 바닥까지 그림 + 안내)
+      if (grassy && isGreen(tc[1], tc[2])) {
+        var acc = [0, 0, 0], an = 0;
+        for (y = Math.max(0, tap[1] - 18); y <= Math.min(W - 1, tap[1] + 18); y++) for (x = Math.max(0, tap[0] - 18); x <= Math.min(W - 1, tap[0] + 18); x++) {
+          if ((x - tap[0]) * (x - tap[0]) + (y - tap[1]) * (y - tap[1]) > 324) continue;
+          o = (y * W + x) * 3;
+          if (isGreen(lf[o + 1], lf[o + 2]) || poopLike(lf[o + 1], lf[o + 2]) < 0.5) continue;
+          acc[0] += lf[o]; acc[1] += lf[o + 1]; acc[2] += lf[o + 2]; an++;
+        }
+        dbg.tapGreen = an;
+        if (an >= 20) tc = acc.map(function (v) { return v / an; });
+        else { grassy = false; dbg.grassy = false; }
+      }
       for (p = 0; p < N; p += 2) {
         if (rad[p] > 0.97) continue;
         var dx = (p % W) - tap[0], dy = ((p / W) | 0) - tap[1];
         o = p * 3;
         if (dx * dx + dy * dy < 30 * 30 && wd(lf[o], lf[o + 1], lf[o + 2], tc[0], tc[1], tc[2]) < 120) seeds.push(p);
       }
-      fgP = kmeansLab(lf, seeds.length ? seeds : [tap[1] * W + tap[0]], 2).map(function (f) { return f.c; }).concat([tc]);
-      if (prev && prev.fgP) fgP = fgP.concat(prev.fgP);
+      fgP = noGreen(kmeansLab(lf, seeds.length ? seeds : [tap[1] * W + tap[0]], 2).map(function (f) { return f.c; })).concat([tc]);
+      if (prev && prev.fgP) fgP = fgP.concat(noGreen(prev.fgP));
       // 누른 색이 바닥 색과 같으면 바닥에서 그 색을 뺀다(사용자가 고른 게 맞다고 본다)
       bgP = bgP.filter(function (q) { return wd(q[0], q[1], q[2], tc[0], tc[1], tc[2]) > 60; });
       if (!bgP.length) return { ok: false, dbg: dbg };
@@ -881,7 +912,8 @@
         for (i = 0; i < cand.length && seeds.length < nS; i++) if (cand[i][1] >= 7) seeds.push(cand[i][2]);
       }
       if (!seeds.length) return { ok: false, dbg: dbg };
-      fgP = kmeansLab(lf, seeds, 3).map(function (f) { return f.c; });
+      fgP = noGreen(kmeansLab(lf, seeds, 3).map(function (f) { return f.c; }));
+      if (!fgP.length) return { ok: false, dbg: dbg };
     }
     // ③ 나누기 → 응가·바닥 색 다시 배우기(자동은 두 번, 누른 곳은 한 번 — 누른 색은 늘 응가 쪽에 남긴다)
     var m = new Uint8Array(N), rounds = tap ? 2 : 3;
@@ -889,6 +921,7 @@
       for (p = 0; p < N; p++) {
         if (rad[p] > 0.97) { m[p] = 0; continue; }
         o = p * 3;
+        if (grassy && isGreen(lf[o + 1], lf[o + 2])) { m[p] = 0; continue; }
         m[p] = minWd(fgP, lf[o], lf[o + 1], lf[o + 2]) < minWd(bgP, lf[o], lf[o + 1], lf[o + 2]) ? 1 : 0;
       }
       if (round === rounds - 1) break;
@@ -900,7 +933,7 @@
       if (tc) nb = nb.filter(function (q) { return wd(q[0], q[1], q[2], tc[0], tc[1], tc[2]) > 60; });
       if (nb.length) bgP = nb;
       // 응가 색으로 배운 것 중 바닥·그림자와 거의 같은 색은 뺀다 — 그림자가 응가 쪽으로 번지지 않게
-      var f2 = kmeansLab(lf, fs, 3).map(function (f) { return f.c; }).filter(function (c) { return minWd(bgP, c[0], c[1], c[2]) > 30; });
+      var f2 = noGreen(kmeansLab(lf, fs, 3).map(function (f) { return f.c; }).filter(function (c) { return minWd(bgP, c[0], c[1], c[2]) > 30; }));
       if (tc) f2.push(tc);
       if (!f2.length) return { ok: false, dbg: dbg };
       fgP = f2;
