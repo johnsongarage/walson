@@ -1207,7 +1207,7 @@
   // 가르시아가 보낸 그림(맨 아래 응아하는 강아지 — 가르시아가 만든 아이콘)으로 바꿈: "백그라운드로 활용해, 회전시켜서 여러 개 집어넣던가".
   // 선 그림(투명 PNG)을 카드 바탕 전체에 여러 개 돌려 흩뿌린다. 자리·각도·크기는 늘 같게(씨앗 고정) — 다시 그려도 무늬가 흔들리지 않게
   var PATTERN_SRC = 'icons/poop-dog-line.png?v=1';
-  var PATTERN_ALPHA = 0.16, PATTERN_H = 150;   // 진하기는 휴대폰 크기(카드 약 1/3)에서 0.11·0.16·0.21을 비교해 정함
+  var PATTERN_ALPHA = 0.24, PATTERN_H = 150;   // 진하기: 휴대폰 크기(카드 약 1/3)에서 비교해 0.16 → 가르시아 "좀 더 진해도 되겠는데"로 0.24
   var patImg = new Image(), patReady = false;
   patImg.onload = function () { patReady = true; if (art && sticker) requestRender(); };
   patImg.src = PATTERN_SRC;
