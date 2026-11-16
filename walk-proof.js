@@ -162,7 +162,7 @@
     });
     // 맨 아래 주소
     ctx.font = font(700, 30); ctx.fillStyle = soft;
-    ctx.fillText('다산동 댕댕이 산책앱 · ' + URL_TEXT, x, H - (fmt === 'story' ? 90 : 56));
+    ctx.fillText('다산동 강아지 산책 앱 · ' + URL_TEXT, x, H - (fmt === 'story' ? 90 : 56));
     return c;
   }
 
