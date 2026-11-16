@@ -1,4 +1,4 @@
-// 동네 스팟(시설·가게·주의 구역) — town.html([동네]), walk.html(산책 화면), start.html(수호견 카드),
+// 동네 스팟(시설·가게·주의 구역) — town.html([동네]), walk.html·go.html(산책 중 가게 QR 찍기 — 가게 찾기만), start.html(수호견 카드),
 // spot-editor.html(운영자 스팟 편집)이 같이 쓴다. 전역 window.InfraPins.
 // 고치면 쓰는 화면들의 `infra-pins.js?v=N` 버전을 같이 올릴 것(card-shared.js와 같은 캐시 문제).
 //
@@ -9,7 +9,7 @@
 // 개인정보: 공용 시설과 가게 좌표만 둔다. 사용자 위치는 이 파일에서 읽지도 보내지도 않는다.
 (function () {
 
-  // 아이콘은 Phosphor Icons(MIT) regular SVG 경로를 그대로 가져온 것(walk.html ICON_PATHS와 같은 방식).
+  // 아이콘은 Phosphor Icons(MIT) regular SVG 경로를 그대로 가져온 것.
   var CATEGORIES = [
     // 주의 구역(2026-11-14, 기획표 V1-21): 자전거도로 합류, 진드기 풀숲처럼 '늘 조심할 구간'을 운영자가 현장에서 찍는다.
     // 특정 가게를 위험 구역으로 찍지 않는다 — 음식점 주변 닭뼈 다발지는 일부러 뺐다(가게에 협찬을 부탁하게 되므로, 11/14 결정).
@@ -151,7 +151,7 @@
     return { groups: res, list: list, byKey: byKey };
   }
 
-  // 사용자가 켜고 끈 상태 — 이 휴대폰에만. town.html과 walk.html이 같이 쓴다.
+  // 사용자가 켜고 끈 상태 — 이 휴대폰에만. town.html이 쓴다(2026-11-16 2단계부터 산책 화면엔 시설 핀이 없다).
   //  petwalk_infra_filter: 사용자가 끈 레이어 / petwalk_infra_shown: "처음엔 꺼 둠"인 레이어 중 사용자가 켠 것
   function filterState(lay) {
     var hidden = {}, shown = {};
