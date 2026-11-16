@@ -449,6 +449,8 @@
   // 뭉개는 정도: 쿠와하라 두 번의 반경과 색 칸을 한 번 더 뭉개는 반경(작업 픽셀). 크면 매끈하지만 가는 줄이 넓어진다
   // 11/16 색 따라 그리기 때 6·4·2 → 4·3·1로 줄임: 빨간 줄이 사진보다 1.6배 두꺼워지던 것이 1.4배로, 흰 점액 비율은 사진과 같게(16.0% / 16.1%)
   var SMOOTH = { k1: 4, k2: 3, blur: 1 };
+  // 떼어 낸 모양의 경계를 다듬는 정도(작업 픽셀 반경, 세 번 뭉갬) — 클수록 매끈하지만 작은 알갱이의 모서리도 둥글어진다
+  var EDGE_SMOOTH = 7;   // 11/16 실제 사진 3장으로 0·3·5·7 비교 → 7이 톱니 없이 매끈하고 작은 알갱이도 남음
   function toonify(rgba, tap) {
     var W = WORK, N = W * W;
     // ① 붓칠처럼 평평하게: 쿠와하라 필터 두 번(가장자리는 살리고 질감은 지운다)
@@ -871,7 +873,10 @@
       var inv = new Uint8Array(Np); for (var i = 0; i < Np; i++) inv[i] = m[i] ? 0 : 1;
       var din = chamfer(m, Wp, Wp, 0), dout = chamfer(inv, Wp, Wp, Infinity);
       for (i = 0; i < Np; i++) sdf[i] = m[i] ? 0.5 - din[i] : dout[i] - 0.5;
-      blurField(sdf, Wp);
+      // 경계를 부드러운 곡선으로(11/16 가르시아 "오돌토돌 톱날처럼 되는 부분은 유하게"):
+      // 거리 지도를 넓게 뭉개면 0이 되는 선(=모양의 경계)이 잔 톱니 없이 매끈해진다. 흰 테두리·바깥 선도 이 선을 따른다
+      var es = window.__toonEdge != null ? window.__toonEdge : EDGE_SMOOTH;
+      if (es > 0) { boxBlur(sdf, Wp, es); boxBlur(sdf, Wp, es); boxBlur(sdf, Wp, es); } else blurField(sdf, Wp);
     } else {
       var R = W / 2 * 0.985, c = Wp / 2;
       for (y = 0; y < Wp; y++) for (x = 0; x < Wp; x++) sdf[y * Wp + x] = Math.hypot(x + 0.5 - c, y + 0.5 - c) - R;
