@@ -16,6 +16,8 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="infra-pins.js?v=19"></script>
+<script src="shop-visits.js?v=3"></script>
+<script src="qr-scan.js?v=1"></script>
 <script src="demo-geo.js?v=5"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
@@ -74,8 +76,9 @@
   .icon svg { display: block; }
 
   /* ── 상단바: 전체 폭 스크림 대신 떠 있는 캡슐 두 개(타이틀칩 / 카드칩)로 재구성 ── */
+  /* z-index 12(2026-11-16): 메뉴를 열면 펼침 목록이 시설 칩·미션 줄(10)·알림 띠 밑에 깔려 위쪽 항목이 안 눌렸다 — 그 위로 올린다 */
   .top-bar {
-    position: absolute; top: 14px; left: 14px; right: 14px; z-index: 10;
+    position: absolute; top: 14px; left: 14px; right: 14px; z-index: 12;
     display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
     pointer-events: none;
   }
@@ -405,7 +408,7 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="inapp.js?v=1"></script>
+<script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
 <script src="geo.js?v=4"></script>
 </head>
@@ -428,6 +431,8 @@
       <span class="icon" data-icon="list"></span>
     </button>
     <div class="menu-dropdown" id="menu-dropdown">
+      <!-- 가게 QR 찍기(2026-11-16) — 산책 중 들른 가게의 체크인 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js) -->
+      <a href="#" id="qr-scan-link" hidden><span class="icon" id="qr-scan-icon"></span><span>가게 QR 찍기</span></a>
       <a href="index.html"><span class="icon" data-icon="pawPrint"></span><span>오늘</span></a>
       <a href="town.html"><span class="icon" data-icon="mapPin"></span><span>동네 지도</span></a>
       <a href="start.html"><span class="icon" data-icon="dog"></span><span>주민증 만들기</span></a>
@@ -603,6 +608,35 @@
     }
   });
 
+  // 가게 QR 찍기(2026-11-16) — 산책 화면을 떠나지 않고 찍는다. 도장은 shop-visits.js가 남기고(하루 한 번, 위치는 안 읽음),
+  // 결과는 아래 알림 띠로. 휴대폰 카메라로 찍으면 브라우저가 열려 홈 화면 앱에 도장이 안 남을 수 있어서 만들었다.
+  (function () {
+    var link = document.getElementById('qr-scan-link');
+    if (!window.WalsonQR || !window.ShopVisits) return;
+    document.getElementById('qr-scan-icon').innerHTML = WalsonQR.icon(18);
+    link.hidden = false;
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      menuDropdown.classList.remove('is-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      WalsonQR.scan({
+        title: '가게 QR 찍기',
+        hint: '가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
+        onText: function (text) {
+          var id = ShopVisits.idFromQr(text);
+          if (!id) return /dex\.html#d=/.test(text)
+            ? '강아지 도감 QR이에요. 산책을 마치고 [카드] → 도감에서 찍어 주세요.'
+            : '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
+          var shop = ShopVisits.findShop(id);
+          if (!shop) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
+          var r = ShopVisits.stamp(id);
+          showWalkNotice((shop.name || '가게') + (r.already ? ' · 오늘 도장은 이미 찍었어요' : ' 방문 도장을 찍었어요 · ' + ShopVisits.countText(r)), true);
+          return true;
+        }
+      });
+    });
+  })();
+
   // "홈 화면에 추가"(2026-09-26) — 안드로이드/크롬은 브라우저가 주는 설치 창(beforeinstallprompt)을
   // 띄우고, 아이폰 사파리는 그런 API가 없어서 공유 버튼 경로를 안내한다. 이미 홈 화면 앱으로
   // 열었으면 메뉴에서 숨긴다. 서비스워커(sw.js)는 설치 조건 때문에 두는 것이고 캐싱은 안 함.
@@ -653,6 +687,7 @@
     t.addEventListener('click', function (e) {
       e.preventDefault();
       if (walking && !confirm('산책 기록 중이에요. 시연 모드를 바꾸면 지금 산책은 저장되지 않아요. 계속할까요?')) return;
+      if (walking) clearActiveRoute();   // 버린 산책을 다음에 열 때 이어 하지 않게
       if (isDemo()) PetwalkDemoGeo.disable(); else PetwalkDemoGeo.enable();
     });
   })();
@@ -1306,16 +1341,18 @@
   // 점만 모은 것(발도장 판정용 — 차 타고 공원 옆을 지나가도 도장이 안 찍히게).
   // rewardEligible이 false면 기록은 남지만 card-reward.html의 보상 횟수에는 안 들어간다.
   // gapMin: 화면 꺼짐 등으로 GPS 기록이 끊긴 시간(분) — 정보용, 보상 판정엔 안 씀
-  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible, gapMin) {
+  // endMs: 끝난 시각을 따로 정할 때(이어 하기에서 지난 산책을 정리할 때) — 없으면 지금
+  function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible, gapMin, endMs) {
     var walks = loadWalks();
+    var ended = endMs ? new Date(endMs) : new Date();
     walks.push({
-      date: dateKey(new Date()), distanceKm: distanceKm, durationMin: durationMin,
+      date: dateKey(ended), distanceKm: distanceKm, durationMin: durationMin,
       route: simplifyRoute(route, 60),
       stampRoute: stampRoute.length ? simplifyRoute(stampRoute, 60) : [],
       rewardEligible: rewardEligible,
       gapMin: gapMin || 0,
       // 끝난 시각 — 서버 가정 시험판(mock-server.js)이 시간대(아침/낮/저녁/밤)만 뽑아 쓴다. 이 폰 안에만 있다
-      endedAt: Date.now()
+      endedAt: ended.getTime()
     });
     // 시연 모드(가짜 위치)로 걸은 산책 — 기록·카드 시험엔 쓰되 키링(실제 보상)과 통계에서는 뺀다
     if (isDemo()) walks[walks.length - 1].demo = true;
@@ -1470,8 +1507,13 @@
   // 1) 산책 중엔 Wake Lock으로 화면이 저절로 꺼지지 않게 막고(탭이 가려지면 브라우저가 풀어버리므로
   //    다시 보일 때 재요청), 2) 그래도 끊겼으면 GPS 점 사이 시간 간격으로 알아채서 알려준다.
   //    끊긴 구간은 앞뒤 점을 직선으로 이어 거리에 넣고(실제보다 짧게 잡힘), 발자국은 안 찍는다.
+  // 주머니 산책(2026-11-16 가르시아 "0번 고치고 1번, 3번도 진행해줘") — 화면을 켜 두라고 하는 대신
+  // "주머니에 넣어도 돼요, 발도장 장소에서 한 번만 꺼내 열어 주세요"로 바꿨다. 다시 열면 바로 새 위치를
+  // 한 번 읽고, 걷는 속도면 끊긴 구간의 직선도 바로 판정 거리에 넣는다(산책 끝 판정 analyzeWalk와 같은 기준).
+  // 앱이 아예 닫혀도(아이폰이 숨겨 둔 앱을 정리) 이어지게 진행 중인 산책을 이 휴대폰에 저장한다(아래 saveActiveRoute).
   var GAP_MS = 60 * 1000; // GPS 점 사이가 이보다 벌어지면 "기록이 끊겼다"고 본다
   var wakeLock = null, walkGapMs = 0, noticeTimer = null;
+  var POCKET_TIP = '주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
   var walkNotice = document.getElementById('walk-notice');
 
   var WARN_ICON = null;
@@ -1503,8 +1545,53 @@
     wakeLock = null;
   }
   document.addEventListener('visibilitychange', function () {
-    if (walking && document.visibilityState === 'visible' && !wakeLock) requestWakeLock();
+    if (!walking) return;
+    if (document.visibilityState === 'visible') {
+      if (!wakeLock) requestWakeLock();
+      freshFix();   // 주머니에서 꺼내 열었을 때 — 기다리지 않고 지금 위치를 바로 읽어 발도장을 판정한다
+    } else {
+      saveActiveRoute(true);   // 숨겨지는 순간 저장 — 이대로 앱이 닫혀도 다시 열면 이어진다
+    }
   });
+  window.addEventListener('pagehide', function () { if (walking) saveActiveRoute(true); });
+  function freshFix() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(onWalkFix, function () { /* 못 읽으면 watchPosition이 이어서 준다 */ },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+  }
+
+  // ── 길 기록 이어 하기(2026-11-16) ──
+  // 시간만 재는 산책(go.html)은 시작 시각을 저장해 두지만, 길 기록은 메모리에만 있어서 아이폰이 숨겨 둔 왈슨을
+  // 정리하면(릴스를 오래 보다 돌아오는 등) 산책이 통째로 사라졌다. 진행 중인 산책을 이 휴대폰에만 저장해 두고,
+  // 산책 화면을 다시 열면 이어서 기록한다. 끝내거나 버리면 지운다. 어디로도 보내지 않는다.
+  // 시연 모드(가짜 위치·배속 시계) 산책은 저장하지 않는다 — 다시 열면 시계가 맞지 않는다.
+  var ACTIVE_ROUTE_KEY = 'petwalk_active_route';   // { v:1, startedAt, samples:[[lat,lng,ms]], liveKm, visited, gapMs, savedAt }
+  var ROUTE_STALE_MS = 3 * 60 * 60 * 1000;          // 마지막 위치 뒤 3시간이 지났으면 이어 하지 않고 정리를 묻는다
+  var routeSavedAt = 0;
+  function saveActiveRoute(now) {
+    if (!walking || isDemo()) return;
+    var t = Date.now();
+    if (!now && t - routeSavedAt < 10000) return;   // 위치를 받을 때마다 쓰지 않고 10초에 한 번(숨겨질 때는 바로)
+    routeSavedAt = t;
+    var samples = routeSamples.map(function (p) {
+      return [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t];
+    });
+    try {
+      localStorage.setItem(ACTIVE_ROUTE_KEY, JSON.stringify({
+        v: 1, startedAt: walkStartTime, samples: samples, liveKm: liveKm, visited: liveVisited, gapMs: walkGapMs, savedAt: t
+      }));
+    } catch (e) { /* 저장 공간이 모자라도 산책은 계속된다 — 이어 하기만 안 될 뿐 */ }
+  }
+  function loadActiveRoute() {
+    try {
+      var a = JSON.parse(localStorage.getItem(ACTIVE_ROUTE_KEY));
+      return a && a.v === 1 && typeof a.startedAt === 'number' ? a : null;
+    } catch (e) { return null; }
+  }
+  function clearActiveRoute() {
+    try { localStorage.removeItem(ACTIVE_ROUTE_KEY); } catch (e) { /* 무시 */ }
+  }
+  function kmText(km) { return km < 1 ? Math.round(km * 100) * 10 + 'm' : km.toFixed(1) + 'km'; }
 
   // ── 지도 미션(2026-11-15 가르시아: 어디 가야 하는지 알려 주고, 발도장은 산책 중에 바로 판정) ──
   // 다음 미션 = 발도장 장소 중 순서대로 안 간 첫 곳(reward-rules.js). 위치를 알면 남은 거리와 방향을 보여 준다.
@@ -1606,51 +1693,63 @@
     resetFootprints();
     if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
     walkGapMs = 0;
-    walking = true;
-    requestWakeLock().then(function (ok) {
-      if (!ok && walking) showWalkNotice('화면이 꺼지면 기록이 멈춰요. 산책하는 동안 화면을 켜두세요.');
-    });
     walkStartTime = nowMs();
+    enterWalking();
+    showWalkNotice(POCKET_TIP, true);
+    saveActiveRoute(true);
+  }
+
+  // 산책 중 화면·위치 받기 시작 — 새로 시작할 때와 이어 할 때(resumeActiveRoute) 같이 쓴다
+  function enterWalking() {
+    walking = true;
+    requestWakeLock();   // 켜 둔 채로 보면 길이 촘촘하게 남는다. 안 돼도 괜찮다 — 주머니 산책은 다시 열 때 이어진다
     walkIcon.innerHTML = svgIcon('stop', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 종료';
     pinBtn.disabled = false;
     cardLinkBtn.style.display = 'none';
     positionRoutePanel(); // 카드 만들기 버튼이 사라지면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     statusText.textContent = '산책 기록 중...';
+    watchId = navigator.geolocation.watchPosition(onWalkFix, function (err) {
+      statusText.textContent = '위치 확인 실패: ' + err.message;
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
+  }
 
-    watchId = navigator.geolocation.watchPosition(
-      function (pos) {
-        var coord = [pos.coords.latitude, pos.coords.longitude];
-        // 파란 점(지금 위치)은 위치를 받을 때마다 옮긴다 — 예전엔 산책 시작 때 찍힌 자리에 그대로 남아
-        // 출발점처럼 보였다(2026-11-15). 정확도가 낮은 점도 점은 옮기되, 길(선)에는 넣지 않는다.
-        setMyLocation(coord);
-        if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) return;
-        if (!routeCoords.length) markStart(coord);
-        routeCoords.push(coord);
-        routeSamples.push({ c: coord, t: pos.timestamp });
-        if (routeSamples.length >= 2) {
-          var prev = routeSamples[routeSamples.length - 2], cur = routeSamples[routeSamples.length - 1];
-          var gap = cur.t - prev.t;
-          if (gap > GAP_MS) {
-            walkGapMs += gap;
-            showWalkNotice('약 ' + Math.max(1, Math.round(gap / 60000)) + '분 동안 기록이 끊겼어요. 그 구간은 직선으로 이어져요.');
-          }
-          addFootprints(prev, cur, gap > GAP_MS || isFastSegment(prev, cur));
-          // 산책 중 바로 판정 — 차·자전거 속도 구간과 끊긴 구간은 빼고(산책 끝 판정과 같은 기준)
-          if (gap <= GAP_MS && !isFastSegment(prev, cur)) {
-            liveKm += haversineKm(prev.c, cur.c);
-            var eligibleNow = (nowMs() - walkStartTime) / 60000 >= WALK_RULES.minRewardMinutes && liveKm >= WALK_RULES.minRewardKm;
-            checkLiveStamp(coord, eligibleNow);
-          }
-        }
-        routeLine.setLatLngs(routeCoords);
-        map.panTo(coord, { animate: true, duration: 0.5 });
-      },
-      function (err) {
-        statusText.textContent = '위치 확인 실패: ' + err.message;
-      },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
-    );
+  // 위치 한 점 받기 — watchPosition과, 다시 열었을 때 바로 읽는 위치(freshFix)가 같이 쓴다
+  function onWalkFix(pos) {
+    if (!walking) return;
+    var coord = [pos.coords.latitude, pos.coords.longitude];
+    // 파란 점(지금 위치)은 위치를 받을 때마다 옮긴다 — 예전엔 산책 시작 때 찍힌 자리에 그대로 남아
+    // 출발점처럼 보였다(2026-11-15). 정확도가 낮은 점도 점은 옮기되, 길(선)에는 넣지 않는다.
+    setMyLocation(coord);
+    if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) return;
+    var t = pos.timestamp || Date.now();
+    var last = routeSamples[routeSamples.length - 1];
+    if (last && t <= last.t) return;   // 이미 받은 시각의 위치(브라우저가 기억해 둔 것)가 다시 오면 길에 넣지 않는다
+    if (!routeCoords.length) markStart(coord);
+    routeCoords.push(coord);
+    routeSamples.push({ c: coord, t: t });
+    if (routeSamples.length >= 2) {
+      var prev = routeSamples[routeSamples.length - 2], cur = routeSamples[routeSamples.length - 1];
+      var gap = cur.t - prev.t, fast = isFastSegment(prev, cur), segKm = haversineKm(prev.c, cur.c);
+      if (gap > GAP_MS) {
+        walkGapMs += gap;
+        var gapMin = Math.max(1, Math.round(gap / 60000));
+        showWalkNotice(fast
+          ? '다시 이어서 기록해요 · 그 사이 ' + gapMin + '분은 걷는 속도보다 빨라서 거리에서 뺐어요.'
+          : '다시 이어서 기록해요 · 그 사이 ' + gapMin + '분(' + kmText(segKm) + ')은 직선으로 셌어요.', !fast);
+      }
+      addFootprints(prev, cur, gap > GAP_MS || fast);
+      // 산책 중 바로 판정 — 차·자전거 속도 구간만 뺀다. 끊긴 구간도 걷는 속도면 직선으로 넣는다(산책 끝 판정과 같은 기준).
+      // 그래서 주머니에 넣었다가 발도장 장소에서 한 번 열면 그 자리에서 찍힌다(2026-11-16).
+      if (!fast) {
+        liveKm += segKm;
+        var eligibleNow = (nowMs() - walkStartTime) / 60000 >= WALK_RULES.minRewardMinutes && liveKm >= WALK_RULES.minRewardKm;
+        checkLiveStamp(coord, eligibleNow);
+      }
+    }
+    routeLine.setLatLngs(routeCoords);
+    map.panTo(coord, { animate: true, duration: 0.5 });
+    saveActiveRoute(false);
   }
 
   // 마지막 점에서 REST_RADIUS_KM 안에 처음 들어온 시각 = 멈춰 선 시각. 한 번도 그 밖에 나간 적이 없으면 null
@@ -1665,8 +1764,11 @@
     return null;
   }
 
-  function stopWalk() {
+  // opts.endMs: 끝난 시각을 정해 저장할 때(이어 하기에서 오래된 산책을 정리할 때 — 마지막 위치 시각)
+  function stopWalk(opts) {
+    opts = opts || {};
     walking = false;
+    clearActiveRoute();
     walkIcon.innerHTML = svgIcon('play', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 시작';
     pinBtn.disabled = true;
@@ -1681,9 +1783,10 @@
       var progressBefore = window.RewardRules.computeProgress(loadWalks());
       var analysis = analyzeWalk(routeSamples);
       var distanceKm = analysis.walkKm;
-      var durationMin = Math.max(1, Math.round((nowMs() - walkStartTime) / 60000));
+      var endMs = opts.endMs || nowMs();
+      var durationMin = Math.max(1, Math.round((endMs - walkStartTime) / 60000));
       // 끝내기를 깜빡했을 때(2026-11-15): 마지막으로 움직인 뒤 한 자리에 오래 머물렀으면 그때 끝난 걸로 할지 묻는다
-      var restEnd = estimateRestStart(routeSamples);
+      var restEnd = opts.endMs ? null : estimateRestStart(routeSamples);
       if (restEnd && nowMs() - restEnd >= REST_ASK_MS) {
         var movedMin = Math.max(1, Math.round((restEnd - walkStartTime) / 60000));
         var t = new Date(restEnd);
@@ -1695,7 +1798,7 @@
       }
       var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
       var gapMin = Math.round(walkGapMs / 60000);
-      var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, gapMin);
+      var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, gapMin, opts.endMs);
       var note = '';
       if (gapMin >= 1) note += ' · 기록 끊김 ' + gapMin + '분';
       if (analysis.fastKm >= 0.05) note += ' · 빠른 이동 ' + analysis.fastKm.toFixed(1) + 'km 제외';
@@ -1726,6 +1829,57 @@
     var marker = addPinMarker(id, last[0], last[1], memo);
     if (memo) marker.openPopup();
   });
+
+  // ── 앱이 닫혔다 다시 열렸을 때 길 기록 이어 하기(위 saveActiveRoute, 2026-11-16) ──
+  (function resumeActiveRoute() {
+    var a = loadActiveRoute();
+    if (!a || isDemo()) return;   // 시연 모드 중엔 진짜 산책을 건드리지 않는다(끄면 다시 이어진다)
+    var samples = (Array.isArray(a.samples) ? a.samples : []).filter(function (p) {
+      return Array.isArray(p) && isFinite(p[0]) && isFinite(p[1]) && isFinite(p[2]);
+    }).map(function (p) { return { c: [p[0], p[1]], t: p[2] }; });
+    var lastT = samples.length ? samples[samples.length - 1].t : a.startedAt;
+    routeSamples = samples;
+    routeCoords = samples.map(function (p) { return p.c; });
+    liveKm = +a.liveKm || 0;
+    liveVisited = a.visited && typeof a.visited === 'object' ? a.visited : {};
+    walkGapMs = +a.gapMs || 0;
+    walkStartTime = a.startedAt;
+    hideRewardPanel();
+    routeLine.setLatLngs(routeCoords);
+    resetFootprints();
+    for (var i = 1; i < routeSamples.length; i++) {
+      var p0 = routeSamples[i - 1], p1 = routeSamples[i];
+      addFootprints(p0, p1, p1.t - p0.t > GAP_MS || isFastSegment(p0, p1));
+    }
+    if (routeCoords.length) {
+      markStart(routeCoords[0]);
+      map.setView(routeCoords[routeCoords.length - 1], 17, { animate: false });
+    }
+
+    // 마지막 위치 뒤로 오래 지났으면(끝내기를 잊은 산책) 이어 하지 않고, 그때 끝난 걸로 저장할지 묻는다
+    if (Date.now() - Math.max(lastT, a.savedAt || 0) > ROUTE_STALE_MS) {
+      if (routeSamples.length < 2) { clearActiveRoute(); routeLine.setLatLngs([]); resetFootprints(); return; }
+      var t = new Date(lastT);
+      var when = (t.getMonth() + 1) + '월 ' + t.getDate() + '일 ' + t.getHours() + '시 ' + pad2w(t.getMinutes()) + '분';
+      if (confirm('끝내지 않은 길 기록 산책이 있어요.\n마지막으로 위치를 받은 ' + when + '에 끝난 걸로 저장할까요?\n\n' +
+          '확인: 그때 끝난 걸로 저장\n취소: 저장하지 않고 지우기')) {
+        walking = true;
+        stopWalk({ endMs: lastT });
+      } else {
+        clearActiveRoute();
+        routeLine.setLatLngs([]);
+        resetFootprints();
+        if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+      }
+      return;
+    }
+
+    enterWalking();
+    freshFix();
+    showWalkNotice('산책을 이어서 기록해요. 닫혀 있던 동안은 직선으로 이어져요.', true);
+    paintMissionBar();
+    saveActiveRoute(true);
+  })();
 })();
 </script>
 

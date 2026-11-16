@@ -177,7 +177,7 @@
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="inapp.js?v=1"></script>
+<script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
 </head>
 <body>
@@ -409,6 +409,15 @@
     document.getElementById('go-btn').textContent = '산책 중 · ' + goMin + '분째';
     document.getElementById('go-note').textContent = '눌러서 산책 화면으로 돌아가 끝내기를 눌러 주세요.';
   }
+  // 길 기록 산책(walk.html)이 진행 중이면(앱이 닫혔다 열려 [오늘]부터 보일 때 — 2026-11-16 이어 하기) 그 화면으로
+  var activeRoute = loadJSON('petwalk_active_route', null);
+  if (!(active && active.startedAt) && activeRoute && typeof activeRoute.startedAt === 'number') {
+    var routeMin = Math.max(0, Math.floor((Date.now() - activeRoute.startedAt) / 60000));
+    var goBtn = document.getElementById('go-btn');
+    goBtn.href = 'walk.html';
+    goBtn.textContent = '길 기록 중 · ' + routeMin + '분째';
+    document.getElementById('go-note').textContent = '눌러서 산책 화면으로 돌아가면 이어서 기록해요.';
+  }
 
   // ── 최근 7일 막대(오늘이 맨 오른쪽) ──
   var weekEl = document.getElementById('week');
@@ -533,9 +542,11 @@
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function todayKey() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
 
-  // 시간 재는 산책이 진행 중이면 숨긴다 — 같은 산책을 두 번 적지 않게
+  // 시간 재는 산책이나 길 기록 산책이 진행 중이면 숨긴다 — 같은 산책을 두 번 적지 않게
   var active = loadJSON('petwalk_active_walk', null);
   if (active && active.startedAt) { btn.hidden = true; return; }
+  var activeRoute = loadJSON('petwalk_active_route', null);
+  if (activeRoute && typeof activeRoute.startedAt === 'number') { btn.hidden = true; return; }
 
   var picked = 30;
   // 처음 고른 칸: 최근 10번 산책 시간의 가운데 값에 가장 가까운 칸(없으면 30분)

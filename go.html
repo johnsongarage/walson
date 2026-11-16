@@ -84,7 +84,7 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="inapp.js?v=1"></script>
+<script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
@@ -112,7 +112,7 @@
         <li>카드가 자라요(테두리·칸)</li>
         <li>걸은 길과 거리가 남아요</li>
       </ul>
-      <span>지도에 걸은 길을 남겨요. 화면을 켜 둬야 기록되고, 다른 앱을 쓰는 동안은 길이 끊겨요.</span>
+      <span>주머니에 넣어도 돼요. 출발할 때와 발도장 장소에서 한 번씩 열면 그 사이는 직선으로 이어져요. 켜 둔 채로 보면 길이 더 자세히 남아요.</span>
     </a>
   </section>
 
@@ -172,6 +172,12 @@
 
   var active = loadJSON(ACTIVE_KEY, null);
   var timer = null;
+  // 길 기록 산책이 진행 중이면(walk.html이 저장해 둔 것 — 2026-11-16 이어 하기) 그 화면으로 — 산책 두 개가 겹치지 않게
+  var activeRoute = loadJSON('petwalk_active_route', null);
+  if (!(active && active.startedAt) && activeRoute && typeof activeRoute.startedAt === 'number') {
+    location.replace('walk.html');
+    return;
+  }
 
   function elapsedMin() { return Math.max(0, Math.floor((Date.now() - active.startedAt) / 60000)); }
   function tick() { document.getElementById('clock').textContent = elapsedMin(); }
