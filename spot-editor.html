@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="site-config.js?v=4"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=20"></script>
 <script src="reward-rules.js?v=7"></script>
@@ -1355,7 +1356,7 @@
 
     $('layout').hidden = false;
     map = L.map('map').setView(DEFAULT_CENTER, 15);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+    WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
     map.on('click', function (e) { if (placeDraft) movePlace(e.latlng); else setDraft(e.latlng); });
     applyCategories();
     $('list-filter').addEventListener('change', renderList);

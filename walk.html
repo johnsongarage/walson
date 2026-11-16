@@ -408,7 +408,7 @@
   }
 </style>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=3"></script>
+<script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
 <script src="geo.js?v=4"></script>
@@ -1377,10 +1377,7 @@
     map = L.map('map', { zoomControl: false })
       .setView(DEFAULT_CENTER, 15);
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
 
     // 손가락 핀치/휠 줌 외에 명시적인 +/- 버튼도 요청받아 추가 — 기본 위치(topleft)는 제목과
     // 겹쳐서 topright로 옮김(위 .leaflet-top.leaflet-right 여백 조정과 함께 봐야 함).
