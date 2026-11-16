@@ -121,9 +121,17 @@
     Object.keys(watchers).forEach(function (id) { watchers[id].cb(fakePosition()); });
   }
   // opts.busy(): true면(산책 중) 못 옮기게 되돌린다 · opts.onMove(lat, lng): 옮긴 뒤 화면이 할 일(내 위치 다시 읽기 등)
+  // 배지 문구 — 출발점 핀이 있는 화면([동네])에서만 "끌어 옮겨요"를 붙인다(2026-11-16 산책 화면엔 지도가 기본으로 없다)
+  var hasStartPin = false;
+  function paintTitle() {
+    var t = document.getElementById('demo-badge-title');
+    if (t) t.textContent = '시연 모드 · 가짜 위치' + (hasStartPin ? ' · 출발점 핀을 끌어 옮겨요' : '');
+  }
   api.attachStartMarker = function (map, opts) {
     if (!window.L || !map) return null;
     opts = opts || {};
+    hasStartPin = true;
+    paintTitle();
     var html = '<div style="display:flex;flex-direction:column;align-items:center;transform:translateY(-6px);">' +
       '<div style="background:#4a3f35;color:#fff;font:800 11px Pretendard,-apple-system,sans-serif;padding:3px 7px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);">출발점 · 끌어서 옮기기</div>' +
       '<div style="width:16px;height:16px;margin-top:3px;border-radius:50%;background:#fff;border:4px solid #4a3f35;box-shadow:0 2px 6px rgba(0,0,0,.35);"></div></div>';
@@ -164,7 +172,7 @@
       'font:700 12px Pretendard,-apple-system,"Malgun Gothic",sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
     var btnCss = 'border:none;border-radius:999px;background:#fff;color:#4a3f35;font:800 12px Pretendard,-apple-system,sans-serif;padding:5px 9px;cursor:pointer;';
     function btn(text, fn) { var b = document.createElement('button'); b.type = 'button'; b.textContent = text; b.style.cssText = btnCss; b.addEventListener('click', fn); return b; }
-    var title = document.createElement('span'); title.textContent = '시연 모드 · 가짜 위치 · 출발점 핀을 끌어 옮겨요';
+    var title = document.createElement('span'); title.id = 'demo-badge-title';
     var speedBtn = btn('', function () {
       speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
       now();   // 지금까지의 시간은 예전 배속으로 정산
@@ -186,6 +194,7 @@
     row.appendChild(speedBtn); row.appendChild(pathBtn); row.appendChild(off);
     badge.appendChild(title); badge.appendChild(row);
     document.body.appendChild(badge);
+    paintTitle();
   }
   if (document.body) addBadge(); else document.addEventListener('DOMContentLoaded', addBadge);
 })();

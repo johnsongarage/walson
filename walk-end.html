@@ -17,10 +17,13 @@
      문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 오늘의 한 장은 휴대폰 안에만(walk-photos.js). 가족에게 보내기는 아직 없다.
      저장하면 [기록] 탭(walk-history.html?end=1)으로 넘어가 방금 산책의 영수증을 보여 준다(2026-11-15 가르시아 "끝 화면에서 바로 영수증으로",
      11/16 [영수증] 탭을 [기록]에 합침). 인증샷은 11/16 서비스 줄이기 때 뺐다 — 같은 순간·같은 재료로 영수증이 나와서.
-     "묻지 않고 넘어가기"는 그대로 [오늘]로 — 아무것도 하기 싫은 사람의 출구. */
+     "묻지 않고 넘어가기"는 그대로 [오늘]로 — 아무것도 하기 싫은 사람의 출구.
+     2026-11-16 2단계(시안 ⑭): 맨 위에 "○○랑 산책 다녀왔어요 · 분·km·출발 시각"과 "이번 산책으로 받은 것"(새 발도장·카드 성장·다음 미션).
+     예전엔 길 기록 산책 화면 위에 보상 알림이 잠깐 떴다 — 산책 중 화면을 하나로 줄이면서 보상은 여기서 한 번에 보여 준다.
+     계산은 이 휴대폰의 산책 기록으로만(reward-rules.js) — 방금 산책을 뺀 것과 넣은 것을 비교한다. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
-    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-ink: #9c4530; --accent-tint: #f3ddd2;
     --shadow-rgb: 74, 63, 53;
   }
   * { box-sizing: border-box; }
@@ -31,11 +34,25 @@
   body { padding: 24px 16px calc(28px + env(safe-area-inset-bottom, 0px)); }
   .wrap { max-width: 420px; margin: 0 auto; }
 
-  .sum { text-align: center; margin-bottom: 22px; }
-  .sum .label { font-size: 14px; font-weight: 700; color: var(--ink-soft); margin: 0 0 6px; }
-  .sum .num { font-size: 64px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
-  .sum .num small { font-size: 22px; font-weight: 700; letter-spacing: 0; margin-left: 4px; }
-  .sum .sub { font-size: 14px; color: var(--ink-soft); margin: 10px 0 0; }
+  .sum { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 16px; }
+  .sum h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.3; word-break: keep-all; }
+  .sum .line { margin: 0; font-size: 15px; font-weight: 700; }
+  .sum .sub { margin: 0; font-size: 12px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
+  .sum .sub span { display: block; }
+
+  /* 이번 산책으로 받은 것(2026-11-16 2단계, 시안 ⑭) */
+  .got { display: flex; flex-direction: column; gap: 10px; padding: 16px; margin-bottom: 12px; border-radius: 18px;
+    background: var(--panel); border: 1px solid var(--panel-border); box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.08); }
+  .got[hidden] { display: none; }
+  .got-title { font-size: 13px; font-weight: 800; color: var(--accent-ink); }
+  .got-row { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; word-break: keep-all; }
+  .got-row .ic { flex: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 11px; background: var(--accent); color: #fff; }
+  .got-row .ic.is-soft { background: var(--accent-tint); color: var(--accent-ink); }
+  .got-row small { font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+  .got-next { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); font-size: 14px; font-weight: 700; word-break: keep-all; }
+  .got-next svg { flex: none; color: var(--accent); }
+  .got-note { margin: 0; font-size: 14px; line-height: 1.6; word-break: keep-all; }
+  .got-hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
 
   .q {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
@@ -95,10 +112,15 @@
 
 <div class="wrap">
   <div class="sum">
-    <p class="label" id="sum-label">산책 끝</p>
-    <div class="num"><span id="sum-min">0</span><small>분</small></div>
+    <h1 id="sum-label">산책 다녀왔어요</h1>
+    <p class="line"><span id="sum-min">0</span>분<span id="sum-rest"></span></p>
     <p class="sub" id="sum-sub"></p>
   </div>
+
+  <!-- 이번 산책으로 받은 것(2026-11-16 2단계, 시안 ⑭) — 새 발도장·카드 성장·다음 미션. 시간만 잰 산책은 왜 없는지 한 줄 -->
+  <section class="got" id="got" aria-label="이번 산책으로 받은 것" hidden>
+    <span class="got-title">이번 산책으로 받은 것</span>
+  </section>
 
   <!-- 스친 강아지(2026-11-15 서버 가정 시험판): ?server=mock으로 켰고 스친 강아지를 켠 경우에만 보인다 -->
   <a id="met-banner" href="friends.html#met" hidden
@@ -167,6 +189,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="steady-stamp.js?v=2"></script>
+<script src="walk-screen.js?v=1"></script>
 <script src="mock-server.js?v=1"></script>
 <script>
   // 서버 가정 시험판 — 방금 산책을 가짜 서버로 보내고 스친 강아지 수를 띄운다(꺼져 있으면 아무것도 안 함)
@@ -201,16 +224,90 @@
   if (!walk) { location.replace('index.html'); return; }
 
   var profile = loadJSON(PROFILE_KEY, {});
-  document.getElementById('sum-label').textContent = (profile.name ? profile.name + ', ' : '') + (walk.logged === 'after' ? '산책 적었어요' : '산책 끝');
+  var loggedAfter = walk.logged === 'after', timeOnly = walk.mode === 'time';
+  var rang = window.WalkScreen ? WalkScreen.rang(profile.name) : '';
+  document.getElementById('sum-label').textContent = (rang ? rang + ' ' : '') + (loggedAfter ? '다녀온 산책 적었어요' : '산책 다녀왔어요');
   document.getElementById('sum-min').textContent = walk.durationMin || 0;
+  // 분 · km · 출발 시각(시안 ⑭) — 출발 시각은 2026-11-16부터 기록에 남긴다(그 전 기록은 없음)
+  var rest = [];
+  if (walk.distanceKm) rest.push(walk.distanceKm.toFixed(1) + 'km');
+  if (typeof walk.startedAt === 'number') {
+    var st = new Date(walk.startedAt);
+    rest.push(st.getHours() + '시 ' + (st.getMinutes() < 10 ? '0' : '') + st.getMinutes() + '분 출발');
+  }
+  document.getElementById('sum-rest').textContent = rest.length ? ' · ' + rest.join(' · ') : '';
 
-  // 오늘 합계 — 방금 것까지 포함
+  // 작은 줄: 화면이 꺼져 있던 동안(주머니 산책) · 오늘 합계(방금 것까지)
   var todayMin = 0, todayCount = 0;
   walks.forEach(function (w) { if (w.date === walk.date) { todayMin += w.durationMin || 0; todayCount += 1; } });
-  var sub = [];
-  if (walk.distanceKm) sub.push(walk.distanceKm.toFixed(1) + 'km');
-  if (todayCount > 1) sub.push('오늘 모두 ' + todayMin + '분 · ' + todayCount + '번째 산책');
-  document.getElementById('sum-sub').textContent = sub.join(' · ');
+  var subLines = [];
+  if (!timeOnly && walk.gapMin > 0) subLines.push('화면이 꺼져 있던 ' + walk.gapMin + '분은 직선으로 이어서 셌어요');
+  if (todayCount > 1) subLines.push('오늘 모두 ' + todayMin + '분 · ' + todayCount + '번째 산책');
+  var subEl = document.getElementById('sum-sub');
+  subLines.forEach(function (t) { var sp = document.createElement('span'); sp.textContent = t; subEl.appendChild(sp); });
+
+  // ── 이번 산책으로 받은 것(2026-11-16 2단계, 시안 ⑭) ──
+  // 방금 산책을 뺀 진행도와 넣은 진행도를 비교한다(reward-rules.js). 보상 규칙은 그대로 —
+  // 위치로 5분·200m가 확인된 산책만 발도장·카드 성장에 들어가고, 시간만 잰 산책은 꾸준함 도장·오늘 목표에만.
+  (function paintGot() {
+    var R = window.RewardRules, box = document.getElementById('got');
+    if (!R || !R.computeProgress) return;
+    var FLAG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 3v18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M7 4h11l-2.6 4.2L18 12.4H7z" fill="currentColor"/></svg>';
+    var CARD = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8h6M9 12h6"/></svg>';
+    var ARROW = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3l6 9h-4v9h-4v-9H6z" fill="currentColor"/></svg>';
+    function row(icon, soft, text, small) {
+      var d = document.createElement('div');
+      d.className = 'got-row';
+      d.innerHTML = '<span class="ic' + (soft ? ' is-soft' : '') + '" aria-hidden="true">' + icon + '</span><span></span>';
+      var t = d.lastChild;
+      t.textContent = text + ' ';
+      if (small) { var sm = document.createElement('small'); sm.textContent = small; t.appendChild(sm); }
+      box.appendChild(d);
+    }
+    function note(text, cls) {
+      var p = document.createElement('p');
+      p.className = cls;
+      p.textContent = text;
+      box.appendChild(p);
+    }
+    if (timeOnly && walk.noRoute) {
+      // 위치를 쓰기로 했지만 위치를 거의 못 받은 산책(walk.html) — 걸은 시간만 남았다
+      note('위치를 거의 받지 못해서 걸은 길이 남지 않았어요. 걸은 시간만 남겼어요 — 발도장·카드 성장은 없고, 꾸준함 도장과 오늘 목표엔 들어가요.', 'got-note');
+      note('실내나 높은 건물 사이에선 위치가 잘 안 잡혀요.', 'got-hint');
+      box.hidden = false;
+      return;
+    }
+    if (timeOnly) {
+      note((loggedAfter ? '다녀와서 적은' : '시간만 잰') + ' 산책이라 발도장·카드 성장은 없어요. 꾸준함 도장과 오늘 목표엔 들어가요.', 'got-note');
+      if (!loggedAfter) note('다음엔 산책 나가기에서 "바꾸기"로 위치를 쓰면 발도장도 찍혀요.', 'got-hint');
+      box.hidden = false;
+      return;
+    }
+    var before = R.computeProgress(walks.slice(0, -1)), now = R.computeProgress(walks);
+    if (walk.rewardEligible === false) {
+      note('5분·200m가 안 돼서 이번 산책은 발도장·카드 성장에 안 들어가요.', 'got-note');
+    } else {
+      var all = R.missions ? R.missions(now) : [];
+      var doneBefore = R.missions ? R.missions(before).filter(function (m) { return m.done; }).length : 0;
+      R.PLACES.filter(function (pl) { return now.visited[pl.id] && !before.visited[pl.id]; }).forEach(function (pl, i) {
+        row(FLAG, false, pl.name + ' 발도장', all.length ? '(' + (doneBefore + i + 1) + '/' + all.length + ')' : '');
+      });
+      // 카드 성장 — 보상 횟수에 들어간 산책 하나마다 카드가 자란다(칸이 열리고 테두리가 바뀜)
+      var cardUps = R.newUnlocks(before, now).filter(function (t) { return t.indexOf('발도장') < 0; });
+      var nt = R.nextTier ? R.nextTier(now.walks) : null;
+      row(CARD, true, '카드가 자랐어요', cardUps.length ? '· ' + cardUps.join(' · ')
+        : nt ? '· ' + nt.name + ' 테두리까지 ' + (nt.minWalks - now.walks) + '회' : '· 산책 ' + now.walks + '회째');
+    }
+    // 다음 미션(없으면 다음 보상)
+    var m = R.currentMission ? R.currentMission(now) : null, goal = R.nextGoalText ? R.nextGoalText(now) : '';
+    var next = document.createElement('div');
+    next.className = 'got-next';
+    next.innerHTML = ARROW + '<span></span>';
+    next.lastChild.textContent = m ? '다음 미션: ' + m.place.name + (m.place.kind === 'building' ? ' 앞까지' : '까지')
+      : goal && goal !== '모든 보상을 모았어요' ? '다음 보상: ' + goal : '미션을 다 했어요';
+    box.appendChild(next);
+    box.hidden = false;
+  })();
 
   // 꾸준함 도장 — 이 산책으로 이번 주 단계가 올랐는지(방금 것 빼고 센 것과 비교)
   if (window.RewardRules && RewardRules.steady && window.SteadyStamp) {

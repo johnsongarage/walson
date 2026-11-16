@@ -1,0 +1,83 @@
+/* 산책 중 화면 공용 모양(2026-11-16 2단계, 가르시아 "시안대로 2단계 바로 진행해줘").
+   walk.html(위치 사용)과 go.html(시간만)이 같은 화면을 쓴다 — 큰 시간 + (위치를 쓰면) 미션 카드·알림 띠 + 지도 보기 + 끝내기 두 번.
+   시안: 화면 시안 캔버스 ⑪~⑭. 색은 각 화면의 :root 토큰(--bg·--panel·--ink…)을 쓴다. */
+.ws-screen { flex: 1; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; box-sizing: border-box;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 20px calc(22px + env(safe-area-inset-bottom, 0px)); }
+.ws-screen.is-embedded { min-height: 0; padding: 0; }
+.ws-screen[hidden] { display: none; }
+
+.ws-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ws-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; background: var(--panel, #fffaf3);
+  border: 1px solid var(--panel-border, #e6d6c1); font-size: 13px; font-weight: 700; color: var(--ink, #4a3f35); }
+.ws-chip.is-dark { background: var(--ink, #4a3f35); border-color: var(--ink, #4a3f35); color: #fffaf3; box-shadow: 0 6px 16px rgba(74, 63, 53, 0.25); }
+.ws-dot { display: block; flex: none; width: 8px; height: 8px; border-radius: 999px; background: var(--accent, #b8563a); }
+.ws-chip.is-dark .ws-dot { background: #f2b6a0; }
+.ws-chip.is-time .ws-dot { background: #8a7a68; }
+.ws-icon-btn { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; padding: 0; border-radius: 14px;
+  background: var(--panel, #fffaf3); border: 1px solid var(--panel-border, #e6d6c1); color: var(--ink, #4a3f35); cursor: pointer; }
+
+.ws-menu-wrap { position: relative; }
+.ws-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; display: flex; flex-direction: column; min-width: 210px; padding: 6px;
+  border-radius: 16px; background: var(--panel, #fffaf3); border: 1px solid var(--panel-border, #e6d6c1); box-shadow: 0 10px 28px rgba(74, 63, 53, 0.22); }
+.ws-menu[hidden] { display: none; }
+.ws-menu button { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent;
+  color: var(--ink, #4a3f35); font-family: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; }
+.ws-menu button:active { background: var(--accent-tint, #f3ddd2); }
+.ws-menu button.is-tool { color: var(--ink-soft, #6b5d4e); font-size: 14px; font-weight: 500; }
+.ws-menu button svg { flex: none; color: var(--accent-ink, #9c4530); }
+.ws-menu button.is-tool svg { color: var(--ink-soft, #6b5d4e); }
+.ws-menu button[hidden] { display: none; }
+
+.ws-tip { align-self: center; display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 8px 14px; border-radius: 999px;
+  background: #efe1cf; color: var(--ink-soft, #6b5d4e); font-size: 13px; font-weight: 500; text-align: center; word-break: keep-all; }
+
+.ws-clock-area { flex: 1; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+.ws-who { font-size: 17px; font-weight: 700; color: var(--ink-soft, #6b5d4e); }
+.ws-clock { display: flex; align-items: baseline; gap: 4px; line-height: 1; color: var(--ink, #4a3f35); }
+.ws-clock span { font-size: 104px; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.ws-clock small { font-size: 28px; font-weight: 700; }
+.ws-since { font-size: 14px; color: var(--ink-soft, #6b5d4e); }
+.ws-note { max-width: 300px; margin: 18px 0 0; font-size: 13px; line-height: 1.6; color: var(--ink-soft, #6b5d4e); word-break: keep-all; }
+
+/* 미션 카드 — 위치를 쓰는 산책만 */
+.ws-mission { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; background: var(--panel, #fffaf3);
+  border: 1px solid var(--panel-border, #e6d6c1); box-shadow: 0 4px 14px rgba(74, 63, 53, 0.08); }
+.ws-mission[hidden] { display: none; }
+.ws-mission .ws-flag { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent, #b8563a); color: #fff; }
+.ws-mission.is-done .ws-flag, .ws-mission.is-here .ws-flag { background: #3f7d4a; }
+.ws-mission .ws-mbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ws-mission .ws-m1 { font-size: 12px; font-weight: 700; color: var(--accent-ink, #9c4530); }
+.ws-mission .ws-m2 { font-size: 16px; font-weight: 800; word-break: keep-all; }
+.ws-mission .ws-m3 { font-size: 12px; color: var(--ink-soft, #6b5d4e); word-break: keep-all; }
+.ws-mission .ws-mdir { flex: none; display: flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 800; color: var(--accent-ink, #9c4530); }
+.ws-mission.is-here .ws-mdir { color: #2f6b3a; }
+
+/* 알림 띠 — 다시 이어서 기록(info) · 발도장(stamp) · 빠른 구간 뺌(warn) */
+.ws-notice { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 11px 14px; border-radius: 14px; background: var(--panel, #fffaf3);
+  border: 1px solid var(--panel-border, #e6d6c1); font-size: 13px; line-height: 1.5; color: var(--ink, #4a3f35); word-break: keep-all; cursor: pointer; }
+.ws-notice[hidden] { display: none; }
+.ws-notice .ws-notice-icon { flex: none; display: flex; color: var(--accent-ink, #9c4530); }
+.ws-notice.is-stamp { background: #e3f1e5; border-color: #b9d9be; color: #2f6b3a; font-size: 14px; font-weight: 700; }
+.ws-notice.is-stamp .ws-notice-icon { color: #2f6b3a; }
+.ws-notice.is-warn { background: #fbefe0; border-color: #ecd2ad; }
+
+.ws-bottom { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 18px; }
+.ws-map-btn { align-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 999px;
+  border: 1.5px solid #c9b59d; background: var(--panel, #fffaf3); color: var(--ink, #4a3f35); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.ws-map-btn[hidden] { display: none; }
+.ws-end { display: flex; align-items: center; justify-content: center; height: 60px; border: 0; border-radius: 999px; background: var(--accent, #b8563a); color: #fff;
+  font-family: inherit; font-size: 18px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 16px rgba(74, 63, 53, 0.3); }
+.ws-end:active { transform: scale(0.98); }
+.ws-end.is-armed { background: #8a3e27; }
+.ws-hint { margin: 0; text-align: center; font-size: 12px; color: var(--ink-soft, #6b5d4e); }
+.ws-text-btn { align-self: center; min-height: 40px; padding: 0 12px; border: 0; background: transparent; color: var(--ink-soft, #6b5d4e);
+  font-family: inherit; font-size: 13px; font-weight: 500; text-decoration: underline; cursor: pointer; }
+
+/* 높이가 낮은 휴대폰(아이폰 SE 등) — 큰 시간을 조금 줄여 끝내기 아래 안내까지 한 화면에 들어오게 */
+@media (max-height: 700px) {
+  .ws-tip { margin-top: 10px; }
+  .ws-clock-area { min-height: 130px; gap: 4px; }
+  .ws-clock span { font-size: 84px; }
+  .ws-bottom { gap: 10px; padding-top: 12px; }
+  .ws-end { height: 56px; }
+}
