@@ -15,7 +15,8 @@
      방금 끝난 산책(petwalk_walks의 마지막 기록)에 답을 붙여 저장한다 — feel / sniff / poop.
      go.html(시간만)과 walk.html(길 기록) 둘 다 끝나면 여기로 온다. 서버 없음, 위치 없음.
      문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 오늘의 한 장은 휴대폰 안에만(walk-photos.js). 가족에게 보내기는 아직 없다.
-     저장하면 [영수증] 탭(receipt.html?end=1)으로 넘어가 방금 산책의 영수증을 보여 준다(2026-11-15 가르시아 "끝 화면에서 바로 영수증으로").
+     저장하면 [기록] 탭(walk-history.html?end=1)으로 넘어가 방금 산책의 영수증을 보여 준다(2026-11-15 가르시아 "끝 화면에서 바로 영수증으로",
+     11/16 [영수증] 탭을 [기록]에 합침). 인증샷은 11/16 서비스 줄이기 때 뺐다 — 같은 순간·같은 재료로 영수증이 나와서.
      "묻지 않고 넘어가기"는 그대로 [오늘]로 — 아무것도 하기 싫은 사람의 출구. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -82,12 +83,9 @@
     display: block; margin: 14px auto 0; padding: 6px 10px; text-align: center;
     font-size: 13px; font-weight: 600; color: var(--ink-soft); text-decoration: underline;
   }
-  /* 인증샷 만들기(2026-11-15) — 사진 옆 버튼 중 가장 눈에 띄게 */
-  .photo-actions .proof-btn { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
-  [data-theme="brutal"] .photo-actions .proof-btn { background: var(--b-pink, #FF6BB5) !important; color: #000 !important; border-color: #000 !important; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -154,7 +152,6 @@
       </button>
     </div>
     <div class="photo-actions" id="photo-actions" hidden>
-      <button type="button" id="photo-proof" class="proof-btn">인증샷 만들기</button>
       <button type="button" id="photo-change">다른 사진</button>
       <button type="button" id="photo-clear">빼기</button>
     </div>
@@ -167,10 +164,9 @@
 </div>
 
 <script src="walk-photos.js?v=1"></script>
-<script src="walk-proof.js?v=4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="steady-stamp.js?v=1"></script>
+<script src="steady-stamp.js?v=2"></script>
 <script src="mock-server.js?v=1"></script>
 <script>
   // 서버 가정 시험판 — 방금 산책을 가짜 서버로 보내고 스친 강아지 수를 띄운다(꺼져 있으면 아무것도 안 함)
@@ -281,15 +277,6 @@
       showPhoto(true);
     }).catch(function (err) { alert('사진을 불러오지 못했어요: ' + err.message); });
   });
-  // 인증샷(walk-proof.js) — 지금 고른 답까지 넣어서 만든다(아직 저장 전이어도)
-  document.getElementById('photo-proof').addEventListener('click', function () {
-    if (!window.WalkProof || photoImg.hidden || !photoImg.src) return;
-    var w = JSON.parse(JSON.stringify(walk));
-    if (answers.feel) w.feel = answers.feel; else delete w.feel;
-    if (answers.sniff) w.sniff = Number(answers.sniff); else delete w.sniff;
-    if (answers.poop !== undefined) w.poop = Number(answers.poop); else delete w.poop;
-    WalkProof.open({ img: photoImg, photoKey: walk.photoKey, walk: w, profile: profile });
-  });
   // 이 산책에 이미 사진이 있으면(끝 화면에 다시 들어온 경우) 보여 준다
   if (walk.photoKey && window.WalkPhotos) {
     WalkPhotos.show(walk.photoKey, photoImg).then(function (ok) { showPhoto(ok); });
@@ -325,8 +312,8 @@
           return;
         }
       }
-      // 방금 산책 영수증으로(receipt.html이 end=1을 보고 맨 마지막 산책을 열고 안내 한 줄을 띄운다)
-      location.replace('receipt.html?end=1');
+      // 방금 산책 영수증으로([기록] 탭이 end=1을 보고 맨 마지막 산책 영수증을 열고 안내 한 줄을 띄운다)
+      location.replace('walk-history.html?end=1');
     });
   });
 })();

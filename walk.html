@@ -15,9 +15,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="infra-pins.js?v=19"></script>
+<script src="infra-pins.js?v=20"></script>
 <script src="shop-visits.js?v=3"></script>
-<script src="qr-scan.js?v=1"></script>
+<script src="qr-scan.js?v=2"></script>
 <script src="demo-geo.js?v=5"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
@@ -61,9 +61,8 @@
   }
   #map { position: absolute; inset: 0; z-index: 0; }
 
-  /* 지도 컬러톤: 라벤더 파스텔 (map-color-test.html 5종 비교 중 선택, PROJECT_CONTEXT.md 참고).
-     이번 리디자인에서도 그대로 유지 — 톤 자체는 이미 충분히 검토를 거쳐 확정된 결정이라 손대지 않음.
-     다른 톤으로 바꾸려면 이 filter 값만 map-color-test.html의 TONES 값으로 교체하면 됨. */
+  /* 지도 컬러톤: 라벤더 파스텔 (색 비교 페이지 map-color-test.html 5종 중 선택, PROJECT_CONTEXT.md 참고 —
+     그 페이지는 2026-11-16 서비스 줄이기 때 내림, git 기록에 남음). 다른 톤으로 바꾸려면 이 filter 값만 바꾸면 됨. */
   .leaflet-tile-pane {
     filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%);
   }
@@ -406,7 +405,7 @@
     .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel, .walk-notice { transition: none; }
   }
 </style>
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -437,7 +436,6 @@
       <a href="town.html"><span class="icon" data-icon="mapPin"></span><span>동네 지도</span></a>
       <a href="start.html"><span class="icon" data-icon="dog"></span><span>주민증 만들기</span></a>
       <a href="my-card.html"><span class="icon" data-icon="medal"></span><span>내 카드</span></a>
-      <a href="card-story.html"><span class="icon" data-icon="cards"></span><span>카드 만들기</span></a>
       <a href="walk-history.html"><span class="icon" data-icon="footprints"></span><span>기록</span></a>
       <a href="profile.html"><span class="icon" data-icon="pawPrint"></span><span>프로필</span></a>
       <a href="privacy.html"><span class="icon" data-icon="warning"></span><span>개인정보 안내</span></a>
@@ -446,7 +444,6 @@
       <a href="#" id="demo-toggle" class="tool-item"><span class="icon" data-icon="play"></span><span id="demo-toggle-label">시연 모드(가짜 위치) 켜기</span></a>
       <!-- 관리자 전용 도구 — 당분간만 노출(PROJECT_CONTEXT.md "코스 관리자 도구" 참고),
            일반 항목과 구분되게 톤을 낮춤(.tool-item). -->
-      <a href="course-builder.html" class="tool-item" data-admin hidden><span class="icon" data-icon="wrench"></span><span>코스 관리</span></a>
       <a href="spot-editor.html" class="tool-item" data-admin hidden><span class="icon" data-icon="mapPin"></span><span>스팟 편집 (운영자)</span></a>
     </div>
   </div>
@@ -503,10 +500,6 @@
     <span class="icon" id="walk-icon" data-icon="play"></span>
     <span class="btn-label">산책 시작</span>
   </button>
-  <a class="btn btn-primary" id="card-link-btn" href="card-story.html" style="display:none; text-decoration:none;">
-    <span class="icon" data-icon="cards"></span>
-    <span class="btn-label">카드 만들기</span>
-  </a>
 </div>
 
 <script>
@@ -553,7 +546,6 @@
   var routePanel = document.getElementById('route-panel');
   var routeSelect = document.getElementById('route-select');
   var dogSizeSelect = document.getElementById('dog-size-select');
-  var cardLinkBtn = document.getElementById('card-link-btn');
   var statusText = document.getElementById('status-text');
   var bottomBar = document.getElementById('bottom-bar');
   var menuWrap = document.getElementById('menu-wrap');
@@ -728,9 +720,9 @@
   // "서비스 다이어트"로 보류된 B 영역에 해당함(PROJECT_CONTEXT.md 참고) — 대신 다산동 공원
   // 몇 곳을 큐레이션한 루트를 지도에 얹는 방식으로 프로토타입에서도 바로 검증 가능하게 함.
   // 중앙공원/수변공원 루트는 OSM에서 확인한 실제 공원 중심(2026-09-25)에 맞춰 옮긴 사각 루프라
-  // 공원 산책로를 정확히 따라가진 않는다 — 정확한 코스는 course-builder.html로 직접 그려야 한다.
+  // 공원 산책로를 정확히 따라가진 않는다 — 정확한 코스는 코스 관리 도구(course-builder.html, 11/16 내림)로 그렸었다.
   // 아울렛 루트는 사용자가 준 네이버 지도 좌표(스페이스원)로 옮긴 작은 마름모라 건물을 실제로
-  // 한 바퀴 도는 모양은 아니다 — 이것도 course-builder.html로 그려야 정확해진다.
+  // 한 바퀴 도는 모양은 아니다. (추천 루트는 11/14부터 숨김)
   // 세 루트는 일부러 짧음/중간/김 순으로 거리 차이를 뚜렷하게 둠 — 전부 비슷하게 짧으면
   // 아래 견종 크기별 "다소 길 수 있는 코스" 경고가 실제로 갈릴 일이 없어서 기능 확인이 안 됨.
   //
@@ -775,7 +767,7 @@
     }
   ];
 
-  // course-builder.html(코스 관리자 도구)에서 저장한 코스를 불러와 합친다 — 두 화면이 같은
+  // course-builder.html(코스 관리자 도구 — 11/16 내림, 예전에 저장한 코스만 남아 있으면 읽힘)에서 저장한 코스를 불러와 합친다 — 두 화면이 같은
   // 오리진(kery27.github.io)이라 localStorage를 공유하므로, 코드를 복사해 index.html에
   // 붙여넣지 않아도 저장하는 즉시 여기 "코스 선택" 목록에 나타난다.
   // ⚠️ isAuthored: true로 표시해서 위 3개 예시 루트와 다르게 취급함 — 예시 루트는 가짜
@@ -984,10 +976,6 @@
     var walks = loadWalks();
     if (!walks.length) return;
     statusText.textContent = '이번 달 ' + walksThisMonthCount(walks) + '번 산책 · 연속 ' + computeStreakDays(walks) + '일째';
-    if (localStorage.getItem(LAST_WALK_KEY)) {
-      cardLinkBtn.style.display = 'flex';
-      positionRoutePanel(); // 카드 만들기 버튼이 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
-    }
   }
 
   // 두 GPS 좌표([lat, lng]) 사이 거리(km) — 하버사인 공식
@@ -1336,10 +1324,10 @@
     return out;
   }
 
-  // 카드 화면(card-story.html, card-reward.html)이 읽어가도록 이번 산책 기록을 저장하고, 총 누적
+  // [오늘]·[기록]·[카드](my-card.html)가 읽어가도록 이번 산책 기록을 저장하고, 총 누적
   // 거리/스트릭을 계산해 돌려준다. route는 썸네일용 전체 경로, stampRoute는 걷는 속도 구간의
   // 점만 모은 것(발도장 판정용 — 차 타고 공원 옆을 지나가도 도장이 안 찍히게).
-  // rewardEligible이 false면 기록은 남지만 card-reward.html의 보상 횟수에는 안 들어간다.
+  // rewardEligible이 false면 기록은 남지만 카드 성장·발도장(reward-rules.js)의 보상 횟수에는 안 들어간다.
   // gapMin: 화면 꺼짐 등으로 GPS 기록이 끊긴 시간(분) — 정보용, 보상 판정엔 안 씀
   // endMs: 끝난 시각을 따로 정할 때(이어 하기에서 지난 산책을 정리할 때) — 없으면 지금
   function saveWalkRecord(distanceKm, durationMin, route, stampRoute, rewardEligible, gapMin, endMs) {
@@ -1706,8 +1694,6 @@
     walkIcon.innerHTML = svgIcon('stop', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 종료';
     pinBtn.disabled = false;
-    cardLinkBtn.style.display = 'none';
-    positionRoutePanel(); // 카드 만들기 버튼이 사라지면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     statusText.textContent = '산책 기록 중...';
     watchId = navigator.geolocation.watchPosition(onWalkFix, function (err) {
       statusText.textContent = '위치 확인 실패: ' + err.message;
@@ -1812,8 +1798,6 @@
         var newStamps = Object.keys(progressAfter.visited).filter(function (k) { return !progressBefore.visited[k]; }).length;
         if (newStamps) WalsonTrack.send('stamp_new', { count: newStamps });
       }
-      cardLinkBtn.style.display = 'flex';
-      positionRoutePanel(); // 카드 만들기 버튼이 다시 생기면 하단바 줄바꿈이 바뀔 수 있어 다시 계산
     } else {
       statusText.textContent = '산책 종료 (이동 기록 없음)';
     }

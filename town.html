@@ -13,9 +13,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="infra-pins.js?v=19"></script>
+<script src="infra-pins.js?v=20"></script>
 <script src="shop-visits.js?v=3"></script>
-<script src="qr-scan.js?v=1"></script>
+<script src="qr-scan.js?v=2"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="demo-geo.js?v=5"></script>
 <style>
@@ -279,7 +279,7 @@
   @media (prefers-reduced-motion: reduce) { .deco-dog { animation: none; } }
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -329,7 +329,7 @@
   <p class="sheet-note">조건은 운영자가 직접 가서 확인한 날 기준이에요. 매장마다 바뀔 수 있으니 들어가기 전에 한 번 더 물어보세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.</p>
 </div>
 
-<script src="tabbar.js?v=5" data-tab="town"></script>
+<script src="tabbar.js?v=6" data-tab="town"></script>
 <script>
 (function () {
   var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(walk.html과 같은 값)
@@ -367,7 +367,6 @@
   // ── 동반 가게: 걸어서 N분 · 방문 도장의 단골 Lv(2026-11-15, 기획표 B-49 · B-34) ──
   // 내 위치는 버튼을 눌렀을 때만 읽고(이유를 먼저 설명), 이 화면 메모리에만 둔다. 저장하거나 보내지 않는다.
   // 단골 Lv는 가게 카운터 QR로 찍은 방문 도장(visit.html이 남긴 petwalk_visits)으로 센다(shop-visits.js). 이 화면은 읽기만 한다.
-  var brutal = !!(window.WalsonTheme && WalsonTheme.isBrutal);
   var myPos = null;     // { lat, lng, accuracy } — 이 화면을 닫으면 사라진다
   var shops = InfraPins.category('spot') ? InfraPins.all().filter(function (p) { return p.cat === 'spot'; }) : [];
   var shopUi = {};      // 가게 id → { pin, walkEl, regEl }
@@ -741,7 +740,7 @@
   document.getElementById('shop-close').addEventListener('click', closeSheet);
   document.getElementById('sos-close').addEventListener('click', closeSheet);
   map.on('click', function () { if (!sheet.hidden || !sosSheet.hidden) closeSheet(); });
-  function toneCss(tone) { return InfraPins.TONES[tone][brutal ? 'brutal' : 'soft']; }
+  function toneCss(tone) { return InfraPins.TONES[tone].soft; }
 
   function renderShopList() {
     var tools = document.getElementById('shop-tools');
@@ -806,7 +805,7 @@
         body.appendChild(mk('span', 'meta', '동반 조건 확인 전'));
       }
       var fit = InfraPins.fitNote(pin);
-      if (fit) { var fe = mk('span', 'fit', fit.text); fe.style.color = brutal ? '#000' : InfraPins.TONES[fit.tone].ink; body.appendChild(fe); }
+      if (fit) { var fe = mk('span', 'fit', fit.text); fe.style.color = InfraPins.TONES[fit.tone].ink; body.appendChild(fe); }
       item.appendChild(thumb);
       item.appendChild(body);
       item.addEventListener('click', function () { closeSheet(); goToShop(pin.id); });

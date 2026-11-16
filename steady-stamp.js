@@ -1,6 +1,6 @@
 // 꾸준함 도장 그리기(2026-11-15) — [오늘](index.html)·산책 끝(walk-end.html)·[카드](my-card.html)가 같이 쓴다.
 // 전역 window.SteadyStamp. 계산은 reward-rules.js의 RewardRules.steady(walks)가 하고, 여기서는 모양만 만든다.
-// 화면마다 CSS를 복사하지 않으려고 처음 한 번 <style>을 넣는다(tabbar.js와 같은 방식). 테마(theme.js)에 따라 모양을 가른다.
+// 화면마다 CSS를 복사하지 않으려고 처음 한 번 <style>을 넣는다(tabbar.js와 같은 방식). 화면 테마는 차분 하나뿐(11/16).
 // 기록은 이 휴대폰의 산책 기록만 쓰고 어디로도 보내지 않는다.
 (function () {
   var LEVEL_NAME = ['', '3일', '5일', '7일'];
@@ -9,28 +9,26 @@
   // Phosphor Icons(MIT) PawPrint fill — town.html의 발도장과 같은 모양
   var PAW = '<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm72,0a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm23.12,60.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72Z"/></svg>';
 
-  function brutal() { return !!(window.WalsonTheme && window.WalsonTheme.isBrutal); }
   var styled = false;
   function style() {
     if (styled) return;
     styled = true;
-    var B = brutal();
     var css =
       '.ss-row{display:flex;align-items:center;gap:12px;}' +
       '.ss-days{flex:1;display:flex;justify-content:space-between;gap:4px;}' +
-      '.ss-day{display:flex;flex-direction:column;align-items:center;gap:4px;font:700 11px Pretendard,-apple-system,sans-serif;color:' + (B ? '#000' : '#6b5d4e') + ';}' +
+      '.ss-day{display:flex;flex-direction:column;align-items:center;gap:4px;font:700 11px Pretendard,-apple-system,sans-serif;color:' + '#6b5d4e' + ';}' +
       '.ss-dot{width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;' +
-        (B ? 'border:2px dashed #000;background:#fff;' : 'border-radius:50%;border:2px dashed #e0cfb9;') + '}' +
-      '.ss-day.is-walked .ss-dot{' + (B ? 'border:2px solid #000;background:#FF6BB5;color:#000;' : 'border:none;background:#b8563a;color:#fff;') + '}' +
-      '.ss-day.is-today .ss-lbl{color:' + (B ? '#000;text-decoration:underline' : '#b8563a') + ';}' +
+        'border-radius:50%;border:2px dashed #e0cfb9;' + '}' +
+      '.ss-day.is-walked .ss-dot{' + 'border:none;background:#b8563a;color:#fff;' + '}' +
+      '.ss-day.is-today .ss-lbl{color:' + '#b8563a' + ';}' +
       '.ss-stamp{flex-shrink:0;width:58px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;transform:rotate(-8deg);' +
-        'font:900 15px/1 Pretendard,-apple-system,sans-serif;' + (B ? 'border:3px dashed #000;color:#000;background:#fff;' : 'border-radius:50%;border:3px dashed #d8cbb8;color:#b3a48f;') + '}' +
+        'font:900 15px/1 Pretendard,-apple-system,sans-serif;' + 'border-radius:50%;border:3px dashed #d8cbb8;color:#b3a48f;' + '}' +
       '.ss-stamp small{display:block;font-size:9px;font-weight:800;margin-top:3px;}' +
-      '.ss-sum{word-break:keep-all;font:13px/1.5 Pretendard,-apple-system,sans-serif;color:' + (B ? '#000' : '#6b5d4e') + ';margin:10px 0 0;}' +
-      '.ss-sum b{color:' + (B ? '#000' : '#4a3f35') + ';}' +
-      '.ss-note{word-break:keep-all;font:11px/1.5 Pretendard,-apple-system,sans-serif;color:' + (B ? '#000' : '#8a7a68') + ';margin:2px 0 0;}' +
+      '.ss-sum{word-break:keep-all;font:13px/1.5 Pretendard,-apple-system,sans-serif;color:' + '#6b5d4e' + ';margin:10px 0 0;}' +
+      '.ss-sum b{color:' + '#4a3f35' + ';}' +
+      '.ss-note{word-break:keep-all;font:11px/1.5 Pretendard,-apple-system,sans-serif;color:' + '#8a7a68' + ';margin:2px 0 0;}' +
       '.ss-board{display:flex;justify-content:space-between;gap:4px;}' +
-      '.ss-week{display:flex;flex-direction:column;align-items:center;gap:4px;font:700 10px Pretendard,-apple-system,sans-serif;color:' + (B ? '#000' : '#8a7a68') + ';}' +
+      '.ss-week{display:flex;flex-direction:column;align-items:center;gap:4px;font:700 10px Pretendard,-apple-system,sans-serif;color:' + '#8a7a68' + ';}' +
       '.ss-week .ss-stamp{width:34px;height:34px;font-size:11px;border-width:2px;transform:rotate(-6deg);}';
     var el = document.createElement('style');
     el.textContent = css;
@@ -42,9 +40,8 @@
     if (level) {
       var c = LEVEL_COLOR[level];
       s.style.borderStyle = 'solid';
-      s.style.color = brutal() ? '#000' : c;
-      s.style.borderColor = brutal() ? '#000' : c;
-      if (brutal()) s.style.background = ['', '#C8F06A', '#9fd0ff', '#F2B833'][level];
+      s.style.color = c;
+      s.style.borderColor = c;
     }
     s.innerHTML = (level ? LEVEL_NAME[level] : '3일') + (size === 'big' ? '<small>' + (level ? '꾸준함' : '아직') + '</small>' : '');
     return s;

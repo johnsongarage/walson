@@ -2,7 +2,7 @@
 // 휴대폰: 공유 창(사진 앱에 저장·카톡·인스타로 바로 보내기). PC: 파일로 내려받기.
 // 예전에는 공유가 되면 무조건 공유 창을 띄워서, 공유를 지원하는 PC 브라우저(윈도우·맥 크롬, 맥 사파리)에서는
 // 파일이 저장되지 않고 공유 창만 떴다 — 그래서 휴대폰일 때만 공유한다.
-// 쓰는 곳: start.html(주민증), walk-type.html(유형 결과), walk-proof.js(인증샷)
+// 쓰는 곳: start.html(주민증), walk-type.html(유형 결과), walk-history.html(산책 영수증), month-report.js(월간 리포트)
 (function () {
   function isMobile() {
     var ua = navigator.userAgent || '';

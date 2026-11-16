@@ -136,8 +136,11 @@
   .size-opts { display: flex; gap: 8px; }
   .size-opts button { flex: 1; font-family: inherit; font-size: 15px; font-weight: 800; padding: 11px 6px; border-radius: 12px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; }
   .size-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint, #f3ddd2); }
-  [data-theme="brutal"] .size-opts button { border-radius: 0; border: 3px solid #000; color: #000; }
-  [data-theme="brutal"] .size-opts button[aria-pressed="true"] { background: var(--b-lime, #C8F06A); }
+  /* 한 줄 소개 태그(2026-11-16, dog-tags.js) — 신호등 색에 맞는 것만, 고르면 카드 신호등 띠의 기본 문구 대신 들어간다 */
+  .tag-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-opts button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 11px; border-radius: 999px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; text-align: left; line-height: 1.35; }
+  .tag-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint, #f3ddd2); }
+  .tag-hint { font-size: 12px; color: var(--ink-soft); margin: 6px 2px 0; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -146,7 +149,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -211,6 +214,12 @@
           <button type="button" data-size="large" aria-pressed="false">대형</button>
         </div>
       </div>
+      <!-- 한 줄 소개(선택, 2026-11-16): 신호등에 맞는 태그 중 하나 — 카드 신호등 띠 아랫줄에 들어간다 -->
+      <div class="field" id="tag-field" hidden>
+        <label>한 줄 소개 <span style="font-weight:500;">(선택)</span></label>
+        <div class="tag-opts" id="tag-opts"></div>
+        <p class="tag-hint" id="tag-hint"></p>
+      </div>
       <button type="button" class="btn-main" id="make-btn" disabled>주민증 만들기</button>
     </div>
     <button type="button" class="btn-text" id="back-btn">신호등 다시 고르기</button>
@@ -250,7 +259,8 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=19"></script>
+<script src="infra-pins.js?v=20"></script>
+<script src="dog-tags.js?v=1"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -319,11 +329,30 @@
   Array.prototype.forEach.call(document.querySelectorAll('.signal-btn'), function (btn) {
     btn.addEventListener('click', function () {
       signal = btn.getAttribute('data-signal');
+      paintTags();
       showStep(2);
     });
   });
 
   // ── 2단계 ──
+  // 한 줄 소개 태그(선택) — 고른 신호등에 맞는 것만 보이고, 다시 누르면 풀린다. 신호등을 바꿔 안 맞게 되면 빠진다
+  var chosenTag = (!sampleShown && profile.tag) || null;
+  function paintTags() {
+    var box = document.getElementById('tag-opts');
+    var list = window.DogTags ? DogTags.forSignal(signal) : [];
+    document.getElementById('tag-field').hidden = !list.length;
+    if (chosenTag && !(window.DogTags && DogTags.fits(chosenTag, signal))) chosenTag = null;
+    box.innerHTML = '';
+    list.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = t.text;
+      b.setAttribute('aria-pressed', t.id === chosenTag ? 'true' : 'false');
+      b.addEventListener('click', function () { chosenTag = chosenTag === t.id ? null : t.id; paintTags(); });
+      box.appendChild(b);
+    });
+    var def = SIGNALS[signal] ? SIGNALS[signal].line : '';
+    document.getElementById('tag-hint').textContent = chosenTag ? '카드 신호등 아래에 이 문구가 들어가요.' : '안 고르면 "' + def + '"가 들어가요.';
+  }
   function refreshMakeBtn() { makeBtn.disabled = !fName.value.trim(); }
   fName.value = sampleShown ? '' : (profile.name || '');
   fName.addEventListener('input', refreshMakeBtn);
@@ -395,6 +424,7 @@
     p.signal = signal;
     p.photo = photoDataUrl || p.photo || null;
     if (chosenSize) p.size = chosenSize;
+    if (chosenTag && window.DogTags && DogTags.fits(chosenTag, signal)) p.tag = chosenTag; else delete p.tag;
     if (!p.size) p.size = 'medium';
     var isNewCard = !p.cardNo;
     if (!p.cardNo) p.cardNo = makeCardNo();
@@ -440,10 +470,9 @@
     return weight + ' ' + size + 'px Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   }
 
-  // 화면 테마(theme.js)에 따라 카드 그림도 바꾼다(2026-11-15). 차분: 원래 파스텔 카드, 뉴브루탈: 검정 테두리 카드.
-  function isBrutal() { return !!(window.WalsonTheme && window.WalsonTheme.isBrutal); }
-  function drawCard(img) { return isBrutal() ? drawCardBrutal(img) : drawCardSoft(img); }
-  function composeExport() { return isBrutal() ? composeExportBrutal() : composeExportSoft(); }
+  // 카드 그림 — 화면 테마는 11/16부터 차분 하나뿐이라 원래 파스텔 카드만 그린다(뉴브루탈 카드는 지움)
+  function drawCard(img) { return drawCardSoft(img); }
+  function composeExport() { return composeExportSoft(); }
 
   // ── 차분 테마 카드(뉴브루탈 적용 전 그대로) ──
   function drawCardSoft(img) {
@@ -529,9 +558,11 @@
     ctx.fillStyle = '#ffffff';
     ctx.font = font(700, 34);
     ctx.fillText(sig.label, tx + 36, 586);
-    var lineSize = fitText(ctx, sig.line, maxW - 72, 50, 800);
+    // 한 줄 소개 태그를 골랐으면 기본 문구 대신(dog-tags.js)
+    var sigLine = (window.DogTags && DogTags.lineFor(profile)) || sig.line;
+    var lineSize = fitText(ctx, sigLine, maxW - 72, 50, 800);
     ctx.font = font(800, lineSize);
-    ctx.fillText(sig.line, tx + 36, 640);
+    ctx.fillText(sigLine, tx + 36, 640);
 
     // 아래 칸
     var rows = [['발급일', profile.cardIssued || todayText()], ['카드 번호', profile.cardNo || '']];
@@ -608,7 +639,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#4a3f35';
     ctx.font = font(800, 44);
-    ctx.fillText(profile.name + ' · ' + sig.line, W / 2, cy + ch + 96);
+    ctx.fillText(profile.name + ' · ' + ((window.DogTags && DogTags.lineFor(profile)) || sig.line), W / 2, cy + ch + 96);
     ctx.fillStyle = '#8a7a68';
     ctx.font = font(600, 30);
     ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, W / 2, cy + ch + 150);
@@ -617,186 +648,10 @@
     return out;
   }
 
-  // ── 뉴브루탈 테마 카드 ──
-  function drawCardBrutal(img) {
-    var ctx = canvas.getContext('2d');
-    var W = canvas.width, H = canvas.height;
-    var sig = SIGNALS[profile.signal] || SIGNALS.none;
-    // 뉴브루탈리즘(2026-11-15): 검정 테두리, 딱 떨어지는 모서리, 흐린 그림자 없음
-    var INK = '#000000', SOFT = '#3d3d3d', LINE = '#000000';
-
-    ctx.clearRect(0, 0, W, H);
-
-    // 바탕 + 신호등 색 테두리
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = sig.color;
-    ctx.fillRect(12, 12, W - 24, H - 24);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(34, 34, W - 68, H - 68);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(40, 40, W - 80, H - 80);
-
-    // 머리줄
-    ctx.fillStyle = INK;
-    ctx.textBaseline = 'alphabetic';
-    ctx.textAlign = 'left';
-    ctx.font = font(800, 76);
-    ctx.fillText('강아지 주민증', 96, 168);   // 2026-11-16 "댕댕이" → "강아지"(가르시아: 못 알아듣는 사람이 있을 것)
-    ctx.fillStyle = SOFT;
-    ctx.font = font(600, 34);
-    var subtitle = guardianSpot ? guardianSpot + ' ' + guardianBadge : '남양주 다산동 산책 주민';
-    ctx.font = font(600, fitText(ctx, subtitle, 900, 34, 600));
-    ctx.fillText(subtitle, 100, 222);
-
-    // 오른쪽 위 신호등(불 셋 중 하나만 켜짐)
-    var lampOrder = ['green', 'yellow', 'red'];
-    var lx = W - 96 - 3 * 76, ly = 96;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(lx - 22, ly - 12, 3 * 76 + 20, 100);
-    lampOrder.forEach(function (key, i) {
-      ctx.beginPath();
-      ctx.arc(lx + 26 + i * 76, ly + 38, 28, 0, Math.PI * 2);
-      ctx.fillStyle = (key === profile.signal) ? SIGNALS[key].color : '#4a4a4a';
-      ctx.fill();
-    });
-
-    ctx.strokeStyle = LINE;
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(96, 268); ctx.lineTo(W - 96, 268); ctx.stroke();
-
-    // 사진
-    var px = 96, py = 318, pw = 460, ph = 520;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(px - 6, py - 6, pw + 12, ph + 12);
-    ctx.fillStyle = '#F2B833';
-    ctx.fillRect(px, py, pw, ph);
-    if (img) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(px, py, pw, ph);
-      ctx.clip();
-      var scale = Math.max(pw / img.width, ph / img.height);
-      var dw = img.width * scale, dh = img.height * scale;
-      ctx.drawImage(img, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = '#000';
-      ctx.textAlign = 'center';
-      ctx.font = font(700, 40);
-      ctx.fillText('사진 없음', px + pw / 2, py + ph / 2 + 14);
-      ctx.textAlign = 'left';
-    }
-
-    // 오른쪽 정보
-    var tx = 620, maxW = W - 96 - tx;
-    ctx.fillStyle = SOFT;
-    ctx.font = font(600, 32);
-    ctx.fillText('이름', tx, 362);
-    ctx.fillStyle = INK;
-    var nameSize = fitText(ctx, profile.name, maxW, 124, 800);
-    ctx.font = font(800, nameSize);
-    ctx.fillText(profile.name, tx - 4, 482);
-
-    // 신호등 문구 띠
-    ctx.fillStyle = '#000';
-    ctx.fillRect(tx + 8, 540, maxW, 132);
-    ctx.fillRect(tx - 4, 528, maxW + 8, 140);
-    roundRect(ctx, tx, 532, maxW, 132, 0);
-    ctx.fillStyle = sig.color;
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = font(700, 34);
-    ctx.fillText(sig.label, tx + 36, 586);
-    var lineSize = fitText(ctx, sig.line, maxW - 72, 50, 800);
-    ctx.font = font(800, lineSize);
-    ctx.fillText(sig.line, tx + 36, 640);
-
-    // 아래 칸
-    var rows = [['발급일', profile.cardIssued || todayText()], ['카드 번호', profile.cardNo || '']];
-    rows.forEach(function (row, i) {
-      var y = 730 + i * 62;
-      ctx.fillStyle = SOFT;
-      ctx.font = font(600, 32);
-      ctx.fillText(row[0], tx, y);
-      ctx.fillStyle = INK;
-      ctx.font = font(700, 36);
-      ctx.fillText(row[1], tx + 190, y);
-    });
-
-    ctx.strokeStyle = LINE;
-    ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
-    // "나도 만들기" QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
-    drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
-
-    ctx.fillStyle = SOFT;
-    var footLeft = '왈슨 · ' + SHARE_URL_TEXT;
-    ctx.font = font(600, fitText(ctx, footLeft, 760, 30, 600));
-    ctx.fillText(footLeft, 96, 934);
-    ctx.font = font(600, 30);
-    ctx.textAlign = 'right';
-    ctx.fillText('재미로 만든 카드예요 · 공식 신분증이 아니에요', W - 96, 934);
-    ctx.textAlign = 'left';
-  }
-
-  // QR을 size×size 칸에 그린다. 라이브러리가 없으면 아무것도 그리지 않는다.
-  function drawQr(ctx, text, x, y, size) {
-    if (typeof qrcode !== 'function') return;
-    var qr;
-    // 오류 정정은 가장 낮은 L — 화면으로 보는 그림이라 긁힐 일이 없고, 칸이 굵어져 작게 줄여도 읽힌다
-    try { qr = qrcode(0, 'L'); qr.addData(text); qr.make(); } catch (e) { return; }
-    var n = qr.getModuleCount();
-    var quiet = 3;                                  // 사방 여백(칸 수)
-    var cell = Math.floor(size / (n + quiet * 2));
-    var real = cell * (n + quiet * 2);
-    var ox = x + size - real, oy = y;               // 오른쪽 위에 맞춘다
-    roundRect(ctx, ox, oy, real, real, 0);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    for (var r = 0; r < n; r++) {
-      for (var c = 0; c < n; c++) {
-        if (qr.isDark(r, c)) ctx.fillRect(ox + (c + quiet) * cell, oy + (r + quiet) * cell, cell, cell);
-      }
-    }
-  }
-
   // 저장 모양: 카드만(1600×1000) / 정사각형(1080×1080, 카톡·피드) / 스토리용(1080×1920).
   // 정사각형·스토리용은 파스텔 바탕 가운데에 카드를 올려서, 올렸을 때 양옆이 잘리지 않게 한다.
   var exportFormat = 'card';
   var exportCanvas = null;
-  function composeExportBrutal() {
-    if (exportFormat === 'card') { exportCanvas = canvas; return canvas; }
-    var W = 1080, H = exportFormat === 'story' ? 1920 : 1080;
-    var out = document.createElement('canvas');
-    out.width = W; out.height = H;
-    var ctx = out.getContext('2d');
-    var sig = SIGNALS[profile.signal] || SIGNALS.none;
-    ctx.fillStyle = '#F2B833';
-    ctx.fillRect(0, 0, W, H);
-    // 위아래에 신호등 색 띠 — 어떤 신호등인지 멀리서도 보이게
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, W, 26);
-    ctx.fillRect(0, H - 26, W, 26);
-    ctx.fillStyle = sig.color;
-    ctx.fillRect(0, 0, W, 18);
-    ctx.fillRect(0, H - 18, W, 18);
-    var cw = 960, ch = 600, cx = (W - cw) / 2, cy = Math.round((H - ch) / 2) - (exportFormat === 'story' ? 60 : 30);
-    // 딱 떨어지는 검정 그림자
-    ctx.fillStyle = '#000';
-    ctx.fillRect(cx + 14, cy + 14, cw, ch);
-    ctx.drawImage(canvas, cx, cy, cw, ch);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#000';
-    ctx.font = font(900, 44);
-    ctx.fillText(profile.name + ' · ' + sig.line, W / 2, cy + ch + 96);
-    ctx.fillStyle = '#000';
-    ctx.font = font(700, 30);
-    ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, W / 2, cy + ch + 150);
-    ctx.textAlign = 'left';
-    exportCanvas = out;
-    return out;
-  }
   function refreshPreview() {
     cardImg.src = composeExport().toDataURL('image/png');
   }

@@ -1,8 +1,8 @@
-// 차분 테마용 보상 카드(2026-11-15 뉴브루탈 적용 전 그대로 떼어 둔 것). 전역 window.RewardCardSoft.
-// reward-card.js가 테마(theme.js)를 보고 이것과 뉴브루탈 카드 중 하나를 window.RewardCard로 내놓는다.
-// reward-card.js보다 먼저 불러야 한다. 발바닥 이모지는 twemoji가 없으면 그냥 빠진 채 그려진다.
-// 산책 보상 카드(자라는 카드) 그리기 — card-reward.html(디자인 비교 도구)과 my-card.html(사용자
-// 화면)이 같은 카드를 그리도록 card-reward.html에서 분리함(2026-09-26). 보상 규칙 숫자는
+// 보상 카드(자라는 카드) 그리기 — 전역 window.RewardCard(예전 이름 window.RewardCardSoft도 그대로).
+// 2026-11-16 화면 테마를 차분 하나로 줄이면서 뉴브루탈 카드(reward-card.js)를 지웠고, 이 파일만 남았다.
+// 발바닥 이모지는 twemoji가 없으면 그냥 빠진 채 그려진다.
+// 산책 보상 카드(자라는 카드) 그리기 — 처음엔 card-reward.html(디자인 비교 도구, 11/16 내림)과 my-card.html이
+// 같은 카드를 그리도록 card-reward.html에서 분리함(2026-09-26). 보상 규칙 숫자는
 // reward-rules.js, 카드 모양은 이 파일. card-shared.js와 reward-rules.js를 먼저 불러와야 한다.
 // 이 파일을 고치면 ?v= 번호를 올리고 두 HTML 파일에서 같이 올릴 것(card-shared.js와 같은 캐시 문제).
 //
@@ -462,4 +462,5 @@
     EMOJI: EMOJI,
     create: create
   };
+  window.RewardCard = window.RewardCardSoft;
 })();

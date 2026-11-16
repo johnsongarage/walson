@@ -79,7 +79,7 @@
   [hidden] { display: none !important; }
   .fine { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 14px 0 0; line-height: 1.6; }
 </style>
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -244,12 +244,10 @@
     var T = TYPES[type], W = 1080, H = 1350;
     var c = document.createElement('canvas'); c.width = W; c.height = H;
     var ctx = c.getContext('2d');
-    var brutal = !!(window.WalsonTheme && window.WalsonTheme.isBrutal);
-    ctx.fillStyle = brutal ? '#F2B833' : '#f7ede2';
+    ctx.fillStyle = '#f7ede2';
     ctx.fillRect(0, 0, W, H);
     // 카드 판
     var x = 70, y = 70, w = W - 140, h = H - 140;
-    if (brutal) { ctx.fillStyle = '#000'; ctx.fillRect(x + 16, y + 16, w, h); ctx.fillRect(x - 6, y - 6, w + 12, h + 12); }
     ctx.fillStyle = '#fffaf3';
     ctx.fillRect(x, y, w, h);
     ctx.fillStyle = T.color;
@@ -264,15 +262,15 @@
     if (img) {
       ctx.save();
       ctx.beginPath();
-      if (brutal) ctx.rect(px, py, size, size); else ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
       ctx.clip();
       var s = Math.max(size / img.width, size / img.height);
       ctx.drawImage(img, W / 2 - img.width * s / 2, py + size / 2 - img.height * s / 2, img.width * s, img.height * s);
       ctx.restore();
-      ctx.lineWidth = brutal ? 10 : 12;
-      ctx.strokeStyle = brutal ? '#000' : T.color;
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = T.color;
       ctx.beginPath();
-      if (brutal) ctx.rect(px, py, size, size); else ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.arc(W / 2, py + size / 2, size / 2, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.fillStyle = T.color;

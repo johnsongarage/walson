@@ -116,10 +116,6 @@
   .after-card .btn-main:disabled { opacity: 0.5; }
   .after-close { display: block; width: 100%; margin-top: 6px; padding: 10px; background: none; border: none; font-family: inherit;
     font-size: 14px; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
-  [data-theme="brutal"] .after-card { background: #fff; border: 3px solid #000; border-bottom: none; border-radius: 0; }
-  [data-theme="brutal"] .after-opts button { border: 3px solid #000; border-radius: 0; color: #000; font-weight: 900; }
-  [data-theme="brutal"] .after-opts button[aria-pressed="true"] { background: #000; color: #F2B833; }
-  [data-theme="brutal"] .after-custom input { border: 3px solid #000; border-radius: 0; }
 
   .last { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-decoration: none; color: var(--ink); }
   .last strong { font-size: 15px; font-weight: 700; }
@@ -152,7 +148,6 @@
   .inapp-note a { color: var(--accent); font-weight: 800; }
   .inapp-move { display: block; width: 100%; margin: 8px 0 4px; padding: 11px; border: none; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
   .inapp-move[hidden] { display: none; }
-  [data-theme="brutal"] .inapp-note { border-radius: 0; border: 3px solid #000; background: var(--b-lime, #C8F06A); box-shadow: 3px 3px 0 #000; color: #000; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -161,7 +156,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -241,7 +236,6 @@
     <a href="#" id="channel-link" target="_blank" rel="noopener" hidden>새 소식 받기(카톡 채널)</a>
     <a href="start.html">주민증 카드</a>
     <a href="walk-type.html">산책 유형 테스트</a>
-    <a href="profile.html#theme">화면 테마</a>
     <a href="profile.html#backup">기록 옮기기</a>
     <a href="privacy.html">개인정보 안내</a>
     <a href="#" id="install-link" hidden>홈 화면에 추가</a>
@@ -267,7 +261,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="backup.js?v=5"></script>
-<script src="steady-stamp.js?v=1"></script>
+<script src="steady-stamp.js?v=2"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
   // 오늘의 한 장 사진이 저장되면 한 번 다시 열어 사진까지 보이게 한다. 시작 화면(2초)이 그동안을 가린다.
@@ -316,7 +310,7 @@
     });
   })();
 </script>
-<script src="tabbar.js?v=5" data-tab="today"></script>
+<script src="tabbar.js?v=6" data-tab="today"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';     // walk.html이 산책을 끝낼 때 저장하는 기록

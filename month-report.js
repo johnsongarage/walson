@@ -8,7 +8,6 @@
   var SIGNAL = { green: '#3f9b5b', yellow: '#dfa21f', red: '#d2493f' };
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
 
-  function brutal() { return !!(window.WalsonTheme && window.WalsonTheme.isBrutal); }
   function font(w, s) { return w + ' ' + s + 'px Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif'; }
   function bigFont(s) { return s + 'px "Black Han Sans", Pretendard, sans-serif'; }
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
@@ -52,11 +51,11 @@
   function minText(min) { return min >= 60 ? Math.floor(min / 60) + '시간 ' + (min % 60 ? (min % 60) + '분' : '') : min + '분'; }
 
   function draw(r, photo, logo, profile, fmt, target) {
-    var F = FORMATS[fmt] || FORMATS.feed, W = F.w, H = F.h, B = brutal();
+    var F = FORMATS[fmt] || FORMATS.feed, W = F.w, H = F.h;
     var c = target || document.createElement('canvas');
     c.width = W; c.height = H;
     var ctx = c.getContext('2d');
-    var ink = '#3a2e24', soft = '#6b5d4e', accent = '#b8563a', paper = B ? '#F2B833' : '#f7ede2', card = B ? '#fff' : '#fffaf3';
+    var ink = '#3a2e24', soft = '#6b5d4e', accent = '#b8563a', paper = '#f7ede2', card = '#fffaf3';
     ctx.fillStyle = paper; ctx.fillRect(0, 0, W, H);
     // 스토리(9:16)는 내용 묶음을 세로 가운데로(머리 240 + 숫자 408 + 달력 640+54 + 요약 40 ≈ 1382)
     var pad = 64, y = fmt === 'story' ? Math.round((H - 1382) / 2) - 20 : 70;
@@ -65,21 +64,20 @@
     // 머리: 대표 사진(동그라미/네모) + 제목
     var ph = 190, px = pad, py = y;
     ctx.save();
-    if (B) { ctx.fillStyle = '#000'; ctx.fillRect(px + 10, py + 10, ph, ph); ctx.beginPath(); ctx.rect(px, py, ph, ph); }
-    else { ctx.beginPath(); ctx.arc(px + ph / 2, py + ph / 2, ph / 2, 0, Math.PI * 2); }
+    ctx.beginPath(); ctx.arc(px + ph / 2, py + ph / 2, ph / 2, 0, Math.PI * 2);
     ctx.clip();
     ctx.fillStyle = '#F2B833'; ctx.fillRect(px, py, ph, ph);
     var img = photo || logo;
     if (img) { var s = Math.max(ph / img.width, ph / img.height); ctx.drawImage(img, px + (ph - img.width * s) / 2, py + (ph - img.height * s) / 2, img.width * s, img.height * s); }
     ctx.restore();
-    ctx.lineWidth = B ? 6 : 8; ctx.strokeStyle = B ? '#000' : (SIGNAL[profile && profile.signal] || accent);
-    ctx.beginPath(); if (B) ctx.rect(px, py, ph, ph); else ctx.arc(px + ph / 2, py + ph / 2, ph / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 8; ctx.strokeStyle = (SIGNAL[profile && profile.signal] || accent);
+    ctx.beginPath(); ctx.arc(px + ph / 2, py + ph / 2, ph / 2, 0, Math.PI * 2); ctx.stroke();
     var tx = px + ph + 40;
-    ctx.fillStyle = B ? '#000' : soft; ctx.font = font(800, 38); ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = soft; ctx.font = font(800, 38); ctx.textBaseline = 'alphabetic';
     ctx.fillText(r.y + '년 ' + (r.m + 1) + '월', tx, py + 62);
-    ctx.fillStyle = B ? '#000' : ink; ctx.font = bigFont(78);
+    ctx.fillStyle = ink; ctx.font = bigFont(78);
     ctx.fillText((name ? josaUi(name) : '우리 ') + '산책', tx, py + 140);
-    ctx.font = font(800, 34); ctx.fillStyle = B ? '#000' : accent;
+    ctx.font = font(800, 34); ctx.fillStyle = accent;
     ctx.fillText('월간 리포트', tx, py + 188);
     y = py + ph + 50;
 
@@ -93,11 +91,10 @@
     var gw = (W - pad * 2 - 24) / 2, gh = 170;
     stats.forEach(function (st, i) {
       var gx = pad + (i % 2) * (gw + 24), gy = y + Math.floor(i / 2) * (gh + 24);
-      if (B) { ctx.fillStyle = '#000'; ctx.fillRect(gx + 8, gy + 8, gw, gh); ctx.fillStyle = card; ctx.fillRect(gx, gy, gw, gh); ctx.lineWidth = 5; ctx.strokeStyle = '#000'; ctx.strokeRect(gx, gy, gw, gh); }
-      else { ctx.fillStyle = card; roundRect(ctx, gx, gy, gw, gh, 28); ctx.fill(); }
-      ctx.fillStyle = B ? '#000' : accent; ctx.font = bigFont(st[0].length > 6 ? 62 : 84);
+      ctx.fillStyle = card; roundRect(ctx, gx, gy, gw, gh, 28); ctx.fill();
+      ctx.fillStyle = accent; ctx.font = bigFont(st[0].length > 6 ? 62 : 84);
       ctx.fillText(st[0], gx + 34, gy + 104);
-      ctx.fillStyle = B ? '#000' : soft; ctx.font = font(800, 32);
+      ctx.fillStyle = soft; ctx.font = font(800, 32);
       ctx.fillText(st[1], gx + 34, gy + 148);
     });
     y += gh * 2 + 24 + 44;
@@ -105,11 +102,10 @@
     // 달력
     var calH = fmt === 'story' ? 640 : 470;
     var cw = W - pad * 2;
-    if (B) { ctx.fillStyle = '#000'; ctx.fillRect(pad + 8, y + 8, cw, calH); ctx.fillStyle = card; ctx.fillRect(pad, y, cw, calH); ctx.lineWidth = 5; ctx.strokeStyle = '#000'; ctx.strokeRect(pad, y, cw, calH); }
-    else { ctx.fillStyle = card; roundRect(ctx, pad, y, cw, calH, 28); ctx.fill(); }
+    ctx.fillStyle = card; roundRect(ctx, pad, y, cw, calH, 28); ctx.fill();
     var cellW = (cw - 40) / 7, top = y + 64;
     ctx.textAlign = 'center';
-    ctx.font = font(800, 26); ctx.fillStyle = B ? '#000' : soft;
+    ctx.font = font(800, 26); ctx.fillStyle = soft;
     DOW.forEach(function (d, i) { ctx.fillText(d, pad + 20 + cellW * i + cellW / 2, top); });
     var first = new Date(r.y, r.m, 1).getDay(), dim = new Date(r.y, r.m + 1, 0).getDate();
     var rows = Math.ceil((first + dim) / 7), cellH = (calH - 100) / rows;
@@ -118,15 +114,14 @@
       var cx = pad + 20 + cellW * col + cellW / 2, cy = top + 30 + cellH * row + cellH / 2;
       var key = r.y + '-' + pad2(r.m + 1) + '-' + pad2(d), walked = !!r.days[key];
       if (walked) {
-        ctx.fillStyle = B ? '#FF6BB5' : accent;
-        if (B) { ctx.fillRect(cx - cellW * 0.38, cy - cellH * 0.38, cellW * 0.76, cellH * 0.76); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeRect(cx - cellW * 0.38, cy - cellH * 0.38, cellW * 0.76, cellH * 0.76); }
-        else { ctx.beginPath(); ctx.arc(cx, cy, Math.min(cellW, cellH) * 0.4, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = accent;
+        ctx.beginPath(); ctx.arc(cx, cy, Math.min(cellW, cellH) * 0.4, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.fillStyle = walked ? (B ? '#000' : '#fff') : (B ? '#000' : '#b9a998');
+      ctx.fillStyle = walked ? '#fff' : '#b9a998';
       ctx.font = font(walked ? 900 : 600, 30); ctx.textBaseline = 'middle';
       ctx.fillText(String(d), cx, cy - (r.poop[key] ? 8 : 0));
       if (r.poop[key]) {   // 응가 점(1번 · 2번 이상)
-        ctx.fillStyle = walked ? (B ? '#000' : '#fff') : '#8a5a2b';
+        ctx.fillStyle = walked ? '#fff' : '#8a5a2b';
         var n = Math.min(2, r.poop[key]);
         for (var k = 0; k < n; k++) { ctx.beginPath(); ctx.arc(cx + (n === 2 ? (k ? 8 : -8) : 0), cy + 22, 5, 0, Math.PI * 2); ctx.fill(); }
       }
@@ -142,9 +137,9 @@
     if (r.stamps) bits.push('새 발도장 ' + r.stamps + '곳');
     var poopDays = Object.keys(r.poop).filter(function (k) { return r.poop[k] > 0; }).length;
     if (poopDays) bits.push('응가한 날 ' + poopDays + '일');
-    ctx.fillStyle = B ? '#000' : ink; ctx.font = font(800, 34);
+    ctx.fillStyle = ink; ctx.font = font(800, 34);
     ctx.fillText(bits.join(' · ') || '다음 달엔 더 많이 걸어요!', pad, y);
-    ctx.fillStyle = B ? '#000' : soft; ctx.font = font(700, 28);
+    ctx.fillStyle = soft; ctx.font = font(700, 28);
     ctx.fillText('왈슨 · 다산동 강아지 산책 앱 · johnsongarage.co.kr/walson', pad, H - (fmt === 'story' ? 110 : 60));
     return c;
   }
@@ -166,12 +161,7 @@
       '.mr-fmt button,.mr-row button{flex:1;font:800 14px Pretendard,-apple-system,sans-serif;padding:11px;border-radius:12px;border:1px solid #e6d6c1;background:#fff;color:#4a3f35;cursor:pointer;}' +
       '.mr-fmt button[aria-pressed="true"]{background:#4a3f35;color:#fff;border-color:#4a3f35;}' +
       '.mr-row .mr-save{background:#b8563a;border-color:#b8563a;color:#fff;flex:2;}' +
-      '.mr-note{font-size:12px;color:#6b5d4e;margin:10px 2px 0;line-height:1.5;}' +
-      '[data-theme="brutal"] .mr-sheet{border-radius:0;border-top:4px solid #000;}' +
-      '[data-theme="brutal"] .mr-prev{border-radius:0;border:3px solid #000;box-shadow:5px 5px 0 #000;}' +
-      '[data-theme="brutal"] .mr-head button,[data-theme="brutal"] .mr-fmt button,[data-theme="brutal"] .mr-row button{border-radius:0;border:3px solid #000;color:#000;}' +
-      '[data-theme="brutal"] .mr-fmt button[aria-pressed="true"]{background:#000;color:#F2B833;}' +
-      '[data-theme="brutal"] .mr-row .mr-save{background:#FF6BB5;color:#000;}';
+      '.mr-note{font-size:12px;color:#6b5d4e;margin:10px 2px 0;line-height:1.5;}';
     document.head.appendChild(css);
   }
 

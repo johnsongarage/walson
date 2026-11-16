@@ -78,7 +78,7 @@
     margin-top: 10px; opacity: 0; transition: opacity 0.3s ease;
   }
   .saved-toast.show { opacity: 1; }
-  /* 화면 테마 고르기(2026-11-15) — 미리보기 조각은 테마와 상관없이 각 테마 모양 그대로 보여 준다 */
+  /* 칸 모양(2026-11-15 화면 테마 고르기 때 만든 것) — 테마 고르기는 11/16에 내렸고, 기록 옮기기 칸이 같은 모양을 쓴다 */
   .theme-card { margin-top: 16px; }
   .theme-card h2 { font-size: 15px; font-weight: 800; margin: 0 0 4px; }
   .theme-card .sub { font-size: 12px; color: var(--ink-soft); margin: 0 0 14px; line-height: 1.5; }
@@ -91,16 +91,8 @@
   .theme-opt .name { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 800; margin-top: 8px; }
   .theme-opt .name .on { font-size: 11px; font-weight: 800; color: var(--accent); }
   .theme-opt .desc { display: block; font-size: 11px; color: var(--ink-soft); line-height: 1.4; margin-top: 3px; }
-  .theme-swatch { height: 64px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; }
-  .theme-swatch i { display: block; height: 14px; }
-  .theme-swatch.soft { background: #f7ede2; border-radius: 10px; }
-  .theme-swatch.soft i:first-child { width: 70%; background: #fffaf3; border: 1px solid #e6d6c1; border-radius: 6px; box-shadow: 0 2px 6px rgba(74,63,53,0.15); }
-  .theme-swatch.soft i:last-child { width: 45%; background: #b8563a; border-radius: 999px; }
-  .theme-swatch.brutal { background: #F2B833; border: 2px solid #000; }
-  .theme-swatch.brutal i:first-child { width: 70%; background: #fff; border: 2px solid #000; box-shadow: 3px 3px 0 #000; }
-  .theme-swatch.brutal i:last-child { width: 45%; background: #FF6BB5; border: 2px solid #000; }
 </style>
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -110,6 +102,7 @@
 <script src="reward-rules.js?v=7"></script>
 <script src="backup.js?v=5"></script>
 <script src="sample-data.js?v=5"></script>
+<script src="dog-tags.js?v=1"></script>
 </head>
 <body>
 
@@ -153,29 +146,16 @@
         <option value="red">빨강불 · 눈으로만 예뻐해 주세요</option>
       </select>
     </div>
+    <!-- 한 줄 소개(2026-11-16, dog-tags.js): 주민증 카드 신호등 띠 아랫줄에 기본 문구 대신 들어간다. 신호등에 맞는 것만 -->
+    <div class="field" id="tag-field" hidden>
+      <label for="f-tag">한 줄 소개 (주민증 신호등 아래에 들어가요)</label>
+      <select id="f-tag"></select>
+    </div>
 
     <button class="btn-save" id="save-btn">프로필 저장</button>
     <div class="saved-toast" id="toast">저장됐어요!</div>
   </div>
 
-
-  <!-- 화면 테마(2026-11-15): theme.js가 이 기기에 저장한 값을 읽어 모든 화면에 적용한다 -->
-  <div class="card theme-card" id="theme">
-    <h2>화면 테마</h2>
-    <p class="sub">앱 전체 화면 모양을 바꿔요. 이 기기에만 저장되고, 고르면 바로 다시 그려져요.</p>
-    <div class="theme-opts" id="theme-opts">
-      <button type="button" class="theme-opt" data-theme-key="soft" aria-pressed="false">
-        <span class="theme-swatch soft"><i></i><i></i></span>
-        <span class="name">차분 <span class="on" hidden>사용 중</span></span>
-        <span class="desc">크림색 바탕, 둥근 모서리</span>
-      </button>
-      <button type="button" class="theme-opt" data-theme-key="brutal" aria-pressed="false">
-        <span class="theme-swatch brutal"><i></i><i></i></span>
-        <span class="name">뉴브루탈 <span class="on" hidden>사용 중</span></span>
-        <span class="desc">노랑 바탕, 굵은 검정 테두리</span>
-      </button>
-    </div>
-  </div>
 
   <!-- 기록 옮기기(2026-11-15): 카톡·크롬 창 ↔ 홈 화면 앱 ↔ 새 휴대폰. backup.js -->
   <div class="card theme-card" id="backup">
@@ -213,6 +193,20 @@
   var fName = document.getElementById('f-name');
   var fSize = document.getElementById('f-size');
   var fSignal = document.getElementById('f-signal');
+  var fTag = document.getElementById('f-tag');
+  // 한 줄 소개 — 고른 신호등에 맞는 태그만 목록에 둔다(신호등을 바꾸면 다시 채움, 안 맞으면 기본 문구로)
+  var DEFAULT_LINE = { green: '다가와도 좋아요', yellow: '천천히 인사해요', red: '눈으로만 예뻐해 주세요' };
+  function paintTagSelect(keep) {
+    var list = window.DogTags ? DogTags.forSignal(fSignal.value) : [];
+    document.getElementById('tag-field').hidden = !list.length;
+    fTag.innerHTML = '';
+    var o = document.createElement('option');
+    o.value = ''; o.textContent = '기본 문구 · ' + (DEFAULT_LINE[fSignal.value] || '');
+    fTag.appendChild(o);
+    list.forEach(function (t) { var x = document.createElement('option'); x.value = t.id; x.textContent = t.text; fTag.appendChild(x); });
+    fTag.value = list.some(function (t) { return t.id === keep; }) ? keep : '';
+  }
+  fSignal.addEventListener('change', function () { paintTagSelect(fTag.value); });
   var saveBtn = document.getElementById('save-btn');
   var toast = document.getElementById('toast');
 
@@ -238,6 +232,7 @@
     fName.value = existing.name || '';
     if (existing.size) fSize.value = existing.size;
     if (existing.signal) fSignal.value = existing.signal;
+    paintTagSelect(existing.tag || '');
     photoDataUrl = existing.photo || null;
     showPhoto(photoDataUrl);
   }
@@ -295,6 +290,7 @@
     // 샘플 강아지(왈슨) 그림이 그대로 남아 있으면 내 강아지 사진으로 저장하지 않는다
     profile.photo = (photoDataUrl && photoDataUrl.indexOf('icons/sample-') === 0) ? null : photoDataUrl;
     if (fSignal.value) profile.signal = fSignal.value; else delete profile.signal;
+    if (fTag.value && window.DogTags && DogTags.fits(fTag.value, fSignal.value)) profile.tag = fTag.value; else delete profile.tag;
     try {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
       toast.classList.add('show');
@@ -355,19 +351,5 @@
 })();
 </script>
 
-<script>
-// 화면 테마 고르기 — 실제 적용·저장은 theme.js(WalsonTheme.set)가 한다
-(function () {
-  var T = window.WalsonTheme;
-  var opts = document.querySelectorAll('#theme-opts .theme-opt');
-  Array.prototype.forEach.call(opts, function (btn) {
-    var key = btn.getAttribute('data-theme-key');
-    var on = !!T && T.name === key;
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.querySelector('.on').hidden = !on;
-    btn.addEventListener('click', function () { if (T) T.set(key); });
-  });
-})();
-</script>
 </body>
 </html>
