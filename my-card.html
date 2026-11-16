@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>내 카드</title>
+<title>주민증</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
@@ -16,8 +16,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <style>
-  /* 실제 사용자가 보는 보상 카드 화면(2026-09-26). "지금 내 카드가 어디까지 자랐나"만 보여준다.
-     카드 그림은 reward-card-soft.js(window.RewardCard). 디자인 비교 도구 card-reward.html은 11/16에 내림. */
+  /* [주민증] 탭(2026-11-16 자라는 주민증 — 가르시아 "자라는 카드를 주민증에 합쳐"). 예전 [카드] 탭(9/26 자라는 보상 카드)을 바꿨다.
+     공원에서 만든 주민증이 길 기록 산책으로 자란다 — 부제(주민 등급: 새내기 주민 → 정착 주민 → 토박이 → 터줏대감)·승급 도장·
+     뒷면(승급 기록·발도장 기록·특기·특이 사항). 그림은 id-card.js, 숫자는 reward-rules.js(RANKS·SLOT_RULES·PLACES).
+     예전 세로 보상 카드(reward-card-soft.js)와 "스킬 다시 뽑기"는 지웠다 — 특기·특이 사항은 목록에서 고른다(문구는 card-shared.js 그대로).
+     "실물로 뽑기"(11/16 가르시아 "③ 추천대로"): A4에 실제 크기(85.6×54mm) 앞·뒷면 네 쌍 — 오려서 등을 맞대 포토카드 홀더에.
+     포토프린터를 사기 전에 공원에서 반응을 보는 0원 시험용(hq notes/petwalk-growing-id-card.md). 인쇄는 이 기기에서만 — 어디로도 안 보낸다. */
   :root {
     /* index.html/walk-history.html/profile.html과 동일한 색 토큰 */
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -31,6 +35,7 @@
   }
   body { padding: 16px 16px 32px; }
   .wrap { max-width: 420px; margin: 0 auto; }
+  [hidden] { display: none !important; }
 
   .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
   .topbar a {
@@ -41,27 +46,19 @@
   }
   .topbar h1 { font-weight: 800; font-size: 20px; margin: 0; letter-spacing: -0.01em; }
 
-  .notice {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    background: var(--accent-tint); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px;
-    font-size: 13px; line-height: 1.5;
-  }
-  .notice a { flex-shrink: 0; color: var(--accent); font-weight: 700; text-decoration: none; }
-  .notice[hidden] { display: none; }
-
   .side-toggle {
     display: flex; gap: 4px; padding: 4px; margin: 0 auto 12px; width: max-content;
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px;
   }
   .side-toggle button {
     border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
-    padding: 7px 18px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    padding: 7px 16px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
   }
   .side-toggle button.active { background: var(--ink); color: #fff; }
 
   .canvas-holder { display: flex; justify-content: center; }
   #card-canvas {
-    width: 100%; max-width: 340px; cursor: pointer;
+    width: 100%; height: auto; cursor: pointer;
     filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
   }
   .canvas-hint { text-align: center; font-size: 11px; color: #a8977f; margin-top: 6px; }
@@ -70,14 +67,18 @@
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
     padding: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.08);
   }
+  .make { margin-top: 0; text-align: center; }
+  .make b { display: block; font-size: 18px; font-weight: 800; }
+  .make p { margin: 8px 0 14px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
+
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
   .stats div + div { border-left: 1px solid var(--panel-border); }
   .stats b { display: block; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .stats span { font-size: 12px; color: var(--ink-soft); }
 
   .next { margin-top: 14px; }
-  .next-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
-  .next-label small { color: var(--ink-soft); font-weight: 600; }
+  .next-label { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; }
+  .next-label small { color: var(--ink-soft); font-weight: 600; flex-shrink: 0; }
   .bar { height: 10px; border-radius: 5px; background: #eadfce; margin-top: 6px; overflow: hidden; }
   .bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
 
@@ -88,107 +89,164 @@
   }
   .places span.got { border: 1px solid #e2b45a; background: #fff3d6; color: var(--ink); }
 
-  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  /* 특기·특이 사항 */
+  .trait + .trait { border-top: 1px solid var(--panel-border); margin-top: 12px; padding-top: 12px; }
+  .trait-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .trait-head span { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .trait-head button {
+    flex-shrink: 0; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); border-radius: 999px;
+    padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .trait-head button:disabled { opacity: 0.45; cursor: default; }
+  .trait-title { margin: 6px 0 0; font-size: 15px; font-weight: 800; line-height: 1.45; word-break: keep-all; }
+  .trait-title.is-locked { color: #a8977f; font-weight: 600; }
+  .trait-desc { margin: 4px 0 0; font-size: 13px; line-height: 1.55; color: var(--ink-soft); word-break: keep-all; }
+  .pick-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .pick-list button {
+    text-align: left; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); border-radius: 12px;
+    padding: 10px 12px; font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1.45; cursor: pointer; word-break: keep-all;
+  }
+  .pick-list button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); }
+
+  .format {
+    display: flex; gap: 4px; padding: 4px; margin: 0 auto; width: max-content;
+    background: #fff; border: 1px solid var(--panel-border); border-radius: 999px;
+  }
+  .format button {
+    border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
+    padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .format button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
   .btn {
-    flex: 1; border-radius: 999px; padding: 13px; font-family: inherit; font-size: 14px;
-    font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px;
+    border-radius: 999px; padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none;
   }
   .btn:active { transform: scale(0.98); }
-  .btn:disabled { opacity: 0.45; cursor: default; transform: none; }
   .btn-secondary { background: var(--panel); color: var(--ink); border: 1px solid var(--panel-border); }
   .btn-primary {
     border: none; color: #fff; background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15), 0 6px 16px rgba(var(--shadow-rgb), 0.25);
   }
 
-  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 14px 2px 0; }
+  .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 12px 2px 0; word-break: keep-all; }
   @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
+
+  /* 실물로 뽑기 — 화면에는 안 보이고 인쇄할 때만. 실제 크기(85.6×54mm, 신용카드 크기) */
+  #print-sheet { display: none; }
+  @media print {
+    @page { size: A4; margin: 10mm; }
+    html, html body { background: #fff !important; padding: 0 !important; margin: 0 !important; }   /* 탭바가 넣는 아래 여백(!important)보다 세게 */
+    body > *:not(#print-sheet) { display: none !important; }
+    #print-sheet { display: block; color: #000; font-family: inherit; }
+    #print-sheet .ps-head { margin: 0 0 1.5mm; font-size: 10pt; font-weight: 700; }
+    #print-sheet .ps-grid { display: grid; grid-template-columns: 85.6mm 85.6mm; gap: 5mm 8mm; justify-content: center; break-inside: avoid; }
+    #print-sheet img { display: block; width: 85.6mm; height: 54mm; outline: 0.2mm dashed #999; outline-offset: 0; }
+    #print-sheet .ps-note { margin: 0 0 4mm; font-size: 8.5pt; line-height: 1.5; color: #333; }
+  }
 </style>
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=6"></script>
+<script src="save-image.js?v=1"></script>
 </head>
 <body>
 
 <div class="wrap">
   <div class="topbar">
     <a href="index.html" title="오늘로 돌아가기">←</a>
-    <h1>내 카드</h1>
+    <h1>주민증</h1>
   </div>
 
-  <div class="notice" id="profile-notice" hidden>
-    <span>프로필에 사진과 이름을 넣으면 카드에 들어가요.</span>
-    <a href="profile.html">프로필 등록</a>
+  <!-- 주민증이 아직 없을 때(공원 QR이 아니라 링크로 온 사람) -->
+  <div class="panel make" id="make-panel" hidden>
+    <b>아직 주민증이 없어요</b>
+    <p>신호등과 이름만 고르면 30초면 나와요.<br>길 기록 산책을 할수록 주민증이 자라요.</p>
+    <a class="btn btn-primary" href="start.html">주민증 만들기</a>
   </div>
 
-  <div class="side-toggle" role="tablist">
-    <button type="button" id="side-front" class="active">앞면</button>
-    <button type="button" id="side-back">발도장 지도</button>
+  <div id="card-area" hidden>
+    <div class="side-toggle" role="tablist">
+      <button type="button" id="side-front" class="active">앞면</button>
+      <button type="button" id="side-back">뒷면 · 산책 경력</button>
+    </div>
+    <div class="canvas-holder">
+      <canvas id="card-canvas" width="1600" height="1000" role="img" aria-label="강아지 주민증 앞면"></canvas>
+    </div>
+    <div class="canvas-hint">주민증을 누르면 뒤집혀요</div>
   </div>
-  <div class="canvas-holder">
-    <canvas id="card-canvas" width="680" height="1000" aria-label="산책 보상 카드"></canvas>
-  </div>
-  <div class="canvas-hint">카드를 누르면 뒤집혀요</div>
 
   <div class="panel">
     <div class="stats">
-      <div><b id="stat-walks">0</b><span>산책</span></div>
+      <div><b id="stat-walks">0회</b><span>길 기록 산책</span></div>
       <div><b id="stat-km">0.0</b><span>km</span></div>
-      <div><b id="stat-tier">종이</b><span>등급</span></div>
+      <div><b id="stat-rank">새내기</b><span>주민 등급</span></div>
     </div>
     <div class="next">
-      <div class="next-label"><span id="tier-label"></span><small id="tier-left"></small></div>
-      <div class="bar"><i id="tier-bar"></i></div>
+      <div class="next-label"><span id="rank-label"></span><small id="rank-left"></small></div>
+      <div class="bar"><i id="rank-bar"></i></div>
     </div>
     <div class="places" id="places"></div>
     <p class="hint" id="next-goal"></p>
   </div>
 
-  <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다 — 카드 성장(테두리)과는 따로 -->
+  <!-- 특기·특이 사항 — 산책 1회·3회에 생긴다. 처음 하나는 깜짝 선물로 정해 주고, 바꾸기는 목록에서 고른다(예전 "다시 뽑기") -->
+  <div class="panel" id="traits"></div>
+
+  <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다 — 주민 등급(길 기록 산책)과는 따로 -->
   <div class="panel" id="steady-card">
     <div class="next-label" style="margin-bottom:10px;"><span>꾸준함 도장판</span><small id="steady-count"></small></div>
     <div id="steady-board"></div>
     <p class="hint" style="margin-top:10px;">한 주(월~일)에 산책한 날 3·5·7일마다 도장. 시간만 잰 산책도 들어가요(5분 이상).</p>
   </div>
 
-  <div class="actions">
-    <button type="button" class="btn btn-secondary" id="reroll-btn">스킬 다시 뽑기</button>
-    <button type="button" class="btn btn-primary" id="save-btn">이미지로 저장</button>
+  <div class="panel" id="save-panel" hidden>
+    <div class="format" role="group" aria-label="저장할 모양">
+      <button type="button" data-format="card" aria-pressed="true">카드만</button>
+      <button type="button" data-format="square" aria-pressed="false">정사각형</button>
+      <button type="button" data-format="story" aria-pressed="false">스토리용</button>
+    </div>
+    <button type="button" class="btn btn-primary" id="save-btn">지금 보는 면 이미지로 저장</button>
+    <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
+    <p class="hint">A4에 앞·뒷면이 네 쌍 실제 크기(85.6×54mm)로 나와요. 인쇄 배율은 100%(실제 크기)로. 오려서 등을 맞대고 포토카드 홀더에 넣으면 리드줄에 달 수 있어요.
+    인식표(보호자 연락처·동물등록번호)는 따로 달아 주세요.</p>
   </div>
+
   <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
-  <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden style="display:none;margin-top:12px;text-decoration:none;justify-content:center;">키링 받기</a>
+  <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden>키링 받기</a>
   <!-- 강아지 도감(2026-11-15): QR 교환, 서버 없음 — 늘 보인다 -->
-  <a class="btn btn-secondary" href="dex.html" style="display:flex;margin-top:12px;text-decoration:none;justify-content:center;">강아지 도감 · QR 교환</a>
+  <a class="btn btn-secondary" href="dex.html">강아지 도감 · QR 교환</a>
   <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
-  <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden style="display:none;margin-top:12px;text-decoration:none;justify-content:center;">스친 강아지 (서버 가정 시험판)</a>
+  <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden>스친 강아지 (서버 가정 시험판)</a>
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
-  5분·200m 미만 산책은 횟수에 들어가지 않아요.</p>
+  위치로 확인된 5분·200m 이상 산책만 주민 등급에 들어가요(꾸준함 도장은 모든 산책).</p>
 </div>
 
+<!-- 실물로 뽑기 — 인쇄할 때만 보인다 -->
+<div id="print-sheet" aria-hidden="true"></div>
+
+<!-- 앞면 "나도 만들기" QR(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다. 못 받아오면 QR 없이. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=8"></script>
+<script src="reward-rules.js?v=9"></script>
+<script src="dog-tags.js?v=1"></script>
+<script src="id-card.js?v=1"></script>
 <script src="steady-stamp.js?v=2"></script>
 <script src="mock-server.js?v=1"></script>
 <script>
   (function () {
     if (!window.WalsonApi || !WalsonApi.isOn()) return;
-    var a = document.getElementById('friends-link'); a.hidden = false; a.style.display = 'flex';
+    document.getElementById('friends-link').hidden = false;
   })();
 </script>
-<script src="reward-card-soft.js?v=3"></script>
 <script>
 (function () {
-  var CS = window.CardShared;
-  var RR = window.RewardRules;
-  var RC = window.RewardCard;
+  var IC = window.WalsonIdCard, RR = window.RewardRules, CS = window.CardShared || {};
   var canvas = document.getElementById('card-canvas');
-
-  var WALKS_KEY = 'petwalk_walks';
-  var PROFILE_KEY = 'petwalk_profile';
-  // 스킬/특성은 사용자가 고르지 않고 카탈로그에서 자동 배정 — 한 번 뽑으면 기억해뒀다가 같은 카드를
-  // 보여준다. "다시 뽑기"로만 바뀐다(PROJECT_CONTEXT.md "서비스 다이어트"의 자동 흐름 참고).
+  var WALKS_KEY = 'petwalk_walks', PROFILE_KEY = 'petwalk_profile';
+  // 특기·특이 사항 — 예전 자라는 카드와 같은 저장값(목록 번호)이라 전에 받은 것이 그대로 이어진다
   var PICK_KEY = 'petwalk_reward_card';
 
   function loadJSON(key) {
@@ -197,119 +255,199 @@
   function saveJSON(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* 저장 실패해도 화면은 그대로 */ }
   }
-  function randomIndex(list, except) {
-    if (list.length < 2) return 0;
-    var i;
-    do { i = Math.floor(Math.random() * list.length); } while (i === except);
-    return i;
-  }
+  function $(id) { return document.getElementById(id); }
 
+  var walks = loadJSON(WALKS_KEY) || [];
+  var profile = loadJSON(PROFILE_KEY) || {};
+  var hasCard = !!profile.name;
+  var progress = RR.computeProgress(walks);
+  var rank = RR.rankFor(progress.walks), next = RR.nextRank(progress.walks);
+  var skills = CS.SKILLS || [], passives = CS.PASSIVES || [];
   var pick = loadJSON(PICK_KEY);
-  if (!pick || !CS.SKILLS[pick.skill] || !CS.PASSIVES[pick.passive]) {
-    pick = { skill: randomIndex(CS.SKILLS), passive: randomIndex(CS.PASSIVES) };
+  if (!pick || !skills[pick.skill] || !passives[pick.passive]) {
+    pick = { skill: Math.floor(Math.random() * skills.length), passive: Math.floor(Math.random() * passives.length) };
     saveJSON(PICK_KEY, pick);
   }
+  var steadyInfo = RR.steady ? RR.steady(walks) : null;
+  var photo = null, side = 'front', format = 'card';
 
-  var profile = loadJSON(PROFILE_KEY) || {};
-  var petImage = null;
-  document.getElementById('profile-notice').hidden = !!(profile.name && profile.photo);
-
-  var progress = RR.computeProgress(loadJSON(WALKS_KEY));
-  // 꾸준함 도장(2026-11-15) — 카드 앞면 정보 줄에 받은 도장 수를 같이 적는다(reward-card*.js)
-  if (RR.steady && window.SteadyStamp) {
-    var steadyInfo = RR.steady(loadJSON(WALKS_KEY) || []);
-    progress.steady = steadyInfo.total;
-    document.getElementById('steady-board').appendChild(SteadyStamp.board(steadyInfo, 8));
-    document.getElementById('steady-count').textContent = steadyInfo.total
-      ? '모두 ' + steadyInfo.total + '개 · 3일 ' + steadyInfo.byLevel[0] + ' · 5일 ' + steadyInfo.byLevel[1] + ' · 7일 ' + steadyInfo.byLevel[2]
-      : '아직 없어요';
-  } else {
-    document.getElementById('steady-card').hidden = true;
+  function frontOpts() { return { photo: photo, rank: rank, since: progress.rankDates ? progress.rankDates[rank.level] : null }; }
+  function backOpts() {
+    return { ranks: RR.RANKS, places: RR.PLACES, slots: RR.SLOT_RULES, skill: skills[pick.skill], passive: passives[pick.passive],
+      steadyTotal: steadyInfo ? steadyInfo.total : 0 };
   }
-  var side = 'front';
-
-  var card = RC.create(function () {
-    return {
-      name: profile.name || '우리 아이', petImage: petImage, filterKey: 'pastel',
-      photoOffset: { x: 0, y: 0 }, photoZoom: 1,
-      skill: CS.SKILLS[pick.skill], passive: CS.PASSIVES[pick.passive],
-      showLocked: true, tiersOn: true
-    };
-  });
-
-  function renderCard() {
-    card.drawSide(canvas, side, progress, card.sharedHeight(progress));
+  function render() {
+    if (!hasCard) return;
+    if (side === 'front') IC.drawFront(canvas, profile, frontOpts());
+    else IC.drawBack(canvas, profile, progress, backOpts());
+    canvas.setAttribute('aria-label', '강아지 주민증 ' + (side === 'front' ? '앞면' : '뒷면'));
   }
 
+  // ── 진행도 ──
   function renderSummary() {
     var p = progress;
-    var tier = RR.tierFor(p.walks), nt = RR.nextTier(p.walks);
-    document.getElementById('stat-walks').textContent = p.walks + '회';
-    document.getElementById('stat-km').textContent = p.km.toFixed(1);
-    document.getElementById('stat-tier').textContent = tier.name;
-    document.getElementById('tier-label').textContent = nt ? tier.name + ' → ' + nt.name + ' 테두리' : '금 테두리 달성';
-    document.getElementById('tier-left').textContent = nt ? (nt.minWalks - p.walks) + '회 남음' : '';
-    var frac = nt ? (p.walks - tier.minWalks) / (nt.minWalks - tier.minWalks) : 1;
-    document.getElementById('tier-bar').style.width = Math.round(frac * 100) + '%';
-
-    var placesEl = document.getElementById('places');
+    $('stat-walks').textContent = p.walks + '회';
+    $('stat-km').textContent = p.km.toFixed(1);
+    $('stat-rank').textContent = rank.short;
+    $('rank-label').textContent = next ? rank.name + ' → ' + next.name : '터줏대감이에요';
+    $('rank-left').textContent = next ? (next.minWalks - p.walks) + '회 남음' : '';
+    var frac = next ? (p.walks - rank.minWalks) / (next.minWalks - rank.minWalks) : 1;
+    $('rank-bar').style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%';
+    var placesEl = $('places');
     placesEl.innerHTML = '';
-    RR.PLACES.forEach(function (pl) {
+    RR.PLACES.filter(function (pl) { return !pl.pending; }).forEach(function (pl) {
       var got = !!p.visited[pl.id];
       var chip = document.createElement('span');
       chip.className = got ? 'got' : '';
-      chip.textContent = (got ? '' : '잠김 · ') + pl.name;
+      chip.textContent = (got ? '발도장 · ' : '아직 · ') + pl.name;
       placesEl.appendChild(chip);
     });
-    document.getElementById('next-goal').textContent = '다음 보상 · ' + RR.nextGoalText(p);
-
-    // 스킬 칸이 열리기 전엔 뽑아도 카드에 안 보이니 버튼을 막아둔다
-    var rerollBtn = document.getElementById('reroll-btn');
-    rerollBtn.disabled = p.walks < RR.SLOT_RULES.skill;
-    rerollBtn.textContent = p.walks >= RR.SLOT_RULES.passive ? '스킬·특성 다시 뽑기' : '스킬 다시 뽑기';
+    $('next-goal').textContent = '다음 · ' + RR.nextGoalText(p);
   }
 
+  // ── 특기·특이 사항 ──
+  var openList = null;   // 펼친 목록('skill'|'passive')
+  function renderTraits() {
+    var box = $('traits');
+    box.innerHTML = '';
+    [['skill', '특기', skills, RR.SLOT_RULES.skill], ['passive', '특이 사항', passives, RR.SLOT_RULES.passive]].forEach(function (t) {
+      var kind = t[0], label = t[1], list = t[2], need = t[3];
+      var open = progress.walks >= need, item = list[pick[kind]];
+      var wrap = document.createElement('div');
+      wrap.className = 'trait';
+      var head = document.createElement('div');
+      head.className = 'trait-head';
+      var lab = document.createElement('span');
+      lab.textContent = label + (open ? '' : ' · 산책 ' + need + '회 하면 생겨요');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = openList === kind ? '닫기' : '바꾸기';
+      btn.disabled = !open;
+      btn.addEventListener('click', function () { openList = openList === kind ? null : kind; renderTraits(); });
+      head.appendChild(lab); head.appendChild(btn);
+      wrap.appendChild(head);
+      var title = document.createElement('p');
+      title.className = 'trait-title' + (open ? '' : ' is-locked');
+      title.textContent = open && item ? item.title : '아직 비어 있어요';
+      wrap.appendChild(title);
+      if (open && item && item.desc) {
+        var desc = document.createElement('p');
+        desc.className = 'trait-desc';
+        desc.textContent = item.desc;
+        wrap.appendChild(desc);
+      }
+      if (open && openList === kind) {
+        var pl = document.createElement('div');
+        pl.className = 'pick-list';
+        list.forEach(function (it, i) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = it.title;
+          b.setAttribute('aria-pressed', i === pick[kind] ? 'true' : 'false');
+          b.addEventListener('click', function () {
+            pick[kind] = i;
+            saveJSON(PICK_KEY, pick);
+            openList = null;
+            renderTraits();
+            if (side === 'back') render();
+          });
+          pl.appendChild(b);
+        });
+        wrap.appendChild(pl);
+      }
+      box.appendChild(wrap);
+    });
+  }
+
+  // ── 앞면·뒷면 ──
   function setSide(s) {
     side = s;
-    document.getElementById('side-front').classList.toggle('active', s === 'front');
-    document.getElementById('side-back').classList.toggle('active', s === 'back');
-    renderCard();
+    $('side-front').classList.toggle('active', s === 'front');
+    $('side-back').classList.toggle('active', s === 'back');
+    render();
   }
-  document.getElementById('side-front').addEventListener('click', function () { setSide('front'); });
-  document.getElementById('side-back').addEventListener('click', function () { setSide('back'); });
+  $('side-front').addEventListener('click', function () { setSide('front'); });
+  $('side-back').addEventListener('click', function () { setSide('back'); });
   canvas.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
 
-  document.getElementById('reroll-btn').addEventListener('click', function () {
-    pick.skill = randomIndex(CS.SKILLS, pick.skill);
-    if (progress.walks >= RR.SLOT_RULES.passive) pick.passive = randomIndex(CS.PASSIVES, pick.passive);
-    saveJSON(PICK_KEY, pick);
-    setSide('front');
+  // ── 저장(휴대폰은 공유 창, PC는 내려받기 — save-image.js) ──
+  Array.prototype.forEach.call(document.querySelectorAll('.format button'), function (btn, i, all) {
+    btn.addEventListener('click', function () {
+      format = btn.getAttribute('data-format');
+      Array.prototype.forEach.call(all, function (b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+    });
+  });
+  $('save-btn').addEventListener('click', function () {
+    render();
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: side === 'back' ? 'id_card_back' : 'id_card', format: format });
+    IC.composeExport(canvas, profile, format).toBlob(function (blob) {
+      if (!blob) return;
+      var name = (profile.name || 'dog') + '-주민증' + (side === 'back' ? '-뒷면' : '') + (format === 'card' ? '' : '-' + format) + '.png';
+      window.WalsonSave.blob(blob, name);
+    }, 'image/png');
   });
 
-  document.getElementById('save-btn').addEventListener('click', function () {
-    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'reward_card' });
-    CS.downloadCanvasPNG(card.drawBoth(progress), (profile.name || 'walk-card') + '_card.png');
+  // ── 실물로 뽑기: A4에 앞·뒷면 네 쌍(실제 크기) ──
+  $('print-btn').addEventListener('click', function () {
+    var f = document.createElement('canvas'), b = document.createElement('canvas');
+    IC.drawFront(f, profile, frontOpts());
+    IC.drawBack(b, profile, progress, backOpts());
+    var fu = f.toDataURL('image/png'), bu = b.toDataURL('image/png');
+    var sheet = $('print-sheet');
+    sheet.innerHTML = '';
+    var head = document.createElement('p');
+    head.className = 'ps-head';
+    head.textContent = (profile.name || '') + ' 강아지 주민증 · 실제 크기 85.6×54mm — 인쇄 배율 100%(실제 크기)로 뽑아 주세요';
+    sheet.appendChild(head);
+    // 안내는 위에(아래에 두면 A4 한 장을 넘어 두 번째 장으로 밀렸다)
+    var note = document.createElement('p');
+    note.className = 'ps-note';
+    note.textContent = '점선을 따라 오려 앞면·뒷면의 등을 맞대고 포토카드 홀더에 넣으세요. 재미로 만든 카드예요 · 공식 신분증이 아니에요. ' +
+      '인식표를 대신하지 않아요 — 개와 외출할 때는 보호자 연락처·동물등록번호가 적힌 인식표를 따로 달아 주세요.';
+    sheet.appendChild(note);
+    var grid = document.createElement('div');
+    grid.className = 'ps-grid';
+    var imgs = [];
+    for (var i = 0; i < 4; i++) {
+      [fu, bu].forEach(function (u, j) {
+        var im = new Image();
+        im.alt = j ? '주민증 뒷면' : '주민증 앞면';
+        im.src = u;
+        imgs.push(im);
+        grid.appendChild(im);
+      });
+    }
+    sheet.appendChild(grid);
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_print' });
+    Promise.all(imgs.map(function (im) {
+      return im.complete ? Promise.resolve() : new Promise(function (res) { im.onload = im.onerror = res; });
+    })).then(function () { window.print(); });
   });
 
-  if (profile.photo) {
-    var img = new Image();
-    img.onload = function () { petImage = img; renderCard(); };
-    img.src = profile.photo;
+  // ── 처음 그리기 ──
+  if (!hasCard) {
+    $('make-panel').hidden = false;
+  } else {
+    $('card-area').hidden = false;
+    $('save-panel').hidden = false;
   }
-
+  if (steadyInfo && window.SteadyStamp) {
+    $('steady-board').appendChild(SteadyStamp.board(steadyInfo, 8));
+    $('steady-count').textContent = steadyInfo.total
+      ? '모두 ' + steadyInfo.total + '개 · 3일 ' + steadyInfo.byLevel[0] + ' · 5일 ' + steadyInfo.byLevel[1] + ' · 7일 ' + steadyInfo.byLevel[2]
+      : '아직 없어요';
+  } else {
+    $('steady-card').hidden = true;
+  }
   renderSummary();
-  renderCard();
-  CS.preloadEmoji(RC.EMOJI, renderCard);
-  if (document.fonts && document.fonts.load) {
-    document.fonts.load('30px "Black Han Sans"').catch(function () {}).then(renderCard);
-  }
+  renderTraits();
+  render();
+  Promise.all([IC.loadImage(profile.photo), IC.fontsReady()]).then(function (res) { photo = res[0]; render(); });
 })();
 </script>
 <script>
-  if (window.RewardRules && RewardRules.KEYRING && RewardRules.KEYRING.open) {
-    var kl = document.getElementById('keyring-link'); kl.hidden = false; kl.style.display = 'flex';
-  }
+  if (window.RewardRules && RewardRules.KEYRING && RewardRules.KEYRING.open) document.getElementById('keyring-link').hidden = false;
 </script>
-<script src="tabbar.js?v=7" data-tab="card"></script>
+<script src="tabbar.js?v=8" data-tab="card"></script>
 </body>
 </html>

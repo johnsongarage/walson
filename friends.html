@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 강아지 도감 + 오늘 스친 강아지 — 서버 가정 시험판(2026-11-15). 데이터는 mock-server.js의 가짜 서버(이 폰 안)가 준다.
-     입구는 시험판을 켰을 때만 [카드] 탭과 산책 끝 화면에 보인다(?server=mock). */
+     입구는 시험판을 켰을 때만 [주민증] 탭(11/16 [카드]에서 이름 바뀜)과 산책 끝 화면에 보인다(?server=mock). */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
@@ -93,14 +93,14 @@
 </style>
 <script src="theme.js?v=9"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=8"></script>
+<script src="reward-rules.js?v=9"></script>
 <script src="mock-server.js?v=1"></script>
 </head>
 <body>
 
 <div class="wrap">
   <div class="topbar">
-    <a href="my-card.html" title="카드로 돌아가기">←</a>
+    <a href="my-card.html" title="주민증으로 돌아가기">←</a>
     <h1>강아지 도감</h1>
     <span class="mock-badge">서버 가정 시험판</span>
   </div>
@@ -108,7 +108,7 @@
   여기서 해 본 것은 어디로도 나가지 않아요.</p>
 
   <div id="off" hidden>
-    <div class="empty">시험판이 꺼져 있어요.<br>켜면 [카드] 탭과 산책 끝 화면에 도감 입구가 생겨요.</div>
+    <div class="empty">시험판이 꺼져 있어요.<br>켜면 [주민증] 탭과 산책 끝 화면에 도감 입구가 생겨요.</div>
     <a class="btn btn-main" href="friends.html?server=mock">시험판 켜기</a>
   </div>
 

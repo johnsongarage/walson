@@ -11,7 +11,7 @@
 <script src="site-config.js?v=4"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=20"></script>
-<script src="reward-rules.js?v=8"></script>
+<script src="reward-rules.js?v=9"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="spot-github.js?v=4"></script>
@@ -345,10 +345,10 @@
 
     <div class="section">
       <h2>5. 우리 개 발도장 장소 (<span id="place-count">0</span>)</h2>
-      <p class="hint">길 기록 산책으로 이 원 안을 지나가면 발도장이 찍히고, [동네] 지도에 우리 개 얼굴이 떠요. 카드 뒷면에 모두 그려지니 5곳 안팎이 좋아요. 지도에 점선 원으로 보여요.<br><b>목록 순서가 미션 순서예요</b> — 1번이 첫 미션이고, 안 간 곳 중 맨 앞이 [동네]·산책 화면에 "다음 미션"으로 떠요. ▲▼로 바꿔요.</p>
+      <p class="hint">길 기록 산책으로 이 원 안을 지나가면 발도장이 찍히고, [동네] 지도에 우리 개 얼굴이 떠요. 주민증 뒷면엔 5곳까지 그려지니 5곳 안팎이 좋아요. 지도에 점선 원으로 보여요.<br><b>목록 순서가 미션 순서예요</b> — 1번이 첫 미션이고, 안 간 곳 중 맨 앞이 [동네]·산책 화면에 "다음 미션"으로 떠요. ▲▼로 바꿔요.</p>
       <ul id="place-list"></ul>
       <div class="newcat" id="place-form" hidden>
-        <div class="field"><label for="pl-name">이름 (카드·지도에 그대로 나와요)</label><input id="pl-name" maxlength="12"></div>
+        <div class="field"><label for="pl-name">이름 (주민증·지도에 그대로 나와요)</label><input id="pl-name" maxlength="12"></div>
         <div class="row">
           <div class="field" style="flex:1;"><label for="pl-kind">모양</label><select id="pl-kind"><option value="park">공원</option><option value="water">물가</option><option value="building">건물</option></select></div>
           <div class="field" style="width:110px;"><label for="pl-radius">반경(m)</label><input id="pl-radius" type="number" min="50" max="1000" step="10"></div>
@@ -1251,7 +1251,7 @@
       li.appendChild(edit);
       var del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = '삭제';
       del.addEventListener('click', function () {
-        if (busy || !confirm('"' + p.name + '" 발도장 장소를 지울까요?\n이미 찍힌 이 장소의 발도장도 카드·지도에서 사라져요(산책 기록은 그대로).')) return;
+        if (busy || !confirm('"' + p.name + '" 발도장 장소를 지울까요?\n이미 찍힌 이 장소의 발도장도 주민증·지도에서 사라져요(산책 기록은 그대로).')) return;
         places = places.filter(function (x) { return x.id !== p.id; });
         if (placeEditId === p.id) closePlace();
         save();
@@ -1293,7 +1293,7 @@
     var p = { id: placeDraft.id, name: name, lat: placeDraft.lat, lng: placeDraft.lng, radiusM: r, kind: $('pl-kind').value };
     var i = places.findIndex(function (x) { return x.id === p.id; });
     if (i >= 0) places[i] = p; else places.push(p);
-    if (places.length > 6) alert('발도장 장소가 ' + places.length + '곳이에요. 카드 뒷면이 빽빽해질 수 있어요(5곳 안팎 권장).');
+    if (places.length > 5) alert('발도장 장소가 ' + places.length + '곳이에요. 주민증 뒷면엔 5곳까지만 나와요(나머지는 "외 n곳").');
     closePlace();
     save();
   });
