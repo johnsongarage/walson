@@ -82,9 +82,9 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=6"></script>
-<script src="save-image.js?v=1"></script>
-<script src="image-editor.js?v=1"></script>
+<script src="track.js?v=8"></script>
+<script src="save-image.js?v=2"></script>
+<script src="image-editor.js?v=2"></script>
 </head>
 <body>
 
@@ -329,7 +329,7 @@
         return R.photo ? { x: L.x, y: L.y, w: L.w, h: L.h, img: R.photo } : null;
       },
       fileName: function () { return 'walson-walk-type.png'; },
-      onSave: function () { window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_type' }); }
+      onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_type', how: how }); }
     });
   });
   $('share-btn').addEventListener('click', function () {

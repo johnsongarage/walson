@@ -152,8 +152,8 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=6"></script>
-<script src="save-image.js?v=1"></script>
+<script src="track.js?v=8"></script>
+<script src="save-image.js?v=2"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 다산동 강아지 산책 앱. 제작 johnsongarage">
@@ -258,8 +258,8 @@
 <script src="infra-pins.js?v=20"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=9"></script>
-<script src="id-card.js?v=3"></script>
-<script src="image-editor.js?v=1"></script>
+<script src="id-card.js?v=4"></script>
+<script src="image-editor.js?v=2"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -468,7 +468,7 @@
       profile: profile, photo: photoImage, title: guardianSpot ? guardianSpot + ' ' + guardianBadge : '강아지 주민증',
       frontOpts: function () { var ri = rankInfo(); return { rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null }; },
       drawBack: null,
-      onSave: function (st) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt }); }
+      onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt, how: how }); }
     });
   });
 

@@ -213,7 +213,7 @@
           return { x: L.x, y: L.y, w: L.w, h: L.h, img: img };
         },
         fileName: function (st) { return 'walson-' + st.extra.y + '-' + pad2(st.extra.m + 1) + '-' + st.fmt + '.png'; },
-        onSave: function (st) { if (window.WalsonTrack) WalsonTrack.send('card_saved', { what: 'month_report', format: st.fmt }); }
+        onSave: function (st, how) { if (window.WalsonTrack) WalsonTrack.send('card_saved', { what: 'month_report', format: st.fmt, how: how }); }
       });
     });
   }

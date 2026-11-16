@@ -422,7 +422,7 @@
 
   // ── 꾸미고 저장하기(2026-11-16 한 화면 편집기, image-editor.js) — [주민증] 탭과 만들기 3단계가 같이 쓴다 ──
   // o: { profile, photo(그림|null), frontOpts: function () → drawFront opts(사진 빼고), drawBack: function (canvas)|null(뒷면 없음),
-  //      side: 'front'|'back', fmt, title, onSave(st), onClose(st) }
+  //      side: 'front'|'back', fmt, title, onSave(st, how), onClose(st) }
   // 사진은 이 저장에서만 칸 안에서 옮기고 키운다(주민증에 들어간 원래 사진은 그대로).
   function cropPhoto(img, zoom, qx, qy) {
     var c = document.createElement('canvas'); c.width = PHOTO_BOX.w * 2; c.height = PHOTO_BOX.h * 2;
@@ -460,6 +460,9 @@
         if (cv.height !== out.height) cv.height = out.height;
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.clearRect(0, 0, cv.width, cv.height);
+        // '카드만'은 카드 그림 그대로라 둥근 모서리 바깥이 투명했다 — 사진첩·카톡에서 흰색·검은색 귀퉁이(테두리)로 남아서,
+        // 신호등 테두리 색으로 채워 꽉 찬 네모로 저장한다(2026-11-16 가르시아 "카드 양식일 때 이미지 테두리가 남는 거")
+        if (out === card) { g.fillStyle = (SIGNALS[o.profile.signal] || SIGNALS.none).color; g.fillRect(0, 0, cv.width, cv.height); }
         g.drawImage(out, 0, 0);
         if (!front || !o.photo) return null;
         // composeExport가 카드를 놓는 자리(정사각형·스토리: 960×600 가운데) — 사진 칸을 같은 비율로 옮긴다

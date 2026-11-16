@@ -148,8 +148,8 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=6"></script>
-<script src="save-image.js?v=1"></script>
+<script src="track.js?v=8"></script>
+<script src="save-image.js?v=2"></script>
 </head>
 <body>
 
@@ -231,8 +231,8 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=9"></script>
 <script src="dog-tags.js?v=1"></script>
-<script src="id-card.js?v=3"></script>
-<script src="image-editor.js?v=1"></script>
+<script src="id-card.js?v=4"></script>
+<script src="image-editor.js?v=2"></script>
 <script src="steady-stamp.js?v=2"></script>
 <script src="mock-server.js?v=1"></script>
 <script>
@@ -370,13 +370,13 @@
   $('side-back').addEventListener('click', function () { setSide('back'); });
   canvas.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
 
-  // ── 꾸미고 저장하기(한 화면 편집기 — 휴대폰은 공유 창, PC는 내려받기) ──
+  // ── 꾸미고 저장하기(한 화면 편집기 — 오른쪽 위 [저장]은 사진첩·내려받기, [공유]는 공유 창) ──
   $('save-btn').addEventListener('click', function () {
     IC.openEditor({
       profile: profile, photo: photo, side: side,
       frontOpts: function () { var o = frontOpts(); delete o.photo; return o; },
       drawBack: function (c) { IC.drawBack(c, profile, progress, backOpts()); },
-      onSave: function (st) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: st.extra.side === 'back' ? 'id_card_back' : 'id_card', format: st.fmt }); },
+      onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: st.extra.side === 'back' ? 'id_card_back' : 'id_card', format: st.fmt, how: how }); },
       onClose: function (st) { if (st.extra.side !== side) setSide(st.extra.side); }
     });
   });
@@ -386,11 +386,11 @@
     var c = document.createElement('canvas');
     if (side === 'back') IC.drawBack(c, profile, progress, backOpts());
     else IC.drawFront(c, profile, Object.assign({}, frontOpts(), { noQr: true }));
-    window.WalsonTrack && WalsonTrack.send('card_saved', { what: side === 'back' ? 'keyring_back' : 'keyring_front', format: 'card' });
-    c.toBlob(function (blob) {
-      if (!blob) return;
-      window.WalsonSave.blob(blob, (profile.name || 'dog') + '-주민증-키링용-' + (side === 'back' ? '뒷면' : '앞면') + '.png');
-    }, 'image/png');
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: side === 'back' ? 'keyring_back' : 'keyring_front', format: 'card', how: 'save' });
+    var name = (profile.name || 'dog') + '-주민증-키링용-' + (side === 'back' ? '뒷면' : '앞면') + '.png';
+    // 저장은 저장으로(2026-11-16 저장·공유 분리) — 예전엔 휴대폰에서 공유 창만 떠서 안드로이드는 사진첩에 넣을 수 없었다
+    if (window.WalsonSave.save) { WalsonSave.save(c, name); return; }
+    c.toBlob(function (blob) { if (blob) window.WalsonSave.blob(blob, name); }, 'image/png');
   });
 
   // ── 실물로 뽑기: A4에 앞·뒷면 네 쌍(실제 크기) ──
