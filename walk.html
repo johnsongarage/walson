@@ -171,7 +171,13 @@
   };
   // 화면 꺼짐(2026-09-26) · 주머니 산책(2026-11-16): 모바일 브라우저는 화면이 꺼지거나 다른 앱으로 가면 위치를 못 받는다.
   // 끊긴 구간은 앞뒤 점을 직선으로 잇고, 걷는 속도면 거리·바로 판정에 넣는다(산책 끝 판정 analyzeWalk와 같은 기준).
-  var GAP_MS = 60 * 1000;
+  // 2026-11-16 가르시아 실사용 캡처: 30~50초 꺼졌던 곳이 실선 직선으로 나와 걸은 길처럼 보였다 → 30초로 낮춤
+  var GAP_MS = 30 * 1000;
+  // GPS 흔들림 거르기(2026-11-16 같은 캡처 — 건물 앞 작은 삼각형·갈고리 모양):
+  //  ① 제자리 흔들림: 마지막으로 남긴 점에서 몇 m도 안 움직인 점은 길에 넣지 않는다(그 점의 '마지막으로 본 시각' s만 늘린다 — 서 있던 동안을 끊김으로 착각하지 않게)
+  //  ② 튀었다 돌아온 점: A→B→C에서 B만 혼자 멀리 튀고 C가 A 근처로 돌아왔는데, 짧은 시간에 걷기로는 어려운 거리면 B를 지운다
+  var JITTER = { minStepM: 5, maxStepM: 15, accFactor: 0.8, spikeMinM: 8, spikeMaxMs: 12000, spikeBackRatio: 0.35 };
+  function seenT(p) { return p.s || p.t; }   // 그 자리에서 위치를 마지막으로 받은 시각(제자리 흔들림을 건너뛴 동안 늘어난다)
   // 앱이 아예 닫혀도(아이폰이 숨겨 둔 앱을 정리) 이어지게 진행 중인 산책을 이 휴대폰에만 저장한다. 시연 모드 산책은 저장 안 함.
   var ACTIVE_ROUTE_KEY = 'petwalk_active_route';   // { v:1, startedAt, samples:[[lat,lng,ms]], liveKm, visited, gapMs, savedAt }
   var ROUTE_STALE_MS = 3 * 60 * 60 * 1000;
@@ -391,7 +397,7 @@
     var t = Date.now();
     if (!now && t - routeSavedAt < 10000) return;   // 위치를 받을 때마다 쓰지 않고 10초에 한 번(숨겨질 때는 바로)
     routeSavedAt = t;
-    var samples = routeSamples.map(function (p) { return [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t]; });
+    var samples = routeSamples.map(function (p) { var r = [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t]; if (p.s) r.push(p.s); return r; });
     try {
       localStorage.setItem(ACTIVE_ROUTE_KEY, JSON.stringify({
         v: 1, startedAt: walkStartTime, samples: samples, liveKm: liveKm, visited: liveVisited, gapMs: walkGapMs, savedAt: t
@@ -432,12 +438,19 @@
     if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) { paintMission(); if (mapOpen) drawMap(false); return; }
     var t = pos.timestamp || Date.now();
     var last = routeSamples[routeSamples.length - 1];
-    if (last && t <= last.t) { paintMission(); return; }   // 이미 받은 시각의 위치(브라우저가 기억해 둔 것)는 길에 넣지 않는다
+    if (last && t <= seenT(last)) { paintMission(); return; }   // 이미 받은 시각의 위치(브라우저가 기억해 둔 것)는 길에 넣지 않는다
+    // ① 제자리 흔들림 — 끊김(GAP_MS) 뒤가 아니고, 마지막 점에서 정확도만큼도 안 움직였으면 길에 안 넣고 시각만 늘린다
+    if (last && t - seenT(last) <= GAP_MS) {
+      var stepM = Math.min(JITTER.maxStepM, Math.max(JITTER.minStepM, (pos.coords.accuracy || 0) * JITTER.accFactor));
+      if (haversineKm(last.c, coord) * 1000 < stepM) { last.s = t; paintMission(); if (mapOpen) drawMap(false); saveActiveRoute(false); return; }
+    }
     routeCoords.push(coord);
     routeSamples.push({ c: coord, t: t });
+    // ② 튀었다 돌아온 점 지우기
+    if (dropSpike()) { paintMission(); if (mapOpen) drawMap(false); saveActiveRoute(false); return; }
     if (routeSamples.length >= 2) {
       var prev = routeSamples[routeSamples.length - 2], cur = routeSamples[routeSamples.length - 1];
-      var gap = cur.t - prev.t, fast = isFastSegment(prev, cur), segKm = haversineKm(prev.c, cur.c);
+      var gap = cur.t - seenT(prev), fast = isFastSegment(prev, cur), segKm = haversineKm(prev.c, cur.c);
       if (gap > GAP_MS) {
         walkGapMs += gap;
         var gapMin = Math.max(1, Math.round(gap / 60000));
@@ -455,6 +468,20 @@
     paintMission();
     if (mapOpen) drawMap(false);
     saveActiveRoute(false);
+  }
+  // 마지막 세 점 A·B·C에서 B만 튀었다 돌아왔으면 B를 지우고 true. 걸은 거리(liveKm)는 남은 점으로 다시 센다
+  function dropSpike() {
+    var n = routeSamples.length;
+    if (n < 3) return false;
+    var A = routeSamples[n - 3], B = routeSamples[n - 2], C = routeSamples[n - 1];
+    if (B.t - seenT(A) > GAP_MS || C.t - seenT(B) > GAP_MS) return false;   // 끊김을 사이에 둔 점은 건드리지 않는다
+    if (C.t - seenT(A) > JITTER.spikeMaxMs) return false;                  // 천천히 다녀온 건 진짜 왕복일 수 있다
+    var ab = haversineKm(A.c, B.c) * 1000, bc = haversineKm(B.c, C.c) * 1000, ac = haversineKm(A.c, C.c) * 1000;
+    if (Math.min(ab, bc) < JITTER.spikeMinM || ac > JITTER.spikeBackRatio * Math.min(ab, bc)) return false;
+    routeSamples.splice(n - 2, 1);
+    routeCoords.splice(n - 2, 1);
+    liveKm = analyzeWalk(routeSamples).walkKm;
+    return true;
   }
   function freshFix() {
     if (!navigator.geolocation) return;
@@ -561,7 +588,7 @@
     var run = [];
     for (var i = 1; i < routeSamples.length; i++) {
       var a = routeSamples[i - 1], b = routeSamples[i];
-      if (b.t - a.t > GAP_MS) {
+      if (b.t - seenT(a) > GAP_MS) {
         if (run.length > 1) L.polyline(run, solid).addTo(routeLayer);
         L.polyline([a.c, b.c], dashed).addTo(routeLayer);
         run = [b.c];
@@ -670,8 +697,8 @@
     }
     var samples = (Array.isArray(a.samples) ? a.samples : []).filter(function (p) {
       return Array.isArray(p) && isFinite(p[0]) && isFinite(p[1]) && isFinite(p[2]);
-    }).map(function (p) { return { c: [p[0], p[1]], t: p[2] }; });
-    var lastT = samples.length ? samples[samples.length - 1].t : a.startedAt;
+    }).map(function (p) { var o = { c: [p[0], p[1]], t: p[2] }; if (isFinite(p[3]) && p[3] > p[2]) o.s = p[3]; return o; });
+    var lastT = samples.length ? seenT(samples[samples.length - 1]) : a.startedAt;
     routeSamples = samples;
     routeCoords = samples.map(function (p) { return p.c; });
     lastFix = routeCoords.length ? routeCoords[routeCoords.length - 1] : null;
