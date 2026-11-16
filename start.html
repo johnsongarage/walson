@@ -551,18 +551,35 @@
     ctx.font = font(800, nameSize);
     ctx.fillText(profile.name, tx - 4, 482);
 
-    // 신호등 문구 띠
+    // 신호등 문구 띠 — 색은 띠 색깔과 오른쪽 위 신호등 그림으로 보이니 "초록불" 같은 색 이름은 쓰지 않는다
+    // (2026-11-16 가르시아 "색깔이 무슨 색이다라고 쓰는 건 빼 줘, 공간 낭비"). 띠 전체를 안내 문구에 쓴다.
     roundRect(ctx, tx, 532, maxW, 132, 30);
     ctx.fillStyle = sig.color;
     ctx.fill();
     ctx.fillStyle = '#ffffff';
-    ctx.font = font(700, 34);
-    ctx.fillText(sig.label, tx + 36, 586);
     // 한 줄 소개 태그를 골랐으면 기본 문구 대신(dog-tags.js)
     var sigLine = (window.DogTags && DogTags.lineFor(profile)) || sig.line;
-    var lineSize = fitText(ctx, sigLine, maxW - 72, 50, 800);
-    ctx.font = font(800, lineSize);
-    ctx.fillText(sigLine, tx + 36, 640);
+    var bandW = maxW - 72, bandMid = 532 + 66;
+    var lineSize = fitText(ctx, sigLine, bandW, 54, 800);
+    ctx.textBaseline = 'middle';
+    if (lineSize >= 42) {
+      ctx.font = font(800, lineSize);
+      ctx.fillText(sigLine, tx + 36, bandMid + 2);
+    } else {
+      // 긴 문구는 한 줄로 작게 줄이지 말고 두 줄로 — 괄호 앞, 없으면 가운데에 가까운 띄어쓰기에서 나눈다
+      var cut = sigLine.indexOf(' (');
+      if (cut < 0) {
+        var mid = sigLine.length / 2, best = -1;
+        for (var i = 0; i < sigLine.length; i++) if (sigLine[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+        cut = best;
+      }
+      var l1 = cut > 0 ? sigLine.slice(0, cut) : sigLine, l2 = cut > 0 ? sigLine.slice(cut + 1) : '';
+      var two = Math.min(fitText(ctx, l1, bandW, 46, 800), l2 ? fitText(ctx, l2, bandW, 46, 800) : 46);
+      ctx.font = font(800, two);
+      ctx.fillText(l1, tx + 36, bandMid - two * 0.58 + 2);
+      if (l2) ctx.fillText(l2, tx + 36, bandMid + two * 0.58 + 2);
+    }
+    ctx.textBaseline = 'alphabetic';
 
     // 아래 칸
     var rows = [['발급일', profile.cardIssued || todayText()], ['카드 번호', profile.cardNo || '']];
