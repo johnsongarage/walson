@@ -231,12 +231,8 @@
     <p class="lead">저장해서 가족이나 친구에게 자랑해 보세요.</p>
     <img class="card-img" id="card-img" alt="강아지 주민증 카드">
     <!-- 저장 모양(2026-11-14 피드백): 가로 카드만 저장하면 인스타 스토리·카톡 프로필에서 양옆이 잘린다 -->
-    <div class="format" role="group" aria-label="저장할 모양">
-      <button type="button" data-format="card" aria-pressed="true">카드만</button>
-      <button type="button" data-format="square" aria-pressed="false">정사각형</button>
-      <button type="button" data-format="story" aria-pressed="false">스토리용</button>
-    </div>
-    <button type="button" class="btn-main" id="save-btn">이미지 저장</button>
+    <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
+    <button type="button" class="btn-main" id="save-btn">꾸미고 저장하기</button>
     <p class="save-hint">저장이 안 되면 카드를 길게 눌러 저장하세요.</p>
     <a class="btn-sub" href="town.html">동네 지도 보러 가기</a>
     <a class="btn-sub" id="channel-link" href="#" target="_blank" rel="noopener" hidden>출시 소식 받기 (카카오톡 채널)</a>
@@ -262,7 +258,8 @@
 <script src="infra-pins.js?v=20"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=9"></script>
-<script src="id-card.js?v=2"></script>
+<script src="id-card.js?v=3"></script>
+<script src="image-editor.js?v=1"></script>
 <script>
 (function () {
   var PROFILE_KEY = 'petwalk_profile'; // profile.html·my-card.html·index.html과 같이 쓴다
@@ -446,22 +443,12 @@
     return exportCanvas;
   }
 
-  // 저장 모양: 카드만(1600×1000) / 정사각형(1080×1080, 카톡·피드) / 스토리용(1080×1920).
-  // 정사각형·스토리용은 파스텔 바탕 가운데에 카드를 올려서, 올렸을 때 양옆이 잘리지 않게 한다.
+  // 미리 보기는 카드만(1600×1000). 정사각형·스토리용 저장은 꾸미고 저장하기(편집기)의 [모양] 탭에서 고른다
   var exportFormat = 'card';
   var exportCanvas = null;
   function refreshPreview() {
     cardImg.src = composeExport().toDataURL('image/png');
   }
-  Array.prototype.forEach.call(document.querySelectorAll('.format button'), function (btn) {
-    btn.addEventListener('click', function () {
-      exportFormat = btn.getAttribute('data-format');
-      Array.prototype.forEach.call(document.querySelectorAll('.format button'), function (b) {
-        b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
-      });
-      refreshPreview();
-    });
-  });
 
   function renderCard() {
     // 웹폰트가 아직 안 왔으면 기다렸다가 그린다(안 오면 기기 글꼴로 그려진다)
@@ -475,14 +462,14 @@
     });
   }
 
-  // 저장: 휴대폰은 공유 시트(사진 앱에 저장 가능), PC는 파일로 내려받기 — save-image.js
+  // 꾸미고 저장하기(한 화면 편집기): 휴대폰은 공유 시트(사진 앱에 저장 가능), PC는 파일로 내려받기 — save-image.js
   document.getElementById('save-btn').addEventListener('click', function () {
-    window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: exportFormat });
-    (exportCanvas || canvas).toBlob(function (blob) {
-      if (!blob) return;
-      var fileName = (profile.name || 'dog') + '-주민증' + (exportFormat === 'card' ? '' : '-' + exportFormat) + '.png';
-      window.WalsonSave.blob(blob, fileName);   // 휴대폰은 공유 창, PC는 내려받기(save-image.js)
-    }, 'image/png');
+    IC.openEditor({
+      profile: profile, photo: photoImage, title: guardianSpot ? guardianSpot + ' ' + guardianBadge : '강아지 주민증',
+      frontOpts: function () { var ri = rankInfo(); return { rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null }; },
+      drawBack: null,
+      onSave: function (st) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt }); }
+    });
   });
 
   document.getElementById('redo-btn').addEventListener('click', function () { showStep(1); });
