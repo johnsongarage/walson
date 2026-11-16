@@ -12,7 +12,7 @@
 <meta property="og:title" content="왈슨 · 우리 애 응가 캐릭터 만들기">
 <meta property="og:description" content="응가 사진에 눈알과 입을 달아 가족 단톡에. 사진은 이 휴대폰 안에서만 바꿔요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/poop-toon.html">
-<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/poop-toon-og.png?v=1">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/poop-toon-og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="눈알과 입이 달린 응가 그림 — 왈슨 응가 캐릭터">
@@ -27,8 +27,10 @@
      → Claude 검토 → "응 시험 페이지부터 만들어줘"). 앱과 따로 있는 시험용 — 견맘 몇 명이 실제로 가족방에 보내는지 보려고.
      11/13 응가 일기 원칙(POOP_DIARY.md)을 지킨다: 사진은 남기지 않는다(그림만), 산책 중엔 휴대폰 기본 카메라로 한 장만,
      점수는 앱이 매기지 않는다(표정·상태는 보호자가 고름), 위치는 쓰지 않는다.
-     그림으로 바꾸기는 이 휴대폰 안에서만 한다 — 생성 AI·서버 없음. 붓칠처럼 평평하게(쿠와하라 필터) → 색 몇 개로 줄이기(k-평균)
-     → 굵은 테두리, 배경은 동그라미 가장자리에 많은 색을 배경으로 보고 지워 스티커처럼(못 나누면 동그란 스티커로).
+     그림으로 바꾸기는 이 휴대폰 안에서만 한다 — 생성 AI·서버 없음. 목표(11/16 가르시아): 응가 모양대로, 색도 사진 그대로.
+     붓칠처럼 평평하게(쿠와하라 필터) → 바닥/응가 나누기(가장자리에 많은 색 = 바닥, 가운데에 가장 많은 색 = 응가 본체, 나머지는 색이 가까운 쪽)
+     → 응가 안의 색을 Lab 좌표에서 최대 5묶음으로 뽑아 그 색 그대로 칠함(빨간 줄·흰 점액·노란·검은 변도 남음) → 굵은 테두리 + 흰 스티커 테두리
+     (못 나누면 동그란 스티커로 바닥까지 그림으로).
      통계: 화면 열기(page_view)와 보내기 횟수(share_click what=poop_toon / 내려받기 poop_toon_save)만 — 사진·그림은 보내지 않는다. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -393,42 +395,103 @@
   });
 
   // ════════ 그림으로 바꾸기(이 휴대폰 안에서만) ════════
+  // 목표(11/16 가르시아 "똥의 모양대로 그림이 생성되고 색깔도 따라 만들어지는 걸 원해"):
+  // 모양은 사진에서 응가만 떼어 낸 그대로, 색은 응가 안에서 뽑은 색 묶음(최대 5색, 사진 색 그대로)으로 칠한다.
+  // 빨간 줄·흰 점액·노란 부분처럼 다른 색이 섞여 있으면 그 색도 남는다(건강 기록에서 색이 중요해서).
   var art0 = {};   // 배경 나누기가 색을 비교할 때 쓰는 팔레트
+  // 뭉개는 정도: 쿠와하라 두 번의 반경과 색 칸을 한 번 더 뭉개는 반경(작업 픽셀). 크면 매끈하지만 가는 줄이 넓어진다
+  // 11/16 색 따라 그리기 때 6·4·2 → 4·3·1로 줄임: 빨간 줄이 사진보다 1.6배 두꺼워지던 것이 1.4배로, 흰 점액 비율은 사진과 같게(16.0% / 16.1%)
+  var SMOOTH = { k1: 4, k2: 3, blur: 1 };
   function toonify(rgba) {
     var W = WORK, N = W * W;
     // ① 붓칠처럼 평평하게: 쿠와하라 필터 두 번(가장자리는 살리고 질감은 지운다)
     var rgb = new Float32Array(N * 3);
     for (var p = 0; p < N; p++) { rgb[p * 3] = rgba[p * 4]; rgb[p * 3 + 1] = rgba[p * 4 + 1]; rgb[p * 3 + 2] = rgba[p * 4 + 2]; }
-    rgb = kuwahara(rgb, W, W, 6);
-    rgb = kuwahara(rgb, W, W, 4);
-    // ② 색 몇 개로 줄이기
+    var sm = window.__toonSmooth || SMOOTH;   // (시험에서만 바꿔 본다)
+    rgb = kuwahara(rgb, W, W, sm.k1);
+    rgb = kuwahara(rgb, W, W, sm.k2);
+    // ② 바닥과 응가를 나누려고 색 여섯 묶음(동그라미 안)
     var K = 6, centers = kmeans(rgb, W, K);
     var labels = new Uint8Array(N);
     for (p = 0; p < N; p++) labels[p] = nearest(centers, K, rgb[p * 3], rgb[p * 3 + 1], rgb[p * 3 + 2]);
     labels = modeFilter(modeFilter(labels, W, W, K), W, W, K);
     var palette = [];
-    for (var k = 0; k < K; k++) palette.push(cutify(centers[k * 3], centers[k * 3 + 1], centers[k * 3 + 2]));
-    // ③ 배경 나누기 — 동그라미 가장자리에 많은 색 = 바닥
+    for (var k = 0; k < K; k++) palette.push([centers[k * 3], centers[k * 3 + 1], centers[k * 3 + 2]]);
     art0.palette = palette;
+    // ③ 배경 나누기 — 동그라미 가장자리에 많은 색 = 바닥
     var cut = cutBackground(labels, W, K);
-    var res = { W: W, labels: labels, palette: palette, K: K, mask: cut.mask, cutOk: cut.ok, box: cut.box };
-    if (cut.ok) celShade(res, rgb);
+    // ④ 칠할 색: 부드럽게 한 사진 색을 Lab(사람 눈에 고르게 보이는 색 좌표)으로 바꿔 두고, 응가 안의 색 묶음을 뽑는다
+    var labF = labField(rgb, W, sm.blur);
+    var res = { W: W, labels: labels, palette: palette, K: K, mask: cut.mask, cutOk: cut.ok, box: cut.box, labF: labF, allPal: null };
+    if (cut.ok) res.fgPal = labPalette(labF, W, cut.mask, 5);
     return res;
   }
-  // ④ 배경을 지운 응가는 명암 세 단계로 다시 칠한다(그린 그림처럼) — 색은 응가의 평균색, 밝고 어두운 자리는 사진 그대로
-  function celShade(res, rgb) {
-    var W = res.W, N = W * W, m = res.mask, n = 0, sr = 0, sg = 0, sb = 0, lums = [], lum = new Float32Array(N), p;
-    for (p = 0; p < N; p++) {
-      var l = 0.299 * rgb[p * 3] + 0.587 * rgb[p * 3 + 1] + 0.114 * rgb[p * 3 + 2]; lum[p] = l;
-      if (m[p]) { n++; sr += rgb[p * 3]; sg += rgb[p * 3 + 1]; sb += rgb[p * 3 + 2]; if (!(p % 3)) lums.push(l); }
+  // ── 색 좌표(sRGB ↔ Lab, D65) ──
+  var LIN = new Float32Array(256);
+  (function () { for (var i = 0; i < 256; i++) { var c = i / 255; LIN[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); } })();
+  function labf(t) { return t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; }
+  function toLab(r, g, b, out, o) {
+    var R = LIN[r < 0 ? 0 : r > 255 ? 255 : Math.round(r)], G = LIN[g < 0 ? 0 : g > 255 ? 255 : Math.round(g)], B = LIN[b < 0 ? 0 : b > 255 ? 255 : Math.round(b)];
+    var fx = labf((R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047), fy = labf(R * 0.2126 + G * 0.7152 + B * 0.0722), fz = labf((R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883);
+    out[o] = 116 * fy - 16; out[o + 1] = 500 * (fx - fy); out[o + 2] = 200 * (fy - fz);
+  }
+  function fromLab(L, a, b) {
+    var fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+    function fi(t) { var t3 = t * t * t; return t3 > 0.008856 ? t3 : (t - 16 / 116) / 7.787; }
+    var X = fi(fx) * 0.95047, Y = fi(fy), Z = fi(fz) * 1.08883;
+    function g(c) { c = c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(Math.max(0, c), 1 / 2.4) - 0.055; return Math.max(0, Math.min(255, c * 255)); }
+    return [g(X * 3.2406 - Y * 1.5372 - Z * 0.4986), g(-X * 0.9689 + Y * 1.8758 + Z * 0.0415), g(X * 0.0557 - Y * 0.2040 + Z * 1.0570)];
+  }
+  function de2(a, b) { var x = a[0] - b[0], y = a[1] - b[1], z = a[2] - b[2]; return x * x + y * y + z * z; }
+  // 쿠와하라 결과를 한 번 더 살짝 뭉개(색 경계가 매끈한 곡선이 되게) Lab으로 바꾼 칸
+  function labField(rgb, W, blur) {
+    var N = W * W, ch = [new Float32Array(N), new Float32Array(N), new Float32Array(N)], out = new Float32Array(N * 3), p, c;
+    for (p = 0; p < N; p++) for (c = 0; c < 3; c++) ch[c][p] = rgb[p * 3 + c];
+    if (blur > 0) for (c = 0; c < 3; c++) boxBlur(ch[c], W, blur);
+    for (p = 0; p < N; p++) toLab(ch[0][p], ch[1][p], ch[2][p], out, p * 3);
+    return out;
+  }
+  // 응가(mask) 또는 동그라미 안의 색을 최대 K묶음으로 — 사진 색 그대로. 아주 가까운 색(ΔE 7 안쪽)은 하나로 합친다
+  function labPalette(labF, W, mask, K) {
+    var N = W * W, R0 = W / 2, pts = [], p, k, s;
+    for (p = 0; p < N; p += 2) {
+      if (mask ? mask[p] : Math.hypot((p % W) + 0.5 - R0, ((p / W) | 0) + 0.5 - R0) < R0 * 0.97) pts.push(p);
     }
-    lums.sort(function (a, b) { return a - b; });
-    var t1 = lums[Math.floor(lums.length * 0.3)], t2 = lums[Math.floor(lums.length * 0.84)];
-    var hsl = toHsl(sr / n, sg / n, sb / n), h = hsl[0], sat = Math.max(0.38, Math.min(0.8, hsl[1] * 1.25)), lt = Math.max(0.27, Math.min(0.5, hsl[2]));
-    res.cel = [fromHsl(h, Math.min(1, sat * 1.05), Math.max(0.13, lt - 0.12)), fromHsl(h, sat, lt), fromHsl(h, sat * 0.95, Math.min(0.76, lt + 0.17))];
-    // 밝기를 한 번 더 뭉개 두고, 그릴 때 부드럽게 읽어 경계가 매끈한 곡선이 되게 한다
-    boxBlur(lum, W, 3); boxBlur(lum, W, 3);
-    res.lum = lum; res.t1 = t1; res.t2 = t2;
+    if (pts.length > 16000) { var keep = [], st = pts.length / 16000; for (var q = 0; q < pts.length; q += st) keep.push(pts[Math.floor(q)]); pts = keep; }
+    var S = pts.length;
+    if (!S) return [{ lab: [50, 0, 0], rgb: [119, 119, 119], n: 1 }];
+    var order = pts.slice().sort(function (x, y) { return labF[x * 3] - labF[y * 3]; });   // 밝기 순서로 고르게 시작(같은 사진이면 늘 같은 결과)
+    var c = [];
+    for (k = 0; k < K; k++) { var z = order[Math.floor((k + 0.5) / K * S)]; c.push([labF[z * 3], labF[z * 3 + 1], labF[z * 3 + 2]]); }
+    var cnt = [];
+    for (var it = 0; it < 12; it++) {
+      var sum = c.map(function () { return [0, 0, 0]; }); cnt = c.map(function () { return 0; });
+      for (s = 0; s < S; s++) {
+        var o = pts[s] * 3, L = labF[o], A = labF[o + 1], B = labF[o + 2], bi = 0, bd = Infinity;
+        for (k = 0; k < c.length; k++) { var dl = L - c[k][0], da = A - c[k][1], db = B - c[k][2], d = dl * dl + da * da + db * db; if (d < bd) { bd = d; bi = k; } }
+        sum[bi][0] += L; sum[bi][1] += A; sum[bi][2] += B; cnt[bi]++;
+      }
+      for (k = 0; k < c.length; k++) if (cnt[k]) c[k] = [sum[k][0] / cnt[k], sum[k][1] / cnt[k], sum[k][2] / cnt[k]];
+    }
+    var pal = [];
+    for (k = 0; k < c.length; k++) if (cnt[k]) pal.push({ lab: c[k], n: cnt[k] });
+    for (;;) {   // 아주 가까운 두 색 합치기
+      var mi = -1, mj = -1, best = 49;
+      for (var i = 0; i < pal.length; i++) for (var j = i + 1; j < pal.length; j++) { var e = de2(pal[i].lab, pal[j].lab); if (e < best) { best = e; mi = i; mj = j; } }
+      if (mi < 0) break;
+      var P1 = pal[mi], P2 = pal[mj], n = P1.n + P2.n;
+      P1.lab = [(P1.lab[0] * P1.n + P2.lab[0] * P2.n) / n, (P1.lab[1] * P1.n + P2.lab[1] * P2.n) / n, (P1.lab[2] * P1.n + P2.lab[2] * P2.n) / n]; P1.n = n;
+      pal.splice(mj, 1);
+    }
+    // 그릴 색: 사진 색 그대로 — 채도만 아주 조금(6%) 올려 그림처럼 또렷하게. 밝기는 건드리지 않는다
+    pal.forEach(function (e) { e.rgb = fromLab(e.lab[0], e.lab[1] * 1.06, e.lab[2] * 1.06); });
+    pal.sort(function (x, y) { return y.n - x.n; });   // 많은 색부터(0번 = 응가의 주된 색)
+    return pal;
+  }
+  function nearestPal(pal, L, A, B) {
+    var bi = 0, bd = Infinity;
+    for (var k = 0; k < pal.length; k++) { var pl = pal[k].lab, dl = L - pl[0], da = A - pl[1], db = B - pl[2], d = dl * dl + da * da + db * db; if (d < bd) { bd = d; bi = k; } }
+    return bi;
   }
   function boxBlur(f, W, r) {
     var t = new Float32Array(f.length), x, y, k, acc, n;
@@ -452,21 +515,6 @@
         if (d < W) { acc += t[d * W + x]; n++; }
       }
     }
-  }
-  function toHsl(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
-    if (d > 0) {
-      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
-      h = (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) / 6;
-    }
-    return [h, s, l];
-  }
-  function fromHsl(h, s, l) {
-    if (s === 0) return [l * 255, l * 255, l * 255];
-    function f(t) { var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; if (t < 0) t += 1; if (t > 1) t -= 1;
-      return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
-    return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
   }
 
   // 쿠와하라: 네 귀퉁이 칸 중 밝기가 가장 고른 칸의 평균색. 합계표(적분 영상)로 빠르게
@@ -555,22 +603,6 @@
     }
     return out;
   }
-  // 색을 조금 더 또렷하고 따뜻하게(만화 느낌)
-  function cutify(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
-    if (d > 0) {
-      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
-      h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
-      h /= 6;
-    }
-    s = Math.min(1, s * 1.22 + 0.05);
-    l = Math.min(0.92, l * 1.04 + 0.03);
-    function f(t) { var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; if (t < 0) t += 1; if (t > 1) t -= 1;
-      return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
-    return s === 0 ? [l * 255, l * 255, l * 255] : [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
-  }
-
   // 배경 나누기. 실패하면 ok=false(동그란 스티커로 간다)
   function cutBackground(lab, W, K) {
     var R0 = W / 2, ring = new Float64Array(K), center = new Float64Array(K), ringN = 0, centerN = 0;
@@ -590,19 +622,25 @@
       return 0.25 * dy * dy + du * du + dv * dv;
     }
     function toBg(k) { var d = Infinity; for (var j = 0; j < K; j++) if (isBg[j]) d = Math.min(d, cd(pal[k], pal[j])); return d; }
-    // 응가 색 = 가운데에 있고 바닥과 색깔이 가장 다른 것
-    var bestScore = 0;
-    for (k = 0; k < K; k++) {
-      if (isBg[k] || center[k] / centerN < 0.08) continue;
-      var sc = center[k] / centerN * Math.sqrt(toBg(k));
-      if (sc > bestScore) { bestScore = sc; fgSeed = k; }
+    // 응가 본체 색 = 가운데에 가장 많고, 바닥과 색이 충분히 다른 것(바닥과 너무 비슷하면 그다음)
+    var order = [];
+    for (k = 0; k < K; k++) if (!isBg[k] && center[k] / centerN >= 0.08) order.push(k);
+    order.sort(function (x, y) { return center[y] - center[x]; });
+    for (j = 0; j < order.length; j++) if (toBg(order[j]) >= 600) { fgSeed = order[j]; break; }
+    if (fgSeed < 0) return { ok: false, mask: null };   // 바닥과 색이 너무 비슷(흙바닥 등) — 동그랗게 간다
+    // 나머지 색: 바닥보다 응가 쪽(이미 응가로 본 색 중 가장 가까운 것)에 더 가까우면 응가 — 빨간 줄·흰 점액·밝은 부분이 남고,
+    // 그림자 진 잔디처럼 밝기만 다른 바닥은 바닥으로 간다
+    var isFg = []; isFg[fgSeed] = true;
+    for (var grow = true; grow;) {
+      grow = false;
+      for (k = 0; k < K; k++) {
+        if (isBg[k] || isFg[k]) continue;
+        var toFg = Infinity;
+        for (j = 0; j < K; j++) if (isFg[j]) toFg = Math.min(toFg, cd(pal[k], pal[j]));
+        if (toFg < toBg(k)) { isFg[k] = true; grow = true; }
+      }
     }
-    if (fgSeed < 0 || toBg(fgSeed) < 600) return { ok: false, mask: null };   // 바닥과 색이 너무 비슷(흙바닥 등) — 동그랗게 간다
-    // 나머지 색은 바닥과 응가 중 색깔이 더 가까운 쪽으로
-    for (k = 0; k < K; k++) {
-      if (isBg[k] || k === fgSeed) continue;
-      if (toBg(k) < cd(pal[k], pal[fgSeed])) isBg[k] = true;
-    }
+    for (k = 0; k < K; k++) if (!isFg[k]) isBg[k] = true;
     var N = W * W, m = new Uint8Array(N);
     for (y = 0; y < W; y++) for (x = 0; x < W; x++) {
       var i = y * W + x;
@@ -700,7 +738,10 @@
     var scale = Math.min(860 / ww, 800 / wh, 2.4), OW = Math.round(ww * scale), OH = Math.round(wh * scale), cv = document.createElement('canvas');
     cv.width = OW; cv.height = OH;
     var ctx = cv.getContext('2d'), img = ctx.createImageData(OW, OH), out = img.data;
-    var line = [43, 29, 20], pal = art.palette, lab = art.labels, cel = (opt.bg === 'cut' && art.cutOk) ? art.cel : null;
+    var line = [43, 29, 20], cutMode = opt.bg === 'cut' && art.cutOk;
+    // 칠할 색 묶음: 배경을 지웠으면 응가 안의 색, 동그랗게면 동그라미 안 전체의 색(처음 쓸 때 만든다)
+    var pal = cutMode ? art.fgPal : (art.allPal || (art.allPal = labPalette(art.labF, W, null, 7)));
+    var edgeF = edgeField(pal, W, cutMode ? art.mask : null), lf = art.labF, tl = [0, 0, 0];
     for (var oy = 0; oy < OH; oy++) {
       var v = wy0 + (oy + 0.5) / scale - 0.5;
       for (var ox = 0; ox < OW; ox++) {
@@ -710,22 +751,19 @@
         var rr = 255, gg = 253, bb = 247, aa = aw;
         var af = clamp01(0.5 - s * scale);
         if (af > 0) {
-          var lx = Math.round(u - P), ly = Math.round(v - P);
-          if (lx < 0) lx = 0; if (ly < 0) ly = 0; if (lx > W - 1) lx = W - 1; if (ly > W - 1) ly = W - 1;
-          var li = lab[ly * W + lx], col = pal[li], edge = 0;
-          if (cel) {
-            // 명암 세 단계 — 밝기 경계는 1.6 밝기만큼 섞어 계단 없이
-            var L = sample(art.lum, W, u - P, v - P), a1 = clamp01((L - art.t1) / 1.6 + 0.5), a2 = clamp01((L - art.t2) / 1.6 + 0.5);
-            var c0 = cel[0], c1 = cel[1], c2 = cel[2];
-            col = [c0[0] + (c1[0] - c0[0]) * a1 + (c2[0] - c1[0]) * a2, c0[1] + (c1[1] - c0[1]) * a1 + (c2[1] - c1[1]) * a2, c0[2] + (c1[2] - c0[2]) * a1 + (c2[2] - c1[2]) * a2];
-          } else {
-            // 색이 바뀌는 경계에 가는 선(동그란 스티커 — 바닥까지 그림으로)
-            var lx2 = Math.min(W - 1, lx + 1), ly2 = Math.min(W - 1, ly + 1);
-            if (lab[ly * W + lx2] !== li && contrast(col, pal[lab[ly * W + lx2]])) edge = 1;
-            else if (lab[ly2 * W + lx] !== li && contrast(col, pal[lab[ly2 * W + lx]])) edge = 1;
+          // 사진 색을 그 자리에서 읽어 가장 가까운 두 묶음 색을 찾고, 경계는 살짝 섞어 계단 없이
+          sample3(lf, W, u - P, v - P, tl);
+          var i1 = 0, i2 = 0, d1 = Infinity, d2 = Infinity;
+          for (var k = 0; k < pal.length; k++) {
+            var pl = pal[k].lab, dl = tl[0] - pl[0], da = tl[1] - pl[1], db = tl[2] - pl[2], d = dl * dl + da * da + db * db;
+            if (d < d1) { d2 = d1; i2 = i1; d1 = d; i1 = k; } else if (d < d2) { d2 = d; i2 = k; }
           }
-          var cr = col[0], cg = col[1], cb = col[2];
-          if (edge) { cr = cr * 0.25 + line[0] * 0.75; cg = cg * 0.25 + line[1] * 0.75; cb = cb * 0.25 + line[2] * 0.75; }
+          var w1 = pal.length > 1 ? 0.5 + 0.5 * clamp01((Math.sqrt(d2) - Math.sqrt(d1)) / 2.5) : 1;
+          var c1 = pal[i1].rgb, c2 = pal[i2].rgb;
+          var cr = c1[0] * w1 + c2[0] * (1 - w1), cg = c1[1] * w1 + c2[1] * (1 - w1), cb = c1[2] * w1 + c2[2] * (1 - w1);
+          // 색이 많이 다른 묶음 사이에만 가는 선(빨간 줄·흰 점액 같은 다른 색의 모양이 보이게)
+          var ea = clamp01((sample(edgeF, W, u - P, v - P) - 0.24) * 2.6) * 0.8;
+          if (ea > 0) { cr = cr * (1 - ea) + line[0] * ea; cg = cg * (1 - ea) + line[1] * ea; cb = cb * (1 - ea) + line[2] * ea; }
           rr = rr * (1 - af) + cr * af; gg = gg * (1 - af) + cg * af; bb = bb * (1 - af) + cb * af;
           aa = Math.max(aa, af);
         }
@@ -740,7 +778,25 @@
     var cx = CARD_W / 2 - OW / 2, cy = SY + STICKER / 2 - OH / 2;
     sticker = { canvas: cv, scale: scale, x: cx, y: cy, ox: cx - wx0 * scale, oy: cy - wy0 * scale };
   }
-  function contrast(a, b) { var d = Math.abs((0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2]) - (0.299 * b[0] + 0.587 * b[1] + 0.114 * b[2])); return d > 22; }
+  // 세 칸(Lab)짜리 칸을 부드럽게 읽기
+  function sample3(f, W, u, v, out) {
+    if (u < 0) u = 0; if (v < 0) v = 0; if (u > W - 1.001) u = W - 1.001; if (v > W - 1.001) v = W - 1.001;
+    var x = u | 0, y = v | 0, fx = u - x, fy = v - y, i = (y * W + x) * 3, j = i + W * 3;
+    for (var c = 0; c < 3; c++) out[c] = (f[i + c] * (1 - fx) + f[i + 3 + c] * fx) * (1 - fy) + (f[j + c] * (1 - fx) + f[j + 3 + c] * fx) * fy;
+  }
+  // 색 묶음 경계 지도: 옆 칸과 묶음이 다르고 두 색이 많이 다르면(ΔE 18 넘게) 1 — 살짝 뭉개 부드럽게 읽는다
+  function edgeField(pal, W, mask) {
+    var N = W * W, lab = new Uint8Array(N), lf = art.labF, e = new Float32Array(N), p;
+    for (p = 0; p < N; p++) lab[p] = nearestPal(pal, lf[p * 3], lf[p * 3 + 1], lf[p * 3 + 2]);
+    for (var y = 0; y < W - 1; y++) for (var x = 0; x < W - 1; x++) {
+      p = y * W + x;
+      if (mask && !mask[p]) continue;
+      var a = lab[p], r = lab[p + 1], dn = lab[p + W];
+      if ((a !== r && de2(pal[a].lab, pal[r].lab) > 324) || (a !== dn && de2(pal[a].lab, pal[dn].lab) > 324)) e[p] = 1;
+    }
+    boxBlur(e, W, 1);
+    return e;
+  }
   function clamp01(t) { return t < 0 ? 0 : t > 1 ? 1 : t; }
   function sample(f, W, u, v) {
     if (u < 0) u = 0; if (v < 0) v = 0; if (u > W - 1.001) u = W - 1.001; if (v > W - 1.001) v = W - 1.001;
@@ -833,11 +889,11 @@
     }
     return { cx: cx, top: cy - Re * 1.8, right: cx + ex + Re };
   }
-  // 눈꺼풀 색 = 얼굴 자리의 그림 색
+  // 눈꺼풀 색 = 얼굴 자리의 그림 색(조금 어둡게)
   function sampleColor() {
-    var W = art.W, x = Math.round(face.x - PAD), y = Math.round(face.y - PAD);
-    x = Math.max(0, Math.min(W - 1, x)); y = Math.max(0, Math.min(W - 1, y));
-    var c = (opt.bg === 'cut' && art.cutOk && art.cel) ? art.cel[1] : art.palette[art.labels[y * W + x]];
+    var pal = (opt.bg === 'cut' && art.cutOk) ? art.fgPal : art.allPal, tl = [0, 0, 0];
+    var c = [120, 80, 40];
+    if (pal && pal.length) { sample3(art.labF, art.W, face.x - PAD, face.y - PAD, tl); c = pal[nearestPal(pal, tl[0], tl[1], tl[2])].rgb; }
     return 'rgb(' + Math.round(c[0] * 0.85) + ',' + Math.round(c[1] * 0.85) + ',' + Math.round(c[2] * 0.85) + ')';
   }
 
@@ -1067,7 +1123,20 @@
   fontsReady.then(function () { if (art) render(); });
 
   // 시험용(자동 시험에서 쓰는 손잡이 — 화면에는 영향 없음)
-  window.__toon = { state: function () { return { opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, cel: art && art.cel, box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height } }; } };
+  // 시험용: 그림에 칠한 응가 색의 가운데값(Lab)과 색이 다른 부분의 비율 — 응가 칸마다 칠한 색 묶음으로 잰다(흰 테두리·선 제외)
+  function stickerStats() {
+    var cut = opt.bg === 'cut' && art.cutOk, pal = cut ? art.fgPal : art.allPal, W = art.W, R0 = W / 2, Ls = [], As = [], Bs = [], red = 0, light = 0, n = 0, t = [0, 0, 0];
+    for (var p = 0; p < W * W; p += 3) {
+      if (cut ? !art.mask[p] : Math.hypot((p % W) + 0.5 - R0, ((p / W) | 0) + 0.5 - R0) > R0 * 0.97) continue;
+      var e = pal[nearestPal(pal, art.labF[p * 3], art.labF[p * 3 + 1], art.labF[p * 3 + 2])];
+      toLab(e.rgb[0], e.rgb[1], e.rgb[2], t, 0); Ls.push(t[0]); As.push(t[1]); Bs.push(t[2]); n++;
+      if (t[1] > 35 && t[0] > 25 && t[1] > t[2] * 0.9) red++;
+      if (t[0] > 82 && Math.hypot(t[1], t[2]) < 16) light++;
+    }
+    function med(a) { a.sort(function (x, y) { return x - y; }); return a.length ? a[a.length >> 1] : 0; }
+    return { lab: [med(Ls), med(As), med(Bs)].map(function (x) { return Math.round(x * 10) / 10; }), n: n, red: n ? red / n : 0, light: n ? light / n : 0 };
+  }
+  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height } }; } };
 })();
 </script>
 </body>
