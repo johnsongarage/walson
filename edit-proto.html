@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>이미지 편집 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#2b231e">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* 한 화면 이미지 편집기 — 시안(2026-11-16 가르시아 "사진은 길게 보는데 편집 기능은 스크롤 밑으로 내려야 있어.
+     한 화면에서 완성할 수 있게 … 보기 좋게 편집하도록 시안 짜봐").
+     원칙: ① 화면 높이에 딱 맞춘다(스크롤 없음) ② 미리 보기가 주인공 — 남은 자리 전부를 쓰고, 세로로 긴 9:16도 한눈에 다 보이게 줄인다
+          ③ 손으로 바로 고친다 — 사진은 끌어서 옮기고 두 손가락으로 키우고, 붙인 글자도 끌고 키운다
+          ④ 도구는 아래 탭 하나씩만 연다(얇은 칸) ⑤ 저장은 늘 오른쪽 위 ⑥ 글을 쓸 땐 자판 바로 위에 입력 칸, 미리 보기는 그 위에 그대로.
+     산책 영수증·주민증·월간 리포트·응가 캐릭터·산책 유형 결과가 같은 틀을 쓰게 하려는 것. 이 시안은 실제 영수증·주민증 그림을 쓰고,
+     내용은 모두 가짜(강아지 '왈슨' = 앱 그림)라 진짜 기록·위치와 상관없다. 메뉴에 없고, 주소로만 연다: edit-proto.html */
+  :root {
+    --ed-bg: #2b231e; --ed-stage: #1f1915; --ed-panel: #362c26; --ed-line: rgba(255,255,255,.1);
+    --ed-ink: #fbf4ea; --ed-soft: #c9b9a6; --ed-accent: #e2774f; --ed-accent-ink: #fff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ed-bg); color: var(--ed-ink);
+    font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; overscroll-behavior: none; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; }
+
+  .ed { position: fixed; left: 0; top: 0; width: 100%; height: 100dvh; display: flex; flex-direction: column; }
+
+  /* 위: 닫기 · 제목 · 저장(늘 보이게) */
+  .ed-top { flex: none; display: flex; align-items: center; gap: 8px; padding: calc(env(safe-area-inset-top) + 8px) 10px 8px; }
+  .ed-icon { width: 40px; height: 40px; border-radius: 12px; border: none; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .ed-icon svg { width: 22px; height: 22px; }
+  .ed-title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 16px; }
+  .ed-title b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ed-badge { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 99px; background: rgba(226,119,79,.22); color: #ffb79b; }
+  .ed-save { flex: none; border: none; border-radius: 999px; padding: 10px 18px; background: var(--ed-accent); color: var(--ed-accent-ink); font-weight: 800; font-size: 15px; cursor: pointer; }
+
+  /* 시안 전용: 다른 콘텐츠로 바꿔 보기 */
+  .ed-proto { flex: none; display: flex; justify-content: center; gap: 6px; padding: 0 12px 6px; }
+  .ed-proto button { border: 1px solid var(--ed-line); background: transparent; color: var(--ed-soft); border-radius: 999px; padding: 4px 11px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .ed-proto button[aria-pressed="true"] { background: var(--ed-ink); color: #2b231e; border-color: var(--ed-ink); }
+
+  /* 가운데: 미리 보기(남은 자리 전부) */
+  .ed-stage { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; background: var(--ed-stage); overflow: hidden; }
+  .ed-stage canvas { display: block; touch-action: none; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,.45); background: #fff; }
+  .ed-hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 999px;
+    background: rgba(0,0,0,.62); color: #fff; font-size: 12.5px; font-weight: 700; line-height: 1.35; text-align: center; pointer-events: none; transition: opacity .4s; }
+  .ed-hint.gone { opacity: 0; }
+
+  /* 아래: 고른 탭의 도구 칸(얇게) + 탭 */
+  .ed-tray { flex: none; min-height: 96px; padding: 12px 0 10px; background: var(--ed-panel); border-top: 1px solid var(--ed-line); }
+  .ed-row { display: flex; align-items: center; gap: 8px; padding: 0 14px; overflow-x: auto; scrollbar-width: none; }
+  .ed-row::-webkit-scrollbar { display: none; }
+  .ed-row + .ed-row { margin-top: 10px; }
+  .ed-label { flex: none; font-size: 12px; font-weight: 800; color: var(--ed-soft); }
+  .ed-chip { flex: none; border: 1px solid var(--ed-line); background: rgba(255,255,255,.06); border-radius: 999px; padding: 9px 14px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .ed-chip[aria-pressed="true"] { background: var(--ed-ink); color: #2b231e; border-color: var(--ed-ink); }
+  .ed-chip.accent { background: var(--ed-accent); border-color: var(--ed-accent); color: #fff; }
+  .ed-chip.ghost { background: transparent; }
+  .ed-chip .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(255,255,255,.35); }
+  .ed-range { flex: 1; min-width: 120px; accent-color: var(--ed-accent); }
+  .ed-tip { padding: 0 14px; margin-top: 9px; font-size: 12px; color: var(--ed-soft); line-height: 1.45; }
+
+  .ed-tabs { flex: none; display: flex; background: var(--ed-bg); border-top: 1px solid var(--ed-line); padding-bottom: env(safe-area-inset-bottom); }
+  .ed-tab { flex: 1; border: none; background: transparent; padding: 8px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--ed-soft); cursor: pointer; }
+  .ed-tab svg { width: 22px; height: 22px; }
+  .ed-tab[aria-selected="true"] { color: var(--ed-ink); }
+  .ed-tab[aria-selected="true"] svg { color: var(--ed-accent); }
+
+  /* 글 쓰기: 자판 바로 위에 입력 칸 하나 — 미리 보기는 그 위에 그대로 보인다 */
+  .ed-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--ed-panel); border-top: 1px solid var(--ed-line); padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px); }
+  .ed-sheet-in { display: flex; gap: 8px; align-items: center; }
+  .ed-sheet input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--ed-line); background: #1f1915; color: var(--ed-ink); }
+  .ed-sheet .count { font-size: 11px; color: var(--ed-soft); margin: 6px 2px 0; }
+</style>
+<script src="save-image.js?v=1"></script>
+</head>
+<body>
+
+<div class="ed" id="ed">
+  <header class="ed-top">
+    <button type="button" class="ed-icon" id="close" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ed-title"><b id="title">산책 영수증</b><span class="ed-badge">시안</span></div>
+    <button type="button" class="ed-save" id="save">저장</button>
+  </header>
+  <div class="ed-proto" id="proto" role="group" aria-label="시안: 다른 콘텐츠로 바꿔 보기">
+    <button type="button" data-t="receipt" aria-pressed="true">산책 영수증</button>
+    <button type="button" data-t="card" aria-pressed="false">주민증</button>
+  </div>
+  <main class="ed-stage" id="stage">
+    <canvas id="cv" width="1080" height="1920" role="img" aria-label="미리 보기"></canvas>
+    <div class="ed-hint" id="hint"></div>
+  </main>
+  <section class="ed-tray" id="tray"></section>
+  <nav class="ed-tabs" id="tabs" role="tablist"></nav>
+</div>
+
+<div class="ed-sheet" id="sheet" hidden>
+  <div class="ed-sheet-in">
+    <input type="text" id="sheet-input" autocomplete="off" enterkeyhint="done">
+    <button type="button" class="ed-chip accent" id="sheet-done">완료</button>
+  </div>
+  <p class="count" id="sheet-count"></p>
+</div>
+
+<script src="walk-receipt.js?v=5"></script>
+<script src="id-card.js?v=2"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+  // ── 아이콘(탭) ──
+  var IC_SVG = {
+    shape: '<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/>',
+    photo: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
+    note: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+    text: '<path d="M5 6V4h14v2M12 4v16M9 20h6"/>'
+  };
+  function tabSvg(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC_SVG[k] + '</svg>'; }
+
+  // ── 가짜 내용(시안) — 강아지 '왈슨'은 앱 그림, 날짜는 오늘, 위치는 없음 ──
+  var today = new Date(), iso = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
+  var NOTES = ['킁킁 탐정 출동', '비둘기와 눈싸움 무승부', '응가 두 번, 대박', '산책 거부 3번 끝에 출발', '낙엽 밟기 장인'];
+  var profile = { name: '왈슨', signal: 'red', size: 'small', cardNo: 'DASAN-SAMPLE', cardIssued: today.getFullYear() + '. ' + (today.getMonth() + 1) + '. ' + today.getDate() + '.' };
+  function receiptData() {
+    return { no: 12, date: iso, mode: 'gps', durationMin: 34, distanceKm: 1.8, feel: 'ok', sniff: 4, poop: 1,
+      stamps: { hit: 1, fresh: 1 }, steady: { days: 3, got: true }, goal: { target: 30, total: 34, reached: true },
+      note: S.note === null ? '' : S.note, name: profile.name };
+  }
+
+  // ── 콘텐츠별 설정: 쓰는 탭·모양 ──
+  var TPL = {
+    receipt: { title: '산책 영수증', tabs: ['shape', 'photo', 'note', 'text'], fmts: [['story', '스토리 9:16'], ['feed', '피드 4:5']], fmt: 'story',
+      sources: [['walk', '산책 사진'], ['logo', '왈슨 그림']], hint: '사진은 끌어서 옮기고, 두 손가락으로 키워요' },
+    card: { title: '강아지 주민증', tabs: ['shape', 'photo', 'text'], fmts: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: 'square',
+      sources: [['walk', '프로필 사진']], hint: '사진 칸을 끌어서 옮기고, 두 손가락으로 키워요' }
+  };
+  var TAB_NAME = { shape: '모양', photo: '사진', note: '특이 사항', text: '글자 붙이기' };
+
+  // ── 상태 ──
+  var S = { t: 'receipt', fmt: 'story', tab: 'photo', src: 'walk', zoom: 1, px: 0.5, py: 0.4, note: NOTES[0], stickers: [], sel: -1, style: 'white' };
+  var IMG = {}, band = null;   // band: 지금 그림에서 사진 칸(캔버스 좌표) — 끌기가 사진을 옮길지 가린다
+
+  // ── 그리기 ──
+  // 주민증 사진 칸(1600×1000 카드 기준, id-card.js drawFront와 같은 자리)
+  var CARD_PHOTO = { x: 96, y: 318, w: 460, h: 520 };
+  function cropPhoto(img, w, h) {   // 사진을 칸 비율로 잘라 확대·이동을 미리 적용한다
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var g = c.getContext('2d'), s = Math.max(w / img.width, h / img.height) * S.zoom, pw = img.width * s, ph = img.height * s;
+    g.drawImage(img, -(pw - w) * S.px, -(ph - h) * S.py, pw, ph);
+    return c;
+  }
+  var cardCanvas = document.createElement('canvas');
+  function drawBase() {
+    if (S.t === 'receipt') {
+      var L = {};
+      WalkReceipt.draw(cv, receiptData(), S.src === 'logo' ? null : IMG.photo, { fmt: S.fmt, logo: IMG.logo, photoX: S.px, photoY: S.py, photoZoom: S.zoom, layout: L });
+      band = S.src === 'logo' ? null : { x: 0, y: 0, w: L.W, h: L.photoH, img: IMG.photo };
+    } else {
+      var photo = IMG.photo ? cropPhoto(IMG.photo, CARD_PHOTO.w * 2, CARD_PHOTO.h * 2) : null;
+      WalsonIdCard.drawFront(cardCanvas, profile, { photo: photo });
+      var out = WalsonIdCard.composeExport(cardCanvas, profile, S.fmt);
+      if (cv.width !== out.width) cv.width = out.width;
+      if (cv.height !== out.height) cv.height = out.height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(out, 0, 0);
+      // composeExport가 카드를 놓는 자리(정사각형·스토리: 960×600 가운데) — 사진 칸 위치를 같은 비율로 옮긴다
+      var k = 1, ox = 0, oy = 0;
+      if (S.fmt !== 'card') { k = 960 / 1600; ox = (out.width - 960) / 2; oy = Math.round((out.height - 600) / 2) - (S.fmt === 'story' ? 60 : 30); }
+      band = { x: ox + CARD_PHOTO.x * k, y: oy + CARD_PHOTO.y * k, w: CARD_PHOTO.w * k, h: CARD_PHOTO.h * k, img: IMG.photo };
+    }
+  }
+  // 붙인 글자(스티커): 흰 글씨 · 검은 글씨 · 말풍선 · 띠
+  var STYLES = [['white', '흰 글씨', '#ffffff'], ['black', '검은 글씨', '#2b2420'], ['bubble', '말풍선', '#ffffff'], ['tag', '띠', '#b8563a']];
+  function drawSticker(st, selected) {
+    var size = Math.round(cv.width * 0.062 * st.scale);
+    ctx.save();
+    ctx.font = '800 ' + size + 'px Pretendard, "Apple SD Gothic Neo", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var w = ctx.measureText(st.text).width, padX = size * 0.5, padY = size * 0.34;
+    var bw = w + padX * 2, bh = size + padY * 2, x0 = st.x - bw / 2, y0 = st.y - bh / 2;
+    if (st.style === 'bubble' || st.style === 'tag') {
+      ctx.fillStyle = st.style === 'bubble' ? '#ffffff' : '#b8563a';
+      ctx.shadowColor = 'rgba(0,0,0,.22)'; ctx.shadowBlur = size * 0.35; ctx.shadowOffsetY = size * 0.08;
+      roundRect(x0, y0, bw, bh, st.style === 'bubble' ? bh / 2 : size * 0.16); ctx.fill();
+      if (st.style === 'bubble') { ctx.beginPath(); ctx.moveTo(x0 + bw * 0.22, y0 + bh - 2); ctx.lineTo(x0 + bw * 0.16, y0 + bh + size * 0.42); ctx.lineTo(x0 + bw * 0.36, y0 + bh - 2); ctx.closePath(); ctx.fill(); }
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = st.style === 'bubble' ? '#2b2420' : '#ffffff';
+      ctx.fillText(st.text, st.x, st.y + size * 0.04);
+    } else {
+      ctx.lineJoin = 'round'; ctx.lineWidth = size * 0.17;
+      ctx.strokeStyle = st.style === 'white' ? 'rgba(30,22,18,.72)' : 'rgba(255,255,255,.95)';
+      ctx.strokeText(st.text, st.x, st.y);
+      ctx.fillStyle = st.style === 'white' ? '#ffffff' : '#2b2420';
+      ctx.fillText(st.text, st.x, st.y);
+    }
+    st.box = { x: x0, y: y0, w: bw, h: bh };
+    if (selected) {   // 고른 글자 테두리 — 미리 보기에만, 저장할 땐 안 그린다
+      ctx.setLineDash([size * 0.25, size * 0.18]); ctx.lineWidth = Math.max(3, size * 0.06); ctx.strokeStyle = '#e2774f';
+      roundRect(x0 - size * 0.18, y0 - size * 0.18, bw + size * 0.36, bh + size * 0.36, size * 0.25); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  var raf = 0;
+  function render(forSave) {
+    drawBase();
+    S.stickers.forEach(function (st, i) { drawSticker(st, !forSave && i === S.sel); });
+    fit();
+  }
+  function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; render(false); }); }
+
+  // ── 미리 보기 크기: 남은 자리에 딱 맞게(세로로 긴 그림도 한눈에) ──
+  function fit() {
+    var st = $('stage'), pad = 14, aw = st.clientWidth - pad * 2, ah = st.clientHeight - pad * 2;
+    var k = Math.min(aw / cv.width, ah / cv.height);
+    cv.style.width = Math.floor(cv.width * k) + 'px'; cv.style.height = Math.floor(cv.height * k) + 'px';
+  }
+  if (window.ResizeObserver) new ResizeObserver(function () { fit(); }).observe($('stage'));
+  // 자판이 올라오면(특히 아이폰) 실제 보이는 높이에 맞춘다
+  function fitViewport() {
+    var vv = window.visualViewport, h = vv ? vv.height : window.innerHeight;
+    $('ed').style.height = h + 'px';
+    // 아이폰은 자판이 올라와도 화면 바닥(고정 위치)이 그대로라 입력 칸이 자판에 가린다 → 보이는 영역 바닥에 붙인다
+    $('sheet').style.bottom = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px' : '0px';
+    fit();
+  }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fitViewport); visualViewport.addEventListener('scroll', fitViewport); }
+  window.addEventListener('resize', fitViewport);
+
+  // ── 손으로 바로 고치기: 끌기·두 손가락 ──
+  var ptrs = {}, gesture = null, lastTap = 0;
+  function toCanvas(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
+  function hitSticker(p) { for (var i = S.stickers.length - 1; i >= 0; i--) { var b = S.stickers[i].box; if (b && p.x >= b.x - 20 && p.x <= b.x + b.w + 20 && p.y >= b.y - 20 && p.y <= b.y + b.h + 20) return i; } return -1; }
+  function inBand(p) { return band && p.x >= band.x && p.x <= band.x + band.w && p.y >= band.y && p.y <= band.y + band.h; }
+  function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+  function hideHint() { $('hint').classList.add('gone'); }
+  cv.addEventListener('pointerdown', function (e) {
+    cv.setPointerCapture(e.pointerId);
+    ptrs[e.pointerId] = toCanvas(e);
+    var ids = Object.keys(ptrs);
+    if (ids.length === 1) {
+      var p = ptrs[ids[0]], i = hitSticker(p);
+      if (i >= 0) { var wasSel = S.sel === i; S.sel = i; gesture = { kind: 'sticker', i: i, last: p, start: p, t: Date.now(), wasSel: wasSel }; if (S.tab !== 'text') openTab('text'); else buildTray(); }
+      else if (inBand(p)) { gesture = { kind: 'photo', last: p, start: p, t: Date.now() }; if (S.sel >= 0) { S.sel = -1; buildTray(); } }
+      else { gesture = null; if (S.sel >= 0) { S.sel = -1; buildTray(); } }
+      schedule();
+    } else if (ids.length === 2 && gesture) {
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      gesture.pinch = { d0: dist(a, b), v0: gesture.kind === 'sticker' ? S.stickers[gesture.i].scale : S.zoom };
+    }
+    hideHint();
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!ptrs[e.pointerId] || !gesture) return;
+    var p = toCanvas(e); ptrs[e.pointerId] = p;
+    var ids = Object.keys(ptrs);
+    if (ids.length >= 2 && gesture.pinch) {
+      var r = dist(ptrs[ids[0]], ptrs[ids[1]]) / Math.max(1, gesture.pinch.d0);
+      if (gesture.kind === 'sticker') S.stickers[gesture.i].scale = clamp(gesture.pinch.v0 * r, 0.4, 3.2);
+      else { S.zoom = clamp(gesture.pinch.v0 * r, 1, 4); syncZoom(); }
+      schedule(); return;
+    }
+    if (ids.length !== 1) return;
+    var dx = p.x - gesture.last.x, dy = p.y - gesture.last.y; gesture.last = p;
+    if (gesture.kind === 'sticker') { var st = S.stickers[gesture.i]; st.x = clamp(st.x + dx, 0, cv.width); st.y = clamp(st.y + dy, 0, cv.height); }
+    else if (gesture.kind === 'photo' && band && band.img) {
+      var s = Math.max(band.w / band.img.width, band.h / band.img.height) * S.zoom, pw = band.img.width * s, ph = band.img.height * s;
+      if (pw - band.w > 1) S.px = clamp(S.px - dx / (pw - band.w), 0, 1);
+      if (ph - band.h > 1) S.py = clamp(S.py - dy / (ph - band.h), 0, 1);
+    }
+    schedule();
+  });
+  function endPtr(e) {
+    var p = ptrs[e.pointerId]; delete ptrs[e.pointerId];
+    if (!gesture || !p) return;
+    var ids = Object.keys(ptrs);
+    if (ids.length) { gesture.pinch = null; gesture.last = ptrs[ids[0]]; return; }
+    var tap = dist(p, gesture.start) < cv.width * 0.012 && Date.now() - gesture.t < 350;
+    if (tap && gesture.kind === 'sticker' && gesture.wasSel) openSheet('sticker', S.stickers[gesture.i].text);   // 고른 글자를 한 번 더 누르면 고치기
+    if (tap && gesture.kind === 'photo') { if (Date.now() - lastTap < 320) { S.zoom = 1; S.px = 0.5; S.py = S.t === 'card' ? 0.5 : 0.4; syncZoom(); schedule(); } lastTap = Date.now(); }
+    gesture = null;
+  }
+  cv.addEventListener('pointerup', endPtr);
+  cv.addEventListener('pointercancel', endPtr);
+  cv.addEventListener('wheel', function (e) { if (!band) return; e.preventDefault(); S.zoom = clamp(S.zoom * (e.deltaY < 0 ? 1.08 : 0.93), 1, 4); syncZoom(); schedule(); }, { passive: false });
+
+  // ── 아래 탭과 도구 칸 ──
+  function openTab(k) { S.tab = k; buildTabs(); buildTray(); }
+  function buildTabs() {
+    var T = TPL[S.t];
+    $('tabs').innerHTML = T.tabs.map(function (k) { return '<button type="button" class="ed-tab" role="tab" data-k="' + k + '" aria-selected="' + (S.tab === k) + '">' + tabSvg(k === 'text' ? 'text' : k) + TAB_NAME[k] + '</button>'; }).join('');
+    Array.prototype.forEach.call($('tabs').children, function (b) { b.addEventListener('click', function () { openTab(b.getAttribute('data-k')); }); });
+  }
+  function chip(label, on, attrs) { return '<button type="button" class="ed-chip' + (attrs && attrs.cls ? ' ' + attrs.cls : '') + '"' + (on != null ? ' aria-pressed="' + !!on + '"' : '') + (attrs && attrs.data ? ' data-v="' + esc(attrs.data) + '"' : '') + '>' + label + '</button>'; }
+  function syncZoom() { var r = $('zoom'); if (r) r.value = Math.round(S.zoom * 100); }
+  function buildTray() {
+    var T = TPL[S.t], h = '';
+    if (S.tab === 'shape') {
+      h = '<div class="ed-row"><span class="ed-label">모양</span>' + T.fmts.map(function (f) { return chip(f[1], S.fmt === f[0], { data: f[0] }); }).join('') + '</div>' +
+        '<p class="ed-tip">올릴 곳에 맞춰 골라요 — 스토리는 세로로 길게, 피드·정사각형은 게시물용이에요.</p>';
+    } else if (S.tab === 'photo') {
+      h = '<div class="ed-row"><span class="ed-label">사진</span>' + T.sources.map(function (s) { return chip(s[1], S.src === s[0], { data: s[0] }); }).join('') +
+        chip('다른 사진 고르기', null, { cls: 'ghost', data: 'pick' }) + '</div>' +
+        (S.src === 'logo' ? '<p class="ed-tip">왈슨 그림은 옮기거나 키울 수 없어요.</p>' :
+        '<div class="ed-row"><span class="ed-label">크기</span><input type="range" class="ed-range" id="zoom" min="100" max="400" value="' + Math.round(S.zoom * 100) + '" aria-label="사진 크기">' +
+          chip('처음대로', null, { cls: 'ghost', data: 'reset' }) + '</div>');
+    } else if (S.tab === 'note') {
+      h = '<div class="ed-row">' + chip('✏️ 직접 쓰기', null, { cls: 'accent', data: 'custom' }) + NOTES.map(function (n) { return chip(esc(n), S.note === n, { data: n }); }).join('') + chip('없음', S.note === null, { data: '__none' }) + '</div>' +
+        '<p class="ed-tip">영수증의 "특이 사항" 줄에 들어가요. 고르면 바로 미리 보기가 바뀌어요.</p>';
+    } else if (S.tab === 'text') {
+      var sel = S.sel >= 0 ? S.stickers[S.sel] : null, cur = sel ? sel.style : S.style;
+      h = '<div class="ed-row">' + chip('＋ 글자 넣기', null, { cls: 'accent', data: 'add' }) +
+        (sel ? chip('글자 고치기', null, { cls: 'ghost', data: 'edit' }) + chip('지우기', null, { cls: 'ghost', data: 'del' }) : '') + '</div>' +
+        '<div class="ed-row"><span class="ed-label">모양</span>' + STYLES.map(function (s) { return chip('<span class="sw" style="background:' + s[2] + '"></span>' + s[1], cur === s[0], { data: 'style:' + s[0] }); }).join('') + '</div>' +
+        '<p class="ed-tip">' + (S.stickers.length ? '글자는 끌어서 옮기고 두 손가락으로 키워요. 고른 글자를 한 번 더 누르면 고쳐요.' : '사진 위에 한마디 얹어 보세요. 넣은 뒤 끌어서 자리를 잡아요.') + '</p>';
+    }
+    $('tray').innerHTML = h;
+    Array.prototype.forEach.call($('tray').querySelectorAll('.ed-chip'), function (b) { b.addEventListener('click', function () { onChip(b.getAttribute('data-v')); }); });
+    var z = $('zoom'); if (z) z.addEventListener('input', function () { S.zoom = z.value / 100; hideHint(); schedule(); });
+  }
+  function onChip(v) {
+    if (S.tab === 'shape') { S.fmt = v; }
+    else if (S.tab === 'photo') {
+      if (v === 'pick') { alert('시안이라 사진 고르기는 빠져 있어요. 실제 화면에선 휴대폰 사진첩이 열려요.'); return; }
+      if (v === 'reset') { S.zoom = 1; S.px = 0.5; S.py = S.t === 'card' ? 0.5 : 0.4; }
+      else S.src = v;
+    } else if (S.tab === 'note') {
+      if (v === 'custom') { openSheet('note', NOTES.indexOf(S.note) < 0 && S.note ? S.note : ''); return; }
+      S.note = v === '__none' ? null : v;
+    } else if (S.tab === 'text') {
+      if (v === 'add') { openSheet('new', ''); return; }
+      if (v === 'edit' && S.sel >= 0) { openSheet('sticker', S.stickers[S.sel].text); return; }
+      if (v === 'del' && S.sel >= 0) { S.stickers.splice(S.sel, 1); S.sel = -1; }
+      if (v && v.indexOf('style:') === 0) { S.style = v.slice(6); if (S.sel >= 0) S.stickers[S.sel].style = S.style; }
+    }
+    buildTray(); schedule();
+  }
+
+  // ── 글 쓰기 칸(자판 바로 위) ──
+  var sheetMode = null, LIMIT = { note: 28, new: 18, sticker: 18 };
+  function openSheet(mode, value) {
+    sheetMode = mode;
+    var inp = $('sheet-input');
+    inp.maxLength = LIMIT[mode]; inp.value = value || '';
+    inp.placeholder = mode === 'note' ? '특이 사항 (28자까지)' : '사진 위에 얹을 한마디 (18자까지)';
+    $('sheet').hidden = false; $('tray').style.visibility = 'hidden';
+    countText(); setTimeout(function () { inp.focus(); }, 30);
+  }
+  function countText() { var inp = $('sheet-input'); $('sheet-count').textContent = inp.value.length + ' / ' + inp.maxLength + '자 · 이 휴대폰 안에서만 그려요'; }
+  function closeSheet(apply) {
+    var v = $('sheet-input').value.trim();
+    if (apply && v) {
+      if (sheetMode === 'note') S.note = v;
+      else if (sheetMode === 'new') { S.stickers.push({ text: v, x: cv.width / 2, y: band ? band.y + band.h * 0.55 : cv.height * 0.4, scale: 1, style: S.style }); S.sel = S.stickers.length - 1; }
+      else if (sheetMode === 'sticker' && S.sel >= 0) S.stickers[S.sel].text = v;
+    }
+    $('sheet-input').blur(); $('sheet').hidden = true; $('tray').style.visibility = '';
+    sheetMode = null; buildTray(); schedule();
+  }
+  $('sheet-input').addEventListener('input', function () {
+    countText();
+    if (sheetMode === 'sticker' && S.sel >= 0 && this.value.trim()) { S.stickers[S.sel].text = this.value; schedule(); }   // 고치는 동안 미리 보기에 바로
+    if (sheetMode === 'note' && this.value.trim()) { S.note = this.value; schedule(); }
+  });
+  $('sheet-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); closeSheet(true); } });
+  $('sheet-done').addEventListener('click', function () { closeSheet(true); });
+
+  // ── 시안: 콘텐츠 바꿔 보기 ──
+  function setTemplate(t) {
+    S.t = t; S.fmt = TPL[t].fmt; S.src = 'walk'; S.zoom = 1; S.px = 0.5; S.py = t === 'card' ? 0.5 : 0.4; S.stickers = []; S.sel = -1;
+    S.tab = 'photo';
+    $('title').textContent = TPL[t].title;
+    $('hint').textContent = TPL[t].hint; $('hint').classList.remove('gone');
+    Array.prototype.forEach.call($('proto').children, function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === t)); });
+    buildTabs(); buildTray(); schedule();
+  }
+  Array.prototype.forEach.call($('proto').children, function (b) { b.addEventListener('click', function () { setTemplate(b.getAttribute('data-t')); }); });
+
+  // ── 저장(휴대폰은 공유 창, PC는 내려받기 — save-image.js) ──
+  $('save').addEventListener('click', function () {
+    render(true);   // 고른 글자 테두리 없이
+    if (window.WalsonSave) WalsonSave.canvas(cv, 'walson-edit-proto-' + S.t + '-' + S.fmt + '.png');
+    setTimeout(function () { render(false); }, 300);
+  });
+  if (window.WalsonSave) $('save').textContent = WalsonSave.isMobile() ? '저장·공유' : '저장';
+  $('close').addEventListener('click', function () { if (history.length > 1) history.back(); else location.href = 'walk-history.html'; });
+
+  Promise.all([loadImg('icons/sample-walson.jpg'), loadImg('icons/walson-logo.webp'),
+    WalkReceipt.ensureFonts(WalkReceipt.textOf(receiptData(), 'story') + NOTES.join('') + '흰검은말풍선띠'), WalsonIdCard.fontsReady()]).then(function (a) {
+    IMG.photo = a[0]; IMG.logo = a[1];
+    fitViewport();
+    setTemplate(/[?&]t=card/.test(location.search) ? 'card' : 'receipt');
+  });
+})();
+</script>
+</body>
+</html>
