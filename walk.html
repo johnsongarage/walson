@@ -232,6 +232,8 @@
   }
   .btn-primary:hover { filter: brightness(1.05); }
   .btn-primary:active { box-shadow: inset 0 3px 8px rgba(0,0,0,0.28); }
+  /* 산책 종료를 한 번 누른 상태(2026-11-16) — 4초 안에 한 번 더 눌러야 끝난다(주머니 속에서 잘못 눌려 끝나지 않게) */
+  #walk-btn.is-armed { filter: brightness(0.8); }
   .btn-secondary {
     background: linear-gradient(180deg, #fffefb 0%, #fdf6ea 100%);
     color: var(--ink); border: 1px solid var(--panel-border);
@@ -432,6 +434,8 @@
     <div class="menu-dropdown" id="menu-dropdown">
       <!-- 가게 QR 찍기(2026-11-16) — 산책 중 들른 가게의 체크인 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js) -->
       <a href="#" id="qr-scan-link" hidden><span class="icon" id="qr-scan-icon"></span><span>가게 QR 찍기</span></a>
+      <!-- 화면 켜 두기(2026-11-16, 기본 꺼짐) — 켜면 산책 중 화면이 저절로 꺼지지 않아 길이 자세히 남는다 -->
+      <a href="#" id="keep-screen-toggle"><span class="icon" data-icon="deviceMobile"></span><span id="keep-screen-label">화면 켜 두기 · 꺼짐</span></a>
       <a href="index.html"><span class="icon" data-icon="pawPrint"></span><span>오늘</span></a>
       <a href="town.html"><span class="icon" data-icon="mapPin"></span><span>동네 지도</span></a>
       <a href="start.html"><span class="icon" data-icon="dog"></span><span>주민증 만들기</span></a>
@@ -524,7 +528,8 @@
     plus: 'M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z',
     minus: 'M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z',
     trash: 'M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z',
-    x: 'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z'
+    x: 'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z',
+    deviceMobile: 'M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16ZM72,64H184V192H72Zm8-32h96a8,8,0,0,1,8,8v8H72V40A8,8,0,0,1,80,32Zm96,192H80a8,8,0,0,1-8-8v-8H184v8A8,8,0,0,1,176,224Z'
   };
   function svgIcon(name, size) {
     var d = ICON_PATHS[name];
@@ -1480,8 +1485,25 @@
   }
   document.getElementById('reward-close').addEventListener('click', hideRewardPanel);
 
+  // 산책 종료는 두 번 눌러야(2026-11-16 0단계) — 첫 번째는 4초 동안 "한 번 더 누르면 끝나요"만 보여 준다.
+  // 화면을 켜 둔 채 주머니에 넣었을 때 잘못 눌려 산책이 끝나 버리지 않게.
+  var endArmedAt = 0, endArmTimer = null;
+  function disarmEnd() {
+    endArmedAt = 0;
+    clearTimeout(endArmTimer);
+    walkBtn.classList.remove('is-armed');
+    if (walking) walkBtn.querySelector('.btn-label').textContent = '산책 종료';
+  }
   walkBtn.addEventListener('click', function () {
-    if (walking) { stopWalk(); return; }
+    if (walking) {
+      if (endArmedAt && Date.now() - endArmedAt < 4000) { disarmEnd(); stopWalk(); return; }
+      endArmedAt = Date.now();
+      walkBtn.classList.add('is-armed');
+      walkBtn.querySelector('.btn-label').textContent = '한 번 더 누르면 끝나요';
+      clearTimeout(endArmTimer);
+      endArmTimer = setTimeout(disarmEnd, 4000);
+      return;
+    }
     // 샘플을 보는 중이면 먼저 끄게 한다(2026-11-15) — 샘플을 켠 채 한 산책은 샘플을 끌 때 같이 지워지므로
     if (window.PetwalkSample && PetwalkSample.isOn()) {
       PetwalkSample.leaveForRealRecord('산책을 시작하면').then(function (ok) { if (ok) startWalk(); });
@@ -1501,7 +1523,12 @@
   // 앱이 아예 닫혀도(아이폰이 숨겨 둔 앱을 정리) 이어지게 진행 중인 산책을 이 휴대폰에 저장한다(아래 saveActiveRoute).
   var GAP_MS = 60 * 1000; // GPS 점 사이가 이보다 벌어지면 "기록이 끊겼다"고 본다
   var wakeLock = null, walkGapMs = 0, noticeTimer = null;
-  var POCKET_TIP = '주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
+  // 0단계(2026-11-16): 화면 켜 두기(Wake Lock)는 기본 꺼짐 — 켜 둔 채 주머니에 넣으면 배터리를 쓰고 잘못 눌릴 수 있어서.
+  // 길을 자세히 남기고 싶은 사람만 메뉴의 "화면 켜 두기"로 켠다(이 휴대폰에 기억).
+  var KEEP_SCREEN_KEY = 'petwalk_keep_screen';
+  function keepScreen() { try { return localStorage.getItem(KEEP_SCREEN_KEY) === '1'; } catch (e) { return false; } }
+  var POCKET_TIP = '화면을 꺼서 주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
+  var KEEP_TIP = '화면을 켜 둘게요 — 길이 자세히 남아요. 주머니에 넣을 땐 전원 버튼으로 꺼 주세요.';
   var walkNotice = document.getElementById('walk-notice');
 
   var WARN_ICON = null;
@@ -1532,10 +1559,27 @@
     if (wakeLock) wakeLock.release().catch(function () {});
     wakeLock = null;
   }
+  // 메뉴 "화면 켜 두기"(기본 꺼짐, 2026-11-16) — 켜면 산책 중 화면이 저절로 꺼지지 않는다(이 휴대폰에 기억)
+  (function () {
+    var t = document.getElementById('keep-screen-toggle'), label = document.getElementById('keep-screen-label');
+    function paint() { label.textContent = '화면 켜 두기 · ' + (keepScreen() ? '켬' : '꺼짐'); }
+    paint();
+    t.addEventListener('click', function (e) {
+      e.preventDefault();
+      var on = !keepScreen();
+      try { if (on) localStorage.setItem(KEEP_SCREEN_KEY, '1'); else localStorage.removeItem(KEEP_SCREEN_KEY); } catch (err) { /* 저장 못 하면 바뀌지 않는다 */ }
+      paint();
+      menuDropdown.classList.remove('is-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      if (!walking) { showWalkNotice(keepScreen() ? '산책하는 동안 화면을 켜 둘게요.' : '산책하는 동안 화면이 저절로 꺼져요.', true); return; }
+      if (keepScreen()) { requestWakeLock(); showWalkNotice(KEEP_TIP, true); }
+      else { releaseWakeLock(); showWalkNotice(POCKET_TIP, true); }
+    });
+  })();
   document.addEventListener('visibilitychange', function () {
     if (!walking) return;
     if (document.visibilityState === 'visible') {
-      if (!wakeLock) requestWakeLock();
+      if (!wakeLock && keepScreen()) requestWakeLock();
       freshFix();   // 주머니에서 꺼내 열었을 때 — 기다리지 않고 지금 위치를 바로 읽어 발도장을 판정한다
     } else {
       saveActiveRoute(true);   // 숨겨지는 순간 저장 — 이대로 앱이 닫혀도 다시 열면 이어진다
@@ -1683,14 +1727,14 @@
     walkGapMs = 0;
     walkStartTime = nowMs();
     enterWalking();
-    showWalkNotice(POCKET_TIP, true);
+    showWalkNotice(keepScreen() ? KEEP_TIP : POCKET_TIP, true);
     saveActiveRoute(true);
   }
 
   // 산책 중 화면·위치 받기 시작 — 새로 시작할 때와 이어 할 때(resumeActiveRoute) 같이 쓴다
   function enterWalking() {
     walking = true;
-    requestWakeLock();   // 켜 둔 채로 보면 길이 촘촘하게 남는다. 안 돼도 괜찮다 — 주머니 산책은 다시 열 때 이어진다
+    if (keepScreen()) requestWakeLock();   // 켠 사람만 — 켜 둔 채로 보면 길이 촘촘하게 남는다. 기본은 화면이 저절로 꺼지고, 다시 열 때 이어진다
     walkIcon.innerHTML = svgIcon('stop', 18);
     walkBtn.querySelector('.btn-label').textContent = '산책 종료';
     pinBtn.disabled = false;
