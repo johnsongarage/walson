@@ -1675,8 +1675,18 @@
     pinBtn.disabled = false;
     statusText.textContent = '산책 기록 중...';
     watchId = navigator.geolocation.watchPosition(onWalkFix, function (err) {
+      // 위치 권한이 꺼져 있고 아직 한 점도 못 받았으면 시간만 재기로 이어 간다(2026-11-16 1단계 — 출발 시각 그대로)
+      if (err && err.code === 1 && walking && !routeSamples.length && !isDemo()) { fallbackToTime(); return; }
       statusText.textContent = '위치 확인 실패: ' + err.message;
     }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
+  }
+  function fallbackToTime() {
+    var started = Math.round(walkStartTime || Date.now());
+    walking = false;
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    releaseWakeLock();
+    clearActiveRoute();
+    location.replace('go.html?fallback=' + started);
   }
 
   // 위치 한 점 받기 — watchPosition과, 다시 열었을 때 바로 읽는 위치(freshFix)가 같이 쓴다
@@ -1839,6 +1849,16 @@
     showWalkNotice('산책을 이어서 기록해요. 닫혀 있던 동안은 직선으로 이어져요.', true);
     paintMissionBar();
     saveActiveRoute(true);
+  })();
+
+  // ── 산책 나가기의 "산책 시작"(위치 쓰기)이나 [동네] 미션 카드로 왔으면 바로 시작(2026-11-16 1단계 — 두 번 누르기 없앰) ──
+  (function autoStart() {
+    if (!/[?&]start=1/.test(location.search)) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* 새로 고침하면 한 번 더 시작될 뿐 — 아래에서 막는다 */ }
+    if (walking) return;   // 이어 하기로 이미 산책 중
+    if (!locationPermissionExplained) return;   // 위치를 쓰는 이유 설명에 "취소"를 눌렀으면 버튼으로(CLAUDE.md)
+    if (window.PetwalkSample && PetwalkSample.isOn()) return;   // 샘플을 보는 중이면 버튼으로(끄기를 먼저 묻는다)
+    startWalk();
   })();
 })();
 </script>

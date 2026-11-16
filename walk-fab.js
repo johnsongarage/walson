@@ -108,11 +108,12 @@
   function showChoices() {
     card.innerHTML = '';
     card.appendChild(el('h3', '', '산책'));
-    card.appendChild(el('p', 'wf-sub', '나갈 때 누르면 시간을 재 주고, 깜빡했으면 다녀와서 적어도 돼요.'));
+    card.appendChild(el('p', 'wf-sub', '나갈 때 누르면 기록해 주고, 깜빡했으면 다녀와서 적어도 돼요.'));
     var go = el('a', 'wf-choice is-main');
     go.href = 'go.html';
     go.appendChild(el('b', '', '지금 나가기'));
-    go.appendChild(el('span', '', '시간을 재 줘요 · 길도 남길 수 있어요'));
+    // 2026-11-16 1단계: 산책 나가기는 "산책 시작" 하나 — 위치를 쓰면 길도 남고, 안 쓰면 시간만(처음 한 번 묻는다)
+    go.appendChild(el('span', '', '위치를 쓰면 길·발도장까지, 안 쓰면 시간만 재요'));
     var after = el('button', 'wf-choice');
     after.type = 'button';
     after.appendChild(el('b', '', '다녀왔어요'));

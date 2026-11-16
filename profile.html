@@ -156,6 +156,15 @@
     <div class="saved-toast" id="toast">저장됐어요!</div>
   </div>
 
+  <!-- 산책할 때 위치(2026-11-16 1단계): 산책 나가기는 "산책 시작" 하나 — 위치를 쓸지는 처음 산책 때 묻고 여기서도 바꾼다(go.html과 같은 값) -->
+  <div class="card theme-card" id="walk-loc">
+    <h2>산책할 때 위치</h2>
+    <p class="sub">위치를 쓰면 길·거리가 남고 발도장·미션이 찍히고 카드가 자라요. 위치는 이 휴대폰 안에서만 써요.</p>
+    <div class="theme-opts">
+      <button type="button" class="theme-opt" id="loc-on" aria-pressed="false"><span class="name">위치 쓰기</span><span class="desc">길도 기록해요</span></button>
+      <button type="button" class="theme-opt" id="loc-off" aria-pressed="false"><span class="name">시간만</span><span class="desc">위치를 쓰지 않아요</span></button>
+    </div>
+  </div>
 
   <!-- 기록 옮기기(2026-11-15): 카톡·크롬 창 ↔ 홈 화면 앱 ↔ 새 휴대폰. backup.js -->
   <div class="card theme-card" id="backup">
@@ -299,6 +308,20 @@
       alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요): ' + e.message);
     }
   }
+})();
+</script>
+
+<script>
+// 산책할 때 위치(2026-11-16) — go.html의 petwalk_walk_location과 같은 값. 아직 안 골랐으면 둘 다 꺼진 채로(처음 산책 때 묻는다)
+(function () {
+  var KEY = 'petwalk_walk_location';
+  var on = document.getElementById('loc-on'), off = document.getElementById('loc-off');
+  function get() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function paint() { var v = get(); on.setAttribute('aria-pressed', v === 'on' ? 'true' : 'false'); off.setAttribute('aria-pressed', v === 'off' ? 'true' : 'false'); }
+  function set(v) { try { localStorage.setItem(KEY, v); } catch (e) { /* 저장 못 하면 바뀌지 않는다 */ } paint(); }
+  on.addEventListener('click', function () { set('on'); });
+  off.addEventListener('click', function () { set('off'); });
+  paint();
 })();
 </script>
 
