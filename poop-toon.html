@@ -110,7 +110,7 @@
 <script src="theme.js?v=9"></script>
 <script src="site-config.js?v=4"></script>
 <script src="inapp.js?v=2"></script>
-<script src="track.js?v=7"></script>
+<script src="track.js?v=8"></script>
 <script src="save-image.js?v=1"></script>
 </head>
 <body>
@@ -171,10 +171,15 @@
       눈알 굴리기
     </button>
     <div class="group"><span class="g-label">오늘 응가</span><div class="chips" id="states"></div></div>
+    <!-- 멘트(11/17): 상황에 맞는 것 중에서 고르고, 누르면 다른 말로 -->
+    <div class="group"><span class="g-label">멘트</span><div class="chips">
+      <button type="button" id="say-next">말풍선 다른 말</button><button type="button" id="cap-next">한마디 다른 말</button>
+    </div></div>
     <details class="more">
       <summary>더 꾸미기</summary>
       <label class="field">강아지 이름<input type="text" id="name" maxlength="10" placeholder="우리 애" autocomplete="off"></label>
-      <label class="field">말풍선 한마디<input type="text" id="say" maxlength="16" autocomplete="off"></label>
+      <label class="field">말풍선 직접 쓰기<input type="text" id="say" maxlength="20" autocomplete="off"></label>
+      <label class="field">제목 아래 한마디 직접 쓰기<input type="text" id="cap" maxlength="26" autocomplete="off"></label>
       <label class="field">얼굴 크기<input type="range" id="face-size" min="0.5" max="1.8" step="0.01" value="1"></label>
     </details>
     <button type="button" class="btn-main" id="send-btn">가족에게 보내기</button>
@@ -214,6 +219,47 @@
     { id: 'diff', label: '평소와 달랐어요', face: 'worry' },
     { id: 'none', label: '안 적기' }
   ];
+  // ── 멘트(11/17): 가르시아가 모은 가족방 멘트 20줄 + 표정별 말 + 걱정형(Claude 제안) ──
+  // 말풍선 = 우리 애가 하는 말(SAYS), 제목 아래 한 줄 = 보내는 사람(보호자) 한마디(CAPS).
+  // 무작위로만 띄우지 않고 상황에 맞는 것 중에서 고른 뒤 [다른 말]로 넘긴다(가르시아 "그렇게 해"):
+  // 평소와 달랐어요면 걱정형만, 건강 자랑은 평소대로일 때만(앱이 건강하다고 말하지 않게), 굿모닝은 오전만, 풀밭 얘기는 풀밭 사진만,
+  // 황금빛은 갈색·황토색 응가만. 원래 "아빠, 모르는 척…"은 산책한 사람이 엄마일 수도 있어 "집사야"로.
+  // g: 묶음(통계엔 이 이름만 보낸다) · usual: 평소대로일 때만 · am: 오전만 · grass: 풀밭 사진만 · golden: 갈색·황토색만 · faces: 이 표정이면 먼저
+  var CAPS = [
+    { id: 'a1', g: 'art', text: '이거 완전 루브르 박물관 재단이야.' },
+    { id: 'a2', g: 'art', golden: true, text: '오늘 작품명: 황금빛 대지의 속삭임.' },
+    { id: 'a3', g: 'art', text: '모양·굵기·색상, 삼박자가 완벽한 마스터피스.' },
+    { id: 'a4', g: 'art', text: '현대미술 작가 하나 데뷔했습니다.' },
+    { id: 'a5', g: 'art', text: '이 정도면 예술품이라 유료 전시해야 함.' },
+    { id: 'h1', g: 'health', usual: true, text: '오늘도 건강한 쾌변 완료! 내시경이 필요 없네.' },
+    { id: 'h2', g: 'health', usual: true, text: '유산균 제값 하네, 오늘도 해냈다!' },
+    { id: 'h3', g: 'health', usual: true, am: true, text: '감탄사가 절로 나오는 유기농 굿모닝.' },
+    { id: 'h4', g: 'health', usual: true, text: '오늘 장 건강 컨디션 200% 달성!' },
+    { id: 'h5', g: 'health', text: '시원하게 비워낸 자의 평온한 미소.' },
+    { id: 'e1', g: 'excuse', text: '어제 먹은 간식이 이 모양을 만들었다.' },
+    { id: 'e2', g: 'excuse', text: '내 다리보다 굵은데..? 이거 실화냐.' },
+    { id: 'e3', g: 'excuse', text: '무게로 지구 한 바퀴 돌 기세.' },
+    { id: 'e4', g: 'excuse', text: '시원하긴 한데... 치우는 내 손이 부끄럽다.' },
+    { id: 'e5', g: 'excuse', grass: true, text: '풀밭의 숨은 보물, 아니 폭탄 발견.' },
+    { id: 'w1', g: 'worry', text: '오늘은 평소와 좀 달랐어요. 지켜볼게요.' },
+    { id: 'w2', g: 'worry', text: '내일 응가도 보고 다시 알려 줄게요.' },
+    { id: 'w3', g: 'worry', text: '오늘 우리 애 컨디션, 같이 지켜봐 줘요.' }
+  ];
+  var SAYS = [
+    { id: 'f1', g: 'face', faces: ['proud'], text: '오늘도 해냈다!' },
+    { id: 'f2', g: 'face', faces: ['tongue'], text: '치우느라 수고해~' },
+    { id: 'f3', g: 'face', faces: ['wow'], text: '어머, 이게 다 나야?' },
+    { id: 'f5', g: 'face', faces: ['sleepy'], text: '아 시원하다…' },
+    { id: 'd1', g: 'dog', faces: ['proud', 'wow'], text: '내가 만들었지만 좀 멋진 듯?' },
+    { id: 'd2', g: 'dog', faces: ['tongue'], text: '이거 치우는 거 내 담당 아닌 거 알지?' },
+    { id: 'd3', g: 'dog', faces: ['sleepy'], text: '내 안의 모든 무거움을 내려놓았다.' },
+    { id: 'd4', g: 'dog', faces: ['tongue'], text: '집사야, 모르는 척 말고 비닐 꺼내.' },
+    { id: 'd5', g: 'dog', faces: ['proud'], text: '세상을 향한 나의 시원한 한 방.' },
+    { id: 'f4', g: 'worry', faces: ['worry'], text: '나 오늘 좀 이상해…' },
+    { id: 'k1', g: 'worry', faces: ['worry'], text: '오늘은 배가 좀 이상했어.' },
+    { id: 'k2', g: 'worry', faces: ['worry'], text: '살살 지켜봐 줘…' }
+  ];
+  var RECENT_KEY = 'petwalk_toon_recent';   // 이 휴대폰에서 최근에 보낸 멘트 번호(같은 말이 바로 또 나오지 않게) — 밖으로 보내지 않는다
 
   // ── 상태 ──
   var src = null;                          // 고른 사진(메모리에만 — 저장하지 않는다)
@@ -221,7 +267,7 @@
   var tapPt = null;                        // 자리 맞추기에서 응가를 톡 누른 곳(사진 좌표) — 그 색을 기준으로 떼어 낸다
   var art = null;                          // 그림으로 바꾼 결과(작업 데이터)
   var sticker = null;                      // 지금 배경 방식으로 그린 스티커 캔버스
-  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', size: 1 };
+  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1 };
   var face = { x: 0, y: 0, base: 40, pupils: [[0.3, -0.2], [-0.25, 0.25]] };   // 작업 좌표(여백 포함)
   var cardBlob = null, cardDirty = true, blobTimer = null;
 
@@ -438,6 +484,7 @@
       art.ms = Math.round(performance.now() - t0);
       opt.bg = art.cutOk ? 'cut' : 'keep';
       $('bg-note').hidden = art.cutOk;
+      opt.sayId = ''; opt.capId = ''; pickLine('say', true); pickLine('cap');
       placeFace();
       rollEyes(true);
       buildSticker();
@@ -1279,7 +1326,64 @@
   var SX = (CARD_W - STICKER) / 2, SY = 236;   // 스티커 자리
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   function title() { return opt.name ? opt.name + '의 오늘 응가' : '우리 애 오늘 응가'; }
-  function sayText() { var f = FACES.filter(function (x) { return x.id === opt.face; })[0]; return opt.say || (f ? f.say : ''); }
+  function lineById(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+  function sayText() {
+    if (opt.say) return opt.say;
+    var l = lineById(SAYS, opt.sayId); if (l) return l.text;
+    var f = FACES.filter(function (x) { return x.id === opt.face; })[0]; return f ? f.say : '';
+  }
+  function capText() { if (opt.cap) return opt.cap; var l = lineById(CAPS, opt.capId); return l ? l.text : ''; }
+  function recentIds() { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch (e) { return []; } }
+  function nowHour() { return window.__toonHour != null ? window.__toonHour : new Date().getHours(); }
+  // 갈색·황토색 응가인지(가장 많은 색으로) — 모르면 막지 않는다
+  function isGolden() {
+    if (!art || !art.cutOk || !art.fgPal || !art.fgPal.length) return true;
+    var p = art.fgPal.slice().sort(function (u, v) { return v.n - u.n; })[0].lab, h = (Math.atan2(p[2], p[1]) * 180 / Math.PI + 360) % 360;
+    return p[0] >= 30 && Math.hypot(p[1], p[2]) >= 12 && h >= 35 && h <= 100;
+  }
+  // 지금 상황에 맞는 멘트들
+  function linePool(kind) {
+    var diff = opt.state === 'diff', grass = !!(art && art.dbg && art.dbg.grassy), am = nowHour() < 11, gold = isGolden();
+    return (kind === 'say' ? SAYS : CAPS).filter(function (l) {
+      if (diff) return l.g === 'worry';
+      if (l.g === 'worry') return kind === 'say' && opt.face === 'worry';   // 걱정 표정을 고르면 말풍선도 걱정하는 말
+      if (l.usual && opt.state !== 'usual') return false;
+      if (l.am && !am) return false;
+      if (l.grass && !grass) return false;
+      if (l.golden && !gold) return false;
+      return true;
+    });
+  }
+  // 고르기: 지금 것·최근에 보낸 것은 빼고 무작위로. byFace면 말풍선은 지금 표정에 맞는 말을 먼저
+  function pickLine(kind, byFace) {
+    var cur = kind === 'say' ? opt.sayId : opt.capId, rec = recentIds(), all = linePool(kind);
+    var cand = all.filter(function (l) { return l.id !== cur && rec.indexOf(l.id) < 0; });
+    if (!cand.length) cand = all.filter(function (l) { return l.id !== cur; });
+    if (!cand.length) cand = all;
+    if (kind === 'say' && byFace) { var fit = cand.filter(function (l) { return l.faces && l.faces.indexOf(opt.face) >= 0; }); if (fit.length) cand = fit; }
+    var l = cand.length ? cand[Math.floor(Math.random() * cand.length)] : null;
+    if (kind === 'say') opt.sayId = l ? l.id : ''; else opt.capId = l ? l.id : '';
+  }
+  // 상태·표정이 바뀌어 지금 말이 더는 안 맞으면 다시 고른다
+  function fitLines() {
+    var ids = function (k) { return linePool(k).map(function (l) { return l.id; }); };
+    if (ids('say').indexOf(opt.sayId) < 0) pickLine('say', true);
+    if (ids('cap').indexOf(opt.capId) < 0) pickLine('cap');
+  }
+  // 통계에는 묶음 이름만(멘트 내용·직접 쓴 글은 보내지 않는다): 한마디/말풍선
+  function lineGroup() {
+    var c = opt.cap ? 'custom' : ((lineById(CAPS, opt.capId) || {}).g || 'none');
+    var s2 = opt.say ? 'custom' : ((lineById(SAYS, opt.sayId) || {}).g || 'face');
+    return c + '/' + s2;
+  }
+  function rememberLines() {
+    try {
+      var r = recentIds().filter(function (id) { return id !== opt.sayId && id !== opt.capId; });
+      if (!opt.say && opt.sayId) r.unshift(opt.sayId);
+      if (!opt.cap && opt.capId) r.unshift(opt.capId);
+      localStorage.setItem(RECENT_KEY, JSON.stringify(r.slice(0, 8)));
+    } catch (e) { /* 이번만 */ }
+  }
   function render() {
     if (!art || !sticker) return;
     var ctx = cctx;
@@ -1297,8 +1401,9 @@
     try { bhs = !!(document.fonts && document.fonts.check && document.fonts.check("90px 'Black Han Sans'", title())); } catch (e) { bhs = false; }
     if (!bhs) ensureTitleFont(title());
     fitText(ctx, title(), CARD_W / 2, 132, 940, bhs ? 92 : 80, bhs ? "'Black Han Sans', sans-serif" : "'Pretendard', sans-serif", bhs ? '400' : '800');
-    ctx.font = "700 38px 'Pretendard', sans-serif"; ctx.fillStyle = '#8a7a68';
-    ctx.fillText((now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일', CARD_W / 2, 196);
+    // 제목 아래: 보내는 사람 한마디(따옴표). 날짜는 맨 아래 줄로 옮김(11/17)
+    var cap = capText();
+    if (cap) plateText(ctx, '“' + cap + '”', CARD_W / 2, 198, 960, 42, 28, '700', '#6f5f4e');
     // 스티커(그림자 + 스티커)
     ctx.save();
     ctx.shadowColor = 'rgba(74,63,53,0.28)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 12;
@@ -1320,7 +1425,7 @@
       ctx.textBaseline = 'alphabetic';
     }
     ctx.font = "700 30px 'Pretendard', sans-serif"; ctx.fillStyle = '#a08f7c';
-    ctx.fillText('왈슨 · 다산동 강아지 산책 앱', CARD_W / 2, 1306);
+    plateText(ctx, (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일 · 왈슨 · 다산동 강아지 산책 앱', CARD_W / 2, 1306, 1000, 30, 24, '700', '#8a7a68');
     cardDirty = true;
     clearTimeout(blobTimer);
     blobTimer = setTimeout(makeBlob, 250);
@@ -1335,9 +1440,19 @@
   function makeBlob() {
     card.toBlob(function (b) { cardBlob = b; cardDirty = false; }, 'image/png');
   }
-  function fitText(ctx, text, x, y, maxW, size, family, weight) {
+  // 바탕 무늬 위 작은 글자: 바탕색 받침을 깔고 쓴다(무늬와 겹쳐 어수선하지 않게). 넓이에 맞게 글자 크기를 줄인다
+  function plateText(ctx, text, x, y, maxW, size, min, weight, color) {
     var s = size;
-    do { ctx.font = weight + ' ' + s + 'px ' + family; s -= 4; } while (ctx.measureText(text).width > maxW && s > 40);
+    do { ctx.font = weight + ' ' + s + "px 'Pretendard', sans-serif"; s -= 2; } while (ctx.measureText(text).width > maxW && s >= min);
+    var fs = s + 2, w = ctx.measureText(text).width, padX = fs * 0.6, h = fs * 1.5;
+    ctx.save();
+    ctx.fillStyle = 'rgba(247,237,226,0.92)'; roundRect(ctx, x - w / 2 - padX, y - fs * 1.08, w + padX * 2, h, h / 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(text, x, y);
+  }
+  function fitText(ctx, text, x, y, maxW, size, family, weight, min) {
+    var s = size, lo = min || 40;
+    do { ctx.font = weight + ' ' + s + 'px ' + family; s -= 2; } while (ctx.measureText(text).width > maxW && s >= lo);
     ctx.fillText(text, x, y);
   }
   function roundRect(ctx, x, y, w, h, r) {
@@ -1412,10 +1527,11 @@
     });
   }
   function paintControls() {
-    chipRow($('faces'), FACES, opt.face, function (it) { opt.face = it.id; opt.faceTouched = true; $('say').placeholder = it.say; paintControls(); render(); });
+    chipRow($('faces'), FACES, opt.face, function (it) { opt.face = it.id; opt.faceTouched = true; pickLine('say', true); paintControls(); render(); });
     chipRow($('states'), STATES, opt.state, function (it) {
       opt.state = it.id;
-      if (it.face && !opt.faceTouched) opt.face = it.face;
+      if (it.face && !opt.faceTouched && opt.face !== it.face) { opt.face = it.face; pickLine('say', true); }
+      fitLines();
       paintControls(); render();
     });
     var bgs = [{ id: 'cut', label: '응가만' }, { id: 'keep', label: '바닥까지' }];
@@ -1424,8 +1540,8 @@
       if (opt.bg === it.id) return;
       opt.bg = it.id; buildSticker(); paintControls(); render();
     });
-    var f = FACES.filter(function (x) { return x.id === opt.face; })[0];
-    $('say').placeholder = f ? f.say : '';
+    var sl = lineById(SAYS, opt.sayId), cl = lineById(CAPS, opt.capId);
+    $('say').placeholder = sl ? sl.text : ''; $('cap').placeholder = cl ? cl.text : '';
     $('name').value = opt.name;
     document.body.setAttribute('data-face', opt.face);
     document.body.setAttribute('data-state', opt.state);
@@ -1437,7 +1553,11 @@
     try { if (opt.name) localStorage.setItem(NAME_KEY, opt.name); else localStorage.removeItem(NAME_KEY); } catch (e) { /* 이번만 */ }
     requestRender();
   });
-  $('say').addEventListener('input', function () { opt.say = this.value.trim().slice(0, 16); requestRender(); });
+  $('say').addEventListener('input', function () { opt.say = this.value.trim().slice(0, 20); requestRender(); });
+  $('cap').addEventListener('input', function () { opt.cap = this.value.trim().slice(0, 26); requestRender(); });
+  // [다른 말]: 직접 쓴 글은 비우고 상황에 맞는 다른 멘트로
+  $('say-next').addEventListener('click', function () { opt.say = ''; $('say').value = ''; pickLine('say', false); paintControls(); render(); });
+  $('cap-next').addEventListener('click', function () { opt.cap = ''; $('cap').value = ''; pickLine('cap'); paintControls(); render(); });
   $('face-size').addEventListener('input', function () { opt.size = +this.value; requestRender(); });
   $('repick').addEventListener('click', function () {
     if (!src) return;
@@ -1449,7 +1569,14 @@
 
   // ════════ 보내기 ════════
   function fileName() { var d = new Date(); return 'walson-poop-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.png'; }
-  function track(what) { try { if (window.WalsonTrack) WalsonTrack.send('share_click', WALK_T ? { what: what, via: 'walk_end' } : { what: what }); } catch (e) { /* 무시 */ } }
+  function track(what) {
+    rememberLines();
+    try {
+      var v = { what: what, line: lineGroup() };
+      if (WALK_T) v.via = 'walk_end';
+      if (window.WalsonTrack) WalsonTrack.send('share_click', v);
+    } catch (e) { /* 무시 */ }
+  }
 
   // ════════ 산책 끝 화면에서 왔을 때(?walk=그 산책이 끝난 시각) ════════
   // 11/16 1단계: 끝 화면 "응가는요?" 1번·2번 이상 → 여기 → [다 했어요]로 돌아간다.
@@ -1485,7 +1612,7 @@
       if (mobile && canShare) {
         // 글: 제목·상태 + 만든 곳(?from=poop_share — 받은 가족이 눌러 들어오면 통계의 유입 칸에 남는다)
         navigator.share({ files: [file], text: title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
-          '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share' })
+          (capText() ? '\n' + capText() : '') + '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share' })
           .then(function () { track('poop_toon'); saveToWalk(true); toast('보냈어요. 가족 반응도 알려 주세요!'); })
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;   // 공유 창을 그냥 닫음
@@ -1546,7 +1673,8 @@
     function med(a) { a.sort(function (x, y) { return x - y; }); return a.length ? a[a.length >> 1] : 0; }
     return { lab: [med(Ls), med(As), med(Bs)].map(function (x) { return Math.round(x * 10) / 10; }), n: n, red: n ? red / n : 0, light: n ? light / n : 0 };
   }
-  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height }, pattern: { ready: patReady, n: PATTERN.length } }; } };
+  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height }, pattern: { ready: patReady, n: PATTERN.length }, say: sayText(), cap: capText(), sayId: opt.sayId, capId: opt.capId }; },
+    pool: function (k) { return linePool(k).map(function (l) { return l.id; }); } };
 })();
 </script>
 </body>
