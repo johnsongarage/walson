@@ -1,4 +1,4 @@
-// 산책 보상 규칙 — card-reward.html(카드 그리기)과 index.html(산책 종료 알림)이 같이 쓴다.
+// 산책 보상 규칙 — my-card.html(자라는 카드)·walk.html(산책 종료 보상 알림)·[기록] 영수증 등이 같이 쓴다.
 // 숫자를 조정할 땐 이 파일만 고치면 된다. (2026-09-24 보상 재도입, PROJECT_CONTEXT.md "결정 번복" 참고)
 // 빌드 도구 없이 <script src="reward-rules.js?v=1">로 불러오고 전역 window.RewardRules로 쓴다.
 // 이 파일을 고치면 ?v= 번호를 올리고 두 HTML 파일에서 같이 올릴 것(card-shared.js와 같은 캐시 문제).

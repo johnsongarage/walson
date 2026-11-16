@@ -1,4 +1,4 @@
-// 산책 영수증 그리기(2026-11-15) — 전역 window.WalkReceipt. [영수증] 탭(receipt.html)이 쓴다.
+// 산책 영수증 그리기(2026-11-15) — 전역 window.WalkReceipt. [기록] 탭(walk-history.html — 11/16 [영수증] 탭을 합침)이 쓴다.
 // 가르시아 "영수증 관련 탭을 새로 넣어 봐". 같은 날 다른 기획팀장 검토의 "위쪽 절반은 사진, 아래 절반은 영수증"을 따름.
 // 산책 한 번 = 영수증 한 장. 견주들이 산책을 "숙제·빚"이라 부르는 말(RESEARCH_YOUTUBE.md "오늘 저녁도 부채
 // 갚으러 갑니다")을 영수증 서류로 비튼 것 — 게임 문법(등급·뽑기·수치) 대신 생활 서류 패러디.
@@ -11,7 +11,7 @@
 //   확인되는 걸음에만 준다는 11/15 결정). 지금은 농담 문구만 둔다.
 // 그리기는 이 휴대폰 안에서만 하고 어디로도 보내지 않는다(저장·공유는 사용자가 고른 앱으로).
 //
-//   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', brutal, photoY: 0~1, logo })
+//   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', photoY: 0~1, logo })   (화면 테마는 11/16부터 차분 하나뿐)
 //   data = { no, date, demo, mode: 'time'|'gps', after(다녀와서 적은 산책), durationMin, distanceKm, feel, sniff, poop,
 //            stamps: { hit, fresh } | null, steady: { days, got }, note, name }
 (function () {
@@ -26,7 +26,7 @@
     story: { pw: 900, pad: 52, mono: 33, line: 52, small: 25, smallLine: 38, title: 64, titleLine: 86, rule: 28,
              debt: 40, debtLine: 68, bar: 70, tooth: 13, toothW: 26, margin: 84, stampR: 84, minPhoto: 0.42 }
   };
-  // 영수증 글씨는 고정폭(나눔고딕코딩, 구글 폰트) — receipt.html이 불러 둔다. 못 불러오면 기기 고정폭 글꼴로.
+  // 영수증 글씨는 고정폭(나눔고딕코딩, 구글 폰트) — walk-history.html이 불러 둔다. 못 불러오면 기기 고정폭 글꼴로.
   var MONO = '"Nanum Gothic Coding", ui-monospace, Menlo, Consolas, monospace';
   var BIG = '"Black Han Sans", Pretendard, sans-serif';
   var INK = '#26211d', SOFT_INK = '#7a7068', STAMP = '#d6453a', PAPER = '#fffdf8';
@@ -261,22 +261,15 @@
     for (var j = n - 1; j >= 0; j--) { ctx.lineTo(tw * (j + 0.5), h); ctx.lineTo(tw * j, h - tooth); }
     ctx.closePath();
   }
-  function drawPaper(ctx, S, PH, B) {
-    if (B) {
-      // 뉴브루탈: 흐리지 않은 검정 그림자 + 검정 테두리
-      ctx.save(); ctx.translate(14, 14); paperPath(ctx, S.pw, PH, S.tooth, S.toothW); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
-      paperPath(ctx, S.pw, PH, S.tooth, S.toothW); ctx.fillStyle = '#fff'; ctx.fill();
-      ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.lineJoin = 'miter'; ctx.stroke();
-    } else {
-      ctx.save();
-      ctx.shadowColor = 'rgba(60, 38, 22, 0.30)'; ctx.shadowBlur = 36; ctx.shadowOffsetY = 14;
-      paperPath(ctx, S.pw, PH, S.tooth, S.toothW); ctx.fillStyle = PAPER; ctx.fill();
-      ctx.restore();
-    }
+  function drawPaper(ctx, S, PH) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(60, 38, 22, 0.30)'; ctx.shadowBlur = 36; ctx.shadowOffsetY = 14;
+    paperPath(ctx, S.pw, PH, S.tooth, S.toothW); ctx.fillStyle = PAPER; ctx.fill();
+    ctx.restore();
   }
 
   // 사진 칸: 꽉 차게 놓고 위·아래 위치(posY 0~1)만 고른다. 사진이 없으면 앱 그림(성난 치와와)
-  function drawPhoto(ctx, img, W, h, posY, B, logo) {
+  function drawPhoto(ctx, img, W, h, posY, logo) {
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, W, h); ctx.clip();
     if (img && img.width) {
@@ -293,13 +286,12 @@
       }
     }
     ctx.restore();
-    if (B) { ctx.fillStyle = '#000'; ctx.fillRect(0, h - 8, W, 8); }
   }
 
   function draw(canvas, d, photo, opts) {
     opts = opts || {};
     var fmt = FORMATS[opts.fmt] ? opts.fmt : 'feed';
-    var F = FORMATS[fmt], S = SIZES[fmt], W = F.w, H = F.h, B = !!opts.brutal;
+    var F = FORMATS[fmt], S = SIZES[fmt], W = F.w, H = F.h;
     if (canvas.width !== W) canvas.width = W;
     if (canvas.height !== H) canvas.height = H;
     var ctx = canvas.getContext('2d');
@@ -317,9 +309,9 @@
     var paperTop = H - S.margin - PH * scale;
     var photoH = Math.round(paperTop + 70 * scale);
 
-    ctx.fillStyle = B ? '#F2B833' : '#f3ddd2';
+    ctx.fillStyle = '#f3ddd2';
     ctx.fillRect(0, 0, W, H);
-    drawPhoto(ctx, photo, W, photoH, opts.photoY, B, opts.logo);
+    drawPhoto(ctx, photo, W, photoH, opts.photoY, opts.logo);
 
     // 영수증 종이 — 아래 가운데를 기준으로 살짝 기울여 사진 위에 올린다
     ctx.save();
@@ -327,7 +319,7 @@
     ctx.rotate(-1.2 * Math.PI / 180);
     ctx.scale(scale, scale);
     ctx.translate(-S.pw / 2, -PH);
-    drawPaper(ctx, S, PH, B);
+    drawPaper(ctx, S, PH);
     var y = top, stampAt = null;
     list.forEach(function (r) {
       drawRow(ctx, r, S, y, inner);

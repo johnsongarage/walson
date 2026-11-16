@@ -16,9 +16,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <style>
-  /* 실제 사용자가 보는 보상 카드 화면(2026-09-26). card-reward.html은 디자인 비교 도구라
-     편집 폼·가짜 진행도가 있지만, 여기는 "지금 내 카드가 어디까지 자랐나"만 보여준다.
-     카드 그림은 reward-card.js를 같이 쓴다. */
+  /* 실제 사용자가 보는 보상 카드 화면(2026-09-26). "지금 내 카드가 어디까지 자랐나"만 보여준다.
+     카드 그림은 reward-card-soft.js(window.RewardCard). 디자인 비교 도구 card-reward.html은 11/16에 내림. */
   :root {
     /* index.html/walk-history.html/profile.html과 동일한 색 토큰 */
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -105,7 +104,7 @@
   .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 14px 2px 0; }
   @media (prefers-reduced-motion: reduce) { .btn:active { transform: none; } }
 </style>
-<script src="theme.js?v=8"></script>
+<script src="theme.js?v=9"></script>
 <script src="site-config.js?v=3"></script>
 <script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
@@ -170,7 +169,7 @@
 <script src="card-shared.js?v=11"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
-<script src="steady-stamp.js?v=1"></script>
+<script src="steady-stamp.js?v=2"></script>
 <script src="mock-server.js?v=1"></script>
 <script>
   (function () {
@@ -178,8 +177,7 @@
     var a = document.getElementById('friends-link'); a.hidden = false; a.style.display = 'flex';
   })();
 </script>
-<script src="reward-card-soft.js?v=2"></script>
-<script src="reward-card.js?v=5"></script>
+<script src="reward-card-soft.js?v=3"></script>
 <script>
 (function () {
   var CS = window.CardShared;
@@ -312,6 +310,6 @@
     var kl = document.getElementById('keyring-link'); kl.hidden = false; kl.style.display = 'flex';
   }
 </script>
-<script src="tabbar.js?v=6" data-tab="card"></script>
+<script src="tabbar.js?v=7" data-tab="card"></script>
 </body>
 </html>

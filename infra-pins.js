@@ -8,8 +8,6 @@
 //
 // 개인정보: 공용 시설과 가게 좌표만 둔다. 사용자 위치는 이 파일에서 읽지도 보내지도 않는다.
 (function () {
-  // 화면 테마(theme.js) — 뉴브루탈이면 각진 검정 테두리, 아니면 원래 둥근 파스텔 모양으로 그린다
-  function isBrutal() { return !!(window.WalsonTheme && window.WalsonTheme.isBrutal); }
 
   // 아이콘은 Phosphor Icons(MIT) regular SVG 경로를 그대로 가져온 것(walk.html ICON_PATHS와 같은 방식).
   var CATEGORIES = [
@@ -190,9 +188,7 @@
     var c = category(key);
     if (!c) return '';
     px = px || 28;
-    var shape = isBrutal()
-      ? 'border-radius:2px;border:2px solid #000;box-sizing:border-box;box-shadow:2px 2px 0 #000;'
-      : 'border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(74,63,53,0.35);';
+    var shape = 'border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(74,63,53,0.35);';
     return '<div style="width:' + px + 'px;height:' + px + 'px;background:' + c.color +
       ';color:#fff;display:flex;align-items:center;justify-content:center;' + shape + '">' +
       iconSvg(key, Math.round(px * 0.54)) + '</div>';
@@ -289,9 +285,9 @@
     return { hours: v.hours ? String(v.hours) : '', night: !!v.night, partner: !!v.partner };
   }
   var TONES = {
-    ok:   { soft: 'background:#e2efdc;color:#2f6b3a;', brutal: 'background:#C8F06A;color:#000;', ink: '#2f6b3a' },
-    warn: { soft: 'background:#f8ebcf;color:#8a5a00;', brutal: 'background:#F2B833;color:#000;', ink: '#8a5a00' },
-    no:   { soft: 'background:#f6dcd8;color:#a33a2f;', brutal: 'background:#FF4D3D;color:#000;', ink: '#a33a2f' }
+    ok:   { soft: 'background:#e2efdc;color:#2f6b3a;', ink: '#2f6b3a' },
+    warn: { soft: 'background:#f8ebcf;color:#8a5a00;', ink: '#8a5a00' },
+    no:   { soft: 'background:#f6dcd8;color:#a33a2f;', ink: '#a33a2f' }
   };
 
   // ── 가게 수호지킴이(2026-11-14 가르시아): 단골 가게를 지키는 강아지 ──
@@ -333,8 +329,7 @@
     if (!text) return '';
     return '<div style="position:absolute;right:-8px;top:-8px;z-index:1;white-space:nowrap;padding:0 6px;height:20px;' +
       'font:900 11px/20px Pretendard,-apple-system,sans-serif;' +
-      (isBrutal() ? 'background:#000;color:#F2B833;border:2px solid #000;line-height:16px;'
-                  : 'background:#4a3f35;color:#fff;border-radius:999px;border:2px solid #fff;line-height:16px;box-shadow:0 2px 6px rgba(74,63,53,0.35);') +
+      ('background:#4a3f35;color:#fff;border-radius:999px;border:2px solid #fff;line-height:16px;box-shadow:0 2px 6px rgba(74,63,53,0.35);') +
       '">' + escapeText(text) + '</div>';
   }
   function markerFor(pin, opts) {
@@ -344,17 +339,14 @@
       var sig = hasGuardian(pin) ? SIGNALS[pin.guardian.signal] : null;
       var ring = sig ? sig.color : '#b8563a';
       var label = hasGuardian(pin) ? pin.guardian.name : (pin.name || '');
-      var B = isBrutal();
       var html =
         '<div style="position:relative;width:58px;height:58px;">' +
           '<div style="width:58px;height:58px;overflow:hidden;border:4px solid ' + ring + ';box-sizing:border-box;' +
-            (B ? 'outline:3px solid #000;background:#fff;box-shadow:5px 5px 0 #000;'
-               : 'border-radius:50%;background:#f3ddd2;box-shadow:0 4px 12px rgba(74,63,53,0.4);') + '">' +
+            ('border-radius:50%;background:#f3ddd2;box-shadow:0 4px 12px rgba(74,63,53,0.4);') + '">' +
             '<img src="' + escapeAttr(photo) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">' +
           '</div>' +
           '<div style="position:absolute;left:50%;top:60px;transform:translateX(-50%);white-space:nowrap;' +
-            (B ? 'background:#000;color:#F2B833;padding:1px 8px;font:900 12px Pretendard,-apple-system,sans-serif;'
-               : 'background:#fffaf3;color:#4a3f35;border:1px solid #e6d6c1;border-radius:999px;padding:1px 8px;' +
+            ('background:#fffaf3;color:#4a3f35;border:1px solid #e6d6c1;border-radius:999px;padding:1px 8px;' +
                  'font:800 12px Pretendard,-apple-system,sans-serif;box-shadow:0 2px 6px rgba(74,63,53,0.2);') + '">' +
             escapeText(label) + '</div>' + badge +
         '</div>';
@@ -383,20 +375,18 @@
     var photo = mainPhoto(pin);
     var g = hasGuardian(pin) ? pin.guardian : null;
     var sig = g ? SIGNALS[g.signal] : null;
-    var B = isBrutal();
 
     if (photo) {
       var frame = el('div', 'position:relative;margin:-2px -2px 4px;overflow:hidden;' +
-        (B ? 'background:#fff;border:3px solid #000;' : 'border-radius:14px;background:#f3ddd2;') +
+        ('border-radius:14px;background:#f3ddd2;') +
         'aspect-ratio:4/3;' + (sig ? 'box-shadow:inset 0 -6px 0 ' + sig.color + ';' : ''));
       var img = el('img', 'width:100%;height:100%;object-fit:cover;display:block;');
       img.src = photo;
       img.alt = g ? g.name : (pin.name || '');
       frame.appendChild(img);
       if (g) {
-        frame.appendChild(el('div', B
-          ? 'position:absolute;left:0;top:0;background:#000;color:#F2B833;padding:3px 9px;font-size:11px;font-weight:900;'
-          : 'position:absolute;left:8px;top:8px;background:rgba(255,250,243,0.92);color:#b8563a;' +
+        frame.appendChild(el('div',
+          'position:absolute;left:8px;top:8px;background:rgba(255,250,243,0.92);color:#b8563a;' +
             'border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;', guardianKind(g).badge));
       }
       wrap.appendChild(frame);
@@ -421,12 +411,10 @@
       var tags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
       badges.forEach(function (b) {
         tags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' +
-          (B ? 'border:2px solid #000;' + TONES[b.tone].brutal : 'border-radius:999px;' + TONES[b.tone].soft), b.text));
+          ('border-radius:999px;' + TONES[b.tone].soft), b.text));
       });
       plainTags.forEach(function (t) {
-        tags.appendChild(el('span', B
-          ? 'font-size:11px;font-weight:800;padding:1px 7px;border:2px solid #000;background:#fff;'
-          : 'font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#efe0cd;', t));
+        tags.appendChild(el('span', 'font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#efe0cd;', t));
       });
       wrap.appendChild(tags);
     }
@@ -434,8 +422,8 @@
       var vi = vetInfo(pin);
       if (vi.night || vi.partner) {
         var vtags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
-        if (vi.night) vtags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' + (B ? 'border:2px solid #000;' + TONES.ok.brutal : 'border-radius:999px;' + TONES.ok.soft), '야간 진료'));
-        if (vi.partner) vtags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' + (B ? 'border:2px solid #000;background:#fff;' : 'border-radius:999px;background:#efe0cd;'), '왈슨 제휴'));
+        if (vi.night) vtags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' + ('border-radius:999px;' + TONES.ok.soft), '야간 진료'));
+        if (vi.partner) vtags.appendChild(el('span', 'font-size:11px;font-weight:800;padding:1px 7px;' + ('border-radius:999px;background:#efe0cd;'), '왈슨 제휴'));
         wrap.appendChild(vtags);
       }
       if (vi.hours) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;', '진료 시간 ' + vi.hours));
@@ -443,7 +431,7 @@
     }
     if (isShop) {
       var fit = fitNote(pin);
-      if (fit) wrap.appendChild(el('div', 'font-size:12px;font-weight:800;color:' + (B ? '#000' : TONES[fit.tone].ink) + ';', fit.text));
+      if (fit) wrap.appendChild(el('div', 'font-size:12px;font-weight:800;color:' + (TONES[fit.tone].ink) + ';', fit.text));
       if (!badges.length) wrap.appendChild(el('div', 'font-size:12px;color:#6b5d4e;', '동반 조건은 아직 확인 전이에요 — 가기 전에 가게에 물어보세요'));
       var age = daysSinceVerified(pin);
       if (age != null && age > 90) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:#8a5a00;', '확인한 지 ' + Math.floor(age / 30) + '달이 지났어요 — 조건이 바뀌었을 수 있어요'));
@@ -460,9 +448,7 @@
 
     if (opts && opts.extraEl) wrap.appendChild(opts.extraEl);
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
-    var linkCss = B
-      ? 'font-size:12px;font-weight:900;color:#000;text-decoration:none;border:2px solid #000;padding:3px 8px;background:#fff;'
-      : 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
+    var linkCss = 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
     if (g) {
       var card = el('a', linkCss, '주민증 보기');
       card.href = 'start.html?guardian=' + encodeURIComponent(pin.id);
