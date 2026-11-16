@@ -152,10 +152,10 @@
   <!-- 3. 꾸미고 보내기 -->
   <section class="step" id="step-make" hidden>
     <div class="preview">
-      <canvas id="card" width="1080" height="1350" aria-label="응가 캐릭터 그림 — 얼굴을 끌어서 옮길 수 있어요"></canvas>
+      <canvas id="card" width="1080" height="1350" aria-label="응가 캐릭터 그림 — 얼굴과 응아하는 강아지를 끌어서 옮길 수 있어요"></canvas>
       <p class="busy" id="busy" hidden>그림으로 바꾸는 중…</p>
     </div>
-    <p class="hint">그림 위 얼굴을 끌어서 옮길 수 있어요</p>
+    <p class="hint">그림 위 얼굴과 응아하는 강아지를 끌어서 옮길 수 있어요</p>
     <!-- 그림 방식 — 응가만 떼어 낼지, 바닥까지 동그랗게 그릴지(11/16 실제 사진: 풀밭 사진은 바닥까지 그린 쪽이 잘 나옴) -->
     <div class="group"><span class="g-label">그림</span><div class="chips" id="bgs"></div></div>
     <p class="bg-note" id="bg-note" hidden>응가와 바닥을 확실히 나누지 못해서 바닥까지 그림으로 그렸어요. 응가만 떼어 내려면 "다시 고르기"에서 응가를 톡 눌러 주세요.</p>
@@ -435,6 +435,7 @@
       placeFace();
       rollEyes(true);
       buildSticker();
+      placeDog();
       paintControls();
       render();
       $('busy').hidden = true;
@@ -1196,6 +1197,90 @@
     return 'rgb(' + Math.round(c[0] * 0.85) + ',' + Math.round(c[1] * 0.85) + ',' + Math.round(c[2] * 0.85) + ')';
   }
 
+  // ════════ 강아지 응아 포즈 ════════
+  // 11/16 가르시아 "강아지 응아하는 포즈로 짤도 만들어 주고, 그게 반드시 배경 사진 어딘가로 들어가야 해":
+  // 직접 그린 그림(남의 그림·사진에서 따오지 않음). 320×300 칸, 발바닥 선 y=278, 머리 왼쪽·엉덩이 오른쪽.
+  // 등을 활처럼 말고 엉덩이는 땅에서 살짝 뜬 채, 꼬리를 들고, 눈은 질끈(> <), 땀 한 방울, 부들부들.
+  // 칠: c 털, d 털 그늘(먼 쪽 다리), e 귀, m 주둥이, k 선, p 볼, w 땀 — 털·귀 색은 동네 지도 강아지(map-deco.js) 기본 털색과 같게
+  var DOG_POO = [
+    ['s', 'M262 176 C276 152 284 134 298 112', 26, 14, 'c'],
+    ['s', 'M136 184 C134 216 132 246 132 268', 30, 18, 'd'],
+    ['e', 214, 271, 18, 9, 0, 'd', 6],
+    ['f', 'M120 140 C150 100 222 86 254 128 C274 154 280 206 262 230 C246 250 200 246 160 228 C124 212 104 172 120 140 Z', 'c', 6],
+    ['e', 226, 226, 38, 28, -25, 'c', 6],
+    ['s', 'M206 244 C204 256 202 264 198 268', 26, 14, 'c'],
+    ['e', 190, 271, 19, 9, 0, 'c', 6],
+    ['s', 'M110 186 C108 222 104 250 102 268', 30, 18, 'c'],
+    ['f', 'M44 62 C8 66 0 128 20 148 C34 162 48 130 52 96 Z', 'e', 6],
+    ['f', 'M140 62 C176 66 184 128 164 148 C150 162 136 130 132 96 Z', 'e', 6],
+    ['e', 92, 100, 72, 62, 0, 'c', 6],
+    ['e', 92, 126, 32, 23, 0, 'm', 0],
+    ['e', 92, 114, 10, 7, 0, 'k', 0],
+    ['l', 'M58 86 L76 96 L58 106', 6],
+    ['l', 'M126 86 L108 96 L126 106', 6],
+    ['l', 'M78 134 Q85 142 92 134 Q99 142 106 134', 5],
+    ['e', 54, 122, 11, 7, 0, 'p', 0],
+    ['e', 130, 122, 11, 7, 0, 'p', 0],
+    ['f', 'M168 22 C175 34 179 42 173 48 C168 53 161 49 162 42 C163 36 166 30 168 22 Z', 'w', 4],
+    ['l', 'M284 214 q9 8 0 16', 4],
+    ['l', 'M296 204 q12 14 0 30', 4]
+  ];
+  var DOG_COLORS = { c: '#f3e2c7', d: '#e2c9a3', e: '#c9955f', m: '#fff8ee', k: '#2b1d14', p: 'rgba(255,140,150,0.55)', w: '#9ad1f5' };
+  var dogPaths = null;   // Path2D는 한 번만 만든다
+  var dog = null;        // { x, y, h, flip, inPhoto, pcx } — 카드 좌표, (x, y) = 발바닥 선 가운데, pcx = 응가 가운데(엉덩이를 그쪽으로)
+  function drawDog(ctx, d) {
+    if (!d) return;
+    if (!dogPaths) dogPaths = DOG_POO.map(function (o) {
+      if (o[0] === 'e') { var q = new Path2D(); q.ellipse(o[1], o[2], o[3], o[4], o[5] * Math.PI / 180, 0, Math.PI * 2); return q; }
+      return new Path2D(o[1]);
+    });
+    var s = d.h / 300;
+    ctx.save();
+    // 발밑 그림자
+    ctx.fillStyle = 'rgba(74,63,53,0.16)'; ctx.beginPath(); ctx.ellipse(d.x + (d.flip ? -12 : 12) * s, d.y + 4 * s, 150 * s, 13 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.translate(d.x, d.y); ctx.scale(d.flip ? -s : s, s); ctx.translate(-160, -278);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // 흰 테두리(응가 스티커처럼): 모든 모양을 두껍게 흰색으로 먼저
+    ctx.strokeStyle = '#fffdf7';
+    DOG_POO.forEach(function (o, i) { ctx.lineWidth = (o[0] === 's' ? o[2] : o[0] === 'l' ? o[2] : 6) + 16; ctx.stroke(dogPaths[i]); if (o[0] !== 's' && o[0] !== 'l') { ctx.fillStyle = '#fffdf7'; ctx.fill(dogPaths[i]); } });
+    DOG_POO.forEach(function (o, i) {
+      var p = dogPaths[i];
+      if (o[0] === 's') { ctx.lineWidth = o[2]; ctx.strokeStyle = DOG_COLORS.k; ctx.stroke(p); ctx.lineWidth = o[3]; ctx.strokeStyle = DOG_COLORS[o[4]]; ctx.stroke(p); }
+      else if (o[0] === 'l') { ctx.lineWidth = o[2]; ctx.strokeStyle = DOG_COLORS.k; ctx.stroke(p); }
+      else {
+        var fill = o[0] === 'f' ? o[2] : o[6], lw = o[0] === 'f' ? o[3] : o[7];
+        ctx.fillStyle = DOG_COLORS[fill]; ctx.fill(p);
+        if (lw) { ctx.lineWidth = lw; ctx.strokeStyle = DOG_COLORS.k; ctx.stroke(p); }
+      }
+    });
+    ctx.restore();
+  }
+  function dogBox(d) { var s = d.h / 300, l = d.flip ? d.x - 152 * s : d.x - 160 * s; return [l - 8 * s, d.y - 264 * s, l + 320 * s, d.y + 14 * s]; }
+  // 자리: 응가와 덜 겹치는 곳(아래 왼쪽 → 아래 오른쪽 → 옆) — 응가만이면 카드 바탕에(응가 뒤), 바닥까지면 사진 바닥 위에
+  function placeDog() {
+    if (!sticker || !art) { dog = null; return; }
+    var cut = opt.bg === 'cut' && art.cutOk, W = art.W, Wp = W + 2 * PAD, k = sticker.scale;
+    var Cx = sticker.ox + Wp / 2 * k, Cy = sticker.oy + Wp / 2 * k, Rc = W / 2 * 0.985 * k, cands, h;
+    var sw = sticker.canvas.width, sh = sticker.canvas.height, al = sticker.canvas.getContext('2d').getImageData(0, 0, sw, sh).data;
+    function isPoop(X, Y) {
+      if (cut) { var u = Math.round(X - sticker.x), v = Math.round(Y - sticker.y); return u >= 0 && v >= 0 && u < sw && v < sh && al[(v * sw + u) * 4 + 3] > 40; }
+      if (art.cutOk) { var wx = Math.round((X - sticker.ox) / k - PAD), wy = Math.round((Y - sticker.oy) / k - PAD); return wx >= 0 && wy >= 0 && wx < W && wy < W && !!art.mask[wy * W + wx]; }
+      return Math.hypot(X - Cx, Y - (Cy - 0.04 * Rc)) < 0.5 * Rc;   // 못 떼어 냈으면 응가가 가운데에 있다고 본다
+    }
+    // 응가 가운데(가로) — 엉덩이를 그쪽으로
+    var pcx = Cx;
+    if (art.cutOk && art.main) pcx = sticker.ox + (PAD + (art.main[0] + art.main[2]) / 2) * k;
+    if (cut) { h = 290; cands = [[200, 1152], [880, 1152], [175, 900], [905, 900]]; }
+    else { h = Rc * 0.6; cands = [[Cx - 0.42 * Rc, Cy + 0.8 * Rc], [Cx + 0.42 * Rc, Cy + 0.8 * Rc], [Cx - 0.6 * Rc, Cy + 0.62 * Rc], [Cx + 0.6 * Rc, Cy + 0.62 * Rc]]; }
+    var best = null, bestN = Infinity;
+    cands.forEach(function (c) {
+      var d = { x: c[0], y: c[1], h: h, flip: c[0] > pcx, inPhoto: !cut, pcx: pcx }, b = dogBox(d), n = 0;
+      for (var Y = b[1]; Y <= b[3]; Y += 10) for (var X = b[0]; X <= b[2]; X += 10) if (isPoop(X, Y)) n++;
+      if (n < bestN) { bestN = n; best = d; }
+    });
+    dog = best;
+  }
+
   // ════════ 카드 ════════
   var card = $('card'), cctx = card.getContext('2d');
   var SX = (CARD_W - STICKER) / 2, SY = 236;   // 스티커 자리
@@ -1219,11 +1304,15 @@
     fitText(ctx, title(), CARD_W / 2, 132, 940, bhs ? 92 : 80, bhs ? "'Black Han Sans', sans-serif" : "'Pretendard', sans-serif", bhs ? '400' : '800');
     ctx.font = "700 38px 'Pretendard', sans-serif"; ctx.fillStyle = '#8a7a68';
     ctx.fillText((now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일', CARD_W / 2, 196);
+    // 응아 포즈 강아지(배경): 응가만이면 카드 바탕에(응가가 앞)
+    if (dog && !dog.inPhoto) drawDog(ctx, dog);
     // 스티커(그림자 + 스티커)
     ctx.save();
     ctx.shadowColor = 'rgba(74,63,53,0.28)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 12;
     ctx.drawImage(sticker.canvas, sticker.x, sticker.y);
     ctx.restore();
+    // 바닥까지면 사진 바닥 위에(응가와 겹치지 않는 쪽)
+    if (dog && dog.inPhoto) drawDog(ctx, dog);
     var fc = drawFace(ctx, sticker.scale, sticker.ox, sticker.oy);
     // 말풍선
     var t = sayText();
@@ -1294,21 +1383,32 @@
     return [text.slice(0, cut).trim(), text.slice(cut).trim()];
   }
 
-  // 얼굴 끌어서 옮기기
+  // 얼굴·강아지 끌어서 옮기기(얼굴이 먼저)
   (function () {
     var drag = null;
+    function toCard(e) { var r = card.getBoundingClientRect(), k = CARD_W / r.width; return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k }; }
     function toWork(e) {
-      var r = card.getBoundingClientRect(), k = CARD_W / r.width;
-      return { x: ((e.clientX - r.left) * k - sticker.ox) / sticker.scale, y: ((e.clientY - r.top) * k - sticker.oy) / sticker.scale };
+      var c = toCard(e);
+      return { x: (c.x - sticker.ox) / sticker.scale, y: (c.y - sticker.oy) / sticker.scale };
     }
     card.addEventListener('pointerdown', function (e) {
       if (!sticker) return;
-      var p = toWork(e), R = face.base * opt.size;
-      if (Math.hypot(p.x - face.x, p.y - (face.y + R * 0.5)) > R * 4.2) return;   // 얼굴 근처만
-      drag = { dx: face.x - p.x, dy: face.y - p.y }; card.setPointerCapture(e.pointerId); e.preventDefault();
+      var p = toWork(e), R = face.base * opt.size, fd = Math.hypot(p.x - face.x, p.y - (face.y + R * 0.5));
+      var c = toCard(e), b = dog && dogBox(dog), onDog = !!b && c.x >= b[0] && c.x <= b[2] && c.y >= b[1] && c.y <= b[3];
+      // 얼굴 바로 위면 얼굴, 강아지 위면 강아지, 그 밖에 얼굴 근처(넉넉히)면 얼굴
+      if (fd <= R * 1.8 || (!onDog && fd <= R * 4.2)) drag = { what: 'face', dx: face.x - p.x, dy: face.y - p.y };
+      else if (onDog) drag = { what: 'dog', dx: dog.x - c.x, dy: dog.y - c.y };
+      else return;
+      card.setPointerCapture(e.pointerId); e.preventDefault();
     });
     card.addEventListener('pointermove', function (e) {
       if (!drag) return;
+      if (drag.what === 'dog') {   // 카드 밖으로는 못 나가게, 엉덩이는 늘 응가 쪽으로
+        var c = toCard(e);
+        dog.x = Math.max(90, Math.min(CARD_W - 90, c.x + drag.dx)); dog.y = Math.max(300, Math.min(CARD_H - 30, c.y + drag.dy));
+        dog.flip = dog.x > dog.pcx;
+        requestRender(); return;
+      }
       var p = toWork(e), lim = WORK + 2 * PAD;
       face.x = Math.max(0, Math.min(lim, p.x + drag.dx)); face.y = Math.max(0, Math.min(lim, p.y + drag.dy));
       requestRender();
@@ -1341,7 +1441,7 @@
     chipRow($('bgs'), bgs, opt.bg, function (it) {
       if (it.id === 'cut' && !art.cutOk) { toast('응가와 바닥을 확실히 나누지 못했어요. "다시 고르기"에서 응가를 톡 눌러 주세요.'); return; }
       if (opt.bg === it.id) return;
-      opt.bg = it.id; buildSticker(); paintControls(); render();
+      opt.bg = it.id; buildSticker(); placeDog(); paintControls(); render();
     });
     var f = FACES.filter(function (x) { return x.id === opt.face; })[0];
     $('say').placeholder = f ? f.say : '';
@@ -1364,7 +1464,7 @@
     $('crop-lead').innerHTML = '<b>응가 하나를 톡 눌러 주세요.</b> 그 색을 기준으로 다시 떼어 내요.';
     paintTapNote(); drawCrop();
   });
-  $('again').addEventListener('click', function () { src = null; art = null; sticker = null; show('pick'); });
+  $('again').addEventListener('click', function () { src = null; art = null; sticker = null; dog = null; show('pick'); });
 
   // ════════ 보내기 ════════
   function fileName() { var d = new Date(); return 'walson-poop-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.png'; }
@@ -1441,7 +1541,7 @@
     function med(a) { a.sort(function (x, y) { return x - y; }); return a.length ? a[a.length >> 1] : 0; }
     return { lab: [med(Ls), med(As), med(Bs)].map(function (x) { return Math.round(x * 10) / 10; }), n: n, red: n ? red / n : 0, light: n ? light / n : 0 };
   }
-  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height } }; } };
+  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height }, dog: dog && { x: Math.round(dog.x), y: Math.round(dog.y), h: Math.round(dog.h), flip: dog.flip, inPhoto: dog.inPhoto, box: dogBox(dog).map(Math.round) } }; } };
 })();
 </script>
 </body>
