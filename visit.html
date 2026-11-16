@@ -38,6 +38,7 @@
   h1 { font-size: 22px; font-weight: 900; margin: 6px 0 4px; }
   .sub { font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
   .count { font-size: 13px; font-weight: 800; color: var(--ok); margin: 12px 0 0; }
+  .app-hint { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); word-break: keep-all; text-align: left; }
   .btn-main {
     display: block; width: 100%; border: none; border-radius: 999px; padding: 15px; margin-top: 16px; text-decoration: none;
     background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); color: #fff; font-family: inherit; font-weight: 800; font-size: 16px;
@@ -50,11 +51,11 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="inapp.js?v=1"></script>
+<script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=19"></script>
-<script src="shop-visits.js?v=2"></script>
+<script src="shop-visits.js?v=3"></script>
 </head>
 <body>
 
@@ -65,6 +66,7 @@
     <h1 id="title">방문 도장을 찍었어요</h1>
     <p class="sub" id="sub"></p>
     <p class="count" id="count"></p>
+    <p class="app-hint" id="app-hint" hidden>왈슨을 홈 화면 앱으로 쓰고 있다면 이 도장이 앱에는 안 보일 수 있어요. 휴대폰 카메라로 찍으면 브라우저 쪽에 남거든요. 앱을 열어 [동네] → <b>QR 찍기</b>로 한 번 더 찍어 주세요.</p>
   </div>
 
   <div class="card" id="bad-card" hidden>
@@ -81,45 +83,36 @@
 
 <script>
 (function () {
-  var VISITS_KEY = 'petwalk_visits';   // [{ s: 스팟 id, d: 'YYYY-MM-DD' }] — 같은 가게는 하루 한 번
   var $ = function (id) { return document.getElementById(id); };
-  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   var now = new Date();
-  var today = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
 
   // 카톡으로 QR을 찍어 바깥 브라우저로 넘기는 중이면 여기(카톡 창)엔 도장을 남기지 않는다 — 넘어간 쪽에서 찍힌다(inapp.js)
   if (window.WalsonInApp && WalsonInApp.escaped) return;
   var m = location.search.match(/[?&]s=([^&#]+)/);
   var id = m ? decodeURIComponent(m[1]) : '';
-  var spot = InfraPins.all().filter(function (p) { return p.id === id && p.cat === 'spot'; })[0];
+  var spot = ShopVisits.findShop(id);
   if (!spot) { $('bad-card').hidden = false; return; }
 
-  var visits = [];
-  try { visits = JSON.parse(localStorage.getItem(VISITS_KEY)) || []; } catch (e) { visits = []; }
-  var already = visits.some(function (v) { return v.s === id && v.d === today; });
-  if (!already) {
-    visits.push({ s: id, d: today });
-    try { localStorage.setItem(VISITS_KEY, JSON.stringify(visits)); } catch (e) { /* 못 남겨도 도장 화면은 보여 준다 */ }
-    // 통계: 가게 번호만(하루 한 번). 화면을 새로 고쳐도 다시 보내지 않는다
-    if (window.WalsonTrack) WalsonTrack.send('store_visit', { shop: id });
-  }
-  var times = visits.filter(function (v) { return v.s === id; }).length;
+  // 도장 찍기·통계(가게 번호만, 하루 한 번)는 shop-visits.js 한 곳에서 — 앱 안 QR 찍기와 같은 셈(2026-11-16)
+  var r = ShopVisits.stamp(id);
 
   $('ok-card').hidden = false;
   $('shop').textContent = spot.name || '우리 동네 가게';
   $('stamp-date').textContent = (now.getMonth() + 1) + '.' + now.getDate();
-  $('title').textContent = already ? '오늘 도장은 이미 찍었어요' : '방문 도장을 찍었어요';
+  $('title').textContent = r.already ? '오늘 도장은 이미 찍었어요' : '방문 도장을 찍었어요';
   $('sub').textContent = '강아지와 함께 들러 주셔서 고마워요.';
   // 단골 Lv(2026-11-15) — [동네] 지도의 가게 팝업·목록과 같은 셈(shop-visits.js): 처음 1번 Lv1, 5번마다 Lv↑
-  var lv = window.ShopVisits ? ShopVisits.level(times) : 0;
-  var lvUp = !already && times > 1 && lv > ShopVisits.level(times - 1);
-  $('count').textContent = (times > 1 ? '이 가게 방문 ' + times + '번째' : '이 가게 첫 방문') + (lv ? ' · 단골 Lv' + lv + (lvUp || times === 1 ? ' 달성' : '') : '');
+  $('count').textContent = ShopVisits.countText(r);
 
   var profile = {};
   try { profile = JSON.parse(localStorage.getItem('petwalk_profile')) || {}; } catch (e) { profile = {}; }
   var sampleOn = false;
   try { sampleOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sampleOn = false; }
   if (!profile.cardNo || sampleOn) $('cta-card').hidden = false;   // 처음 온 손님은 주민증 만들기로
+  // 홈 화면 앱이 아닌 곳(휴대폰 카메라 → 사파리·크롬)에서 열렸고 이 브라우저엔 주민증이 없으면 —
+  // 앱을 따로 쓰는 사람일 수 있다(저장 공간이 따로라 도장이 앱에 안 보임). 앱 안에서 다시 찍게 알려 준다(2026-11-16)
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (!standalone && !profile.cardNo && !sampleOn) $('app-hint').hidden = false;
 })();
 </script>
 </body>

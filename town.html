@@ -14,7 +14,8 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=7"></script>
 <script src="infra-pins.js?v=19"></script>
-<script src="shop-visits.js?v=2"></script>
+<script src="shop-visits.js?v=3"></script>
+<script src="qr-scan.js?v=1"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="demo-geo.js?v=5"></script>
 <style>
@@ -188,6 +189,10 @@
   .shop-link .ic { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
   .shop-link:active { transform: scale(0.97); }
   .shop-link[hidden] { display: none; }
+  /* 앱 안 QR 찍기(2026-11-16) — 가게 카운터의 체크인 QR. 모양은 동반 가게 버튼과 같고 동그라미 색만 다르다.
+     오른쪽 여백을 조금 줄여 390px 폭 휴대폰에서 급할 때 · 동반 가게와 한 줄에 들어가게(더 좁으면 두 줄) */
+  .qr-link { gap: 5px; padding-right: 12px; }
+  .qr-link .ic { background: var(--ink); }
   /* 수호지킴이 모아 보기(2026-11-15) — 목록 화면(guardians.html)으로 */
   .guard-link {
     font-size: 13px; font-weight: 800; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
@@ -276,7 +281,7 @@
 </style>
 <script src="theme.js?v=8"></script>
 <script src="site-config.js?v=3"></script>
-<script src="inapp.js?v=1"></script>
+<script src="inapp.js?v=2"></script>
 <script src="track.js?v=5"></script>
 <script src="geo.js?v=4"></script>
 </head>
@@ -308,6 +313,7 @@
   <div class="bottom-links">
     <button type="button" class="sos-link" id="sos-link" hidden></button>
     <button type="button" class="shop-link" id="shop-link" hidden></button>
+    <button type="button" class="shop-link qr-link" id="qr-link" hidden></button>
     <a class="guard-link" id="guard-link" href="guardians.html" hidden></a>
   </div>
 </div>
@@ -552,7 +558,7 @@
       stateEl.textContent = withJosa(dogName) + ' ' + v.count + '번 다녀갔어요 · 처음 ' + shortDate(v.first) + (pl.reward ? ' · 발도장 받음' : '');
       icon = L.divIcon({ className: '', html: MapDeco.faceHtml(myDog.photo, FACE_RING, v.count), iconSize: [46, 46], iconAnchor: [23, 23], popupAnchor: [0, -22] });
     } else {
-      stateEl.textContent = '발도장 장소예요. 아직이에요 — 길 기록 산책으로 지나가면 ' + dogName + ' 얼굴이 찍혀요.';
+      stateEl.textContent = '발도장 장소예요. 아직이에요 — 길 기록 산책 중 여기서 산책 화면을 열면 ' + dogName + ' 얼굴이 찍혀요.';
       icon = L.divIcon({ className: '', html: '<div class="stamp">' + STAMP_SVG + '</div>', iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
     }
     var sm = L.marker(pl.center, { icon: icon, title: pl.name, zIndexOffset: isMission ? 6000 : zOf('stamp', v ? 60 : 0) }).bindPopup(wrap);
@@ -705,6 +711,31 @@
     shopLink.hidden = false;
   }
   shopLink.addEventListener('click', function () { openSheet(sheet); renderShopList(); });
+
+  // ── QR 찍기(2026-11-16) — 가게 카운터의 체크인 QR을 앱 안에서 찍는다(qr-scan.js) ──
+  // 휴대폰 카메라로 찍으면 브라우저(사파리 등)가 열려 홈 화면 앱에는 도장이 안 남을 수 있어서 앱 안에서 찍게 한다.
+  // 가게 QR이면 방문 도장 화면(visit.html — 같은 앱 안이라 도장이 이 앱에 남는다)으로, 도감 QR이면 도감으로 보낸다.
+  var qrLink = document.getElementById('qr-link');
+  if (window.WalsonQR && window.ShopVisits) {
+    qrLink.innerHTML = '<span class="ic">' + WalsonQR.icon(14) + '</span>';
+    qrLink.appendChild(document.createTextNode('QR 찍기'));
+    qrLink.hidden = false;
+    qrLink.addEventListener('click', function () {
+      WalsonQR.scan({
+        title: '가게 QR 찍기',
+        hint: '가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 방문 도장이 이 앱에 남아요.',
+        onText: function (text) {
+          var dex = /dex\.html(#d=[A-Za-z0-9_-]+)/.exec(text);
+          if (dex) { location.href = 'dex.html' + dex[1]; return true; }
+          var id = ShopVisits.idFromQr(text);
+          if (!id) return '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
+          if (!ShopVisits.findShop(id)) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
+          location.href = 'visit.html?s=' + encodeURIComponent(id);
+          return true;
+        }
+      });
+    });
+  }
   function openSheet(el) { sheet.hidden = true; sosSheet.hidden = true; el.hidden = false; bottomStack.hidden = true; }
   function closeSheet() { sheet.hidden = true; sosSheet.hidden = true; bottomStack.hidden = false; }
   document.getElementById('shop-close').addEventListener('click', closeSheet);
@@ -796,6 +827,11 @@
   // 지금 미션(순서대로 안 간 첫 곳)을 아래에 한 줄로. 위치를 알면 걸어서 몇 분, 너무 멀면(25분 넘게) 가까운 다른 미션도 같이.
   var missionCard = document.getElementById('mission-card');
   var missionHere = false;
+  // 길 기록 산책이 진행 중인지(walk.html이 저장해 둔 petwalk_active_route — 2026-11-16 이어 하기)
+  function activeRouteOn() {
+    try { var a = JSON.parse(localStorage.getItem('petwalk_active_route')); return !!(a && typeof a.startedAt === 'number'); }
+    catch (e) { return false; }
+  }
   function placeDist(pl) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], pl.center) : null; }
   function paintMission() {
     if (!missionAll.length) { missionCard.hidden = true; return; }
@@ -816,19 +852,23 @@
     // (2026-11-15 가르시아 폰 시험: "미션 장소에 갔는데 달성했는지 알 수가 없었다")
     missionHere = d != null && d <= missionNow.place.radiusKm * 1000 && myPos.accuracy <= 100;   // 대략적인 위치(PC 등)로는 도착이라 하지 않는다
     if (missionHere) {
+      // 길 기록 산책이 진행 중이면(앱을 닫았다 [동네]로 연 경우 — 2026-11-16 이어 하기) 산책 화면을 열기만 하면 바로 찍힌다
+      var routeOn = activeRouteOn();
       missionCard.className = 'mission-card is-here';
       body.appendChild(mk('span', 'mc-t1', '미션 ' + missionNow.no + ' · ' + missionNow.place.name));
       body.appendChild(mk('span', 'mc-t2', '지금 미션 장소에 있어요'));
-      body.appendChild(mk('span', 'mc-t3', '발도장은 길 기록 산책 중에만 찍혀요. 5분·200m를 걸으면 받아요.'));
-      missionCard.appendChild(flag); missionCard.appendChild(body); missionCard.appendChild(mk('span', 'mc-go', '길 기록 시작'));
+      body.appendChild(mk('span', 'mc-t3', routeOn
+        ? '길 기록 산책 중이에요. 산책 화면을 열면 여기서 바로 찍혀요.'
+        : '발도장은 길 기록 산책 중에만 찍혀요. 5분·200m를 걸으면 받아요.'));
+      missionCard.appendChild(flag); missionCard.appendChild(body); missionCard.appendChild(mk('span', 'mc-go', routeOn ? '산책 화면 열기' : '길 기록 시작'));
       missionCard.hidden = false;
-      if (missionWalkEl) missionWalkEl.textContent = '지금 여기 있어요 · 길 기록 산책 중에만 발도장이 찍혀요';
+      if (missionWalkEl) missionWalkEl.textContent = routeOn ? '지금 여기 있어요 · 산책 화면을 열면 바로 찍혀요' : '지금 여기 있어요 · 길 기록 산책 중에만 발도장이 찍혀요';
       return;
     }
     missionCard.className = 'mission-card';
     body.appendChild(mk('span', 'mc-t1', '미션 ' + missionNow.no + ' · 발도장 ' + done + '/' + missionAll.length));
     body.appendChild(mk('span', 'mc-t2', missionTarget(missionNow)));
-    var t3 = '길 기록 산책으로 지나가면 발도장이 찍혀요';
+    var t3 = '길 기록 산책 중 여기서 산책 화면을 열면 발도장이 찍혀요';
     if (d != null) {
       t3 = '여기서 ' + ShopVisits.walkText(d);
       if (ShopVisits.walkMinutes(d) > 25) {
