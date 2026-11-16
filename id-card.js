@@ -255,7 +255,8 @@
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
     // "나도 만들기" QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
-    drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
+    // opts.noQr: 키링용(2026-11-16) — 6cm로 줄이면 QR이 1cm 남짓이라 잘 안 찍혀서 뺀다
+    if (!opts.noQr) drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
     footer(ctx, '왈슨 · ' + SHARE_URL_TEXT);
     return canvas;
   }

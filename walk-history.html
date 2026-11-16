@@ -181,10 +181,13 @@
   .poop-cal .day { aspect-ratio: 1 / 1.1; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
   .poop-cal .day.is-today { box-shadow: inset 0 0 0 2px var(--accent); }
   .poop-cal .day.walked { background: var(--accent-tint); color: var(--ink); font-weight: 700; }
-  .poop-cal .dots { display: flex; gap: 2px; height: 9px; align-items: center; }
+  .poop-cal .dots { display: flex; gap: 2px; height: 12px; align-items: center; }
   .poop-cal .dots i { width: 9px; height: 9px; border-radius: 50% 50% 45% 45%; background: #8a5a2b; display: block; }
   .poop-cal .dots i.none { background: none; border: 1.5px solid #8a5a2b; width: 8px; height: 8px; }
   .poop-cal .dots i.unknown { background: none; border: 1.5px dashed var(--ink-soft); width: 8px; height: 8px; opacity: 0.6; }
+  /* 응가 캐릭터를 만든 날(2026-11-16): 점 대신 눈알 달린 작은 응가, '평소와 달랐어요'면 주황 테두리 */
+  .poop-cal .dots i.toon { width: 15px; height: 12px; border-radius: 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 24'%3E%3Cpath d='M4 22c-3-1-2-5 1-5-1-3 1-6 5-5 0-4 4-6 7-4 2-3 7-2 7 2 3 0 5 3 3 6 3 1 3 5 0 6z' fill='%238a5a2b' stroke='%234a3f35' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='11' cy='15.5' r='2.6' fill='%23fff'/%3E%3Ccircle cx='18.5' cy='15.5' r='2.6' fill='%23fff'/%3E%3Ccircle cx='11.6' cy='16' r='1.2' fill='%234a3f35'/%3E%3Ccircle cx='19.1' cy='16' r='1.2' fill='%234a3f35'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .poop-cal .dots i.toon.diff { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #e0894a; border-radius: 4px; }
   .poop-cal .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
   .poop-cal .legend span { display: inline-flex; align-items: center; gap: 4px; }
   .poop-cal .sum { font-size: 13px; font-weight: 700; margin: 8px 0 0; }
@@ -270,6 +273,7 @@
       <span><span class="dots"><i></i><i></i></span>2번 이상</span>
       <span><span class="dots"><i class="none"></i></span>안 했어요</span>
       <span><span class="dots"><i class="unknown"></i></span>산책했지만 안 적음</span>
+      <span><span class="dots"><i class="toon"></i></span>응가 캐릭터 만든 날</span>
     </div>
     <p class="sum" id="cal-sum"></p>
   </section>
@@ -285,7 +289,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=9"></script>
 <script src="month-report.js?v=3"></script>
-<script src="walk-receipt.js?v=4"></script>
+<script src="walk-receipt.js?v=5"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';        // walk.html·go.html·[오늘] "다녀왔어요"가 저장하는 산책 기록
@@ -740,6 +744,7 @@
 
 // ── 응가 달력 ──
 // 끝 화면(walk-end.html)이 산책 기록에 붙인 poop(0 안 함 · 1 한 번 · 2 두 번 이상)을 날짜별로 모은다.
+// 그 산책에서 응가 캐릭터를 만들었으면(poopToon: 표정·상태만, 2026-11-16) 점 대신 작은 캐릭터, '평소와 달랐어요'면 주황 테두리.
 // 하루에 여러 번 산책했으면 그날 가장 많이 한 답을 보인다. 이 휴대폰 기록만 쓰고 어디로도 보내지 않는다.
 (function () {
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
@@ -752,6 +757,7 @@
     if (!w || !w.date) return;
     var d = byDay[w.date] || (byDay[w.date] = { walked: true });
     if (typeof w.poop === 'number' && (d.poop === undefined || w.poop > d.poop)) d.poop = w.poop;
+    if (w.poopToon) d.toon = w.poopToon;   // 응가 캐릭터를 만든 산책(그날 마지막 것) — 표정·상태만 있다
   });
 
   var today = new Date();
@@ -782,7 +788,14 @@
         else {
           answered++;
           if (rec.poop === 0) { dots.innerHTML = '<i class="none"></i>'; label += ', 응가 안 함'; }
-          else { poopDays++; dots.innerHTML = rec.poop >= 2 ? '<i></i><i></i>' : '<i></i>'; label += rec.poop >= 2 ? ', 응가 2번 이상' : ', 응가 1번'; }
+          else {
+            poopDays++; label += rec.poop >= 2 ? ', 응가 2번 이상' : ', 응가 1번';
+            if (rec.toon) {   // 캐릭터를 만든 날
+              var diff = rec.toon.state === 'diff';
+              dots.innerHTML = '<i class="toon' + (diff ? ' diff' : '') + '"></i>';
+              label += ', 응가 캐릭터 만듦' + (diff ? ', 평소와 달랐어요' : rec.toon.state === 'usual' ? ', 평소대로' : '');
+            } else dots.innerHTML = rec.poop >= 2 ? '<i></i><i></i>' : '<i></i>';
+          }
         }
       }
       cell.setAttribute('aria-label', label);
