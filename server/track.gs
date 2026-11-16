@@ -14,7 +14,7 @@ var LOG_SHEET = 'log';
 var DASH_SHEET = '요약';
 var TZ = 'Asia/Seoul';
 var EVENTS = ['page_view', 'card_made', 'card_saved', 'walk_start', 'walk_complete', 'stamp_new',
-              'keyring_given', 'walk_type_done', 'share_click', 'store_visit'];
+              'keyring_given', 'walk_type_done', 'share_click', 'store_visit', 'shop_list_open'];
 var HEADER = ['받은 시각', '날짜', '기기', '이벤트', '화면', '유입', '첫 유입', '홈화면앱', '샘플', '운영자', '값', '테스트'];
 // 시뮬레이터(simulate.html)가 보낸 기록은 '테스트' 칸이 1 — 운영 요약에서 빼고 '요약(테스트)'에서만 센다.
 // 테스트 기록만 보낸 쪽 날짜(m.t)를 쓴다(지난 30일을 몇 초 만에 만들기 위해). 실제 기록은 늘 받은 시각.
@@ -156,7 +156,7 @@ function buildSummary_(rows) {
   }
   var day = {};            // 날짜 → 집계
   function D(d) {
-    return day[d] || (day[d] = { visit: {}, fresh: 0, back: {}, card: 0, wstart: {}, wdone: {}, gps: 0, stamp: 0, key: 0 });
+    return day[d] || (day[d] = { visit: {}, fresh: 0, back: {}, card: 0, wstart: {}, wdone: {}, gps: 0, stamp: 0, key: 0, shoplist: {} });
   }
   // 날짜 순(같은 날은 받은 순) — 시뮬레이터 기록은 받은 시각이 모두 '지금'이라 날짜로 줄 세워야 첫 방문일이 맞다
   function dkey(r) { return typeof r[1] === 'string' ? r[1] : Utilities.formatDate(new Date(r[1]), TZ, 'yyyy-MM-dd'); }
@@ -186,6 +186,7 @@ function buildSummary_(rows) {
     if (ev === 'walk_complete') { d.wdone[id] = 1; g.walk = true; if (extra.mode === 'gps') d.gps++; }
     if (ev === 'stamp_new') d.stamp += Number(extra.count || 1);
     if (ev === 'keyring_given') d.key++;
+    if (ev === 'shop_list_open') d.shoplist[id] = 1;   // [동네] 동반 가게 목록을 연 기기
     if (ev === 'store_visit' && extra.shop) {
       var sp = shops[extra.shop] || (shops[extra.shop] = { dev: {}, month: {}, newcomer: {}, days: {} });
       sp.dev[id] = (sp.dev[id] || 0) + 1;
@@ -196,11 +197,11 @@ function buildSummary_(rows) {
   });
 
   var out = [['일별 (샘플·운영자 기기 제외)'],
-    ['날짜', '방문 기기', '새 기기', '다시 온 기기', '주민증 만듦', '산책 시작 기기', '산책 완료 기기', '길 기록 산책', '새 발도장', '키링']];
+    ['날짜', '방문 기기', '새 기기', '다시 온 기기', '주민증 만듦', '산책 시작 기기', '산책 완료 기기', '길 기록 산책', '새 발도장', '키링', '가게 목록 본 기기']];
   Object.keys(day).sort().reverse().forEach(function (k) {
     var d = day[k];
     out.push([k, Object.keys(d.visit).length, d.fresh, Object.keys(d.back).length, d.card,
-      Object.keys(d.wstart).length, Object.keys(d.wdone).length, d.gps, d.stamp, d.key]);
+      Object.keys(d.wstart).length, Object.keys(d.wdone).length, d.gps, d.stamp, d.key, Object.keys(d.shoplist).length]);
   });
 
   // 유입별
