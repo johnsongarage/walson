@@ -17,7 +17,9 @@
      문구와 응가 선택지는 아직 제안이다(SPEC_STAGE0.md "정할 것"). 오늘의 한 장은 휴대폰 안에만(walk-photos.js). 가족에게 보내기는 아직 없다.
      저장하면 [기록] 탭(walk-history.html?end=1)으로 넘어가 방금 산책의 영수증을 보여 준다(2026-11-15 가르시아 "끝 화면에서 바로 영수증으로",
      11/16 [영수증] 탭을 [기록]에 합침). 인증샷은 11/16 서비스 줄이기 때 뺐다 — 같은 순간·같은 재료로 영수증이 나와서.
-     "묻지 않고 넘어가기"는 그대로 [오늘]로 — 아무것도 하기 싫은 사람의 출구. */
+     "묻지 않고 넘어가기"는 그대로 [오늘]로 — 아무것도 하기 싫은 사람의 출구.
+     맨 위 "오늘 달라진 것"(2026-11-16 가르시아 "그렇게 진행해줘" — 보상 체감 재검토 제안 1·2): 이번 산책 전후 기록을 비교해
+     영수증·오늘 목표·꾸준함·(길 기록이면) 새 발도장·카드 변화·다음 미션을 한 곳에. 길 기록도 지도 위 보상 알림 대신 여기서 끝난다. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
@@ -51,6 +53,14 @@
   .opts button:active { transform: scale(0.97); }
   .opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
   .scale-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+  /* 오늘 달라진 것(2026-11-16) */
+  .ch-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .ch-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.45; word-break: keep-all; }
+  .ch-list .tag { flex-shrink: 0; min-width: 52px; text-align: center; font-size: 11px; font-weight: 800; padding: 3px 6px; margin-top: 1px;
+    border-radius: 999px; background: var(--accent-tint); color: var(--accent); }
+  .ch-list li.is-new .tag { background: var(--accent); color: #fff; }
+  .ch-list b { font-weight: 800; }
+  .ch-next { margin: 10px 0 0; font-size: 12px; color: var(--ink-soft); line-height: 1.5; word-break: keep-all; }
 
   .photo { position: relative; border-radius: 14px; overflow: hidden; background: #fff; }
   .photo img { display: block; width: 100%; max-height: 360px; object-fit: cover; }
@@ -105,6 +115,12 @@
      style="align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:14px 16px;border-radius:18px;text-decoration:none;background:var(--accent-tint);color:var(--ink);font-weight:800;font-size:15px;">
     <span id="met-text">스친 강아지 찾는 중…</span><span aria-hidden="true">→</span>
   </a>
+  <!-- 오늘 달라진 것(2026-11-16) — 이번 산책으로 바뀐 것을 한 곳에 -->
+  <section class="q" id="changed" hidden>
+    <h2>오늘 달라진 것</h2>
+    <ul class="ch-list" id="ch-list"></ul>
+    <p class="ch-next" id="ch-next" hidden></p>
+  </section>
   <!-- 꾸준함 도장(2026-11-15): 이 산책까지 넣은 이번 주 — 시간만 잰 산책도 들어간다 -->
   <section class="q" id="steady-end" hidden>
     <h2>꾸준함 도장 <span>이번 주</span></h2>
@@ -165,7 +181,7 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=7"></script>
+<script src="reward-rules.js?v=8"></script>
 <script src="steady-stamp.js?v=2"></script>
 <script src="mock-server.js?v=1"></script>
 <script>
@@ -220,6 +236,74 @@
     document.getElementById('steady-end').hidden = false;
   }
 
+  // ── 오늘 달라진 것(2026-11-16) — 방금 산책을 넣기 전과 후를 비교해 바뀐 것만 모은다 ──
+  // 카드 문구는 게임 말(스킬·특성 칸) 대신 "카드에 새 칸" — 자라는 카드를 "자라는 주민증"으로 바꿀지는 따로 검토 중(11/16)
+  function cardWords(t) {
+    var JOSA = { '종이': '종이로', '나무': '나무로', '은': '은으로', '금': '금으로' };
+    t = String(t || '');
+    var m = /^(\S+) 테두리로 올라갔어요$/.exec(t);
+    if (m) return '카드 테두리가 ' + (JOSA[m[1]] || m[1] + '(으)로') + ' 바뀌었어요';
+    return t.replace(/(스킬|특성) 칸이 열렸어요/, '카드에 새 칸이 열렸어요').replace(/(스킬|특성) 칸이 열려요/, '카드에 새 칸이 열려요')
+      .replace(/(\S+) 테두리가 돼요$/, '카드가 $1 테두리가 돼요');
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var receiptLi = null;
+  function paintReceiptLine() {
+    if (!receiptLi) return;
+    var no = 'No.' + ('000' + walks.length).slice(-4);
+    var head = answers.feel === 'short' ? '<b>일부 상환</b> (연체 아님)' : answers.feel === 'enough' ? '<b>오늘 산책 빚 상환 완료</b>' : '오늘 산책 빚 1회분';
+    receiptLi.querySelector('span:last-child').innerHTML = head + ' · 저장하면 영수증(' + no + ')이 나와요';   // 숫자 뒤 조사가 갈리지 않게 괄호로
+  }
+  (function () {
+    var R = window.RewardRules;
+    if (!R || !R.dayGoal) return;
+    var listEl = document.getElementById('ch-list'), nextEl = document.getElementById('ch-next');
+    var before = walks.slice(0, -1), isRoute = walk.mode !== 'time';
+    function add(tag, html, isNew) {
+      var li = document.createElement('li');
+      if (isNew) li.className = 'is-new';
+      li.innerHTML = '<span class="tag">' + tag + '</span><span>' + html + '</span>';
+      listEl.appendChild(li);
+      return li;
+    }
+    // 1) 영수증 — "충분했나" 답에 따라 상환 문구가 바뀐다
+    receiptLi = add('영수증', '');
+    // 2) 오늘 목표 — 크기별(소 30·중 60·대 90분, 크기를 모르면 중형). 모자라도 혼내지 않는다
+    var g = R.dayGoal(walks, walk.date), gb = R.dayGoal(before, walk.date);
+    var sizeName = { small: '소형', medium: '중형', large: '대형' }[R.dogSize()] || '';
+    if (g.reached && !gb.reached) add('목표', '<b>오늘 목표 달성!</b> ' + g.total + '분 · ' + sizeName + ' 목표 ' + g.target + '분', true);
+    else if (g.reached) add('목표', '오늘 목표는 이미 달성 · 오늘 ' + g.total + '분');
+    else add('목표', '오늘 ' + g.total + '분 · ' + sizeName + ' 목표 ' + g.target + '분까지 ' + g.left + '분');
+    // 3) 꾸준함 도장(5분 이상 산책만 센다)
+    if (R.steady && (walk.durationMin || 0) >= (R.STEADY_MIN_MINUTES || 5)) {
+      var sa = R.steady(walks), sb = R.steady(before);
+      if (sa.thisWeek.level > sb.thisWeek.level) add('꾸준함', '<b>이번 주 ' + sa.thisWeek.days + '일 도장 쾅!</b>', true);
+      else add('꾸준함', '이번 주 ' + sa.thisWeek.days + '일째' + (sa.thisWeek.next ? ' · ' + sa.thisWeek.left + '일 더 걸으면 ' + sa.thisWeek.next + '일 도장' : ''));
+    }
+    // 4) 길 기록 — 새 발도장·카드 변화·다음 미션(예전 지도 위 보상 알림에 있던 것)
+    var next = '';
+    if (isRoute) {
+      if (walk.rewardEligible === false) {
+        add('길 기록', '5분·200m가 안 돼서 이번엔 발도장·카드에 안 들어갔어요');
+      } else if (R.computeProgress && R.newUnlocks) {
+        var pb = R.computeProgress(before), pa = R.computeProgress(walks);
+        R.newUnlocks(pb, pa).forEach(function (t) {
+          var isStamp = t.indexOf('발도장') >= 0;
+          // 딱지가 이미 "카드"라 문장 앞의 "카드에/카드"는 뺀다 — [카드] 새 칸이 열렸어요
+          var words = isStamp ? t : cardWords(t).replace(/^카드(에|가)? /, '');
+          add(isStamp ? '발도장' : '카드', '<b>' + esc(words) + '</b>', true);
+        });
+        var mi = R.currentMission ? R.currentMission(pa) : null;
+        next = (mi ? '다음 미션: ' + mi.place.name + (mi.place.kind === 'building' ? ' 앞까지' : '까지') + ' · ' : '') + '다음: ' + cardWords(R.nextGoalText(pa));
+      }
+      if (walk.gapMin >= 1) add('길 기록', '기록이 ' + walk.gapMin + '분 끊긴 구간은 걷는 속도면 직선으로 셌어요');
+    } else {
+      next = '길 기록으로 걸으면 발도장·카드도 자라요.';
+    }
+    if (next) { nextEl.textContent = next; nextEl.hidden = false; }
+    document.getElementById('changed').hidden = false;
+  })();
+
   // 답 고르기 — 같은 버튼을 다시 누르면 선택이 풀린다(전부 선택 사항)
   var answers = {};
   if (walk.feel) answers.feel = walk.feel;
@@ -238,10 +322,13 @@
         var v = b.getAttribute('data-value');
         if (answers[field] === v) delete answers[field]; else answers[field] = v;
         paint();
+        if (field === 'feel') paintReceiptLine();
       });
     });
     paint();
   });
+
+  paintReceiptLine();
 
   // ── 오늘의 한 장 ──
   var photoBlob = null;          // 새로 고른 사진(아직 저장 전)

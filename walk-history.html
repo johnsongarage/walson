@@ -283,9 +283,9 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=7"></script>
+<script src="reward-rules.js?v=8"></script>
 <script src="month-report.js?v=3"></script>
-<script src="walk-receipt.js?v=3"></script>
+<script src="walk-receipt.js?v=4"></script>
 <script>
 (function () {
   var WALKS_KEY = 'petwalk_walks';        // walk.html·go.html·[오늘] "다녀왔어요"가 저장하는 산책 기록
@@ -457,12 +457,16 @@
     });
   })();
 
-  // 특이 사항 기본값 — 날마다 다르게(같은 문구만 나오면 금방 질린다), 킁킁을 많이 했으면 냄새 쪽으로
+  // 특이 사항 기본값 — 날마다 다르게(같은 문구만 나오면 금방 질린다). 산책 시간·답과 어긋나지 않게 고른다(11/16):
+  // 킁킁을 많이 했으면 냄새 쪽, 짧았거나 "조금 아쉬워요"면 일찍 들어가려는 쪽, 충분히 걸었으면 그 두 문구(5분 만에 안아·나오자마자 집에)는 빼고.
+  // 날씨·옷처럼 그날 일을 모르는 문구(빗물·새 옷)는 기본값으로 안 쓴다 — 보호자가 고를 때만.
   function defaultNote(i) {
-    var w = walks[i];
+    var w = walks[i], min = w.durationMin || 0;
     if (w.sniff >= 4) return (i % 2) ? 'grass' : 'pole';
-    var pool = NOTES.slice(0, 10);
-    return pool[(i * 7 + 3) % pool.length].id;
+    var pool = (min < 15 || w.feel === 'short')
+      ? ['hug', 'home', 'ears', 'shop']
+      : ['pole', 'grass', 'shop', 'ears', 'hello', 'pull', 'treat', 'bench'];
+    return pool[(i * 7 + 3) % pool.length];
   }
   function choice(i) { return choices[info[i].key] || {}; }
   function setChoice(i, patch) {
@@ -483,7 +487,8 @@
       no: i + 1, date: w.date, demo: !!w.demo, mode: w.mode === 'time' ? 'time' : 'gps', after: w.logged === 'after',
       durationMin: w.durationMin || 0, distanceKm: w.distanceKm || 0,
       feel: w.feel, sniff: w.sniff, poop: typeof w.poop === 'number' ? w.poop : undefined,
-      stamps: info[i].stamps, steady: info[i].steady, note: noteText(i), name: profile.name || ''
+      stamps: info[i].stamps, steady: info[i].steady, note: noteText(i), name: profile.name || '',
+      goal: (R && R.dayGoal) ? R.dayGoal(walks, w.date, i) : null   // 그날 목표 — 이 산책까지 걸은 시간(11/16)
     };
   }
   function stampWord(w) { return w.feel === 'short' ? '일부 상환' : '상환 완료'; }

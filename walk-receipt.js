@@ -13,7 +13,7 @@
 //
 //   WalkReceipt.draw(canvas, data, photo, { fmt: 'feed'|'story', photoY: 0~1, logo })   (화면 테마는 11/16부터 차분 하나뿐)
 //   data = { no, date, demo, mode: 'time'|'gps', after(다녀와서 적은 산책), durationMin, distanceKm, feel, sniff, poop,
-//            stamps: { hit, fresh } | null, steady: { days, got }, note, name }
+//            stamps: { hit, fresh } | null, steady: { days, got }, goal: { target, total, reached } | null, note, name }
 (function () {
   var FORMATS = {
     feed:  { w: 1080, h: 1350, label: '피드 4:5' },
@@ -74,6 +74,8 @@
       r: noPoop ? '안 적음' : d.poop === 0 ? '0건 (다음 산책으로)' : d.poop === 1 ? '1건' : '2건 이상' });
     if (d.stamps && d.stamps.hit) out.push({ t: 'pair', l: '발도장', r: d.stamps.hit + '곳' + (d.stamps.fresh ? ' (새로 ' + d.stamps.fresh + ')' : '') });
     if (d.steady && d.steady.days) out.push({ t: 'pair', l: '꾸준함 도장', r: '이번 주 ' + d.steady.days + '일째' + (d.steady.got ? ' · 도장 쾅' : '') });
+    // 오늘 목표(11/16 — 크기별 소 30·중 60·대 90분, 그날 이 산책까지 걸은 시간). 달성하면 작은 "달성" 도장
+    if (d.goal && d.goal.target) out.push({ t: 'pair', l: '오늘 목표', r: d.goal.total + '/' + d.goal.target + '분', goal: !!d.goal.reached });
     out.push({ t: 'rule' });
     out.push({ t: 'label', text: '특이 사항' });
     out.push({ t: 'para', text: d.note || '없음 (평화로운 산책)' });
@@ -94,7 +96,7 @@
   function textOf(list) {
     return list.map(function (r) {
       return [r.text, r.l, r.r].concat(r.stamp || []).filter(Boolean).join('');
-    }).join('') + '“”…0123456789.()·';
+    }).join('') + '“”…0123456789.()·/달성';
   }
   function ensureFonts(text) {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
@@ -191,6 +193,18 @@
         ctx.fillText(r.l, L, mid);
         var lw = ctx.measureText(r.l).width;
         fitRight(ctx, r.r, R, mid, inner - lw - 24, r.soft ? '400' : '700', fs);
+        if (r.goal) {
+          // 목표 달성 도장 — 값 왼쪽에 작게, 살짝 기울여 찍는다
+          ctx.font = '700 ' + fs + 'px ' + MONO;
+          var vw = ctx.measureText(r.r).width, sw = fs * 2.7, sh = fs * 1.25;
+          ctx.save();
+          ctx.translate(R - vw - 22 - sw / 2, mid); ctx.rotate(-8 * Math.PI / 180);
+          ctx.globalAlpha = 0.9; ctx.strokeStyle = STAMP; ctx.fillStyle = STAMP; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.rect(-sw / 2, -sh / 2, sw, sh); ctx.stroke();
+          ctx.font = Math.round(fs * 0.8) + 'px ' + BIG; ctx.textAlign = 'center';
+          ctx.fillText('달성', 0, 1);
+          ctx.restore();
+        }
         break;
       case 'dots':
         ctx.font = '400 ' + S.mono + 'px ' + MONO; ctx.textAlign = 'left';

@@ -82,6 +82,10 @@
   .today-num { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
   .today-num small { font-size: 20px; font-weight: 700; margin-left: 4px; letter-spacing: 0; }
   .today-sub { font-size: 14px; color: var(--ink-soft); margin: 8px 0 0; }
+  /* 오늘 목표(2026-11-16) — 달성하면 도장처럼 */
+  .today-goal { display: inline-block; margin: 8px 0 0; padding: 3px 10px; font-size: 13px; font-weight: 800; color: var(--accent); background: var(--accent-tint, #f3ddd2); border-radius: 999px; }
+  .today-goal.is-done { color: #fff; background: var(--accent); }
+  .today-goal[hidden] { display: none; }
 
   .btn-main {
     display: block; width: 100%; text-align: center; text-decoration: none;
@@ -206,6 +210,7 @@
     <h2 id="today-label">오늘</h2>
     <div class="today-num"><span id="today-min">0</span><small>분</small></div>
     <p class="today-sub" id="today-sub">아직 오늘 산책 기록이 없어요.</p>
+    <p class="today-goal" id="today-goal" hidden></p>
     <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
     <button type="button" class="btn-sub" id="after-btn">다녀왔어요 · 몇 분인지만 적기</button>
     <p class="btn-note" id="go-note">나갈 때 누르면 시간을 재 주고, 깜빡했으면 다녀와서 적어도 돼요.</p>
@@ -273,7 +278,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=7"></script>
+<script src="reward-rules.js?v=8"></script>
 <script src="backup.js?v=5"></script>
 <script src="steady-stamp.js?v=2"></script>
 <script>
@@ -394,6 +399,16 @@
     if (FEEL[lastToday.feel]) extra.push(FEEL[lastToday.feel]);
     if (lastToday.sniff) extra.push('킁킁 ' + lastToday.sniff);
     if (extra.length) document.getElementById('today-sub').textContent += ' · ' + extra.join(' · ');
+  }
+  // 오늘 목표(2026-11-16 — 크기별 소 30·중 60·대 90분, reward-rules.js dayGoal). 끝난 뒤 확인용 — 모자라도 혼내지 않는다
+  if (window.RewardRules && RewardRules.dayGoal) {
+    var goal = RewardRules.dayGoal(walks, todayKey);
+    var goalEl = document.getElementById('today-goal');
+    if (goalEl) {
+      goalEl.textContent = goal.reached ? '오늘 목표 달성 · 목표 ' + goal.target + '분' : (goal.total ? '목표 ' + goal.target + '분까지 ' + goal.left + '분' : '오늘 목표 ' + goal.target + '분');
+      goalEl.classList.toggle('is-done', goal.reached);
+      goalEl.hidden = false;
+    }
   }
 
   // 시간만 재는 산책(go.html)이 진행 중이면 버튼이 그 화면으로 돌아가게 한다

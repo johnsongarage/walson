@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=7"></script>
+<script src="reward-rules.js?v=8"></script>
 <script src="infra-pins.js?v=20"></script>
 <script src="shop-visits.js?v=3"></script>
 <script src="qr-scan.js?v=2"></script>
@@ -295,27 +295,6 @@
   }
   .route-panel.is-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 
-  /* 산책 종료 직후 이번에 얻은 보상을 알려주는 패널 — route-panel과 같은 자리에 뜨되, 코스
-     패널이 열려 있으면 그 위로 쌓인다(positionRoutePanel()이 둘 다 배치). */
-  .reward-panel {
-    position: absolute; bottom: 92px; left: 14px; right: 14px; z-index: 11;
-    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-lg);
-    padding: 14px 16px; font-size: 13px; box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.16);
-    opacity: 0; transform: translateY(10px) scale(0.98); pointer-events: none;
-    transition: opacity 0.22s ease, transform 0.22s ease;
-  }
-  .reward-panel.is-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-  .reward-panel .reward-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .reward-panel .reward-title { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; }
-  .reward-panel .reward-title .icon { color: var(--accent); }
-  .reward-panel .reward-close {
-    border: none; background: none; color: var(--ink-soft); cursor: pointer; padding: 4px;
-    display: flex; align-items: center;
-  }
-  .reward-panel ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.7; font-weight: 700; }
-  .reward-panel .reward-next { margin: 6px 0 0; color: var(--ink-soft); line-height: 1.5; }
-  .reward-panel .reward-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
-  .reward-panel .reward-actions .btn { padding: 10px 16px; font-size: 13px; text-decoration: none; }
   .route-panel-row { display: flex; align-items: center; gap: 12px; }
   .route-panel label {
     white-space: nowrap; font-weight: 700; color: var(--ink);
@@ -404,7 +383,7 @@
   @media (prefers-reduced-motion: reduce) {
     .footprint svg { animation: none; }
     .my-location-dot::after { animation: none; display: none; }
-    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .reward-panel, .walk-notice { transition: none; }
+    .btn, .menu-btn, .menu-dropdown, .locate-btn, .route-panel, .walk-notice { transition: none; }
   }
 </style>
 <script src="theme.js?v=9"></script>
@@ -473,19 +452,6 @@
   </div>
 </div>
 
-<div class="reward-panel" id="reward-panel" role="status" aria-live="polite">
-  <div class="reward-head">
-    <span class="reward-title" id="reward-title"><span class="icon" data-icon="cards"></span><span id="reward-title-text"></span></span>
-    <button type="button" class="reward-close" id="reward-close" aria-label="닫기"><span class="icon" data-icon="x"></span></button>
-  </div>
-  <ul id="reward-list"></ul>
-  <p class="reward-next" id="reward-next"></p>
-  <div class="reward-actions">
-    <!-- 끝난 직후 물어볼 것(충분했나·킁킁·응가)은 끝 화면에서 한 번에 묻는다(C안, 기획표 V1-19) -->
-    <a class="btn btn-secondary" href="my-card.html" style="margin-right:8px;">내 카드 보기</a>
-    <a class="btn btn-primary" href="walk-end.html">산책 마무리하기</a>
-  </div>
-</div>
 
 <div class="bottom-bar" id="bottom-bar">
   <!-- 추천 루트는 숨김(2026-11-14 가르시아 결정). 이유: "내 위치 주변으로 보기"를 허락하면 내 위치 근처
@@ -562,12 +528,9 @@
   // 좁은 화면(모바일)에서 2줄로 줄바꿈되며 높이가 커진다. route-panel의 bottom 값을
   // CSS에 고정값으로 박아두면 하단바가 늘어난 만큼을 못 따라가서 겹쳐 보였음 — 대신
   // 하단바의 실측 높이(offsetHeight)를 재서 그 바로 위로 매번 다시 배치한다.
-  var rewardPanel = document.getElementById('reward-panel');
   function positionRoutePanel() {
     var base = bottomBar.offsetHeight + 28; // 28 = 하단바 자체 bottom(18) + 여백(10)
     routePanel.style.bottom = base + 'px';
-    var routeOpen = routePanel.classList.contains('is-visible');
-    rewardPanel.style.bottom = (routeOpen ? base + routePanel.offsetHeight + 10 : base) + 'px';
   }
   positionRoutePanel();
   window.addEventListener('resize', positionRoutePanel);
@@ -980,7 +943,8 @@
   function showIdleStats() {
     var walks = loadWalks();
     if (!walks.length) return;
-    statusText.textContent = '이번 달 ' + walksThisMonthCount(walks) + '번 산책 · 연속 ' + computeStreakDays(walks) + '일째';
+    // 위쪽 칩 안에 들어가게 짧게(2026-11-16 — 360px 폰에서 "…일째"가 잘렸음)
+    statusText.textContent = '이번 달 ' + walksThisMonthCount(walks) + '번 · 연속 ' + computeStreakDays(walks) + '일';
   }
 
   // 두 GPS 좌표([lat, lng]) 사이 거리(km) — 하버사인 공식
@@ -1423,7 +1387,7 @@
       if (!silent) alert('이 브라우저에서는 위치 정보를 사용할 수 없습니다.');
       return;
     }
-    if (!locationPermissionExplained) {
+    if (!locationPermissionExplained && !isDemo()) {   // 시연 모드는 가짜 위치라 권한을 묻지 않는다(2026-11-16)
       if (!confirm('지도에 내 위치를 표시하려면 위치 정보 접근 권한이 필요합니다. 허용할까요?')) return;
       markLocationExplained();
     }
@@ -1454,36 +1418,8 @@
     );
   }
 
-  // 산책 종료 직후 보상 알림(2026-09-25) — 보상 카드 화면에 직접 들어가야만 뭐가 열렸는지 알 수
-  // 있어서 보상이 있어도 체감이 안 된다는 문제 때문에 추가. 규칙은 reward-rules.js 하나에서만 관리.
-  function showRewardPanel(before, after, eligible) {
-    var unlocks = eligible ? window.RewardRules.newUnlocks(before, after) : [];
-    var listEl = document.getElementById('reward-list');
-    listEl.innerHTML = '';
-    unlocks.forEach(function (text) {
-      var li = document.createElement('li');
-      li.textContent = text;
-      listEl.appendChild(li);
-    });
-    listEl.style.display = unlocks.length ? '' : 'none';
-    document.getElementById('reward-title-text').textContent = !eligible
-      ? '이번 산책은 보상에서 빠졌어요'
-      : (unlocks.length ? '새 보상을 받았어요!' : '산책 ' + after.walks + '회째 기록했어요');
-    document.getElementById('reward-next').textContent = !eligible
-      ? '5분·200m 이상 걸으면 보상 횟수에 들어가요.'
-      : nextLine(after);
-    rewardPanel.classList.add('is-visible');
-    positionRoutePanel();
-  }
-  function hideRewardPanel() { rewardPanel.classList.remove('is-visible'); }
-  // 다음 미션이 있으면 앞에(장소 목표가 산책 횟수 목표 뒤에 숨지 않게)
-  function nextLine(after) {
-    var R = window.RewardRules, goal = R.nextGoalText(after), m = R.currentMission ? R.currentMission(after) : null;
-    if (!m) return '다음 보상: ' + goal;
-    var target = '다음 미션: ' + m.place.name + (m.place.kind === 'building' ? ' 앞까지' : '까지');
-    return goal.indexOf('발도장') >= 0 ? target : target + ' · 다음 보상: ' + goal;
-  }
-  document.getElementById('reward-close').addEventListener('click', hideRewardPanel);
+  // 산책 종료 직후 보상 알림(2026-09-25 지도 위 패널) → 2026-11-16 끝 화면(walk-end.html)의 "오늘 달라진 것"으로 옮김.
+  // 시간 재기·다녀왔어요와 같은 길로 끝나게 — 패널을 닫으면 끝 화면 질문·영수증을 놓치던 문제(가르시아 "그렇게 진행해줘").
 
   // 산책 종료는 두 번 눌러야(2026-11-16 0단계) — 첫 번째는 4초 동안 "한 번 더 누르면 끝나요"만 보여 준다.
   // 화면을 켜 둔 채 주머니에 넣었을 때 잘못 눌려 산책이 끝나 버리지 않게.
@@ -1720,7 +1656,6 @@
     routeSamples = [];
     liveVisited = {};
     liveKm = 0;
-    hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
     resetFootprints();
     if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
@@ -1829,19 +1764,17 @@
       var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
       var gapMin = Math.round(walkGapMs / 60000);
       var result = saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, gapMin, opts.endMs);
-      var note = '';
-      if (gapMin >= 1) note += ' · 기록 끊김 ' + gapMin + '분';
-      if (analysis.fastKm >= 0.05) note += ' · 빠른 이동 ' + analysis.fastKm.toFixed(1) + 'km 제외';
-      if (!rewardEligible) note += ' · ' + WALK_RULES.minRewardMinutes + '분·' + (WALK_RULES.minRewardKm * 1000) + 'm 미만이라 보상 제외';
-      statusText.textContent = '산책 종료 · ' + distanceKm.toFixed(1) + 'km · ' + durationMin + '분 · 연속 ' + result.streak + '일째' + note;
+      // 바로 끝 화면으로 넘어가니 칩에는 짧게만 — 끊긴 구간·보상 제외 안내는 끝 화면 "오늘 달라진 것"에 나온다(2026-11-16)
+      statusText.textContent = '산책 끝 · ' + durationMin + '분';
       var progressAfter = window.RewardRules.computeProgress(loadWalks());
-      showRewardPanel(progressBefore, progressAfter, rewardEligible);
       // 통계: 걸은 시간은 구간만, 발도장은 새로 찍힌 개수만(어느 장소인지는 보내지 않는다)
       if (window.WalsonTrack && !isDemo()) {
         WalsonTrack.send('walk_complete', { mode: 'gps', min_bucket: WalsonTrack.minBucket(durationMin), eligible: rewardEligible ? 1 : 0 });
         var newStamps = Object.keys(progressAfter.visited).filter(function (k) { return !progressBefore.visited[k]; }).length;
         if (newStamps) WalsonTrack.send('stamp_new', { count: newStamps });
       }
+      // 끝 화면으로 — 무엇이 달라졌는지(발도장·카드·꾸준함·목표)는 끝 화면이 기록을 비교해서 보여 준다. 통계는 sendBeacon이라 바로 넘어가도 된다
+      location.href = 'walk-end.html';
     } else {
       statusText.textContent = '산책 종료 (이동 기록 없음)';
     }
@@ -1872,7 +1805,6 @@
     liveVisited = a.visited && typeof a.visited === 'object' ? a.visited : {};
     walkGapMs = +a.gapMs || 0;
     walkStartTime = a.startedAt;
-    hideRewardPanel();
     routeLine.setLatLngs(routeCoords);
     resetFootprints();
     for (var i = 1; i < routeSamples.length; i++) {
