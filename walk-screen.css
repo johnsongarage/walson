@@ -62,6 +62,14 @@
 .ws-notice.is-warn { background: #fbefe0; border-color: #ecd2ad; }
 
 .ws-bottom { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 18px; }
+/* 여기 찍기 · 응가 찍기(2026-11-17) — 산책 중 화면(위치 사용)에만 */
+.ws-marks { display: flex; gap: 10px; }
+.ws-mark { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 12px; border-radius: 16px;
+  border: 1.5px solid var(--panel-border, #e6d6c1); background: var(--panel, #fffaf3); color: var(--ink, #4a3f35); font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 3px 10px rgba(74, 63, 53, 0.08); }
+.ws-mark svg { flex: none; color: var(--accent-ink, #9c4530); }
+.ws-mark:active { transform: scale(0.98); }
+.ws-mark.is-busy { opacity: 0.6; }
 .ws-map-btn { align-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 999px;
   border: 1.5px solid #c9b59d; background: var(--panel, #fffaf3); color: var(--ink, #4a3f35); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 .ws-map-btn[hidden] { display: none; }

@@ -112,6 +112,7 @@
   // ── 상태 ──
   var walking = false, leaving = false, walkStartTime = null, watchId = null;
   var routeCoords = [], routeSamples = [], liveKm = 0, liveVisited = {}, walkGapMs = 0, lastFix = null;
+  var poopMarks = [];   // 응가 찍기(2026-11-17) — [{ c:[lat,lng], t }] 이 휴대폰 안에만
   var routeSavedAt = 0;
   var locationExplained = false;
 
@@ -123,7 +124,7 @@
     return {
       walking: walking, leaving: leaving, startedAt: walkStartTime,
       routeSamples: routeSamples, routeCoords: routeCoords, lastFix: lastFix,
-      liveKm: liveKm, liveVisited: liveVisited, gapMs: walkGapMs
+      liveKm: liveKm, liveVisited: liveVisited, gapMs: walkGapMs, poopMarks: poopMarks
     };
   }
   // 위치가 들어와 바뀐 것을 화면에(미션 카드 · mapToo면 펼친 지도도)
@@ -179,7 +180,8 @@
     var samples = routeSamples.map(function (p) { var r = [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t]; if (p.s) r.push(p.s); return r; });
     // 저장 공간이 모자라도 산책은 계속된다 — 이어 하기만 안 될 뿐
     WalsonStore.saveActiveRoute({
-      v: 1, startedAt: walkStartTime, samples: samples, liveKm: liveKm, visited: liveVisited, gapMs: walkGapMs, savedAt: t
+      v: 1, startedAt: walkStartTime, samples: samples, liveKm: liveKm, visited: liveVisited, gapMs: walkGapMs, savedAt: t,
+      poop: poopRows()
     });
   }
   function loadActiveRoute() {
@@ -264,6 +266,37 @@
     navigator.geolocation.getCurrentPosition(onWalkFix, function () { /* 못 읽으면 watchPosition이 이어서 준다 */ },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
   }
+  // ── 여기 찍기 · 응가 찍기(2026-11-17 가르시아 "화면 전환해서 똥 찍고 미션 위치 찍고 하게 해 — 직선으로 연결하면 뭐 차이 있겠냐") ──
+  // 누른 그 자리의 위치를 바로 읽어 길에 점 하나를 넣는다. 화면이 꺼져 있던 사이는 끊김 규칙대로 앞 점과 직선으로 잇고,
+  // 걷는 속도면 거리·발도장 바로 판정에 넣는다(주머니 산책과 같은 기준). 응가는 그 자리를 따로 남긴다(이 휴대폰 안에만).
+  // 돌려주는 값(Promise): { ok: 위치를 받았나, weak: 정확도가 낮아 길에는 안 넣음, poopCount }
+  function markHere(kind) {
+    return new Promise(function (resolve) {
+      if (!walking || !navigator.geolocation) { resolve({ ok: false, poopCount: poopMarks.length }); return; }
+      var settled = false;
+      function settle(pos) {
+        if (settled) return;
+        settled = true;
+        var ok = !!pos || !!lastFix;
+        var weak = !pos || pos.coords.accuracy > WALK_RULES.maxAccuracyM;
+        if (ok && kind === 'poop') {
+          var c = pos ? [pos.coords.latitude, pos.coords.longitude] : lastFix;
+          poopMarks.push({ c: [c[0], c[1]], t: nowMs() });
+          saveActiveRoute(true);
+        }
+        resolve({ ok: ok, weak: ok && weak, poopCount: poopMarks.length });
+      }
+      navigator.geolocation.getCurrentPosition(function (pos) { onWalkFix(pos); settle(pos); },
+        function () { settle(null); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 });
+    });
+  }
+  function poopRows() { return poopMarks.map(function (p) { return [Math.round(p.c[0] * 1e6) / 1e6, Math.round(p.c[1] * 1e6) / 1e6, p.t]; }); }
+  // 저장하는 산책에 응가 자리를 붙이고, 끝 화면 "응가 치웠나요?"를 찍은 횟수로 미리 골라 둔다(0 안 쌌어요 · 1 · 2 이상 — 바꿀 수 있다)
+  function addPoop(w) {
+    if (!w || !poopMarks.length) return;
+    w.poopMarks = poopRows();
+    w.poop = Math.min(2, poopMarks.length);
+  }
   // 화면이 숨겨지고 다시 보일 때(엔진 쪽 — 화면 켜 두기·시계는 walk.html이 따로 맞춘다)
   function onVisibilityChange() {
     if (!walking) return;
@@ -288,6 +321,7 @@
       endedAt: ended.getTime(),  // 서버 가정 시험판(mock-server.js)이 시간대만 뽑아 쓴다. 이 폰 안에만 있다
       startedAt: walkStartTime   // 끝 화면의 "○시 ○분 출발"(2026-11-16 2단계). 이 폰 안에만 있다
     });
+    addPoop(walks[walks.length - 1]);
     if (isDemo()) walks[walks.length - 1].demo = true;   // 시연 모드 산책 — 키링(실제 보상)과 통계에서 뺀다
     if (!commitWalks(walks)) return false;   // 저장 공간이 꽉 참 — 산책은 남겨 두고 끝내지 않는다(saveFailed)
     var total = walks.reduce(function (sum, w) { return sum + (w.distanceKm || 0); }, 0);
@@ -331,12 +365,13 @@
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
     var endMs = opts.endMs || nowMs();
     if (routeCoords.length < 2) {
-      // 길이 안 남았어도(위치를 거의 못 받음 — 실내·높은 건물 사이) 걸은 시간은 남긴다.
+      // 길이 안 남았어도(위치를 거의 못 받음 — 화면이 꺼져 있었거나 다른 앱을 씀, 실내·높은 건물 사이) 걸은 시간은 남긴다.
       // 시간만 잰 산책과 같은 모양(보상 제외)에 noRoute를 붙여 끝 화면이 왜 길이 없는지 알려 준다
       var mins = Math.round((endMs - walkStartTime) / 60000);
       if (mins < 1) { clearActiveRoute(); alert('1분이 안 된 산책이라 저장하지 않았어요.'); location.replace('go.html'); return; }
       var walks = loadWalks(), ended = new Date(opts.endMs || Date.now());
       walks.push({ date: dateKey(ended), distanceKm: 0, durationMin: mins, route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time', noRoute: true, endedAt: ended.getTime(), startedAt: walkStartTime });
+      addPoop(walks[walks.length - 1]);
       if (isDemo()) walks[walks.length - 1].demo = true;
       // 예전엔 저장이 실패해도 알림만 띄우고 끝 화면(지난 산책)으로 갔다 — 이제 산책을 남겨 두고 끝내지 않는다
       if (!commitWalks(walks)) { saveFailed(opts); return; }
@@ -387,7 +422,7 @@
   function startWalk() {
     if (!navigator.geolocation) { alert('이 브라우저에서는 위치 정보를 사용할 수 없어요.'); leaving = true; location.replace('go.html'); return; }
     if (!isDemo()) window.WalsonTrack && WalsonTrack.send('walk_start', { mode: 'gps' });
-    routeCoords = []; routeSamples = []; liveVisited = {}; liveKm = 0; walkGapMs = 0;
+    routeCoords = []; routeSamples = []; liveVisited = {}; liveKm = 0; walkGapMs = 0; poopMarks = [];
     walkStartTime = nowMs();
     enterWalking('start');   // 화면: 화면 켜 두기·출발 시각·시계·주머니 안내
     notifyFix(false);        // 화면: 미션 카드
@@ -416,6 +451,9 @@
     liveKm = +a.liveKm || 0;
     liveVisited = a.visited && typeof a.visited === 'object' ? a.visited : {};
     walkGapMs = +a.gapMs || 0;
+    poopMarks = (Array.isArray(a.poop) ? a.poop : []).filter(function (p) {
+      return Array.isArray(p) && isFinite(p[0]) && isFinite(p[1]) && isFinite(p[2]);
+    }).map(function (p) { return { c: [p[0], p[1]], t: p[2] }; });
     walkStartTime = a.startedAt;
     // 마지막 위치 뒤로 오래 지났으면(끝내기를 잊은 산책) 이어 하지 않고, 그때 끝난 걸로 저장할지 묻는다
     if (Date.now() - Math.max(lastT, a.savedAt || 0) > ROUTE_STALE_MS) {
@@ -470,7 +508,7 @@
 
   window.WalkEngine = {
     init: init, resume: resumeActiveRoute, autoStart: autoStart, exitIfIdle: exitIfIdle,
-    start: startWalk, stop: stopWalk, discard: discard,
+    start: startWalk, stop: stopWalk, discard: discard, markHere: markHere,
     state: state, missionProgress: missionProgress, missionNow: missionNow, isDemo: isDemo, now: nowMs,
     RULES: WALK_RULES, GAP_MS: GAP_MS, JITTER: JITTER, seenT: seenT,
     haversineKm: haversineKm, bearingDeg: bearingDeg, kmText: kmText, pad2: pad2,

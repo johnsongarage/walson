@@ -307,7 +307,8 @@
       // 위치를 쓰기로 했지만 위치를 거의 못 받은 산책(walk.html) — 걸은 시간만 남았다
       goalAndReceipt();
       note('위치를 거의 받지 못해서 걸은 길이 남지 않았어요. 걸은 시간만 남겼어요 — 발도장·주민증 성장은 없고, 꾸준함 도장과 오늘 목표엔 들어가요.', 'got-note');
-      note('실내나 높은 건물 사이에선 위치가 잘 안 잡혀요.', 'got-hint');
+      // 진짜 이유는 대개 화면 꺼짐·다른 앱(웹앱은 그동안 위치를 못 받는다) — 11/17 가르시아 "통화·유튜브 중엔 끊길 수 있음을 고지"
+      note('화면이 꺼져 있었거나 통화·유튜브 등 다른 앱을 쓰는 동안(또는 실내·높은 건물 사이)엔 위치를 못 받아요. 다음엔 앱을 켜 둔 채 걷거나, 장소에서 "여기 찍기"를 눌러 주세요.', 'got-hint');
       box.hidden = false;
       return;
     }
@@ -321,6 +322,7 @@
     var before = R.computeProgress(walks.slice(0, -1)), now = R.computeProgress(walks);
     if (walk.rewardEligible === false) {
       note('5분·200m가 안 돼서 이번 산책은 발도장·주민증 성장에 안 들어가요.', 'got-note');
+      if (walk.gapMin > 0) note('화면이 꺼져 있던 동안은 길이 안 그려져요 — 앱을 켜 둔 채 걷거나, 장소에서 "여기 찍기"를 누르면 그 사이가 직선으로 이어져요.', 'got-hint');
     } else {
       var all = R.missions ? R.missions(now) : [];
       var doneBefore = R.missions ? R.missions(before).filter(function (m) { return m.done; }).length : 0;

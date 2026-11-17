@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="왈슨">
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
-<script src="store.js?v=1"></script>
+<script src="store.js?v=2"></script>
 <script src="device.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
@@ -24,7 +24,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="stylesheet" href="walk-screen.css?v=2">
+<link rel="stylesheet" href="walk-screen.css?v=3">
 <style>
   /* 산책 중 화면 — 위치를 쓰는 산책(2026-11-16 2단계, 가르시아 "시안대로 2단계 바로 진행해줘", 시안 캔버스 ⑪·⑫).
      예전엔 지도가 바탕인 화면이었다. 이제 11/13 C안대로 큰 시간이 주인공이고, 위치를 쓰면 미션 카드·알림 띠가 더해진다.
@@ -82,7 +82,7 @@
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
 <script src="walk-screen.js?v=2"></script>
-<script src="walk-engine.js?v=3"></script>
+<script src="walk-engine.js?v=4"></script>
 </head>
 <body>
 
@@ -124,6 +124,17 @@
   <section class="ws-mission" id="mission-card" aria-label="미션" hidden></section>
   <div class="ws-notice" id="walk-notice" role="status" hidden><span class="ws-notice-icon" aria-hidden="true"></span><span class="ws-notice-text" id="walk-notice-text"></span></div>
   <footer class="ws-bottom">
+    <!-- 여기 찍기 · 응가 찍기(2026-11-17 가르시아) — 누른 자리를 길에 넣는다. 꺼져 있던 사이는 직선으로 잇는다 -->
+    <div class="ws-marks">
+      <button type="button" class="ws-mark" id="mark-here">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+        <span>여기 찍기</span>
+      </button>
+      <button type="button" class="ws-mark" id="mark-poop">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 19h10a3 3 0 0 0 .6-5.9A3 3 0 0 0 15 9.2 3 3 0 0 0 12.5 5c.3 1.2-.4 2-1.5 2.2A3 3 0 0 0 9 9.2a3 3 0 0 0-2.6 3.9A3 3 0 0 0 7 19z"/></svg>
+        <span>응가 찍기</span>
+      </button>
+    </div>
     <button type="button" class="ws-map-btn" id="map-btn">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3.5 6.5v13L9 17l6 2.5 5.5-2.5v-13L15 6.5 9 4z"/><path d="M9 4v13M15 6.5v13"/></svg>
       <span>지도 보기</span>
@@ -164,13 +175,15 @@
   // 화면 켜 두기(Wake Lock)·진동은 device.js(WalsonDevice)가 한다 — 이 화면은 언제 켜 두고 언제 울릴지만 정한다
   var E = window.WalkEngine;
   var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(공용 장소)
-  // 화면 켜 두기는 기본 꺼짐(0단계) — 켠 사람만(설정 petwalk_keep_screen = '1'), 산책 중일 때만 잡는다
-  var KEEP_SCREEN_KEY = WalsonStore.KEYS.keepScreen;
+  // 화면 켜 두기는 기본 켜짐(2026-11-17 가르시아 "앱을 켜고 산책하게 만들어, 앱을 켜야 보상되게") — 끈 사람만 꺼짐
+  // (설정 petwalk_keep_screen_off = '1'), 산책 중일 때만 잡는다. 웹앱은 화면이 꺼지거나 다른 앱으로 가면 위치를 못 받는다.
+  var KEEP_SCREEN_OFF_KEY = WalsonStore.KEYS.keepScreenOff;
   var keepAwake = WalsonDevice.keepAwake;
-  var POCKET_TIP = '화면을 꺼서 주머니에 넣어도 돼요. 발도장 장소에서 한 번만 꺼내 열면 그 사이는 직선으로 이어져요.';
-  var KEEP_TIP = '화면을 켜 둘게요 — 길이 자세히 남아요. 주머니에 넣을 땐 전원 버튼으로 꺼 주세요.';
+  var START_TIP = '앱을 켜 둔 채 걸어야 길이 그려지고 발도장·주민증 성장이 쌓여요. 통화하거나 유튜브를 보면(다른 앱으로 가면) 그동안 기록이 끊길 수 있어요 — 끊긴 곳은 직선으로 이어요.';
+  var POCKET_TIP = '화면을 끄면 그동안 길이 안 그려져요. 발도장 장소나 응가 자리에서 꺼내 "여기 찍기"를 누르면 그 사이는 직선으로 이어요.';
+  var KEEP_TIP = '화면을 켜 둘게요 — 앱을 켜 둔 채 걸어야 길이 그려지고 보상이 쌓여요.';
   var kmText = E.kmText, pad2 = E.pad2;
-  function keepScreen() { return WalsonStore.flag(KEEP_SCREEN_KEY); }
+  function keepScreen() { return !WalsonStore.flag(KEEP_SCREEN_OFF_KEY); }
 
   var showWalkNotice = WalkScreen.notice($('walk-notice'));
   var menuCtl = WalkScreen.menu($('menu-btn'), $('menu'));
@@ -209,7 +222,7 @@
       card.className = 'ws-mission' + (here ? ' is-here' : '');
       html += '<span class="ws-m1">미션 ' + now.no + ' · 발도장 ' + done + '/' + M.all.length + '</span>' +
         '<span class="ws-m2"></span>' +
-        '<span class="ws-m3">' + (pending ? '도착! 5분·200m 넘게 걸으면 찍혀요' : here ? '도착했어요' : '도착하면 한 번만 꺼내 열어 주세요') + '</span>';
+        '<span class="ws-m3">' + (pending ? '도착! 5분·200m 넘게 걸으면 찍혀요' : here ? '도착했어요' : (keepScreen() ? '도착하면 발도장이 찍혀요' : '도착하면 꺼내서 "여기 찍기"를 눌러 주세요')) + '</span>';
       if (lastFix) {
         var km = window.RewardRules.distanceKm(lastFix, now.place.center);
         dir = here ? '<span class="ws-mdir">도착</span>'
@@ -234,11 +247,11 @@
   // ── 화면 켜 두기 ── 잡고 푸는 일은 device.js(keepAwake), 언제 잡을지(켠 사람 · 산책 중 · 다시 보일 때)는 여기서
   function paintKeepScreen() {
     $('keep-screen-label').textContent = '화면 켜 두기 · ' + (keepScreen() ? '켬' : '꺼짐');
-    $('pocket-tip-text').textContent = keepScreen() ? '화면을 켜 두는 중 · 주머니에 넣을 땐 전원 버튼으로' : '화면을 꺼서 주머니에 넣어도 돼요';
+    $('pocket-tip-text').textContent = keepScreen() ? '앱을 켜 둔 채 걸어요 · 통화·유튜브 중엔 기록이 끊길 수 있어요' : '화면을 끄면 길이 끊겨요 · 장소에서 "여기 찍기"';
   }
   paintKeepScreen();
   $('keep-screen-toggle').addEventListener('click', function () {
-    WalsonStore.setFlag(KEEP_SCREEN_KEY, !keepScreen());   // 저장 못 하면 바뀌지 않는다
+    WalsonStore.setFlag(KEEP_SCREEN_OFF_KEY, keepScreen());   // 켜져 있으면 끈 사람으로(저장 못 하면 바뀌지 않는다)
     paintKeepScreen();
     menuCtl.close();
     if (keepScreen()) { if (E.state().walking) keepAwake.request(); showWalkNotice(KEEP_TIP, 'info'); }
@@ -297,6 +310,10 @@
     }
     if (run.length > 1) L.polyline(run, solid).addTo(routeLayer);
     if (routeCoords.length) L.marker(routeCoords[0], { icon: L.divIcon({ className: 'wm-start', iconSize: [14, 14], iconAnchor: [7, 7] }), interactive: false }).addTo(markLayer);
+    // 응가 찍은 자리(이 휴대폰 안에만)
+    (s.poopMarks || []).forEach(function (p) {
+      L.circleMarker(p.c, { radius: 7, color: '#fff', weight: 2, fillColor: '#8a5a2b', fillOpacity: 1 }).bindTooltip('응가').addTo(markLayer);
+    });
     var M = E.missionNow(), now = M && M.now;
     if (now) {
       L.circle(now.place.center, { radius: now.place.radiusKm * 1000, color: '#b8563a', weight: 2, dashArray: '6 6', fillColor: '#b8563a', fillOpacity: 0.07, interactive: false }).addTo(markLayer);
@@ -359,6 +376,27 @@
     marker.bindPopup(wrap);
     return marker;
   }
+  // ── 여기 찍기 · 응가 찍기 ── 위치를 바로 읽어 길에 점을 넣는다(엔진). 발도장은 엔진이 알림 띠로 따로 알린다
+  function markBtn(id, kind) {
+    var btn = $(id);
+    btn.addEventListener('click', function () {
+      if (btn.disabled || !E.state().walking) return;
+      btn.disabled = true;
+      btn.classList.add('is-busy');
+      E.markHere(kind).then(function (r) {
+        btn.disabled = false;
+        btn.classList.remove('is-busy');
+        if (!r.ok) { showWalkNotice('아직 위치를 못 받았어요. 하늘이 트인 곳에서 다시 눌러 주세요.', 'warn'); return; }
+        WalsonDevice.vibrate(40, { onlyAfterTap: true });
+        if (kind === 'poop') showWalkNotice('응가 자리를 찍었어요 · 이번 산책 ' + r.poopCount + '번' + (r.weak ? ' (위치가 흐려서 대략이에요)' : ''), 'info');
+        else showWalkNotice(r.weak ? '위치가 흐려서 길에는 못 넣었어요. 하늘이 트인 곳에서 다시 눌러 주세요.' : '여기를 찍었어요 · 화면이 꺼져 있던 사이는 직선으로 이었어요', r.weak ? 'warn' : 'info');
+        if (mapOpen) drawMap(false);
+      });
+    });
+  }
+  markBtn('mark-here', 'here');
+  markBtn('mark-poop', 'poop');
+
   $('pin-btn').addEventListener('click', function () {
     var s = E.state();
     if (!s.walking || !s.lastFix) { alert('아직 지금 위치를 못 받았어요. 잠시 뒤 다시 눌러 주세요.'); return; }
@@ -388,7 +426,7 @@
         if (keepScreen()) keepAwake.request();
         paintSince();
         tick();
-        if (why === 'start') showWalkNotice(keepScreen() ? KEEP_TIP : POCKET_TIP, 'info');
+        if (why === 'start') showWalkNotice(keepScreen() ? START_TIP : POCKET_TIP, 'info');
       } else {
         keepAwake.release();
       }

@@ -23,7 +23,8 @@
     walkType: 'petwalk_walk_type',        // 산책 유형 테스트 결과 {type,at}
     // 설정
     walkLocation: 'petwalk_walk_location',   // 산책에 위치를 쓸지 'on'|'off'
-    keepScreen: 'petwalk_keep_screen',       // 산책 중 화면 켜 두기 '1'
+    keepScreen: 'petwalk_keep_screen',       // 산책 중 화면 켜 두기 '1'(11/17부터 기본 켜짐이라 안 씀 — 아래 keepScreenOff)
+    keepScreenOff: 'petwalk_keep_screen_off', // 산책 중 화면 켜 두기를 끈 사람 '1'(2026-11-17 가르시아 "앱을 켜고 산책하게" — 기본 켜짐)
     infraFilter: 'petwalk_infra_filter',     // 동네 지도 시설 거르기
     infraShown: 'petwalk_infra_shown',
     receiptFmt: 'walson_receipt_fmt',        // 'story'|'feed'
