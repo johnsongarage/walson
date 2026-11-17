@@ -46,15 +46,15 @@
         'font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;}' +
       '.wqr[hidden]{display:none;}' +
       '.wqr-card{width:min(100%,380px);box-sizing:border-box;padding:18px 18px 14px;text-align:center;word-break:keep-all;' +
-        'background:#fffaf3;color:#4a3f35;border-radius:22px;box-shadow:0 12px 40px rgba(0,0,0,.3);' + '}' +
+        'background:var(--panel,#fffaf3);color:var(--ink,#4a3f35);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);' + '}' +
       '.wqr-title{margin:0;font-size:18px;font-weight:900;}' +
       '.wqr-hint{margin:6px 0 0;font-size:13px;line-height:1.5;color:' + '#6b5d4e' + ';}' +
       '.wqr-box{position:relative;width:min(76vw,300px);aspect-ratio:1/1;margin:12px auto 8px;overflow:hidden;background:#222;' + 'border-radius:18px;' + '}' +
       '.wqr-box video{width:100%;height:100%;object-fit:cover;display:block;}' +
       '.wqr-frame{position:absolute;inset:16%;border:3px solid rgba(255,255,255,.92);box-shadow:0 0 0 999px rgba(0,0,0,.25);' + 'border-radius:14px;' + '}' +
-      '.wqr-msg{min-height:20px;margin:0;font-size:13px;font-weight:800;line-height:1.5;color:' + '#b8563a' + ';}' +
+      '.wqr-msg{min-height:20px;margin:0;font-size:13px;font-weight:800;line-height:1.5;color:var(--accent,#b8563a);}' +
       '.wqr-close{margin-top:10px;width:100%;padding:12px;font:inherit;font-size:15px;font-weight:800;cursor:pointer;' +
-        'background:#fff;color:#4a3f35;border:1px solid #e6d6c1;border-radius:999px;' + '}' +
+        'background:#fff;color:var(--ink,#4a3f35);border:1px solid var(--panel-border,#e6d6c1);border-radius:999px;' + '}' +
       // 아래에서 올라오는 판(sheet: true) — 도감(dex.html)의 겹쳐 뜨는 판·버튼과 같은 값
       '.wqr.is-sheet{align-items:flex-end;padding:0;background:rgba(40,32,26,.6);}' +
       '.wqr.is-sheet .wqr-card{width:100%;max-width:480px;max-height:100%;overflow-y:auto;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));' +
@@ -65,7 +65,7 @@
       '.wqr.is-sheet .wqr-frame{border-color:rgba(255,255,255,.9);}' +
       '.wqr.is-sheet .wqr-msg{font-weight:700;line-height:normal;}' +
       '.wqr.is-sheet .wqr-close{display:flex;align-items:center;justify-content:center;margin-top:0;padding:14px 10px;font-size:14px;' +
-        'background:#fffaf3;border-radius:14px;}';
+        'background:var(--panel,#fffaf3);border-radius:14px;}';
     var st = document.createElement('style');
     st.textContent = css;
     document.head.appendChild(st);

@@ -78,7 +78,7 @@
     margin-top: 10px; opacity: 0; transition: opacity 0.3s ease;
   }
   .saved-toast.show { opacity: 1; }
-  /* 칸 모양(2026-11-15 화면 테마 고르기 때 만든 것) — 테마 고르기는 11/16에 내렸고, 기록 옮기기 칸이 같은 모양을 쓴다 */
+  /* 칸 모양(2026-11-15 화면 테마 고르기 때 만든 것) — 위치·기록 옮기기·화면 색(11/17 다시) 칸이 같은 모양을 쓴다 */
   .theme-card { margin-top: 16px; }
   .theme-card h2 { font-size: 15px; font-weight: 800; margin: 0 0 4px; }
   .theme-card .sub { font-size: 12px; color: var(--ink-soft); margin: 0 0 14px; line-height: 1.5; }
@@ -91,12 +91,22 @@
   .theme-opt .name { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 800; margin-top: 8px; }
   .theme-opt .name .on { font-size: 11px; font-weight: 800; color: var(--accent); }
   .theme-opt .desc { display: block; font-size: 11px; color: var(--ink-soft); line-height: 1.4; margin-top: 3px; }
+  /* 화면 색 견본 — 그 색의 바탕·치와와 무늬·버튼 색을 작게 */
+  .pal-opts { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pal-opts .theme-opt { padding: 8px; }
+  .pal-opts .sw {
+    position: relative; display: block; height: 58px; border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.14);
+    background-size: 170px 170px; background-position: -20px -14px;
+  }
+  .pal-opts .sw i { position: absolute; left: 7px; bottom: 7px; width: 38px; height: 15px; border-radius: 999px; border: 2px solid; box-sizing: border-box; }
+  .pal-opts .name { margin-top: 7px; font-size: 13px; }
+  .pal-opts .desc { word-break: keep-all; }
 </style>
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
-<script src="theme.js?v=9"></script>
+<script src="theme.js?v=10"></script>
 <script src="site-config.js?v=8"></script>
-<script src="inapp.js?v=3"></script>
+<script src="inapp.js?v=4"></script>
 <script src="track.js?v=8"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="save-image.js?v=3"></script>
@@ -156,6 +166,13 @@
 
     <button class="btn-save" id="save-btn">프로필 저장</button>
     <div class="saved-toast" id="toast">저장됐어요!</div>
+  </div>
+
+  <!-- 화면 색(2026-11-17 가르시아 "색 테마는 고를 수 있게 3가지"): 색은 theme.js가 들고 있고 여기선 고르기만. 이 기기에만 저장 -->
+  <div class="card theme-card" id="palette">
+    <h2>화면 색</h2>
+    <p class="sub">바탕의 치와와 무늬와 버튼 색이 바뀌어요. 주민증·영수증 그림은 그대로예요.</p>
+    <div class="theme-opts pal-opts" id="pal-opts"></div>
   </div>
 
   <!-- 산책할 때 위치(2026-11-16 1단계): 산책 나가기는 "산책 시작" 하나 — 위치를 쓸지는 처음 산책 때 묻고 여기서도 바꾼다(go.html과 같은 값) -->
@@ -373,5 +390,39 @@
 })();
 </script>
 
+<script>
+// 화면 색 고르기(2026-11-17) — 견본은 theme.js의 색 값으로 그린다(색을 고칠 땐 theme.js 한 곳만)
+(function () {
+  var T = window.WalsonTheme, box = document.getElementById('pal-opts');
+  if (!box) return;
+  if (!T || !T.palettes || !T.setPalette) { document.getElementById('palette').hidden = true; return; }
+  Object.keys(T.palettes).forEach(function (k) {
+    var p = T.palettes[k];
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'theme-opt'; b.setAttribute('data-pal', k);
+    var sw = document.createElement('span'); sw.className = 'sw';
+    sw.style.backgroundColor = p.bg;
+    sw.style.backgroundImage = 'url("icons/dog-pattern-' + k + '.svg?v=1")';
+    var chip = document.createElement('i'); chip.style.background = p.hl; chip.style.borderColor = p.line;
+    sw.appendChild(chip);
+    var nm = document.createElement('span'); nm.className = 'name'; nm.textContent = p.label;
+    var ds = document.createElement('span'); ds.className = 'desc'; ds.textContent = p.desc;
+    b.appendChild(sw); b.appendChild(nm); b.appendChild(ds);
+    box.appendChild(b);
+  });
+  function paint() {
+    Array.prototype.forEach.call(box.querySelectorAll('[data-pal]'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-pal') === T.palette ? 'true' : 'false');
+    });
+  }
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pal]');
+    if (!b) return;
+    T.setPalette(b.getAttribute('data-pal'));
+    paint();
+  });
+  paint();
+})();
+</script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 // 11/16 [카드] → [주민증](가르시아 "자라는 카드를 주민증에 합쳐" — my-card.html이 자라는 주민증). 키는 그대로 'card'.
 // 11/15 [영수증] 탭을 넣었다가 11/16 [기록]에 합침(가르시아 "서비스 줄이기 4번" — 영수증철이 곧 산책 기록). receipt.html은 [기록]으로 넘겨 준다.
 // '산책'은 탭이 아니라 모드라서 산책 화면(walk.html)에는 이 탭을 붙이지 않는다.
-// 쓰는 법: 화면 맨 아래에 <script src="tabbar.js?v=8" data-tab="today|history|card|town"></script>
+// 쓰는 법: 화면 맨 아래에 <script src="tabbar.js?v=9" data-tab="today|history|card|town"></script>
 // 탭 높이만큼 body 아래 여백을 넣고, 높이를 CSS 변수 --tabbar-h로 알려 준다(지도 화면이 그만큼 비켜 앉게).
 // 화면 테마는 11/16부터 차분 하나뿐(뉴브루탈 모양은 지움).
 // 고치면 쓰는 화면(index·walk-history·my-card·town·guardians)의 ?v= 번호를 같이 올릴 것.
@@ -28,16 +28,18 @@
     'body{padding-bottom:calc(var(--tabbar-h) + 16px) !important;}' +
     '.tabbar-wrap{position:fixed;left:0;right:0;bottom:0;z-index:1000;}';
   var softCss =
-    '.sample-band{display:flex;align-items:center;justify-content:center;gap:10px;height:28px;background:#4a3f35;color:#fff;' +
+    '.sample-band{display:flex;align-items:center;justify-content:center;gap:10px;height:28px;background:var(--line,#4a3f35);color:#fff;' +
       'font:700 12px Pretendard,-apple-system,"Malgun Gothic",sans-serif;}' +
-    '.sample-band a{color:#ffd9c9;text-decoration:underline;}' +
+    '.sample-band a{color:var(--hl,#ffd9c9);text-decoration:underline;}' +
     '.tabbar{position:relative;display:flex;justify-content:center;' +
       'height:calc(58px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);' +
-      'background:#fffaf3;border-top:1px solid #e6d6c1;box-shadow:0 -2px 12px rgba(74,63,53,0.08);}' +
+      'background:var(--panel,#fffaf3);border-top:1.5px solid var(--panel-border,#e6d6c1);}' +
     '.tabbar a{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
-      'text-decoration:none;color:#8a7a68;font:600 11px Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;' +
+      'text-decoration:none;color:var(--ink-soft,#8a7a68);font:600 11px Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;' +
       '-webkit-tap-highlight-color:transparent;}' +
-    '.tabbar a[aria-current="page"]{color:#b8563a;font-weight:800;}' +
+    '.tabbar a[aria-current="page"]{color:var(--ink,#b8563a);font-weight:800;}' +
+    // 지금 탭(2026-11-17 테마 ②): 아이콘 뒤에 버튼 색 알약 — 색 테마(theme.js)를 따른다
+    '.tabbar a[aria-current="page"] svg{background:var(--hl,transparent);border-radius:999px;padding:2px 14px;box-sizing:content-box;}' +
     '.tabbar a:active{transform:scale(0.96);}';
   style.textContent = common + softCss;
   document.head.appendChild(style);
