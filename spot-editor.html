@@ -11,7 +11,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="site-config.js?v=6"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=24"></script>
+<script src="infra-pins.js?v=25"></script>
 <script src="reward-rules.js?v=10"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
@@ -377,7 +377,7 @@
       <div class="field"><label for="gt-homeLine">재택 설명 줄</label><input id="gt-homeLine" maxlength="60"></div>
       <div class="field"><label for="gt-workBadge">출근 배지 이름</label><input id="gt-workBadge" maxlength="20"></div>
       <div class="field"><label for="gt-workLine">출근 설명 줄</label><input id="gt-workLine" maxlength="60"></div>
-      <div class="field"><label for="gt-demoNote">예시 화면 안내 (예시에만 나와요)</label><input id="gt-demoNote" maxlength="60"></div>
+      <div class="field"><label for="gt-demoNote">예시 화면 안내 문구 (아래 "예시 화면 안내 문구"를 켜면 예시 팝업·카드에만 나와요)</label><input id="gt-demoNote" maxlength="60"></div>
       <div class="gt-checks">
         <label><input type="checkbox" id="gt-showSignal"> 신호 문구 (다가와도 좋아요 등)</label>
         <label><input type="checkbox" id="gt-showSignalLabel"> 신호등 이름도 붙이기 (초록불·노랑불·빨강불)</label>
@@ -385,8 +385,9 @@
         <label><input type="checkbox" id="gt-showKindLine"> 재택·출근 설명 줄</label>
         <label><input type="checkbox" id="gt-showPetChips"> 동반 조건 칩 (실내·바깥 자리·물그릇)</label>
         <label><input type="checkbox" id="gt-showTownExtra"> 걸어서 몇 분 · QR 단골 안내</label>
+        <label><input type="checkbox" id="gt-showDemoNote"> 예시 화면 안내 문구 (예시에서만)</label>
       </div>
-      <p class="hint">늘 보이는 줄(끌 수 없음): 출처·예시 안내, 실제 수호견의 "사장님 동의 · 제휴 아님". 확인 안 된 것이 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게 하려는 거예요.</p>
+      <p class="hint">늘 보이는 줄(끌 수 없음): 실제 핀의 출처, 실제 수호견의 "사장님 동의 · 제휴 아님". 확인 안 된 것이 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게 하려는 거예요. 예시 화면은 지도 아래 띠("수호견 예시 화면 · 실제 지도에는 없어요")가 예시임을 알려요.</p>
       <div class="grp-actions"><button type="button" id="gt-reset">기본값으로</button></div>
     </div>
   </div>
@@ -526,11 +527,12 @@
   // ── 6. 수호견 팝업 문구(2026-11-17 가르시아 "화면에 들어가는 양식 편집") ──
   // 값은 infra-pins.js의 readGuardianText로 정리한다(빈 칸은 기본값). 고치면 초안에 두고 "모두에게 반영"으로 올린다.
   var GT_TEXT = ['homeBadge', 'homeLine', 'workBadge', 'workLine', 'demoNote'];
-  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showTownExtra'];
+  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showTownExtra', 'showDemoNote'];
   function renderGText() {
     GT_TEXT.forEach(function (k) { $('gt-' + k).value = gtext[k] || ''; });
     GT_FLAGS.forEach(function (k) { $('gt-' + k).checked = !!gtext[k]; });
     $('gt-showSignalLabel').disabled = !gtext.showSignal;
+    $('gt-demoNote').disabled = !gtext.showDemoNote;
   }
   function readGTextForm() {
     var raw = {};
@@ -538,6 +540,7 @@
     GT_FLAGS.forEach(function (k) { raw[k] = $('gt-' + k).checked; });
     gtext = InfraPins.readGuardianText(raw);
     $('gt-showSignalLabel').disabled = !gtext.showSignal;
+    $('gt-demoNote').disabled = !gtext.showDemoNote;
     save();
   }
   GT_TEXT.forEach(function (k) { $('gt-' + k).addEventListener('change', readGTextForm); });
