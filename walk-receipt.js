@@ -33,6 +33,7 @@
   var MONO = '"Nanum Gothic Coding", ui-monospace, Menlo, Consolas, monospace';
   var BIG = '"Black Han Sans", Pretendard, sans-serif';
   var INK = '#26211d', SOFT_INK = '#7a7068', STAMP = '#d6453a', PAPER = '#fffdf8';
+  var POOP_INK = '#7a4a26';   // 응가 도장 — 빨간 도장(상환·달성)과 갈리게 갈색 한 색
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   var URL_TEXT = 'johnsongarage.co.kr/walson';
 
@@ -74,6 +75,11 @@
       r: (d.durationMin || 0) + '분' + (!timeOnly && d.distanceKm ? ' · ' + km(d.distanceKm) + 'km' : '') });
     if (d.sniff) out.push({ t: 'dots', l: '킁킁', v: Math.max(1, Math.min(5, d.sniff | 0)) });
     else out.push({ t: 'pair', l: '킁킁', r: '안 적음', soft: true });
+    // 응가 도장(2026-11-17 가르시아 "그렇게 진행해줘 · 도장 문구는 오늘도 해냈다로" — 다른 기획팀장 검토 A안):
+    // 1건 이상 적은 날 "상환 완료" 도장 오른쪽 아래 빈칸에 갈색 도장. 응가 보고는 영수증 한 장으로 끝낸다(산책 뒤 저장 이미지는 한 장이 기본).
+    // 처음엔 응가 줄 옆에 작게 찍었는데 글자가 안 읽히고 피드 모양에서 아래 줄(꾸준함 도장)과 겹쳐서, 팀장 안대로 빚 줄 옆 빈칸으로 옮겼다.
+    // 그림은 고정(눈알 달린 작은 응가 — [기록] 응가 달력 캐릭터와 같은 모양). 견주가 만든 응가 캐릭터(사진 모양·색 그대로)는
+    // 휴대폰에 남기지 않고(11/16) 색이 그대로라 단톡 도장으로는 쓰지 않는다. 변 상태는 판정하지 않는다(POOP_DIARY.md 원칙).
     out.push({ t: 'pair', l: '응가', soft: noPoop,
       r: noPoop ? '안 적음' : d.poop === 0 ? '0건 (다음 산책으로)' : d.poop === 1 ? '1건' : '2건 이상' });
     if (d.stamps && d.stamps.hit) out.push({ t: 'pair', l: '발도장', r: d.stamps.hit + '곳' + (d.stamps.fresh ? ' (새로 ' + d.stamps.fresh + ')' : '') });
@@ -85,7 +91,8 @@
     out.push({ t: 'para', text: d.note || '없음 (평화로운 산책)', note: true });
     out.push({ t: 'rule', double: true });
     // "충분했어요"·답 없음 = 상환 완료, "조금 아쉬워요" = 일부 상환 — 죄책감을 키우지 않게 "연체 아님"을 붙인다
-    out.push({ t: 'debt', l: '오늘 산책 빚', r: '1회분', stamp: d.feel === 'short' ? ['일부', '상환'] : ['상환', '완료'], seed: seed });
+    out.push({ t: 'debt', l: '오늘 산책 빚', r: '1회분', stamp: d.feel === 'short' ? ['일부', '상환'] : ['상환', '완료'], seed: seed,
+      poop: noPoop ? 0 : d.poop });
     // 빚 줄 아래는 모두 왼쪽 정렬·짧게 — 오른쪽 가운데를 도장 자리로 비워 둔다
     if (rich) out.push({ t: 'small', align: 'left', text: '결제: 보호자 다리 (일시불)' });
     out.push({ t: 'small', align: 'left', text: d.feel === 'short' ? '남은 빚은 내일로 이월 (연체 아님)' : '다음 산책 빚은 내일 또 생겨요' });
@@ -102,7 +109,7 @@
   function textOf(list) {
     return list.map(function (r) {
       return [r.text, r.l, r.r].concat(r.stamp || []).filter(Boolean).join('');
-    }).join('') + '“”…0123456789.()·/달성';
+    }).join('') + '“”…0123456789.()·/달성오늘도해냈다×';
   }
   function ensureFonts(text) {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
@@ -247,6 +254,43 @@
     }
   }
 
+  // 응가 도장 — 눈알 달린 응가 + "오늘도 / 해냈다"(2건 이상이면 "해냈다 ×2"). right·cy: 도장 오른쪽 끝과 세로 가운데, R0: 빨간 도장 반지름
+  var POOP_PATH = 'M4 22c-3-1-2-5 1-5-1-3 1-6 5-5 0-4 4-6 7-4 2-3 7-2 7 2 3 0 5 3 3 6 3 1 3 5 0 6z';   // 30×24 칸(응가 달력과 같은 그림)
+  function drawPoopStamp(ctx, right, cy, R0, count) {
+    var l1 = '오늘도', l2 = count >= 2 ? '해냈다 ×2' : '해냈다';
+    ctx.save();
+    var tf = Math.round(R0 * 0.34);
+    ctx.font = tf + 'px ' + BIG;
+    var tw = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width);
+    var sh = R0 * 0.98, ih = sh * 0.6, iw = ih * 30 / 24, padX = R0 * 0.13, gap = R0 * 0.09;
+    var sw = padX + iw + gap + tw + padX, r = R0 * 0.12;
+    ctx.translate(right - sw / 2, cy);
+    ctx.rotate(7 * Math.PI / 180);
+    ctx.globalAlpha = 0.92;
+    ctx.strokeStyle = POOP_INK; ctx.fillStyle = POOP_INK; ctx.lineWidth = Math.max(3, R0 * 0.05);
+    var x0 = -sw / 2, y0 = -sh / 2;
+    ctx.beginPath();
+    ctx.moveTo(x0 + r, y0); ctx.arcTo(x0 + sw, y0, x0 + sw, y0 + sh, r); ctx.arcTo(x0 + sw, y0 + sh, x0, y0 + sh, r);
+    ctx.arcTo(x0, y0 + sh, x0, y0, r); ctx.arcTo(x0, y0, x0 + sw, y0, r); ctx.closePath();
+    ctx.stroke();
+    if (typeof Path2D === 'function') {
+      ctx.save();
+      ctx.translate(x0 + padX, -ih / 2);
+      ctx.scale(ih / 24, ih / 24);
+      ctx.fill(new Path2D(POOP_PATH));
+      ctx.fillStyle = PAPER;
+      ctx.beginPath(); ctx.arc(11, 15.5, 2.7, 0, Math.PI * 2); ctx.arc(18.5, 15.5, 2.7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = POOP_INK;
+      ctx.beginPath(); ctx.arc(11.6, 16, 1.25, 0, Math.PI * 2); ctx.arc(19.1, 16, 1.25, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    ctx.font = tf + 'px ' + BIG; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    var tx = x0 + padX + iw + gap;
+    ctx.fillText(l1, tx, -tf * 0.56);
+    ctx.fillText(l2, tx, tf * 0.62);
+    ctx.restore();
+  }
+
   // 빨간 도장 — 잉크가 덜 묻은 자국까지(같은 산책이면 같은 모양)
   function drawStamp(ctx, x, y, R, words, seed) {
     var size = Math.ceil(R * 2 + 24), c = document.createElement('canvas');
@@ -345,7 +389,7 @@
     var y = top, stampAt = null, n0 = null, n1 = null;
     list.forEach(function (r) {
       drawRow(ctx, r, S, y, inner);
-      if (r.t === 'debt') stampAt = { y: y + r.h / 2, words: r.stamp, seed: r.seed };
+      if (r.t === 'debt') stampAt = { y: y + r.h / 2, words: r.stamp, seed: r.seed, poop: r.poop };
       if (r.note) { if (n0 == null) n0 = y; n1 = y + r.h; }
       y += r.h;
     });
@@ -355,6 +399,7 @@
       opts.layout.paper = { x: W / 2 - S.pw * scale / 2, w: S.pw * scale };
     }
     if (stampAt) drawStamp(ctx, S.pw * 0.64, stampAt.y + S.stampR * 0.35, S.stampR, stampAt.words, stampAt.seed);
+    if (stampAt && stampAt.poop >= 1) drawPoopStamp(ctx, S.pw - S.pad - 4, stampAt.y + S.stampR * 0.86, S.stampR, stampAt.poop);
     ctx.restore();
     return canvas;
   }

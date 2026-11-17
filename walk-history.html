@@ -273,7 +273,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=10"></script>
 <script src="month-report.js?v=5"></script>
-<script src="walk-receipt.js?v=7"></script>
+<script src="walk-receipt.js?v=8"></script>
 <script src="image-editor.js?v=2"></script>
 <script>
 (function () {
@@ -302,7 +302,10 @@
     { id: 'other',   text: '남의 개 간식을 더 오래 쳐다봄' },        // 특성 · 남의 떡이 더 커 보임
     { id: 'cloth',   text: '새 옷 입고 1초 정지' },                // 특성 · 새 옷 착용 시 1초 멘붕
     { id: 'outside', text: '밖에서만 순둥이 (집에선 왕)' },         // 특성 · 외부인 한정 순둥이
-    { id: 'paw',     text: '발바닥 옥수수 칩 냄새 진동' }           // 특성 · 발바닥 고소함 MAX
+    { id: 'paw',     text: '발바닥 옥수수 칩 냄새 진동' },          // 특성 · 발바닥 고소함 MAX
+    // 응가 날 문구(2026-11-17 가르시아 "그렇게 진행해줘" — 다른 기획팀장 검토 C안). 행동 드립만 — 변 상태(색·모양) 드립은 안 쓴다
+    { id: 'bag',     text: '비닐봉투 값 제대로 뽑음' },
+    { id: 'kick',    text: '볼일 뒤 뒷발 차기 세리머니' }
   ];
 
   function $(id) { return document.getElementById(id); }
@@ -448,6 +451,9 @@
   // 날씨·옷처럼 그날 일을 모르는 문구(빗물·새 옷)는 기본값으로 안 쓴다 — 보호자가 고를 때만.
   function defaultNote(i) {
     var w = walks[i], min = w.durationMin || 0;
+    // 응가를 적은 날은 세 번에 한 번꼴로 응가 문구(11/17, 다른 기획팀장 검토 C안) — 날마다 응가 드립이면 질린다.
+    // 가르시아가 쓴 '응가하며 보호자와 눈 맞춤'(천사표 배변 포즈)부터 돌아가며. 그 전엔 응가했는지 몰라 기본값으로 안 썼다.
+    if (w.poop >= 1 && i % 3 === 0) return ['eye', 'bag', 'kick'][Math.floor(i / 3) % 3];
     if (w.sniff >= 4) return (i % 2) ? 'grass' : 'pole';
     var pool = (min < 15 || w.feel === 'short')
       ? ['hug', 'home', 'ears', 'shop']
