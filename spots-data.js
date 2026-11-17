@@ -35,8 +35,8 @@ window.PETWALK_STAMP_PLACES = [
 ];
 // 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.
 window.PETWALK_MAP_GROUPS = [
-  {"id":"go","label":"갈 곳","layers":[{"key":"spot","zoom":"far"},{"key":"park","zoom":"far"}]},
-  {"id":"dog","label":"우리 개","layers":[{"key":"stamp","zoom":"far"},{"key":"mine","zoom":"far"}]},
+  {"id":"go","label":"갈 곳","layers":[{"key":"spot","zoom":"far"},{"key":"stamp","zoom":"far"},{"key":"park","zoom":"far"}]},
+  {"id":"dog","label":"우리 개","layers":[{"key":"mine","zoom":"far"}]},
   {"id":"safe","label":"안전","layers":[{"key":"caution","zoom":"far"},{"key":"vet","zoom":"mid","off":true}]},
   {"id":"handy","label":"편의","layers":[{"key":"bag","zoom":"mid"},{"key":"water","zoom":"mid"},{"key":"toilet","zoom":"mid","off":true}]},
   {"id":"deco","label":"꾸밈","layers":[{"key":"deco","zoom":"mid"}]}
