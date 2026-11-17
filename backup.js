@@ -150,9 +150,11 @@
   // 기록을 주소의 # 뒷부분에 담아 카톡의 "바깥 브라우저로 열기"로 넘긴다. # 뒷부분은 서버로 가지 않고 이 휴대폰 안에서만 넘어간다.
   // 주소 길이에 한계가 있어 가벼운 기록만 담는다. 위치는 담지 않는다:
   //  - 산책의 걸은 길(route)·사진 열쇠는 뺀다. 발도장 판정용 점(stampRoute)은 "도장을 받은 장소의 중심점"(공개된 장소 좌표)으로 바꾼다.
-  //  - 내가 찍은 핀, 진행 중인 산책, 코스 짜기, 서버 가정 시험판 자료는 뺀다.
+  //  - 내가 찍은 핀, 진행 중인 산책(시간만 재기·길 기록 둘 다), 코스 짜기, 서버 가정 시험판 자료는 뺀다.
+  //    길 기록 중인 산책(petwalk_active_route)은 걸은 궤적 원본이라 가장 민감한데 빠져 있었다 — 주소가 브라우저 기록 등에
+  //    남을 수 있어 2026-11-17 뺌(가르시아 "고쳐 줘", PLATFORM_PLAN 8절). 받는 쪽도 이 칸들은 받지 않는다(예전에 만든 주소).
   // 기기 번호·처음 유입 코드(walson_*)는 같이 넘겨, 통계에서 같은 사람이 두 기기로 세어지지 않게 한다.
-  var MOVE_SKIP = /^(petwalk_location_explained|petwalk_pins|petwalk_active_walk|petwalk_course_builder_state|petwalk_mock_db|petwalk_mock_server|petwalk_demo_.*|petwalk_infra_shown)$/;
+  var MOVE_SKIP = /^(petwalk_location_explained|petwalk_pins|petwalk_active_walk|petwalk_active_route|petwalk_course_builder_state|petwalk_mock_db|petwalk_mock_server|petwalk_demo_.*|petwalk_infra_shown)$/;
   var MOVE_PREFIX = '#walson-move=';
   var MOVE_MAX = 300000;   // 이보다 길면 강아지 사진을 빼고 보낸다
   function b64urlEncode(str) {
@@ -225,6 +227,8 @@
       var off = (window.PetwalkSample && PetwalkSample.isOn()) ? PetwalkSample.turnOff() : Promise.resolve();
       return off.then(function () {}, function () {});
     }).then(function () {
+      // 예전에 만든 주소에 들어 있던 진행 중 산책 궤적 등은 받지 않는다(서명을 확인한 뒤에 걷어 낸다)
+      Object.keys(obj.data).forEach(function (k) { if (MOVE_SKIP.test(k)) delete obj.data[k]; });
       var mine = walksOf(localStorage.getItem('petwalk_walks'));
       return importAll(obj, true, { moved: true }).then(function () { return { walks: walksOf(obj.data.petwalk_walks).length, hadOwn: mine.length }; });
     });

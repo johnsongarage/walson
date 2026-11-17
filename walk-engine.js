@@ -289,17 +289,44 @@
       startedAt: walkStartTime   // 끝 화면의 "○시 ○분 출발"(2026-11-16 2단계). 이 폰 안에만 있다
     });
     if (isDemo()) walks[walks.length - 1].demo = true;   // 시연 모드 산책 — 키링(실제 보상)과 통계에서 뺀다
-    // 저장하지 못하면(저장 공간이 꽉 참) 예전처럼 여기서 멈춘다 — 알림은 따로 띄우지 않는다
-    if (!WalsonStore.saveWalks(walks)) throw new Error('산책 기록을 저장하지 못했어요');
+    if (!commitWalks(walks)) return false;   // 저장 공간이 꽉 참 — 산책은 남겨 두고 끝내지 않는다(saveFailed)
     var total = walks.reduce(function (sum, w) { return sum + (w.distanceKm || 0); }, 0);
     WalsonStore.saveLastWalk({ distanceKm: distanceKm, totalDistanceKm: total, durationMin: durationMin });   // 못 해도 무시
+    return true;
+  }
+  // 산책 기록을 저장하고 나서야 진행 중 산책(원래 궤적)을 지운다(2026-11-17 가르시아 "고쳐 줘" — PLATFORM_PLAN 8절).
+  // 예전엔 먼저 지우고 저장해서, 저장 공간이 꽉 차 저장이 실패하면 그 산책이 통째로 사라졌다.
+  // 꽉 찼으면 진행 중 산책을 비워 자리를 만들고 한 번 더 — 원래 궤적이 줄인 기록보다 커서 보통 여기서 된다.
+  // 그래도 안 되면 비웠던 것을 글자 그대로 되돌리고 false(방금 비운 자리라 다시 들어간다)
+  function commitWalks(walks) {
+    if (WalsonStore.saveWalks(walks)) { clearActiveRoute(); return true; }
+    var kept = WalsonStore.get(WalsonStore.KEYS.activeRoute);
+    clearActiveRoute();
+    if (WalsonStore.saveWalks(walks)) return true;
+    if (kept != null) WalsonStore.set(WalsonStore.KEYS.activeRoute, kept);
+    return false;
+  }
+  // 저장하지 못해 끝내지 못했을 때 — 산책은 잃지 않는다
+  function saveFailed(opts) {
+    if (opts.endMs) {
+      // 끝내기를 잊은 지난 산책을 정리하던 중 — 이어 하지 않고 [오늘]로. 진행 중 산책은 남아 있어 [산책]을 누르면 다시 묻는다
+      alert('저장 공간이 꽉 차서 지난 산책을 저장하지 못했어요.\n산책은 지우지 않고 남겨 뒀어요. 다음에 [산책]을 누르면 다시 물어볼게요.');
+      location.replace('index.html');
+      return;
+    }
+    // 끝내기를 누른 산책 — 그 자리에서 이어서 기록한다(다시 끝내기를 누르면 또 저장해 본다)
+    leaving = false;
+    enterWalking('resume');   // 화면: 화면 켜 두기·출발 시각·시계
+    notifyFix(false);         // 화면: 미션 카드
+    emit('onNotice', '저장 공간이 꽉 차서 끝내지 못했어요. 산책은 그대로 기록하고 있어요.', 'warn');
+    alert('저장 공간이 꽉 차서 이번 산책을 저장하지 못했어요.\n산책은 지우지 않고 그대로 이어서 기록할게요 — 다시 [끝내기]를 눌러 보세요.\n계속 안 되면 휴대폰 저장 공간을 확인해 주세요.');
   }
   // opts.endMs: 끝난 시각을 정해 저장할 때(오래된 산책 정리 — 마지막 위치 시각)
+  // 진행 중 산책(이어 하기 저장)은 기록이 저장된 뒤에 지운다(commitWalks) — 묻는 창이 떠 있는 동안 앱이 닫혀도 다시 열면 이어진다
   function stopWalk(opts) {
     opts = opts || {};
     walking = false;
     leaving = true;
-    clearActiveRoute();
     emit('onState', state(), 'stop');   // 화면: 화면 켜 두기 풀기
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
     var endMs = opts.endMs || nowMs();
@@ -307,11 +334,12 @@
       // 길이 안 남았어도(위치를 거의 못 받음 — 실내·높은 건물 사이) 걸은 시간은 남긴다.
       // 시간만 잰 산책과 같은 모양(보상 제외)에 noRoute를 붙여 끝 화면이 왜 길이 없는지 알려 준다
       var mins = Math.round((endMs - walkStartTime) / 60000);
-      if (mins < 1) { alert('1분이 안 된 산책이라 저장하지 않았어요.'); location.replace('go.html'); return; }
+      if (mins < 1) { clearActiveRoute(); alert('1분이 안 된 산책이라 저장하지 않았어요.'); location.replace('go.html'); return; }
       var walks = loadWalks(), ended = new Date(opts.endMs || Date.now());
       walks.push({ date: dateKey(ended), distanceKm: 0, durationMin: mins, route: [], stampRoute: [], rewardEligible: false, gapMin: 0, mode: 'time', noRoute: true, endedAt: ended.getTime(), startedAt: walkStartTime });
       if (isDemo()) walks[walks.length - 1].demo = true;
-      if (!WalsonStore.saveWalks(walks)) alert('기록을 저장하지 못했어요. 저장 공간을 확인해 주세요.');
+      // 예전엔 저장이 실패해도 알림만 띄우고 끝 화면(지난 산책)으로 갔다 — 이제 산책을 남겨 두고 끝내지 않는다
+      if (!commitWalks(walks)) { saveFailed(opts); return; }
       if (window.WalsonTrack && !isDemo()) WalsonTrack.send('walk_complete', { mode: 'time', min_bucket: WalsonTrack.minBucket(mins), eligible: 0 });
       location.replace('walk-end.html');
       return;
@@ -332,7 +360,7 @@
       }
     }
     var rewardEligible = durationMin >= WALK_RULES.minRewardMinutes && distanceKm >= WALK_RULES.minRewardKm;
-    saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, Math.round(walkGapMs / 60000), opts.endMs);
+    if (!saveWalkRecord(distanceKm, durationMin, routeCoords, analysis.walkingPoints, rewardEligible, Math.round(walkGapMs / 60000), opts.endMs)) { saveFailed(opts); return; }
     // 통계: 걸은 시간은 구간만, 발도장은 새로 찍힌 개수만(어느 장소인지는 보내지 않는다)
     if (window.WalsonTrack && !isDemo()) {
       WalsonTrack.send('walk_complete', { mode: 'gps', min_bucket: WalsonTrack.minBucket(durationMin), eligible: rewardEligible ? 1 : 0 });
