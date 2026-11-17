@@ -173,6 +173,17 @@
 
   .place-tip { background: rgba(255,250,243,0.9); border: 1px solid var(--accent); color: var(--accent); font-weight: 800; font-size: 11px; box-shadow: none; padding: 1px 6px; }
   .place-tip::before { display: none; }
+  .stats .move-btn { margin-left: 8px; padding: 4px 9px; font-size: 12px; color: var(--accent); vertical-align: 1px; }
+  .stats .move-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .stats .move-btn.nudge { animation: move-nudge 0.5s ease 2; }
+  @keyframes move-nudge { 50% { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(184, 86, 58, 0.25); } }
+  .move-hint { font-size: 12px; font-weight: 700; color: var(--accent); background: #fbeee6; border-radius: 8px; padding: 7px 9px; margin: -4px 0 10px; line-height: 1.5; }
+  .move-hint[hidden], .stats .move-btn[hidden] { display: none; }
+  /* 좌표 수정 중: 손가락으로 잡기 쉽게 크고 진한 원, 가운데 흰 십자가 저장되는 자리 */
+  .draft-marker.moving { box-sizing: border-box; width: 44px; height: 44px; border: 3px solid #fff; background: rgba(184, 86, 58, 0.92); cursor: move; box-shadow: 0 0 0 7px rgba(184, 86, 58, 0.25), 0 2px 8px rgba(0,0,0,0.35); }
+  .draft-marker.moving::before, .draft-marker.moving::after { content: ''; position: absolute; left: 50%; top: 50%; background: #fff; border-radius: 2px; }
+  .draft-marker.moving::before { width: 18px; height: 3px; margin: -1.5px 0 0 -9px; }
+  .draft-marker.moving::after { width: 3px; height: 18px; margin: -9px 0 0 -1.5px; }
   .draft-marker { width: 22px; height: 22px; border-radius: 50%; border: 3px dashed var(--accent); background: rgba(184, 86, 58, 0.25); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 </style>
 </head>
@@ -204,7 +215,8 @@
     <div class="section">
       <h2 id="form-title">1. 새 스팟 넣기</h2>
       <p class="hint" id="form-hint">지도에서 자리를 한 번 누르면 점선 원이 생깁니다. 다시 누르면 옮겨집니다.</p>
-      <div class="stats">위치: <span id="draft-pos">아직 없음</span></div>
+      <div class="stats">위치: <span id="draft-pos">아직 없음</span><button type="button" class="move-btn" id="move-btn" hidden>좌표 수정하기</button></div>
+      <p class="move-hint" id="move-hint" hidden>빨간 원을 손가락으로 끌어서 옮기세요(지도를 눌러도 그 자리로 와요). 가운데 십자가 새 자리, 흐려진 핀이 원래 자리예요. 다 옮겼으면 "좌표 수정 끝", 저장은 아래 "고친 내용 저장".</p>
 
       <div class="field"><label for="f-cat">종류</label><select id="f-cat"></select></div>
       <div class="newcat" id="newcat" hidden>
@@ -377,7 +389,6 @@
       <div class="field"><label for="gt-homeLine">재택 설명 줄</label><input id="gt-homeLine" maxlength="60"></div>
       <div class="field"><label for="gt-workBadge">출근 배지 이름</label><input id="gt-workBadge" maxlength="20"></div>
       <div class="field"><label for="gt-workLine">출근 설명 줄</label><input id="gt-workLine" maxlength="60"></div>
-      <div class="field"><label for="gt-demoNote">예시 화면 안내 문구 (아래 "예시 화면 안내 문구"를 켜면 예시 팝업·카드에만 나와요)</label><input id="gt-demoNote" maxlength="60"></div>
       <div class="gt-checks">
         <label><input type="checkbox" id="gt-showSignal"> 신호 문구 (다가와도 좋아요 등)</label>
         <label><input type="checkbox" id="gt-showSignalLabel"> 신호등 이름도 붙이기 (초록불·노랑불·빨강불)</label>
@@ -385,7 +396,6 @@
         <label><input type="checkbox" id="gt-showKindLine"> 재택·출근 설명 줄</label>
         <label><input type="checkbox" id="gt-showPetChips"> 동반 조건 칩 (실내·바깥 자리·물그릇)</label>
         <label><input type="checkbox" id="gt-showTownExtra"> 걸어서 몇 분 · QR 단골 안내</label>
-        <label><input type="checkbox" id="gt-showDemoNote"> 예시 화면 안내 문구 (예시에서만)</label>
       </div>
       <p class="hint">늘 보이는 줄(끌 수 없음): 실제 핀의 출처, 실제 수호견의 "사장님 동의 · 제휴 아님". 확인 안 된 것이 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게 하려는 거예요. 예시 화면은 지도 아래 띠("수호견 예시 화면 · 실제 지도에는 없어요")가 예시임을 알려요.</p>
       <div class="grp-actions"><button type="button" id="gt-reset">기본값으로</button></div>
@@ -526,13 +536,12 @@
   });
   // ── 6. 수호견 팝업 문구(2026-11-17 가르시아 "화면에 들어가는 양식 편집") ──
   // 값은 infra-pins.js의 readGuardianText로 정리한다(빈 칸은 기본값). 고치면 초안에 두고 "모두에게 반영"으로 올린다.
-  var GT_TEXT = ['homeBadge', 'homeLine', 'workBadge', 'workLine', 'demoNote'];
-  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showTownExtra', 'showDemoNote'];
+  var GT_TEXT = ['homeBadge', 'homeLine', 'workBadge', 'workLine'];
+  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showTownExtra'];
   function renderGText() {
     GT_TEXT.forEach(function (k) { $('gt-' + k).value = gtext[k] || ''; });
     GT_FLAGS.forEach(function (k) { $('gt-' + k).checked = !!gtext[k]; });
     $('gt-showSignalLabel').disabled = !gtext.showSignal;
-    $('gt-demoNote').disabled = !gtext.showDemoNote;
   }
   function readGTextForm() {
     var raw = {};
@@ -540,7 +549,6 @@
     GT_FLAGS.forEach(function (k) { raw[k] = $('gt-' + k).checked; });
     gtext = InfraPins.readGuardianText(raw);
     $('gt-showSignalLabel').disabled = !gtext.showSignal;
-    $('gt-demoNote').disabled = !gtext.showDemoNote;
     save();
   }
   GT_TEXT.forEach(function (k) { $('gt-' + k).addEventListener('change', readGTextForm); });
@@ -553,6 +561,7 @@
 
   // ── 지도·폼 ──
   var map = null, markers = {}, draftLatLng = null, draftMarker = null;
+  var moveMode = false;   // 좌표 수정 중(2026-11-17 가르시아 "좌표 수정하기 버튼을 눌러 드래그") — 원을 끌어서 옮긴다
   var editingId = null, gPhoto = null, pPhoto = null;
   var fCat = $('f-cat'), fName = $('f-name'), fTags = $('f-tags'), fNote = $('f-note'), fPhone = $('f-phone');
   var gName = $('g-name'), gSignal = $('g-signal'), gLine = $('g-line');
@@ -580,17 +589,55 @@
   function todayText() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function round5(x) { return Math.round(x * 1e5) / 1e5; }
 
+  function showDraftPos(latlng) { $('draft-pos').textContent = latlng ? latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5) : '아직 없음'; }
+  // 점선 원: 평소엔 눌리지 않는 표시, 좌표 수정 중에는 크게 + 끌 수 있게(옵션이 달라 새로 만든다)
+  function drawDraftMarker() {
+    if (draftMarker) { map.removeLayer(draftMarker); draftMarker = null; }
+    if (!draftLatLng) return;
+    var size = moveMode ? 44 : 22;
+    draftMarker = L.marker(draftLatLng, {
+      icon: L.divIcon({ className: 'draft-marker' + (moveMode ? ' moving' : ''), iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
+      interactive: moveMode, draggable: moveMode, keyboard: false, zIndexOffset: 2000
+    }).addTo(map);
+    if (moveMode) {
+      draftMarker.on('drag', function (e) { showDraftPos(e.target.getLatLng()); });
+      draftMarker.on('dragend', function (e) { setDraft(e.target.getLatLng()); });
+    }
+  }
+  // 좌표 수정 중에는 고치는 스팟의 원래 핀을 흐리게 — 끌 원과 겹쳐 헷갈리지 않게, 원래 자리는 보이게
+  function paintEditedPin() {
+    Object.keys(markers).forEach(function (id) { markers[id].setOpacity(moveMode && id === editingId ? 0.35 : 1); });
+  }
   function setDraft(latlng) {
     draftLatLng = latlng;
     if (!latlng) {
+      moveMode = false;
       if (draftMarker) { map.removeLayer(draftMarker); draftMarker = null; }
-      $('draft-pos').textContent = '아직 없음';
-    } else {
-      if (draftMarker) draftMarker.setLatLng(latlng);
-      else draftMarker = L.marker(latlng, { icon: L.divIcon({ className: 'draft-marker', iconSize: [22, 22], iconAnchor: [11, 11] }), interactive: false, zIndexOffset: 2000 }).addTo(map);
-      $('draft-pos').textContent = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
-    }
+      paintMoveBtn(); paintEditedPin();
+    } else if (draftMarker) draftMarker.setLatLng(latlng);
+    else drawDraftMarker();
+    showDraftPos(latlng);
     $('save-btn').disabled = !draftLatLng;
+    $('move-btn').hidden = !draftLatLng;
+  }
+  function paintMoveBtn() {
+    var b = $('move-btn');
+    b.textContent = moveMode ? '좌표 수정 끝' : '좌표 수정하기';
+    b.classList.toggle('on', moveMode);
+    b.setAttribute('aria-pressed', moveMode ? 'true' : 'false');
+    $('move-hint').hidden = !moveMode;
+  }
+  function setMoveMode(on) {
+    moveMode = !!on && !!draftLatLng;
+    drawDraftMarker();
+    paintMoveBtn(); paintEditedPin();
+    // 손가락으로 맞추기 쉽게 원 쪽으로 가서 크게 본다
+    if (moveMode) map.setView(draftLatLng, Math.max(map.getZoom(), 18));
+  }
+  // 고치는 중에 지도를 눌렀는데 좌표 수정 중이 아니면: 자리는 그대로 두고 버튼을 알려 준다
+  function nudgeMoveBtn() {
+    var b = $('move-btn');
+    b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge');
   }
 
   // withCrop: 고른 뒤 보여 줄 부분(정사각형)을 고르게 한다(수호지킴이 사진). 원본은 이 창에서만 들고 있다가
@@ -1029,9 +1076,10 @@
     paintGuardianForm();
     showPPhoto(pin.photo || null);
     setDraft(L.latLng(pin.lat, pin.lng));
+    setMoveMode(false);
     map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 17));
     $('form-title').textContent = '1. 스팟 고치기 — ' + (pin.name || '');
-    $('form-hint').textContent = '위치를 옮기려면 지도에서 새 자리를 누르세요. 다 고쳤으면 "고친 내용 저장".';
+    $('form-hint').textContent = '위치를 옮기려면 "좌표 수정하기"를 누르고 지도의 원을 끌어서 옮기세요. 다 고쳤으면 "고친 내용 저장".';
     $('save-btn').textContent = '고친 내용 저장';
     $('cancel-btn').hidden = false;
     refreshExtras();
@@ -1120,6 +1168,7 @@
         zIndexOffset: pin.cat === 'spot' ? 500 : 0
       }).bindTooltip((pin.demo ? '예시 · ' : '') + (pin.name || '')).on('click', function () { startEdit(pin); }).addTo(map);
     });
+    paintEditedPin();
   }
   function renderList() {
     var only = $('list-filter').value, listEl = $('pin-list');
@@ -1442,7 +1491,13 @@
     renderGText();
     map = L.map('map').setView(DEFAULT_CENTER, 15);
     WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
-    map.on('click', function (e) { if (placeDraft) movePlace(e.latlng); else setDraft(e.latlng); });
+    map.on('click', function (e) {
+      if (placeDraft) { movePlace(e.latlng); return; }
+      // 이미 있는 스팟을 고치는 중이면 "좌표 수정하기"를 눌렀을 때만 자리가 바뀐다(지도를 잘못 눌러 옮겨지지 않게)
+      if (editingId && !moveMode) { nudgeMoveBtn(); return; }
+      setDraft(e.latlng);
+    });
+    $('move-btn').addEventListener('click', function () { setMoveMode(!moveMode); });
     applyCategories();
     $('list-filter').addEventListener('change', renderList);
     clearForm();

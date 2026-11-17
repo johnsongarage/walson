@@ -352,12 +352,11 @@
   // 수호견 팝업 문구·보이는 줄(2026-11-17 가르시아 "양식 편집") — 스팟 편집 "6. 수호견 팝업 문구"에서 고친다
   // (spots-data.js의 window.PETWALK_GUARDIAN_TEXT, 없으면 아래 기본값). 끌 수 없는 줄: 실제 핀의 출처와 실제 수호견의 '사장님 동의 · 제휴 아님' —
   // 확인 안 된 것을 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게(11/15).
-  // 예시 안내 문구(demoNote)는 11/17 가르시아 "안 들어가게"로 기본 꺼짐(켤 수 있음) — 예시 화면임은 town.html 아래 띠가 알린다.
+  // 예시 안내 문구는 11/17 가르시아 "안 들어가게"·"칸 제거"로 없앴다 — 예시 화면임은 town.html 아래 띠가 알린다.
   var GUARDIAN_TEXT_DEFAULT = {
     homeBadge: '재택 명예 수호견', homeLine: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견',
     workBadge: '출근 수호견', workLine: '가게에서 손님을 맞는 사장님네 강아지예요',
-    demoNote: '예시 화면이에요 · AI로 만든 사진이고, 실제 지도에는 없는 가게·강아지예요',
-    showSignal: true, showSignalLabel: false, showLine: true, showKindLine: true, showPetChips: true, showTownExtra: true, showDemoNote: false
+    showSignal: true, showSignalLabel: false, showLine: true, showKindLine: true, showPetChips: true, showTownExtra: true
   };
   function readGuardianText(src) {
     var t = {};
@@ -374,8 +373,8 @@
     work: { badge: GT.workBadge, line: GT.workLine }
   };
   var GUARDIAN_DISCLAIMER = '사장님 동의를 받고 올렸어요 · 가게·브랜드와 제휴 관계가 아니에요';
-  // 예시 핀은 안내 문구를 켰을 때만(꺼져 있으면 '') — 실제 수호견은 늘 '사장님 동의 · 제휴 아님'
-  function guardianDisclaimer(pin) { return pin && pin.source === 'demo' ? (GT.showDemoNote ? GT.demoNote : '') : GUARDIAN_DISCLAIMER; }
+  // 예시 핀은 안내 줄 없음('') — 실제 수호견은 늘 '사장님 동의 · 제휴 아님'
+  function guardianDisclaimer(pin) { return pin && pin.source === 'demo' ? '' : GUARDIAN_DISCLAIMER; }
   function guardianKind(g) { return GUARDIAN_KINDS[g && g.kind] || GUARDIAN_KINDS.home; }
   function hasGuardianData(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
   function hasGuardian(pin) { return GUARDIANS_ON && hasGuardianData(pin); }
