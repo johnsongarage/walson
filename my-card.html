@@ -148,7 +148,7 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=6"></script>
+<script src="site-config.js?v=8"></script>
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
@@ -207,11 +207,12 @@
     <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·면·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
     <button type="button" class="btn btn-primary" id="save-btn">꾸미고 저장하기</button>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
-    <!-- 키링 인쇄소에 보낼 파일(2026-11-16): 앞면은 QR을 뺀 1600×1000 원본, 뒷면은 그대로. 크기는 인쇄소에 "카드 부분 60×37.5mm"로 맞춰 달라고 한다 -->
+    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080. 앞면은 QR 대신 APP WALSON 문구 -->
     <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 인쇄소용 파일 저장 · 지금 보는 면</button>
     <p class="hint">A4에 앞·뒷면이 네 쌍 실제 크기(85.6×54mm)로 나와요. 인쇄 배율은 100%(실제 크기)로. 오려서 등을 맞대고 포토카드 홀더에 넣으면 리드줄에 달 수 있어요.
     인식표(보호자 연락처·동물등록번호)는 따로 달아 주세요.<br>
-    키링 인쇄소용 파일은 원본 크기(1600×1000) 그대로예요. 앞면은 키링 크기에선 안 찍히는 QR을 빼요. 인쇄소에 "카드 부분 60×37.5mm, 테두리·고리 구멍은 따로"라고 전해 주세요. 양면으로 하려면 뒷면을 보고 한 번 더 저장하세요.</p>
+    키링 인쇄소용 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 키링 크기에선 안 찍히는 QR 대신 "APP WALSON" 문구가 들어가요.
+    인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로"라고 전해 주세요. 양면으로 하려면 뒷면을 보고 한 번 더 저장하세요.</p>
   </div>
 
   <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
@@ -233,7 +234,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=10"></script>
 <script src="dog-tags.js?v=1"></script>
-<script src="id-card.js?v=4"></script>
+<script src="id-card.js?v=5"></script>
 <script src="image-editor.js?v=2"></script>
 <script src="steady-stamp.js?v=2"></script>
 <script src="mock-server.js?v=2"></script>
@@ -382,6 +383,14 @@
     else IC.drawFront(c, profile, Object.assign({}, frontOpts(), { noQr: true }));
     window.WalsonTrack && WalsonTrack.send('card_saved', { what: side === 'back' ? 'keyring_back' : 'keyring_front', format: 'card', how: 'save' });
     var name = (profile.name || 'dog') + '-주민증-키링용-' + (side === 'back' ? '뒷면' : '앞면') + '.png';
+    // 인쇄 여유(2026-11-17 키링 = 주민증 카드형으로 결정): 카드 60×37.5mm(1600×1000) 사방에 1.5mm(40px)를 테두리 색으로 더 칠해
+    // 1680×1080으로 — 재단이 조금 밀려도 흰 테두리·투명 귀퉁이가 안 남는다. 인쇄소엔 "재단 60×37.5mm, 모서리 둥글게"
+    var sig = IC.SIGNALS[profile.signal] || IC.SIGNALS.none, BLEED = 40, out = document.createElement('canvas');
+    out.width = c.width + BLEED * 2; out.height = c.height + BLEED * 2;
+    var og = out.getContext('2d');
+    og.fillStyle = sig.color; og.fillRect(0, 0, out.width, out.height);
+    og.drawImage(c, BLEED, BLEED);
+    c = out;
     // 저장은 저장으로(2026-11-16 저장·공유 분리) — 예전엔 휴대폰에서 공유 창만 떠서 안드로이드는 사진첩에 넣을 수 없었다
     if (window.WalsonSave.save) { WalsonSave.save(c, name); return; }
     c.toBlob(function (blob) { if (blob) window.WalsonSave.blob(blob, name); }, 'image/png');

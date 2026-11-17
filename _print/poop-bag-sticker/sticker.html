@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@700;900&display=block" rel="stylesheet">
+<style>
+  @page { margin: 0; }
+  html, body { margin: 0; padding: 0; background: #fff; font-family: 'Noto Sans KR', sans-serif; }
+  .board { padding: 10mm; background: #f4efe8; }
+  .board h1 { font: 900 7mm 'Noto Sans KR'; margin: 0 0 2mm; color: #3b2a1d; }
+  .board p { font: 700 3.2mm 'Noto Sans KR'; margin: 0 0 6mm; color: #6b5d4e; }
+  .row { display: flex; flex-wrap: wrap; gap: 8mm 10mm; align-items: flex-end; margin-bottom: 9mm; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 2.5mm; }
+  .cell b { font: 900 3.4mm 'Noto Sans KR'; color: #3b2a1d; }
+  .cell span { font: 700 2.8mm 'Noto Sans KR'; color: #6b5d4e; }
+  .sheet { width: 210mm; height: 297mm; box-sizing: border-box; padding: 10mm; }
+  .sheet .note { font: 700 3.3mm 'Noto Sans KR'; margin: 0 0 1mm; }
+  .sheet .note2 { font: 700 2.6mm 'Noto Sans KR'; color: #555; margin: 0 0 5mm; }
+  .grid { display: flex; flex-wrap: wrap; gap: 5mm 6mm; align-items: center; margin-bottom: 7mm; }
+  .grid h2 { width: 100%; font: 900 3.3mm 'Noto Sans KR'; margin: 0; }
+  .cut { position: relative; }
+  .cut svg { display: block; }   /* 글줄 높이만큼 아래가 뜨지 않게(한 장에 다 들어가게) */
+  .cut svg.cutline { position: absolute; left: 0; top: 0; pointer-events: none; }
+</style></head>
+<body>
+<div id="root"></div>
+<!-- 홍보물 필수 문구는 앱 설정 한 곳(site-config.js brand)에서 읽는다(CLAUDE.md 텍스트 규칙) -->
+<script src="../../site-config.js"></script>
+<script>
+// 다이소 배변봉투 케이스 사은품 스티커 시안(2026-11-17 가르시아 "사은품으로 가자. 스티커 시안 먼저") — 단위는 mm
+// 브랜드 두 줄은 walson site-config.js의 brand 값(홍보물 필수 문구, CLAUDE.md)
+var BRAND = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || null;
+if (!BRAND || !BRAND.name || !BRAND.tagline) throw new Error('site-config.js brand 값을 못 읽었어요');
+var PAL = {
+  yellow: { bg: '#f2b52f', ink: '#4a2c16', eye: '#fffaf3', label: '노랑' },
+  cream:  { bg: '#fffaf3', ink: '#6b3f1f', eye: '#ffffff', label: '크림' }
+};
+var BLEED = 1.5;
+// 응가 그림(영수증·응가 달력과 같은 그림, 30×24 칸)
+var POOP = 'M4 22c-3-1-2-5 1-5-1-3 1-6 5-5 0-4 4-6 7-4 2-3 7-2 7 2 3 0 5 3 3 6 3 1 3 5 0 6z';
+function poop(cx, cy, w, p) {
+  var s = w / 30, x = cx - w / 2, y = cy - 24 * s / 2;
+  return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
+    '<path d="' + POOP + '" fill="' + p.ink + '"/>' +
+    '<circle cx="11" cy="15.5" r="2.9" fill="' + p.eye + '"/><circle cx="18.5" cy="15.5" r="2.9" fill="' + p.eye + '"/>' +
+    '<circle cx="11.7" cy="16" r="1.35" fill="' + p.ink + '"/><circle cx="19.2" cy="16" r="1.35" fill="' + p.ink + '"/></g>';
+}
+// 뼈다귀 윤곽(위아래 둥근 혹 두 개씩 + 가운데 막대). w·h 전체, rr 혹 반지름, sh 막대 높이
+function bonePath(x0, y0, w, h, rr, sh) {
+  var cyT = y0 + rr, cyB = y0 + h - rr, cx1 = x0 + rr, cx2 = x0 + w - rr, ym = (cyT + cyB) / 2, d = cyB - cyT;
+  var ys1 = ym - sh / 2, ys2 = ym + sh / 2;
+  var a = Math.sqrt(Math.max(0, rr * rr - Math.pow(cyT - ys1, 2))), b = Math.sqrt(Math.max(0, rr * rr - d * d / 4));
+  function f(n) { return Math.round(n * 1000) / 1000; }
+  return 'M' + f(cx1 + a) + ' ' + f(ys1) + 'L' + f(cx2 - a) + ' ' + f(ys1) +
+    'A' + rr + ' ' + rr + ' 0 1 1 ' + f(cx2 + b) + ' ' + f(ym) +
+    'A' + rr + ' ' + rr + ' 0 1 1 ' + f(cx2 - a) + ' ' + f(ys2) +
+    'L' + f(cx1 + a) + ' ' + f(ys2) +
+    'A' + rr + ' ' + rr + ' 0 1 1 ' + f(cx1 - b) + ' ' + f(ym) +
+    'A' + rr + ' ' + rr + ' 0 1 1 ' + f(cx1 + a) + ' ' + f(ys1) + 'Z';
+}
+var SHAPES = {
+  // A 도장형 원형 지름 25mm — 영수증 "오늘도 해냈다" 도장과 같은 말·그림
+  A: { w: 25, h: 25, title: 'A 도장형 · 원형 지름 25mm', cut: function (o) { return '<circle cx="' + (o + 12.5) + '" cy="' + (o + 12.5) + '" r="12.5"/>'; },
+    art: function (p, o, bleed) {
+      var c = o + 12.5, R = 12.5, bgR = R + (bleed ? BLEED : 0), id = 'A' + Math.round(Math.random() * 1e9);
+      var rt = 9.55, rb = 10.7;   // 위 글씨는 선 바깥으로, 아래 글씨는 선 안쪽으로 서서 둘 다 고리 띠 안에 들어온다
+      var top = 'M' + (c - rt) + ' ' + c + 'A' + rt + ' ' + rt + ' 0 0 1 ' + (c + rt) + ' ' + c;
+      var bot = 'M' + (c - rb) + ' ' + c + 'A' + rb + ' ' + rb + ' 0 0 0 ' + (c + rb) + ' ' + c;
+      return '<defs><path id="t' + id + '" d="' + top + '"/><path id="b' + id + '" d="' + bot + '"/></defs>' +
+        '<circle cx="' + c + '" cy="' + c + '" r="' + bgR + '" fill="' + p.bg + '"/>' +
+        '<circle cx="' + c + '" cy="' + c + '" r="11.55" fill="none" stroke="' + p.ink + '" stroke-width="0.7"/>' +
+        '<circle cx="' + c + '" cy="' + c + '" r="8.75" fill="none" stroke="' + p.ink + '" stroke-width="0.35"/>' +
+        '<text font-family="Noto Sans KR" font-weight="900" font-size="1.95" letter-spacing="0.42" fill="' + p.ink + '">' +
+          '<textPath href="#t' + id + '" startOffset="50%" text-anchor="middle">' + BRAND.name + '</textPath></text>' +
+        '<text font-family="Noto Sans KR" font-weight="700" font-size="1.62" letter-spacing="0.06" fill="' + p.ink + '">' +
+          '<textPath href="#b' + id + '" startOffset="50%" text-anchor="middle">' + BRAND.tagline + '</textPath></text>' +
+        '<circle cx="' + (c - 10.15) + '" cy="' + (c - 0.1) + '" r="0.38" fill="' + p.ink + '"/>' +
+        '<circle cx="' + (c + 10.15) + '" cy="' + (c - 0.1) + '" r="0.38" fill="' + p.ink + '"/>' +
+        poop(c, c - 4.3, 6.6, p) +
+        '<text x="' + c + '" y="' + (c + 1.45) + '" text-anchor="middle" font-family="Black Han Sans" font-size="3.55" fill="' + p.ink + '">오늘도</text>' +
+        '<text x="' + c + '" y="' + (c + 5.35) + '" text-anchor="middle" font-family="Black Han Sans" font-size="3.55" fill="' + p.ink + '">해냈다</text>';
+    } },
+  // B 알약형 44×20mm — 봉투 케이스 가운데 막대 자리
+  B: { w: 44, h: 20, title: 'B 알약형 · 44×20mm', cut: function (o) { return '<rect x="' + o + '" y="' + o + '" width="44" height="20" rx="10"/>'; },
+    art: function (p, o, bleed) {
+      var e = bleed ? BLEED : 0;
+      return '<rect x="' + (o - e) + '" y="' + (o - e) + '" width="' + (44 + 2 * e) + '" height="' + (20 + 2 * e) + '" rx="' + (10 + e) + '" fill="' + p.bg + '"/>' +
+        '<rect x="' + (o + 1.1) + '" y="' + (o + 1.1) + '" width="41.8" height="17.8" rx="8.9" fill="none" stroke="' + p.ink + '" stroke-width="0.55"/>' +
+        poop(o + 9.6, o + 8.4, 9.2, p) +
+        '<text x="' + (o + 9.6) + '" y="' + (o + 15.6) + '" text-anchor="middle" font-family="Noto Sans KR" font-weight="900" font-size="1.75" fill="' + p.ink + '">' + BRAND.name + '</text>' +
+        '<text x="' + (o + 28) + '" y="' + (o + 8.2) + '" text-anchor="middle" font-family="Black Han Sans" font-size="5.1" fill="' + p.ink + '">똥은 제가</text>' +
+        '<text x="' + (o + 28) + '" y="' + (o + 13.5) + '" text-anchor="middle" font-family="Black Han Sans" font-size="5.1" fill="' + p.ink + '">치워요</text>' +
+        '<text x="' + (o + 27.6) + '" y="' + (o + 16.35) + '" text-anchor="middle" font-family="Noto Sans KR" font-weight="700" font-size="1.42" fill="' + p.ink + '">' + BRAND.tagline + '</text>';
+    } },
+  // C 뼈다귀형 62×34mm — 케이스 모양을 따라감(실측 뒤 맞춤)
+  C: { w: 62, h: 34, title: 'C 뼈다귀형 · 62×34mm', cut: function (o) { return '<path d="' + bonePath(o, o, 62, 34, 8.6, 20) + '"/>'; },
+    art: function (p, o, bleed) {
+      var e = bleed ? BLEED : 0;
+      // 안쪽 선 = 자르는 선에서 1.2mm 들어온 선(굵기 0.55mm). 모양을 줄여 그리면 가운데 홈이 꺾여서, 자르는 모양 안에서 굵은 선 두 번으로 만든다
+      var cut = bonePath(o, o, 62, 34, 8.6, 20), cid = 'c' + Math.round(Math.random() * 1e9);
+      return '<path d="' + bonePath(o - e, o - e, 62 + 2 * e, 34 + 2 * e, 8.6 + e, 20 + 2 * e) + '" fill="' + p.bg + '"/>' +
+        '<defs><clipPath id="' + cid + '"><path d="' + cut + '"/></clipPath></defs>' +
+        '<g clip-path="url(#' + cid + ')" fill="none" stroke-linejoin="round">' +
+          '<path d="' + cut + '" stroke="' + p.ink + '" stroke-width="' + (2 * (1.2 + 0.55)) + '"/>' +
+          (bleed ? '' : '<path d="' + cut + '" stroke="' + p.bg + '" stroke-width="2.4"/>') + '</g>' +
+          // 인쇄용은 바탕색 선을 자르는 선 밖(재단 여유)까지 그려서, 자르는 선 자리에 갈색 잔선이 안 남게
+          (bleed ? '<path d="' + cut + '" fill="none" stroke="' + p.bg + '" stroke-width="2.4" stroke-linejoin="round"/>' : '') +
+        poop(o + 14.2, o + 16.4, 8.2, p) +
+        '<text x="' + (o + 34.2) + '" y="' + (o + 14.6) + '" text-anchor="middle" font-family="Black Han Sans" font-size="4.9" fill="' + p.ink + '">배변봉투</text>' +
+        '<text x="' + (o + 34.2) + '" y="' + (o + 20.1) + '" text-anchor="middle" font-family="Black Han Sans" font-size="4.9" fill="' + p.ink + '">장전 완료</text>' +
+        '<text x="' + (o + 31) + '" y="' + (o + 23.75) + '" text-anchor="middle" font-family="Noto Sans KR" font-weight="900" font-size="1.42" fill="' + p.ink + '">' + BRAND.name +
+          '<tspan font-weight="700"> · ' + BRAND.tagline + '</tspan></text>';
+    } }
+};
+// 스티커 한 장 SVG(mm). bleed면 사방 1.5mm 바탕을 더 그린다(인쇄소용), cut이면 칼선을 빨간 가는 선으로
+function sticker(key, pal, opts) {
+  opts = opts || {};
+  var S = SHAPES[key], p = PAL[pal], o = opts.bleed ? BLEED : 0, W = S.w + 2 * o, H = S.h + 2 * o, k = opts.scale || 1;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + (W * k) + 'mm" height="' + (H * k) + 'mm" viewBox="0 0 ' + W + ' ' + H + '">' +
+    S.art(p, o, !!opts.bleed) +
+    (opts.cut ? '<g fill="none" stroke="' + (opts.cutColor || '#e0007a') + '" stroke-width="' + (opts.cutW || 0.12) + '"' + (opts.dash ? ' stroke-dasharray="1 0.8"' : '') + '>' + S.cut(o) + '</g>' : '') +
+    '</svg>';
+}
+// 회색 뼈다귀 케이스(약 75×45mm, 실물은 재 봐야 함) 위에 올려 본 그림
+function mock(key, pal, k) {
+  var cw = 75, ch = 45, pad = 4, W = cw + pad * 2 + 8, H = ch + pad * 2;
+  var S = SHAPES[key], sx = pad + (cw - S.w) / 2, sy = pad + (ch - S.h) / 2;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + (W * k) + 'mm" height="' + (H * k) + 'mm" viewBox="0 0 ' + W + ' ' + H + '">' +
+    '<defs><linearGradient id="g' + key + pal + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9adb2"/><stop offset="1" stop-color="#7d8186"/></linearGradient></defs>' +
+    '<circle cx="' + (pad + cw + 3.2) + '" cy="' + (pad + ch / 2) + '" r="4.2" fill="none" stroke="#6c7075" stroke-width="1.6"/>' +
+    '<path d="' + bonePath(pad, pad, cw, ch, 11.5, 27) + '" fill="url(#g' + key + pal + ')"/>' +
+    '<g transform="translate(' + sx + ' ' + sy + ')">' + SHAPES[key].art(PAL[pal], 0, false) + '</g>' +
+    '</svg>';
+}
+var mode = location.hash.slice(1).split('=');
+var root = document.getElementById('root');
+if (mode[0] === 'board') {
+  var h = '<div class="board"><h1>왈슨 배변봉투 케이스 스티커 시안</h1>' +
+    '<p>다이소 [펫] 배변 비닐 케이스(약 7.5×4.5cm, 회색) 사은품용 · 크기는 실측 전 대략 · 그림은 실제 크기의 3배</p>';
+  ['A', 'B', 'C'].forEach(function (key) {
+    h += '<div class="row">';
+    ['yellow', 'cream'].forEach(function (pal) {
+      h += '<div class="cell">' + sticker(key, pal, { scale: 3 }) + '<b>' + SHAPES[key].title + ' · ' + PAL[pal].label + '</b></div>';
+    });
+    h += '<div class="cell">' + mock(key, 'yellow', 2) + '<span>케이스에 붙이면(모양은 대략)</span></div>';
+    h += '</div>';
+  });
+  root.innerHTML = h + '</div>';
+} else if (mode[0] === 'sheet') {
+  // 집에서 A4 라벨지에 뽑아 오려 붙여 보는 시험지 — 실제 크기, 점선 = 오리는 선
+  var g = '<div class="sheet"><p class="note">왈슨 배변봉투 케이스 스티커 시험지 · 실제 크기 — 인쇄 배율 100%(실제 크기)로, A4 라벨지에</p>' +
+    '<p class="note2">점선을 따라 오려 케이스에 붙여 보세요. 1m 떨어져서 읽히는지, 곡면에 잘 붙는지 확인용이에요.</p>';
+  [['A', 8], ['B', 4], ['C', 2]].forEach(function (it) {
+    var key = it[0], n = it[1];
+    g += '<div class="grid"><h2>' + SHAPES[key].title + '</h2>';
+    ['yellow', 'cream'].forEach(function (pal) {
+      for (var i = 0; i < n / 2; i++) g += '<div class="cut">' + sticker(key, pal, { cut: true, dash: true, cutColor: '#888', cutW: 0.2 }) + '</div>';
+    });
+    g += '</div>';
+  });
+  root.innerHTML = g + '</div>';
+} else if (mode[0] === 'sheet1') {
+  // 고른 시안 한 가지로 A4 라벨지를 채운 시험지(2026-11-17 가르시아 "B 노랑으로 가자") — 실제 크기, 점선 = 오리는 선
+  var pk = mode[1].split('-'), S1 = SHAPES[pk[0]], gap = 4;
+  var cols = Math.floor((190 + gap) / (S1.w + gap)), rows = Math.floor((262 + gap) / (S1.h + gap));
+  var g1 = '<div class="sheet"><p class="note">왈슨 배변봉투 케이스 스티커 · ' + S1.title + ' · ' + PAL[pk[1]].label + ' — 실제 크기(인쇄 배율 100%), A4 라벨지</p>' +
+    '<p class="note2">점선을 따라 오려 케이스에 붙이세요. ' + (cols * rows) + '장. 인쇄소 주문 전 공원 반응·곡면 부착 시험용이에요.</p>' +
+    '<div class="grid" style="gap:' + gap + 'mm ' + gap + 'mm">';
+  for (var n = 0; n < cols * rows; n++) g1 += '<div class="cut">' + sticker(pk[0], pk[1], { cut: true, dash: true, cutColor: '#888', cutW: 0.2 }) + '</div>';
+  root.innerHTML = g1 + '</div></div>';
+} else if (mode[0] === 'single') {
+  // 인쇄소용 한 장: 사방 재단 여유 1.5mm 포함(칼선은 따로 SVG)
+  var parts = mode[1].split('-');
+  root.innerHTML = sticker(parts[0], parts[1], { bleed: true });
+  document.body.style.background = 'transparent';
+}
+window.STICKER = { sticker: sticker, SHAPES: SHAPES, bonePath: bonePath, BLEED: BLEED };
+</script>
+</body></html>

@@ -141,6 +141,7 @@
   .tag-opts button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 11px; border-radius: 999px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; text-align: left; line-height: 1.35; }
   .tag-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint, #f3ddd2); }
   .tag-hint { font-size: 12px; color: var(--ink-soft); margin: 6px 2px 0; }
+  .biz-line { margin: 10px 0 0; font-size: 11px; line-height: 1.6; text-align: center; opacity: 0.6; word-break: keep-all; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -152,7 +153,7 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=6"></script>
+<script src="site-config.js?v=8"></script>
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
@@ -246,7 +247,9 @@
     로그인 없이 이 기기에만 저장돼요. 위치는 묻지 않아요.
     <a href="privacy.html">어떤 정보를 어디에 두는지 보기</a>
   </p>
+  <p id="biz-line" class="biz-line" hidden></p>
 </div>
+<script>window.WalsonBizInfo && WalsonBizInfo(document.getElementById('biz-line'));</script>
 
 <canvas id="card-canvas" width="1600" height="1000" hidden></canvas>
 
@@ -260,7 +263,7 @@
 <script src="infra-pins.js?v=25"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=10"></script>
-<script src="id-card.js?v=4"></script>
+<script src="id-card.js?v=5"></script>
 <script src="image-editor.js?v=2"></script>
 <script>
 (function () {

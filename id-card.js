@@ -256,10 +256,31 @@
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
     // "나도 만들기" QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
-    // opts.noQr: 키링용(2026-11-16) — 6cm로 줄이면 QR이 1cm 남짓이라 잘 안 찍혀서 뺀다
+    // opts.noQr: 키링용(2026-11-16) — 6cm로 줄이면 QR이 1cm 남짓이라 잘 안 찍혀서 뺀다.
+    // 그 자리엔 홍보물 필수 문구 두 줄(2026-11-17 — 키링은 나눠 주는 인쇄물이라 CLAUDE.md 텍스트 규칙, site-config.js brand)
     if (!opts.noQr) drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
+    else brandMark(ctx, rows.length > 2);
     footer(ctx, '왈슨 · ' + SHARE_URL_TEXT);
     return canvas;
+  }
+
+  // 키링 앞면 오른쪽 아래(QR 자리)에 'APP WALSON' + 문구를 오른쪽 맞춤으로. 왼쪽 '카드 번호' 줄과 겹치지 않게 폭을 줄여 맞춘다
+  function brandMark(ctx, threeRows) {
+    var B = window.WALSON_CONFIG && window.WALSON_CONFIG.brand;
+    if (!B || !B.name) return;
+    var right = W - 96, maxW = 340, y1 = threeRows ? 812 : 800;
+    ctx.save();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = INK;
+    var s1 = 56; ctx.font = s1 + 'px ' + BIG;
+    while (s1 > 30 && ctx.measureText(B.name).width > maxW) { s1 -= 2; ctx.font = s1 + 'px ' + BIG; }
+    ctx.fillText(B.name, right, y1);
+    if (B.tagline) {
+      ctx.fillStyle = SOFT;
+      ctx.font = font(700, fitText(ctx, B.tagline, maxW, 26, 700));
+      ctx.fillText(B.tagline, right, y1 + 46);
+    }
+    ctx.restore();
   }
 
   function footer(ctx, left) {

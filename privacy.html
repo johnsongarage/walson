@@ -44,10 +44,12 @@
   .consent-now { font-size: 13px; font-weight: 700; margin: 6px 0 8px; }
   .consent-btns { display: flex; gap: 8px; }
   .consent-btns button { flex: 1; font-family: inherit; font-size: 14px; font-weight: 800; padding: 11px; border-radius: 12px; border: 1px solid var(--panel-border, #e6d6c1); background: #fff; color: inherit; cursor: pointer; }
+  .biz-footer { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.12); font-size: 12.5px; line-height: 1.75; opacity: 0.85; }
+  .biz-footer a { color: inherit; }
 </style>
 <script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=6"></script>
+<script src="site-config.js?v=8"></script>
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 </head>
@@ -155,6 +157,7 @@
   <section>
     <h2>바뀐 내용</h2>
     <ul>
+      <li>2026년 11월 17일: 맨 아래에 운영자(사업자) 정보를 적었어요.</li>
       <li>2026년 11월 17일: [오늘]·주민증 완료·키링 화면에 카카오톡 채널 버튼을 켰어요. 누르면 카카오톡 채널로 넘어가고, 채널 추가와 대화는 카카오에서 이뤄져요(왈슨은 그때 아무것도 보내지 않아요). 채널 1:1 대화는 카카오 정책에 따라 카카오 서버에 보관돼요.</li>
       <li>2026년 11월 17일: "크롬으로 옮기기" 주소에 길 기록 중인 산책(끝내기 전까지 잠시 저장해 둔 걸은 길)이 함께 담기던 것을 고쳤어요. 이제 담지 않고, 예전에 만든 주소로 옮겨도 그 부분은 받지 않아요.
         산책을 끝낼 때 휴대폰 저장 공간이 꽉 차 있으면, 잠시 저장해 둔 산책을 지우지 않고 남겨 두게 했어요(밖으로는 보내지 않아요).</li>
@@ -175,8 +178,10 @@
     </ul>
   </section>
 
-  <p class="date">2026년 11월 16일 기준 · 왈슨(시범 운영)</p>
+  <p class="date">2026년 11월 17일 기준 · 왈슨(시범 운영)</p>
+  <footer id="operator" class="biz-footer" hidden></footer>
 </div>
+<script>window.WalsonBizInfo && WalsonBizInfo(document.getElementById('operator'), true);</script>
 <script>
 // 사용 통계 동의 바꾸기(track.js)
 (function () {

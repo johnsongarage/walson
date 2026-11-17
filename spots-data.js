@@ -42,6 +42,9 @@ window.PETWALK_MAP_GROUPS = [
 ];
 // 예시 수호견 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.
 window.PETWALK_DEMO_GUARDIANS = [
-  {"id":"demo-home","cat":"spot","name":"○○ 카페","lat":37.6196,"lng":127.1583,"source":"demo","demo":true,"pet":{"kind":"food","indoor":"no","terrace":true,"water":true},"guardian":{"kind":"home","name":"보리","signal":"green","photo":"demo/guardian-home-ai.jpg","line":"가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요","style":"photo"}},
-  {"id":"demo-work","cat":"spot","name":"○○ 펫샵","lat":37.6206,"lng":127.1626,"source":"demo","demo":true,"pet":{"kind":"pet","indoor":"ok","large":"all","water":true},"guardian":{"kind":"work","name":"콩이","signal":"red","photo":"demo/guardian-work-ai.jpg","line":"미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요","style":"photo"}}
+  {"id":"demo-work","cat":"spot","name":"○○ 펫샵","lat":37.6206,"lng":127.1626,"source":"demo","demo":true,"pet":{"kind":"pet","indoor":"ok","large":"all","water":true},"guardian":{"kind":"work","name":"콩이","signal":"red","photo":"demo/guardian-work-ai.jpg","line":"미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요","style":"photo"}},
+  {"id":"demo-home","cat":"spot","name":"○○ 카페","lat":37.6196,"lng":127.1583,"source":"demo","demo":true,"pet":{"indoor":"no","terrace":true,"water":true,"kind":"food"},"photo":"spots/photos/demo-home-p-91926a2fbe.jpg","guardian":{"name":"보리","kind":"home","style":"photo","signal":"green","line":"가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요","photo":"demo/guardian-home-ai.jpg"}},
+  {"id":"field-1794901995144","cat":"spot","name":"왈슨커피","lat":37.61278,"lng":127.1517,"source":"demo","demo":true,"pet":{"indoor":"carrier","large":"small","terrace":true,"water":true,"kind":"food","rules":true},"tags":["주차가능"],"guardian":{"name":"케리","kind":"home","style":"photo","signal":"yellow","line":"간식주면 배 뒤집어요","photo":"spots/photos/field-1794901995144-g-ef7e06e367.jpg"}}
 ];
+// 수호견 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).
+window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 수호견","homeLine":"사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견","workBadge":"출근 수호견","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","demoNote":".","showSignal":true,"showSignalLabel":false,"showLine":true,"showKindLine":true,"showPetChips":true,"showTownExtra":false};

@@ -4,6 +4,12 @@ window.WALSON_CONFIG = {
   // 쓰는 곳: 공원 포스터·전단(poster.html), 방문 키트 안내지·명함(visit-kit.html), 제휴 제안서(partner-proposal.html),
   //         카운터 체크인 QR(checkin-qr.html), 산책 영수증 아래 줄(walk-receipt.js). 새 홍보물을 만들면 꼭 넣는다(CLAUDE.md 텍스트 규칙).
   brand: { name: 'APP WALSON', tagline: '당신과 강아지의 유의미한 산책' },
+  // 운영자(사업자) 정보(2026-11-17 가르시아) — 카카오톡 채널 비즈니스 심사가 반려돼서: 홈페이지에서 서비스명(왈슨)과
+  // 하단 사업자 정보가 같이 보여야 한다(카카오 '사업자-채널 연관성 확인 방법'). 사업자등록증 그대로 적는다.
+  // 쓰는 곳: 개인정보 안내(privacy.html) 맨 아래, [오늘]·주민증 만들기 화면 하단 한 줄(아래 WalsonBizInfo).
+  // 주소·전화번호는 일부러 안 적는다 — 문의는 카카오톡 채널.
+  // service: 사업자 정보에 적는 서비스명(가르시아 "(WALSON)으로 해 줘, APP은 굳이") — 홍보물 문구(brand)와는 따로
+  business: { service: '왈슨(WALSON)', name: '존슨거라지(Johnson Garage)', owner: '강훈민', regNo: '778-17-02429' },
   // 카카오톡 채널 주소(예: 'https://pf.kakao.com/_abcd'). 비어 있으면 "새 소식 받기" 버튼이 숨는다.
   // 쓰는 곳: [오늘] 아래 링크, 주민증 완료 화면, 키링 받기 화면.
   kakaoChannel: 'https://pf.kakao.com/_IxocNX',   // 2026-11-17 채널 '왈슨' 개설(비즈니스 심사 중). 1:1 채팅은 이 주소 + /chat
@@ -27,4 +33,20 @@ window.WalsonMapTiles = function (map) {
     maxZoom: t.maxZoom || 19,
     attribution: t.attribution || '&copy; OpenStreetMap'
   }).addTo(map);
+};
+// 사업자 정보를 el 안에 그린다. long이면 개인정보 안내용 여러 줄(서비스명·문의 포함), 아니면 화면 하단 한 줄.
+window.WalsonBizInfo = function (el, long) {
+  var C = window.WALSON_CONFIG || {}, B = C.business;
+  if (!el || !B || !B.name) return;
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  if (!long) {
+    el.innerHTML = '왈슨 운영 · 상호 ' + esc(B.name) + ' · 대표 ' + esc(B.owner) + ' · 사업자등록번호 ' + esc(B.regNo);
+  } else {
+    var ch = C.kakaoChannel ? '<a href="' + esc(C.kakaoChannel) + '" target="_blank" rel="noopener">카카오톡 채널 \'왈슨\'</a>' : '';
+    el.innerHTML = '<b>운영자(사업자) 정보</b><br>' +
+      '서비스명: ' + esc(B.service || '왈슨') + '<br>' +
+      '상호: ' + esc(B.name) + '<br>대표자: ' + esc(B.owner) + '<br>사업자등록번호: ' + esc(B.regNo) +
+      (ch ? '<br>문의: ' + ch : '');
+  }
+  el.hidden = false;
 };

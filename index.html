@@ -166,6 +166,7 @@
   .inapp-note a { color: var(--accent); font-weight: 800; }
   .inapp-move { display: block; width: 100%; margin: 8px 0 4px; padding: 11px; border: none; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
   .inapp-move[hidden] { display: none; }
+  .biz-line { margin: 14px 0 0; font-size: 11px; line-height: 1.6; text-align: center; opacity: 0.6; word-break: keep-all; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -176,7 +177,7 @@
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=6"></script>
+<script src="site-config.js?v=8"></script>
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 </head>
@@ -258,9 +259,12 @@
     <a href="walk-type.html">산책 유형 테스트</a>
     <a href="profile.html#backup">기록 옮기기</a>
     <a href="privacy.html">개인정보 안내</a>
+    <a href="about.html">왈슨 소개</a>
     <a href="#" id="install-link" hidden>홈 화면에 추가</a>
   </div>
+  <p id="biz-line" class="biz-line" hidden></p>
 </div>
+<script>window.WalsonBizInfo && WalsonBizInfo(document.getElementById('biz-line'));</script>
 
 <!-- 다녀왔어요(2026-11-16): 산책 전에 앱을 켜지 않아도 된다. 오늘 몇 분이었는지만 골라 적으면 끝 화면 → 영수증으로 이어진다 -->
 <div class="after-sheet" id="after-sheet" hidden>
