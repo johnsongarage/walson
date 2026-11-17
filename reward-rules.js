@@ -10,9 +10,11 @@
     { name: '금',   minWalks: 30, stops: ['#c99a3a', '#f0cf7a', '#fff6d9', '#f0cf7a', '#c99a3a'], width: 16, ring: '#e2b45a' }
   ];
   var SLOT_RULES = { skill: 1, passive: 3 }; // 칸이 열리는 누적 산책 횟수(주민증 뒷면 특기·특이 사항)
+  var RECORD_MIN_MINUTES = 5;   // 주민증 성장에 세는 산책의 최소 시간 — 꾸준함 도장과 같은 기준(2026-11-17)
 
   // ── 주민 등급(2026-11-16 가르시아 "자라는 카드를 주민증에 합쳐") ──
-  // 예전 테두리(종이 0 · 나무 5 · 은 15 · 금 30)와 같은 숫자 — 길 기록 산책(5분·200m)만 센다(11/15 결정 그대로).
+  // 예전 테두리(종이 0 · 나무 5 · 은 15 · 금 30)와 같은 숫자. 11/17부터 어떻게 기록했든 5분 이상 산책을 센다
+  // (11/15 "길 기록 산책만"을 번복 — 짤은 인질로 잡지 않는다, 아래 computeProgress).
   // 주민증 부제가 "남양주 다산동 ○○"로 바뀌고, 정착 주민부터 사진 귀퉁이에 승급 도장이 찍힌다(id-card.js).
   // FRAME_TIERS는 예전 카드 그림용으로 남겨 둔다(옛 화면이 캐시에 남아 있어도 깨지지 않게).
   var RANKS = [
@@ -48,7 +50,7 @@
 
   // 키링 나눔(2026-11-15, keyring.html). 조건·수량·받는 날은 가르시아가 정한다(hq 남은 일) — 정하기 전에는
   // open: false로 두어 앱 어디에도 약속하지 않는다(카드 탭의 "키링 받기" 링크도 숨김). 운영자는 keyring.html?preview=1로 미리 본다.
-  // minWalks는 제안값: 길 기록 산책(5분·200m 이상) 5회 = 나무 테두리와 같은 때.
+  // minWalks는 제안값: 길 기록 산책(5분·200m 이상) 5회. 키링은 돈 드는 보상이라 길 기록 산책 수(gpsWalks)로 센다.
   // mode(11/15 가르시아 임시 결정 "탐방형 3곳"):
   //   'stamps' = 발도장 장소 minStamps곳 / 'walks' = 산책 minWalks번 / 'either' = 둘 중 하나 / 'both' = 둘 다
   // 발도장·산책 횟수 모두 길 기록 산책(5분·200m 이상)만 센다 — 시간만 잰 산책은 안 들어감.
@@ -69,11 +71,21 @@
     return 2 * R * Math.asin(Math.sqrt(h));
   }
 
-  // walks: localStorage petwalk_walks 배열. index.html이 5분/200m 미만 산책을 rewardEligible: false로
-  // 저장한다 — 조작 방지 도입(2026-09-25) 전 기록엔 이 값이 없어서 그대로 보상에 넣는다. 발도장은
+  // walks: localStorage petwalk_walks 배열. 길 기록 산책은 5분/200m 미만이면 rewardEligible: false로
+  // 저장된다 — 조작 방지 도입(2026-09-25) 전 기록엔 이 값이 없어서 그대로 보상에 넣는다. 발도장은
   // 걷는 속도 구간의 점(stampRoute)으로만 판정하고, stampRoute가 없는 예전 기록만 전체 경로를 쓴다.
+  //
+  // 짤은 인질로 잡지 않는다(2026-11-17 가르시아 "공원 전에 해", hq DECISIONS 11/17):
+  //   - 주민증 성장(승급·특기·특이 사항)은 어떻게 기록했든 5분 이상 산책이면 센다 — 시간만 재기·다녀왔어요 포함.
+  //     돈이 안 드는 짤이라 위치를 조작해 채워도 남에게 손해가 없다. 예전에 세던 산책(길 기록 5분·200m)은 그대로 센다.
+  //   - 발도장·미션은 위치가 있어야 하니 그대로 길 기록 산책만(eligible).
+  //   - 돈 드는 보상(키링)은 현장에서 강아지를 보고 준다 — 키링 화면의 산책 횟수 조건은 길 기록 산책만(gpsWalks).
+  function countsForCard(w) {
+    return !!w && (w.rewardEligible !== false || w.durationMin >= RECORD_MIN_MINUTES);
+  }
   function computeProgress(walks) {
     var eligible = (walks || []).filter(function (w) { return w && w.rewardEligible !== false; });
+    var records = (walks || []).filter(countsForCard);
     var visited = {}, visitedAt = {};   // visitedAt: 처음 찍은 산책의 날짜(주민증 뒷면 발도장 기록)
     eligible.forEach(function (w) {
       (w.stampRoute || w.route || []).forEach(function (p) {
@@ -83,10 +95,11 @@
       });
     });
     var km = eligible.reduce(function (s, w) { return s + (w.distanceKm || 0); }, 0);
-    // rankDates: 그 등급이 된 날 = 그 횟수째 길 기록 산책을 한 날(새내기는 없음 — 주민증 발급일을 쓴다)
-    var rankDates = RANKS.map(function (r) { var w = r.minWalks ? eligible[r.minWalks - 1] : null; return w ? (w.date || '') : null; });
-    // firstDate: 첫 길 기록 산책 날(주민증 뒷면 "전입" — 주민증 발급일과 둘 중 이른 날)
-    return { walks: eligible.length, km: km, visited: visited, visitedAt: visitedAt, rankDates: rankDates, firstDate: eligible.reduce(function (m, w) { return w.date && (!m || w.date < m) ? w.date : m; }, null) };
+    // rankDates: 그 등급이 된 날 = 그 횟수째 센 산책을 한 날(새내기는 없음 — 주민증 발급일을 쓴다)
+    var rankDates = RANKS.map(function (r) { var w = r.minWalks ? records[r.minWalks - 1] : null; return w ? (w.date || '') : null; });
+    // firstDate: 처음 센 산책 날(주민증 뒷면 "전입" — 주민증 발급일과 둘 중 이른 날)
+    // walks: 주민증 성장에 센 산책 수 · gpsWalks: 그중 길 기록 산책(5분·200m) 수 — 키링 조건용
+    return { walks: records.length, gpsWalks: eligible.length, km: km, visited: visited, visitedAt: visitedAt, rankDates: rankDates, firstDate: records.reduce(function (m, w) { return w.date && (!m || w.date < m) ? w.date : m; }, null) };
   }
 
   function tierFor(walks) {
@@ -159,12 +172,12 @@
   }
 
   // ── 꾸준함 도장(2026-11-15 가르시아 "꾸준함 도장도 만들어줘") ──
-  // 시간만 잰 산책은 카드 성장·발도장·미션·키링에서 빠지는 대신, 이 도장은 모든 산책을 센다 —
+  // 시간만 잰 산책은 발도장·미션·키링에서 빠지지만(주민증 성장엔 11/17부터 5분 이상이면 들어감), 이 도장은 모든 산책을 센다 —
   // 돈이 안 드는 보상이라 버튼만 눌러 채워도 비용이 0이다(hq notes/petwalk-time-only-rewards.md).
   // 한 주(월~일)에 산책한 날 수로 찍는다: 3일 · 5일 · 7일. 주마다 새로 시작하고 연속 주는 세지 않는다
   // (9/2 결정: 연속 기록은 압박 없는 통계로만). 5분 미만 산책은 세지 않는다.
   var STEADY_STEPS = [3, 5, 7];
-  var STEADY_MIN_MINUTES = 5;
+  var STEADY_MIN_MINUTES = RECORD_MIN_MINUTES;
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function dayKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function fromKey(k) { var p = String(k).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
@@ -232,6 +245,7 @@
     nextRank: nextRank,
     KEYRING: KEYRING,
     SLOT_RULES: SLOT_RULES,
+    RECORD_MIN_MINUTES: RECORD_MIN_MINUTES,
     PLACES: PLACES,
     DEFAULT_PLACES: DEFAULT_PLACES,
     computeProgress: computeProgress,

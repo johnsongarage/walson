@@ -283,7 +283,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=10"></script>
+<script src="reward-rules.js?v=11"></script>
 <script src="backup.js?v=6"></script>
 <script src="steady-stamp.js?v=3"></script>
 <script>
@@ -534,8 +534,8 @@
 // ── 다녀왔어요(2026-11-16, 가르시아 "다녀왔어요 기능 만들어줘") ──
 // 산책이 귀찮은 견주는 나가기 전에 앱을 켜지 않는다(11/16 기획 검토). 그래서 다녀와서 몇 분이었는지만 고르면
 // 오늘 날짜로 시간만 잰 산책과 같은 기록을 남기고 끝 화면 → 영수증으로 보낸다. 위치는 쓰지 않는다.
-// 기록 모양: go.html(시간만 재기)과 같고 logged: 'after'만 덧붙인다 — 보상(카드 성장·발도장·키링)에는 안 들어가고
-// 꾸준함 도장·오늘/최근 7일 시간에는 들어간다(시간만 잰 산책과 같은 대우). 어제 것은 받지 않는다(기록 순서가 날짜 순서와 어긋나지 않게).
+// 기록 모양: go.html(시간만 재기)과 같고 logged: 'after'만 덧붙인다 — 발도장·키링에는 안 들어가고
+// 주민증 성장(5분 이상, 11/17)·꾸준함 도장·오늘/최근 7일 시간에는 들어간다(시간만 잰 산책과 같은 대우). 어제 것은 받지 않는다(기록 순서가 날짜 순서와 어긋나지 않게).
 (function () {
   var CHOICES = [10, 20, 30, 45, 60, 90];
   var LABEL = { 60: '1시간', 90: '1시간 반' };
