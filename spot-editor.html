@@ -1052,7 +1052,10 @@
     };
     // 예시 수호견: 실제로 확인한 가게가 아니라 '직접 확인' 날짜를 달지 않는다. 파일에선 따로 저장된다(spot-github.js)
     if (pin.cat === 'spot' && fDemo.checked) { pin.source = 'demo'; pin.demo = true; delete pin.verifiedAt; }
-    if (old && old.source === 'osm' && old.lat === pin.lat && old.lng === pin.lng && old.name === name && !confirm('직접 가서 확인한 내용인가요?\n확인을 누르면 "직접 확인 · ' + todayText() + '"으로 표시됩니다.')) {
+    // 예시 ↔ 실제를 바꿀 때 한 번 더 묻는다(2026-11-17): 예시가 실제로 바뀌면 가상 가게가 공개 지도에 '직접 확인'으로 나간다
+    if (old && old.demo && !pin.demo && !confirm('이 핀은 예시 수호견이에요.\n이대로 저장하면 공개 지도에 "직접 확인 · ' + todayText() + '"으로 나가요.\n예시 가게(○○ 카페 등)라면 취소를 누르고 "예시 수호견"을 다시 켜 주세요.\n\n실제로 가서 확인한 가게인가요?')) return;
+    if (old && !old.demo && pin.demo && !confirm('이 핀을 예시로 바꾸면 공개 지도에서 빠지고 예시 화면에만 나와요.\n바꿀까요?')) return;
+    if (!pin.demo && old && old.source === 'osm' && old.lat === pin.lat && old.lng === pin.lng && old.name === name && !confirm('직접 가서 확인한 내용인가요?\n확인을 누르면 "직접 확인 · ' + todayText() + '"으로 표시됩니다.')) {
       pin.source = 'osm'; delete pin.verifiedAt;
     }
     var tags = fTags.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
