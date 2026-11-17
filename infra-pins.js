@@ -45,24 +45,21 @@
         window.PETWALK_SPOTS = draft.spots;
         if (Array.isArray(draft.categories)) window.PETWALK_SPOT_CATEGORIES = draft.categories;
         if (Array.isArray(draft.groups)) window.PETWALK_MAP_GROUPS = draft.groups;
+        if (draft.gtext && typeof draft.gtext === 'object') window.PETWALK_GUARDIAN_TEXT = draft.gtext;   // 수호견 팝업 문구 초안
         DRAFT_PREVIEW = true;
       }
     } catch (e) { /* 초안이 없거나 깨졌으면 서비스 내용 그대로 */ }
   }
 
-  // ── 수호견 예시 화면(2026-11-17 가르시아 "수호견 샘플 두 군데 만들어 보자") ──
-  // town.html?guardian_demo=1 로 열 때만 이 화면에 예시 수호견 두 마리를 띄운다. 공개 데이터(spots-data.js)에는 넣지 않는다 —
-  // 실제 가게에 가짜 수호견을 붙여 모두에게 보이게 하지 않으려는 것(11/15 "사장님 허락 전 게시 → 내림", 수호견은 사장님 동의 필수).
-  // 사장님께 보여 드릴 땐 주소에 가게 이름을 붙인다: &home=카페이름(재택 명예 수호견) &work=펫샵이름(출근 수호견).
-  // 가게 이름은 주소로만 받고 어디에도 저장하지 않는다. 그림은 앱의 닮은꼴 그림(demo/guardian-*.jpg) —
-  // AI 사진으로 바꾸려면 같은 이름으로 파일만 바꾸면 된다(정사각형, 강아지가 가운데).
+  // ── 수호견 예시 화면(2026-11-17 가르시아 "수호견 샘플 두 군데 만들어 보자" → "스팟 편집에서 할 수 있게") ──
+  // town.html?guardian_demo=1 로 열 때만 예시 수호견을 띄운다. 예시는 공개 목록(PETWALK_SPOTS)이 아니라 따로 둔
+  // window.PETWALK_DEMO_GUARDIANS(spots-data.js — 스팟 편집에서 "예시 수호견"으로 고친다)에서만 읽는다. 이 파일의 예전 버전이나
+  // 다른 화면은 이 목록을 모르므로 예시가 공개 지도로 새지 않는다(11/15 "사장님 허락 전 게시 → 내림", 수호견은 사장님 동의 필수).
+  // 사장님께 보여 드릴 땐 주소에 가게 이름을 붙인다: &home=카페이름(재택 명예 수호견) &work=펫샵이름(출근 수호견). 저장하지 않는다.
   var GUARDIAN_DEMO = /[?&]guardian_demo=1/.test(location.search);
-  var DEMO_DISCLAIMER = '예시 화면이에요 · 그림 강아지이고 실제 수호견이 아니에요';
-  function demoParam(key, fallback) {
+  function demoParam(key) {
     var m = new RegExp('[?&]' + key + '=([^&#]*)').exec(location.search);
-    var v = '';
-    try { v = m ? decodeURIComponent(m[1].replace(/\+/g, ' ')).trim().slice(0, 20) : ''; } catch (e) { v = ''; }
-    return v || fallback;
+    try { return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')).trim().slice(0, 20) : ''; } catch (e) { return ''; }
   }
   function demoQuery() {   // 예시 화면끼리 넘어갈 때(주민증 보기) 가게 이름을 같이 넘긴다
     return '&guardian_demo=1' + ['home', 'work'].map(function (k) {
@@ -70,14 +67,32 @@
       return m ? '&' + k + '=' + m[1] : '';
     }).join('');
   }
-  var DEMO_GUARDIANS = [
-    { id: 'demo-home', cat: 'spot', name: demoParam('home', '○○ 카페'), lat: 37.6196, lng: 127.1583, source: 'demo',
+  // spots-data.js에 예시 목록 자체가 없을 때(예전 파일)만 쓰는 기본값 — 가르시아가 Gemini로 만든 AI 사진(11/17)
+  var DEMO_FALLBACK = [
+    { id: 'demo-home', cat: 'spot', name: '○○ 카페', lat: 37.6196, lng: 127.1583, source: 'demo', demo: true,
       pet: { kind: 'food', indoor: 'no', terrace: true, water: true },
-      guardian: { kind: 'home', name: '보리', signal: 'green', photo: 'demo/guardian-home.jpg', line: '가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요' } },
-    { id: 'demo-work', cat: 'spot', name: demoParam('work', '○○ 펫샵'), lat: 37.6206, lng: 127.1626, source: 'demo',
+      guardian: { kind: 'home', name: '보리', signal: 'green', photo: 'demo/guardian-home-ai.jpg', line: '가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요' } },
+    { id: 'demo-work', cat: 'spot', name: '○○ 펫샵', lat: 37.6206, lng: 127.1626, source: 'demo', demo: true,
       pet: { kind: 'pet', indoor: 'ok', large: 'all', water: true },
-      guardian: { kind: 'work', name: '콩이', signal: 'yellow', photo: 'demo/guardian-work.jpg', line: '미용 끝난 친구들 배웅은 제 담당이에요' } }
+      guardian: { kind: 'work', name: '콩이', signal: 'red', photo: 'demo/guardian-work-ai.jpg', line: '미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요' } }
   ];
+  // 초안 미리 보기(?draft=1)면 초안 안의 예시(demo: true)를 쓰고, 공개 목록에서는 뺀다
+  var DRAFT_DEMO = null;
+  if (DRAFT_PREVIEW && Array.isArray(window.PETWALK_SPOTS)) {
+    DRAFT_DEMO = window.PETWALK_SPOTS.filter(function (p) { return p && p.demo; });
+    window.PETWALK_SPOTS = window.PETWALK_SPOTS.filter(function (p) { return !(p && p.demo); });
+  }
+  var DEMO_GUARDIANS = (DRAFT_DEMO || (Array.isArray(window.PETWALK_DEMO_GUARDIANS) ? window.PETWALK_DEMO_GUARDIANS : DEMO_FALLBACK))
+    .filter(function (p) { return p && p.id && typeof p.lat === 'number' && typeof p.lng === 'number'; })
+    .map(function (p) { var c = JSON.parse(JSON.stringify(p)); c.cat = 'spot'; c.source = 'demo'; c.demo = true; return c; });
+  ['home', 'work'].forEach(function (k) {   // 주소의 가게 이름은 그 종류의 첫 예시에 붙인다
+    var v = demoParam(k);
+    if (!v) return;
+    for (var i = 0; i < DEMO_GUARDIANS.length; i++) {
+      var dg = DEMO_GUARDIANS[i].guardian;
+      if (dg && (dg.kind || 'home') === k) { DEMO_GUARDIANS[i].name = v; return; }
+    }
+  });
   if (GUARDIAN_DEMO) window.PETWALK_SPOTS = (window.PETWALK_SPOTS || []).concat(DEMO_GUARDIANS);
 
   var BUILTIN_COUNT = CATEGORIES.length;
@@ -334,10 +349,30 @@
   // 켜기 전에: 사장님 본인 동의, (음식점·카페는) 매장 조리·취식 공간에 두지 않는다는 확인 — 스팟 편집이 등록할 때 받는다.
   var GUARDIANS_ON = GUARDIAN_DEMO;   // 예시 화면(?guardian_demo=1)에서만 켜진다 — 공개 지도에선 꺼 둔 그대로
   // kind: 'home' = 재택 명예 수호견(음식점·카페 — 매장에 없음), 'work' = 출근 수호견(펫샵·미용실 등 비식품 업종)
-  var GUARDIAN_KINDS = {
-    home: { badge: '재택 명예 수호견', line: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견' },
-    work: { badge: '출근 수호견', line: '가게에서 손님을 맞는 사장님네 강아지예요' }
+  // 수호견 팝업 문구·보이는 줄(2026-11-17 가르시아 "양식 편집") — 스팟 편집 "6. 수호견 팝업 문구"에서 고친다
+  // (spots-data.js의 window.PETWALK_GUARDIAN_TEXT, 없으면 아래 기본값). 끌 수 없는 줄: 출처·예시 안내와 '사장님 동의 · 제휴 아님' —
+  // 확인 안 된 것을 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게(11/15).
+  var GUARDIAN_TEXT_DEFAULT = {
+    homeBadge: '재택 명예 수호견', homeLine: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견',
+    workBadge: '출근 수호견', workLine: '가게에서 손님을 맞는 사장님네 강아지예요',
+    demoNote: '예시 화면이에요 · AI로 만든 사진이고, 실제 지도에는 없는 가게·강아지예요',
+    showSignal: true, showSignalLabel: false, showLine: true, showKindLine: true, showPetChips: true, showTownExtra: true
   };
+  function readGuardianText(src) {
+    var t = {};
+    src = src || {};
+    Object.keys(GUARDIAN_TEXT_DEFAULT).forEach(function (k) {
+      var d = GUARDIAN_TEXT_DEFAULT[k], v = src[k];
+      t[k] = typeof d === 'boolean' ? (typeof v === 'boolean' ? v : d) : (typeof v === 'string' && v.trim() ? v.trim().slice(0, 60) : d);
+    });
+    return t;
+  }
+  var GT = readGuardianText(window.PETWALK_GUARDIAN_TEXT);
+  var GUARDIAN_KINDS = {
+    home: { badge: GT.homeBadge, line: GT.homeLine },
+    work: { badge: GT.workBadge, line: GT.workLine }
+  };
+  var DEMO_DISCLAIMER = GT.demoNote;
   var GUARDIAN_DISCLAIMER = '사장님 동의를 받고 올렸어요 · 가게·브랜드와 제휴 관계가 아니에요';
   function guardianDisclaimer(pin) { return pin && pin.source === 'demo' ? DEMO_DISCLAIMER : GUARDIAN_DISCLAIMER; }
   function guardianKind(g) { return GUARDIAN_KINDS[g && g.kind] || GUARDIAN_KINDS.home; }
@@ -425,8 +460,8 @@
     }
     if (g) {
       wrap.appendChild(el('div', 'font-size:20px;font-weight:800;letter-spacing:-0.01em;', g.name));
-      if (sig) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:' + sig.color + ';', sig.label + ' · ' + sig.line));
-      if (g.line) wrap.appendChild(el('div', 'font-size:13px;', '“' + g.line + '”'));
+      if (sig && GT.showSignal) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:' + sig.color + ';', (GT.showSignalLabel ? sig.label + ' · ' : '') + sig.line));
+      if (g.line && GT.showLine) wrap.appendChild(el('div', 'font-size:13px;', '“' + g.line + '”'));
       var shop = el('div', 'font-size:13px;color:#6b5d4e;margin-top:2px;');
       shop.appendChild(el('span', 'font-weight:700;color:' + cat.color + ';', cat.label));
       shop.appendChild(document.createTextNode(' · ' + (pin.name || '')));
@@ -437,7 +472,8 @@
     }
     // 동반 스팟: 동반 조건 칩(된다·조건 있음·안 된다 색으로) + 나머지 태그. 다른 시설: 태그 그대로.
     var isShop = pin.cat === 'spot';
-    var badges = isShop ? petBadges(pin) : [];
+    var petOn = !g || GT.showPetChips;   // 수호견 팝업은 '동반 조건 칩'을 끌 수 있다
+    var badges = isShop && petOn ? petBadges(pin) : [];
     var plainTags = isShop ? extraTags(pin) : (pin.tags || []);
     if (badges.length || plainTags.length) {
       var tags = el('div', 'display:flex;flex-wrap:wrap;gap:4px;');
@@ -461,7 +497,7 @@
       if (vi.hours) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;', '진료 시간 ' + vi.hours));
       if (vi.partner) wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', '왈슨과 제휴한 병원이에요 · 진료 내용과 비용은 병원에 물어보세요'));
     }
-    if (isShop) {
+    if (isShop && petOn) {
       var fit = fitNote(pin);
       if (fit) wrap.appendChild(el('div', 'font-size:12px;font-weight:800;color:' + (TONES[fit.tone].ink) + ';', fit.text));
       if (!badges.length) wrap.appendChild(el('div', 'font-size:12px;color:#6b5d4e;', '동반 조건은 아직 확인 전이에요 — 가기 전에 가게에 물어보세요'));
@@ -471,14 +507,14 @@
     // 진료 시간을 넣은 병원은 예전 OSM 안내("진료 시간은 확인 전이에요")를 감춘다 — 서로 어긋나 보이지 않게
     if (pin.note && !(pin.cat === 'vet' && vetInfo(pin).hours && /진료 시간은 확인 전/.test(pin.note))) wrap.appendChild(el('div', '', pin.note));
     // 출처를 항상 보여 준다 — 직접 확인하지 않은 정보를 확인된 것처럼 보이게 하지 않기 위함
-    wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));
+    if (pin.source !== 'demo') wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', sourceText(pin)));   // 예시는 아래 예시 안내 한 줄로
     // 수호견은 가게·브랜드의 공식 캐릭터가 아니다 — 제휴로 오해하지 않게(2026-11-15, 상표 혼동 방지)
     if (g) {
-      wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianKind(g).line));
+      if (GT.showKindLine) wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianKind(g).line));
       wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianDisclaimer(pin)));
     }
 
-    if (opts && opts.extraEl) wrap.appendChild(opts.extraEl);
+    if (opts && opts.extraEl && (!g || GT.showTownExtra)) wrap.appendChild(opts.extraEl);
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
     var linkCss = 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
     if (g) {
@@ -515,7 +551,8 @@
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
     popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice,
     setCustomCategories: setCustomCategories, GUARDIAN_DISCLAIMER: GUARDIAN_DISCLAIMER,
-    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_DEMO: GUARDIAN_DEMO, DEMO_GUARDIANS: GUARDIAN_DEMO ? DEMO_GUARDIANS : [], guardianDisclaimer: guardianDisclaimer, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
+    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_DEMO: GUARDIAN_DEMO, DEMO_GUARDIANS: GUARDIAN_DEMO ? DEMO_GUARDIANS : [], DEMO_FALLBACK: DEMO_FALLBACK,
+    GUARDIAN_TEXT_DEFAULT: GUARDIAN_TEXT_DEFAULT, readGuardianText: readGuardianText, guardianText: GT, guardianDisclaimer: guardianDisclaimer, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
     SYSTEM_LAYERS: SYSTEM_LAYERS, ZOOMS: ZOOMS, DEFAULT_GROUPS: DEFAULT_GROUPS, ETC_GROUP_ID: ETC_GROUP_ID,
     layerInfo: layerInfo, normalizeGroups: normalizeGroups, layout: layout, filterState: filterState,
     PET_LABELS: PET_LABELS, PET_KINDS: PET_KINDS, petTag: petTag, petInfo: petInfo, extraTags: extraTags, petBadges: petBadges,

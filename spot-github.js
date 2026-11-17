@@ -75,11 +75,26 @@
     if (end < 0) throw new Error('spots-data.js 모양이 예상과 달라요');
     return JSON.parse(text.slice(start, end + 2));
   }
+  // 한 줄짜리 객체(window.X = {...};) 읽기 — 수호견 팝업 문구
+  function parseObject(text, marker) {
+    var start = text.indexOf(marker);
+    if (start < 0) return null;
+    start += marker.length - 1;                 // '{' 위치
+    var end = text.indexOf('};\n', start);
+    if (end < 0) end = text.indexOf('};', start);
+    if (end < 0) throw new Error('spots-data.js 모양이 예상과 달라요');
+    return JSON.parse(text.slice(start, end + 1));
+  }
   function parseData(text) {
     var spots = parseArray(text, 'window.PETWALK_SPOTS = [');
     if (!spots) throw new Error('spots-data.js 모양이 예상과 달라요');
+    // 예시 수호견(2026-11-17)은 파일에선 따로 두고(공개 목록에 안 섞이게), 편집 페이지에선 스팟 목록에 demo: true로 섞어 같이 고친다
+    var demo = parseArray(text, 'window.PETWALK_DEMO_GUARDIANS = [');
+    (demo || []).forEach(function (d) { if (d && d.id) { d.demo = true; d.source = 'demo'; spots.push(d); } });
     return {
       spots: spots,
+      demoListed: !!demo,                         // 파일에 예시 목록이 있었는지(없으면 편집 페이지가 기본 예시로 시작)
+      guardianText: parseObject(text, 'window.PETWALK_GUARDIAN_TEXT = {'),
       categories: parseArray(text, 'window.PETWALK_SPOT_CATEGORIES = [') || [],
       // null = 파일에 아직 없음(편집 페이지가 reward-rules.js의 기본 세 곳으로 시작한다)
       stampPlaces: parseArray(text, 'window.PETWALK_STAMP_PLACES = ['),
@@ -87,7 +102,9 @@
       mapGroups: parseArray(text, 'window.PETWALK_MAP_GROUPS = [')
     };
   }
-  function buildData(spots, categories, stampPlaces, mapGroups) {
+  function buildData(spots, categories, stampPlaces, mapGroups, guardianText) {
+    var demo = spots.filter(function (s) { return s && s.demo; });
+    spots = spots.filter(function (s) { return !(s && s.demo); });
     var body = spots.map(function (s) { return '  ' + JSON.stringify(s); }).join(',\n');
     var cats = (categories || []).map(function (c) { return '  ' + JSON.stringify(c); }).join(',\n');
     return HEADER + body + (body ? '\n' : '') + '];\n' +
@@ -98,7 +115,11 @@
         (stampPlaces.length ? '\n' : '') + '];\n' : '') +
       (mapGroups ? '// 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.\n' +
         'window.PETWALK_MAP_GROUPS = [\n' + mapGroups.map(function (g) { return '  ' + JSON.stringify(g); }).join(',\n') +
-        (mapGroups.length ? '\n' : '') + '];\n' : '');
+        (mapGroups.length ? '\n' : '') + '];\n' : '') +
+      '// 예시 수호견 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.\n' +
+      'window.PETWALK_DEMO_GUARDIANS = [\n' + demo.map(function (d) { return '  ' + JSON.stringify(d); }).join(',\n') + (demo.length ? '\n' : '') + '];\n' +
+      (guardianText ? '// 수호견 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).\n' +
+        'window.PETWALK_GUARDIAN_TEXT = ' + JSON.stringify(guardianText) + ';\n' : '');
   }
 
   // 토큰 확인: 이 저장소에 쓸 수 있는지
@@ -115,7 +136,7 @@
       var sha = ref.object.sha;
       return gh('GET', '/contents/' + DATA_PATH + '?ref=' + sha).then(function (file) {
         var d = parseData(b64ToUtf8(file.content));
-        return { spots: d.spots, categories: d.categories, stampPlaces: d.stampPlaces, mapGroups: d.mapGroups, headSha: sha };
+        return { spots: d.spots, categories: d.categories, stampPlaces: d.stampPlaces, mapGroups: d.mapGroups, guardianText: d.guardianText, demoListed: d.demoListed, headSha: sha };
       });
     });
   }
@@ -135,7 +156,7 @@
   // categories: 직접 만든 종류 목록(spots-data.js에 같이 쓴다)
   // stampPlaces: 우리 개 발도장 장소(넘기지 않으면 파일에 쓰지 않는다)
   // mapGroups: 지도 묶음·우선순위(넘기지 않으면 파일에 쓰지 않는다)
-  function publish(spots, baseSha, message, categories, stampPlaces, mapGroups) {
+  function publish(spots, baseSha, message, categories, stampPlaces, mapGroups, guardianText) {
     var work = JSON.parse(JSON.stringify(spots));
     var uploads = [];   // { path, b64 }
     var jobs = [];
@@ -192,7 +213,7 @@
           return { path: u.path, mode: '100644', type: 'blob', sha: b.sha };
         });
       })).then(function (photoEntries) {
-        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories, stampPlaces, mapGroups)), encoding: 'base64' }).then(function (b) {
+        return gh('POST', '/git/blobs', { content: utf8ToB64(buildData(work, categories, stampPlaces, mapGroups, guardianText)), encoding: 'base64' }).then(function (b) {
           return photoEntries.concat(deletions, [{ path: DATA_PATH, mode: '100644', type: 'blob', sha: b.sha }]);
         });
       });

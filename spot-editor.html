@@ -11,11 +11,11 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="site-config.js?v=6"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=21"></script>
+<script src="infra-pins.js?v=24"></script>
 <script src="reward-rules.js?v=10"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
-<script src="spot-github.js?v=4"></script>
+<script src="spot-github.js?v=5"></script>
 <style>
   /* 스팟 편집 — 운영자 전용(2026-11-15 다시 정리, 기획표 V0-18).
      배포된 사이트에 있지만, GitHub 토큰을 넣은 브라우저(= 운영자 컴퓨터)에서만 쓸 수 있다.
@@ -98,6 +98,12 @@
   .coats button { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 2px solid var(--panel-border); }
   .coats button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .photo-row[hidden] { display: none; }
+  .demo-row { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; line-height: 1.5; margin: 10px 0; padding: 10px; border: 1px dashed #3b6ea8; border-radius: 12px; background: #f1f6fb; }
+  .demo-row input { width: auto; margin-top: 2px; flex-shrink: 0; }
+  .demo-row[hidden], .guardian .checks[hidden], .guardian .consent[hidden] { display: none; }
+  .gt-checks { margin: 8px 0; }
+  .gt-checks label { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; margin: 4px 0; line-height: 1.45; }
+  .gt-checks input { width: auto; margin-top: 2px; flex-shrink: 0; }
   .guardian h3, .spot-extra h3 { font-size: 13px; margin: 0 0 4px; color: var(--accent); }
 
   #pin-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -260,6 +266,7 @@
         </div>
       </div>
 
+      <label class="demo-row" id="f-demo-row" hidden><input type="checkbox" id="f-demo"> <span><b>예시 수호견</b> — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나와요. 공개 지도엔 안 나와요. 사장님 동의 칸은 필요 없어요.</span></label>
       <div class="guardian" id="guardian-box" hidden>
         <h3>수호견 (사장님네 강아지) — 미리 보기</h3>
         <p class="hint" id="g-off-note" style="color:var(--danger);font-weight:700;">지금 수호견 기능은 꺼져 있어요(infra-pins.js GUARDIANS_ON). 저장·반영해도 사용자 화면에는 안 보여요. 단, 반영하면 사진 파일은 공개 저장소에 올라가니 동의받은 사진만.</p>
@@ -362,6 +369,26 @@
       </div>
       <button type="button" id="place-add" style="width:100%;">+ 새 발도장 장소</button>
     </div>
+
+    <div class="section" id="gt-section">
+      <h2>6. 수호견 팝업 문구</h2>
+      <p class="hint">지도에서 수호견을 누르면 뜨는 팝업의 글과 보이는 줄이에요. 고치면 이 컴퓨터에 먼저 저장되고 "모두에게 반영"으로 올라가요. <a href="town.html?guardian_demo=1&amp;draft=1" target="_blank">예시 화면에서 미리 보기</a></p>
+      <div class="field"><label for="gt-homeBadge">재택 배지 이름</label><input id="gt-homeBadge" maxlength="20"></div>
+      <div class="field"><label for="gt-homeLine">재택 설명 줄</label><input id="gt-homeLine" maxlength="60"></div>
+      <div class="field"><label for="gt-workBadge">출근 배지 이름</label><input id="gt-workBadge" maxlength="20"></div>
+      <div class="field"><label for="gt-workLine">출근 설명 줄</label><input id="gt-workLine" maxlength="60"></div>
+      <div class="field"><label for="gt-demoNote">예시 화면 안내 (예시에만 나와요)</label><input id="gt-demoNote" maxlength="60"></div>
+      <div class="gt-checks">
+        <label><input type="checkbox" id="gt-showSignal"> 신호 문구 (다가와도 좋아요 등)</label>
+        <label><input type="checkbox" id="gt-showSignalLabel"> 신호등 이름도 붙이기 (초록불·노랑불·빨강불)</label>
+        <label><input type="checkbox" id="gt-showLine"> 강아지 한마디</label>
+        <label><input type="checkbox" id="gt-showKindLine"> 재택·출근 설명 줄</label>
+        <label><input type="checkbox" id="gt-showPetChips"> 동반 조건 칩 (실내·바깥 자리·물그릇)</label>
+        <label><input type="checkbox" id="gt-showTownExtra"> 걸어서 몇 분 · QR 단골 안내</label>
+      </div>
+      <p class="hint">늘 보이는 줄(끌 수 없음): 출처·예시 안내, 실제 수호견의 "사장님 동의 · 제휴 아님". 확인 안 된 것이 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게 하려는 거예요.</p>
+      <div class="grp-actions"><button type="button" id="gt-reset">기본값으로</button></div>
+    </div>
   </div>
 </div>
 
@@ -401,6 +428,9 @@
   var baseCategories = []; // 저장소에 올라가 있는 것
   var places = [];         // 우리 개 발도장 장소 { id, name, lat, lng, radiusM, kind } — 편집 중
   var basePlaces = [];     // 저장소에 올라가 있는 것(파일에 아직 없으면 reward-rules.js 기본 세 곳)
+  var gtext = {};          // 수호견 팝업 문구·보이는 줄(2026-11-17) — 편집 중
+  var baseGText = {};      // 저장소에 올라가 있는 것(파일에 없으면 infra-pins.js 기본값)
+  var gtextListed = false; // 파일에 PETWALK_GUARDIAN_TEXT가 있었는지(없고 안 고쳤으면 파일에 쓰지 않는다)
   var groups = [];         // 지도 묶음·우선순위 [{ id, label, layers: [{ key, zoom, off }] }] — 편집 중
   var baseGroups = [];     // 저장소에 올라가 있는 것(파일에 아직 없으면 infra-pins.js 기본 묶음)
   var busy = false;
@@ -421,11 +451,11 @@
     places.forEach(function (p) { if (!plById[p.id] || !sameSpot(plById[p.id], p)) n++; delete plById[p.id]; });
     n += Object.keys(plById).length;
     // 지도 묶음·우선순위는 통째로 하나로 센다
-    return n + (sameSpot(baseGroups, groups) ? 0 : 1);
+    return n + (sameSpot(baseGroups, groups) ? 0 : 1) + (sameSpot(baseGText, gtext) ? 0 : 1);   // 수호견 팝업 문구도 통째로 하나
   }
   function saveDraft() {
     try {
-      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots, categories: categories, places: places, groups: groups }));
+      if (pendingCount()) localStorage.setItem(DRAFT_KEY, JSON.stringify({ baseSha: baseSha, spots: spots, categories: categories, places: places, groups: groups, gtext: gtext }));
       else localStorage.removeItem(DRAFT_KEY);
       return true;
     } catch (e) { return false; }
@@ -462,7 +492,8 @@
     if (!confirm('바뀐 스팟·종류·지도 설정 ' + n + '개를 저장소에 커밋해서 모든 사람에게 보이게 할까요?\n(반영된 뒤 서비스에 보이기까지 몇 분 걸려요)')) return;
     busy = true; renderStatus();
     $('status-msg').textContent = 'GitHub에 올리는 중…';
-    SpotGitHub.publish(spots, baseSha, null, categories, places, groups).then(function (res) {
+    var gtOut = (gtextListed || !sameSpot(baseGText, gtext)) ? gtext : null;
+    SpotGitHub.publish(spots, baseSha, null, categories, places, groups, gtOut).then(function (res) {
       busy = false;
       baseSha = res.headSha;
       spots = res.spots;                 // 사진이 파일 경로로 바뀐 목록
@@ -470,6 +501,7 @@
       baseCategories = JSON.parse(JSON.stringify(categories));
       basePlaces = JSON.parse(JSON.stringify(places));
       baseGroups = JSON.parse(JSON.stringify(groups));
+      baseGText = JSON.parse(JSON.stringify(gtext)); if (gtOut) gtextListed = true;
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* 무시 */ }
       clearForm();
       renderAll();
@@ -491,11 +523,37 @@
     SpotGitHub.setToken('');
     location.href = 'town.html';
   });
+  // ── 6. 수호견 팝업 문구(2026-11-17 가르시아 "화면에 들어가는 양식 편집") ──
+  // 값은 infra-pins.js의 readGuardianText로 정리한다(빈 칸은 기본값). 고치면 초안에 두고 "모두에게 반영"으로 올린다.
+  var GT_TEXT = ['homeBadge', 'homeLine', 'workBadge', 'workLine', 'demoNote'];
+  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showTownExtra'];
+  function renderGText() {
+    GT_TEXT.forEach(function (k) { $('gt-' + k).value = gtext[k] || ''; });
+    GT_FLAGS.forEach(function (k) { $('gt-' + k).checked = !!gtext[k]; });
+    $('gt-showSignalLabel').disabled = !gtext.showSignal;
+  }
+  function readGTextForm() {
+    var raw = {};
+    GT_TEXT.forEach(function (k) { raw[k] = $('gt-' + k).value; });
+    GT_FLAGS.forEach(function (k) { raw[k] = $('gt-' + k).checked; });
+    gtext = InfraPins.readGuardianText(raw);
+    $('gt-showSignalLabel').disabled = !gtext.showSignal;
+    save();
+  }
+  GT_TEXT.forEach(function (k) { $('gt-' + k).addEventListener('change', readGTextForm); });
+  GT_FLAGS.forEach(function (k) { $('gt-' + k).addEventListener('change', readGTextForm); });
+  $('gt-reset').addEventListener('click', function () {
+    gtext = InfraPins.readGuardianText(null);
+    renderGText();
+    save();
+  });
+
   // ── 지도·폼 ──
   var map = null, markers = {}, draftLatLng = null, draftMarker = null;
   var editingId = null, gPhoto = null, pPhoto = null;
   var fCat = $('f-cat'), fName = $('f-name'), fTags = $('f-tags'), fNote = $('f-note'), fPhone = $('f-phone');
   var gName = $('g-name'), gSignal = $('g-signal'), gLine = $('g-line');
+  var fDemo = $('f-demo');   // 예시 수호견(2026-11-17)
   var fArea = $('f-area');
   var fIndoor = $('f-indoor'), fLarge = $('f-large'), fTerrace = $('f-terrace'), fWater = $('f-water');
   var fKind = $('f-kind'), fRules = $('f-rules');
@@ -765,17 +823,20 @@
   }
   // 저장 전에 수호견 입력을 확인하고 guardian 객체를 만든다. null = 수호견 없음, false = 저장 멈춤
   function buildGuardian() {
-    if (!GUARDIAN_INPUT || !gName.value.trim()) return Promise.resolve(null);
+    var demoOn = fCat.value === 'spot' && fDemo.checked;
+    if (demoOn && !gName.value.trim()) { alert('예시 수호견은 강아지 이름이 필요해요.'); return Promise.resolve(false); }
+    if (!(GUARDIAN_INPUT || demoOn) || !gName.value.trim()) return Promise.resolve(null);
     var style = gStyle();
-    if (!$('g-c1').checked) { alert('사장님 본인 동의를 받았는지 확인해 주세요. 동의 전에는 수호견을 올리지 않아요.'); return Promise.resolve(false); }
-    if (!$('g-c2').checked) { alert('두 번째 확인(' + (gKind() === 'home' ? '매장에 두지 않는 반려견' : '비식품 업종') + ')에 체크해 주세요.'); return Promise.resolve(false); }
+    if (!demoOn && !$('g-c1').checked) { alert('사장님 본인 동의를 받았는지 확인해 주세요. 동의 전에는 수호견을 올리지 않아요.'); return Promise.resolve(false); }
+    if (!demoOn && !$('g-c2').checked) { alert('두 번째 확인(' + (gKind() === 'home' ? '매장에 두지 않는 반려견' : '비식품 업종') + ')에 체크해 주세요.'); return Promise.resolve(false); }
     if (style !== 'drawn' && !gPhoto) { alert('사진을 고르거나, 사진 모양을 "닮은꼴 그림"으로 바꿔 주세요.'); return Promise.resolve(false); }
-    if (style !== 'drawn' && !$('g-c3').checked) { alert('사진에 매장 안·사람 얼굴·영수증이 없는지 확인해 주세요.'); return Promise.resolve(false); }
+    if (!demoOn && style !== 'drawn' && !$('g-c3').checked) { alert('사진에 매장 안·사람 얼굴·영수증이 없는지 확인해 주세요.'); return Promise.resolve(false); }
     var brand = franchiseIn(fName.value) || franchiseIn(gName.value) || franchiseIn(gLine.value);
     if (brand && !confirm('"' + brand + '"처럼 브랜드 이름이 들어 있어요. 제휴·공식 캐릭터로 오해받을 수 있어요.\n그래도 이대로 저장할까요? (취소하고 "다산동 치킨집"처럼 일반 이름으로 바꾸기를 권해요)')) {
       return Promise.resolve(false);
     }
-    var g = { name: gName.value.trim(), kind: gKind(), style: style, consentAt: todayText() };
+    var g = { name: gName.value.trim(), kind: gKind(), style: style };
+    if (!demoOn) g.consentAt = todayText();   // 예시는 동의 날짜 없음
     if (gSignal.value) g.signal = gSignal.value;
     if (gLine.value.trim()) g.line = gLine.value.trim();
     if (style === 'drawn') {
@@ -896,17 +957,25 @@
   $('g-off-note').hidden = InfraPins.GUARDIANS_ON;
   function refreshExtras() {
     var isSpot = fCat.value === 'spot';
-    $('guardian-box').hidden = !isSpot || !GUARDIAN_INPUT;
+    var demoOn = isSpot && fDemo.checked;
+    $('f-demo-row').hidden = !isSpot;
+    $('guardian-box').hidden = !isSpot || !(GUARDIAN_INPUT || demoOn);
+    // 예시 수호견은 실제 가게·강아지가 아니라 사장님 동의·사진 확인 칸이 필요 없다
+    document.querySelector('#guardian-box .checks').hidden = demoOn;
+    document.querySelector('#guardian-box .consent').hidden = demoOn;
+    $('g-off-note').hidden = InfraPins.GUARDIANS_ON || demoOn;
     $('spot-extra').hidden = !isSpot;
     $('vet-extra').hidden = fCat.value !== 'vet';
     // 카드는 서비스에 올라간 내용으로 그리므로, 반영된 수호지킴이만 볼 수 있다
-    var saved = InfraPins.GUARDIANS_ON && editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardianData(s); });
+    var saved = editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardianData(s) && (InfraPins.GUARDIANS_ON || s.demo); });
     $('g-card-btn').disabled = !saved;
     $('g-card-btn').textContent = saved ? '주민증 카드 보기' : '주민증 카드 보기 (모두에게 반영한 뒤에)';
   }
   fCat.addEventListener('change', refreshExtras);
+  fDemo.addEventListener('change', refreshExtras);
   $('g-card-btn').addEventListener('click', function () {
-    if (editingId) window.open('start.html?guardian=' + encodeURIComponent(editingId), '_blank');
+    var isDemo = spots.some(function (s) { return s.id === editingId && s.demo; });
+    if (editingId) window.open('start.html?guardian=' + encodeURIComponent(editingId) + (isDemo ? '&guardian_demo=1' : ''), '_blank');
   });
 
   function clearForm() {
@@ -919,6 +988,7 @@
     gName.value = ''; gSignal.value = ''; gLine.value = '';
     setRadio('g-kind', 'home'); setRadio('g-style', 'cartoon'); gCoat = 0; $('g-pose').value = 'sit';
     ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = false; });
+    fDemo.checked = false;
     paintGuardianForm();
     showGPhoto(null); showPPhoto(null);
     setDraft(null);
@@ -950,6 +1020,7 @@
     if (g.avatar) { $('g-pose').value = g.avatar.pose || 'sit'; gCoat = g.avatar.coat || 0; }
     // 이미 받은 동의는 체크된 채로(다시 확인하려면 풀었다가 체크)
     ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = !!g.consentAt; });
+    fDemo.checked = !!pin.demo;
     showGPhoto(g.style === 'drawn' ? null : (g.photo || null));
     gPhotoCartoon = g.style === 'cartoon';
     paintGuardianForm();
@@ -979,7 +1050,12 @@
       // OSM에서 온 핀을 고치면 직접 확인한 것으로 바꾼다
       source: 'field', verifiedAt: todayText()
     };
-    if (old && old.source === 'osm' && old.lat === pin.lat && old.lng === pin.lng && old.name === name && !confirm('직접 가서 확인한 내용인가요?\n확인을 누르면 "직접 확인 · ' + todayText() + '"으로 표시됩니다.')) {
+    // 예시 수호견: 실제로 확인한 가게가 아니라 '직접 확인' 날짜를 달지 않는다. 파일에선 따로 저장된다(spot-github.js)
+    if (pin.cat === 'spot' && fDemo.checked) { pin.source = 'demo'; pin.demo = true; delete pin.verifiedAt; }
+    // 예시 ↔ 실제를 바꿀 때 한 번 더 묻는다(2026-11-17): 예시가 실제로 바뀌면 가상 가게가 공개 지도에 '직접 확인'으로 나간다
+    if (old && old.demo && !pin.demo && !confirm('이 핀은 예시 수호견이에요.\n이대로 저장하면 공개 지도에 "직접 확인 · ' + todayText() + '"으로 나가요.\n예시 가게(○○ 카페 등)라면 취소를 누르고 "예시 수호견"을 다시 켜 주세요.\n\n실제로 가서 확인한 가게인가요?')) return;
+    if (old && !old.demo && pin.demo && !confirm('이 핀을 예시로 바꾸면 공개 지도에서 빠지고 예시 화면에만 나와요.\n바꿀까요?')) return;
+    if (!pin.demo && old && old.source === 'osm' && old.lat === pin.lat && old.lng === pin.lng && old.name === name && !confirm('직접 가서 확인한 내용인가요?\n확인을 누르면 "직접 확인 · ' + todayText() + '"으로 표시됩니다.')) {
       pin.source = 'osm'; delete pin.verifiedAt;
     }
     var tags = fTags.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
@@ -1012,7 +1088,7 @@
       if (fArea.value.trim()) pin.area = fArea.value.trim().replace(/\s+/g, ' ');
       if (pPhoto) pin.photo = pPhoto;
       // 수호견 입력을 안 보여 주는 동안(꺼짐)에는 기존 수호견 데이터를 그대로 둔다
-      if (!GUARDIAN_INPUT && old && old.guardian) pin.guardian = old.guardian;
+      if (!(GUARDIAN_INPUT || pin.demo) && old && old.guardian) pin.guardian = old.guardian;
     }
     var keepId = pin.id;
     (pin.cat === 'spot' ? buildGuardian() : Promise.resolve(null)).then(function (g) {
@@ -1035,11 +1111,11 @@
       var size = pin.cat === 'spot' ? 36 : 24;
       var html = InfraPins.markerHtml(pin.cat, size);
       var photo = InfraPins.mainPhoto(pin);
-      if (photo) html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;overflow:hidden;border:3px solid #b8563a;box-sizing:border-box;"><img src="' + src(photo) + '" style="width:100%;height:100%;object-fit:cover"></div>';
+      if (photo) html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;overflow:hidden;border:3px ' + (pin.demo ? 'dashed #3b6ea8' : 'solid #b8563a') + ';box-sizing:border-box;"><img src="' + src(photo) + '" style="width:100%;height:100%;object-fit:cover"></div>';
       markers[pin.id] = L.marker([pin.lat, pin.lng], {
         icon: L.divIcon({ className: '', html: html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
         zIndexOffset: pin.cat === 'spot' ? 500 : 0
-      }).bindTooltip(pin.name || '').on('click', function () { startEdit(pin); }).addTo(map);
+      }).bindTooltip((pin.demo ? '예시 · ' : '') + (pin.name || '')).on('click', function () { startEdit(pin); }).addTo(map);
     });
   }
   function renderList() {
@@ -1060,7 +1136,7 @@
         info.className = 'info';
         var name = document.createElement('div');
         name.className = 'name';
-        name.textContent = pin.name || cat.label;
+        name.textContent = (pin.demo ? '[예시] ' : '') + (pin.name || cat.label);
         var meta = document.createElement('div');
         meta.className = 'meta';
         var petText = pin.cat === 'spot' ? InfraPins.petBadges(pin).map(function (b) { return b.text; }).join('·') : '';
@@ -1080,7 +1156,7 @@
         });
         li.appendChild(info);
         // 가게 체크인 QR(② 방문 연결) — 동반 스팟만, 모두에게 반영된 스팟만(손님 휴대폰은 반영된 데이터로 도장을 찍으므로)
-        if (pin.cat === 'spot') {
+        if (!pin.demo && pin.cat === 'spot') {
           var qrBtn = document.createElement('button');
           qrBtn.type = 'button'; qrBtn.textContent = '체크인 QR';
           var live = baseSpots.some(function (s) { return s.id === pin.id; });
@@ -1344,6 +1420,9 @@
     InfraPins.setCustomCategories(baseCategories);
     baseGroups = InfraPins.normalizeGroups(st.mapGroups);
     groups = JSON.parse(JSON.stringify(baseGroups));
+    baseGText = InfraPins.readGuardianText(st.guardianText);
+    gtextListed = !!st.guardianText;
+    gtext = JSON.parse(JSON.stringify(baseGText));
     // 반영 안 한 편집이 이 컴퓨터에 남아 있으면 이어서
     var draft = null;
     try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { draft = null; }
@@ -1352,10 +1431,12 @@
       if (Array.isArray(draft.categories)) categories = draft.categories;
       if (Array.isArray(draft.places)) places = draft.places;
       if (Array.isArray(draft.groups)) groups = draft.groups;
+      if (draft.gtext && typeof draft.gtext === 'object') gtext = InfraPins.readGuardianText(draft.gtext);
       if (draft.baseSha) baseSha = draft.baseSha;
     }
 
     $('layout').hidden = false;
+    renderGText();
     map = L.map('map').setView(DEFAULT_CENTER, 15);
     WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
     map.on('click', function (e) { if (placeDraft) movePlace(e.latlng); else setDraft(e.latlng); });
