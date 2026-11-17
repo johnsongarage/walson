@@ -62,7 +62,8 @@
     var noPoop = typeof d.poop !== 'number';
     var timeOnly = d.mode === 'time';
     var out = [];
-    out.push({ t: 'title', text: '왈슨 산책 상회' });
+    // 제목: 2026-11-17 가르시아 "다산동 산책 상회로 가 일단"(예전 '왈슨 산책 상회'). 앱 이름은 아래 브랜드 줄(site-config.js brand)로
+    out.push({ t: 'title', text: '다산동 산책 상회' });
     out.push({ t: 'small', align: 'center', text: '대표 ' + name + (rich ? ' · 주소 비공개 (위치는 안 적어요)' : ' · 위치는 안 적어요') });
     out.push({ t: 'rule' });
     out.push({ t: 'pair', l: 'No.' + pad4(d.no) + (d.demo ? ' (데모)' : ''), r: dateText(d.date) });
@@ -91,6 +92,8 @@
     out.push({ t: 'small', align: 'left', text: '교환·환불 불가 · 발급 ' + name });
     // (나중에) 동네 가게 쿠폰 칸 — 제휴 가게가 생기면 길 기록 산책 영수증에만. 지금은 없음
     out.push({ t: 'barcode', seed: seed });
+    var B = window.WALSON_CONFIG && WALSON_CONFIG.brand;
+    if (B && B.name) out.push({ t: 'small', align: 'center', bold: true, text: B.name + (B.tagline ? ' · ' + B.tagline : '') });
     out.push({ t: 'small', align: 'center', text: URL_TEXT });
     return out;
   }
@@ -103,7 +106,7 @@
   }
   function ensureFonts(text) {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
-    var t = text || '왈슨 산책 상회';
+    var t = text || '다산동 산책 상회';
     var all = Promise.all([
       document.fonts.load('400 30px "Nanum Gothic Coding"', t),
       document.fonts.load('700 30px "Nanum Gothic Coding"', t),
@@ -179,7 +182,7 @@
         ctx.fillText(r.text, S.pw / 2, mid + 2);
         break;
       case 'small':
-        ctx.font = '400 ' + S.small + 'px ' + MONO; ctx.fillStyle = '#4b433c';
+        ctx.font = (r.bold ? '700 ' : '400 ') + S.small + 'px ' + MONO; ctx.fillStyle = r.bold ? '#2b2420' : '#4b433c';
         ctx.textAlign = r.align === 'left' ? 'left' : 'center';
         ctx.fillText(r.text, r.align === 'left' ? L : S.pw / 2, mid);
         break;

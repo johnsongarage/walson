@@ -120,8 +120,9 @@
   <div class="head">
     <img src="icons/walson-logo.webp" alt="">
     <div>
-      <div class="brand">왈슨</div>
-      <div class="sub">다산동 강아지 산책 · 강아지 손님 단골 도장</div>
+      <!-- 홍보물 필수 문구(site-config.js brand) — 2026-11-17 가르시아 -->
+      <div class="brand" id="brand-name"></div>
+      <div class="sub" id="brand-tagline"></div>
     </div>
   </div>
 
@@ -182,6 +183,14 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="site-config.js?v=5"></script>
+<script>
+(function () {
+  var BR = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || {};
+  document.getElementById('brand-name').textContent = BR.name || '';
+  document.getElementById('brand-tagline').textContent = BR.tagline || '';
+})();
+</script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };

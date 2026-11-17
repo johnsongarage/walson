@@ -19,15 +19,17 @@
   .toolbar button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1px solid #c99a1c; background: var(--yellow); cursor: pointer; }
   .toolbar p { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--soft); }
   .toolbar code { font-size: 11px; background: #f3f3f3; padding: 1px 5px; border-radius: 4px; word-break: break-all; }
-  .sheet { width: 210mm; height: 297mm; margin: 16px auto; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.2); display: grid; grid-template-rows: 1fr 1fr; }
-  .card { border-bottom: 0.3mm dashed #999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10mm; background: var(--yellow); }
+  .sheet { width: 210mm; height: 297mm; margin: 16px auto; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.2); display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+  /* 한 장(148.5mm)에 꼭 들어가게 — 예전엔 내용이 반 장보다 조금 길어서 A4 인쇄가 두 쪽으로 밀렸다(2026-11-17 문구 넣으며 고침) */
+  .card { border-bottom: 0.3mm dashed #999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 7mm 10mm; background: var(--yellow); overflow: hidden; }
   .card:last-child { border-bottom: none; }
   .card .top { display: flex; align-items: center; gap: 3mm; }
-  .card .top img { width: 18mm; height: auto; }
-  .card .top b { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 12mm; line-height: 1; }
-  .card h1 { font-size: 10mm; font-weight: 900; margin: 5mm 0 2mm; letter-spacing: -0.02em; }
+  .card .top img { width: 14mm; height: auto; }
+  .card .top b { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 10mm; line-height: 1; }
+  .card .slogan { font-size: 4.6mm; font-weight: 800; margin-top: 2mm; }
+  .card h1 { font-size: 10mm; font-weight: 900; margin: 4mm 0 2mm; letter-spacing: -0.02em; }
   .card .shop { font-size: 5.5mm; font-weight: 800; background: #fff; padding: 1mm 4mm; border-radius: 3mm; }
-  .card .qr { width: 62mm; height: 62mm; background: #fff; padding: 3mm; border-radius: 4mm; margin: 6mm 0 4mm; border: 0.8mm solid var(--ink); }
+  .card .qr { width: 56mm; height: 56mm; background: #fff; padding: 3mm; border-radius: 4mm; margin: 5mm 0 3.5mm; border: 0.8mm solid var(--ink); }
   .card .qr svg { width: 100%; height: 100%; display: block; }
   .card p { font-size: 4.2mm; font-weight: 700; margin: 0; line-height: 1.5; }
   .card small { font-size: 3.2mm; color: var(--soft); margin-top: 2mm; display: block; }
@@ -45,6 +47,7 @@
 <script src="store.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=21"></script>
+<script src="site-config.js?v=5"></script>
 </head>
 <body>
 
@@ -85,13 +88,17 @@
     var c = document.createElement('div');
     c.className = 'card';
     c.innerHTML =
-      '<div class="top"><img src="icons/walson-logo.webp" alt=""><b>왈슨</b></div>' +
+      '<div class="top"><img src="icons/walson-logo.webp" alt=""><b></b></div><div class="slogan"></div>' +
       '<h1>강아지랑 왔다면 방문 도장!</h1>' +
       '<div class="shop"></div>' +
       '<div class="qr">' + svg + '</div>' +
       '<p>카메라로 찍으면 도장이 쾅. 앱 설치·로그인 없어요.</p>' +
       '<small>위치는 읽지 않아요 · 다산동 강아지 산책 앱 왈슨</small>';
     c.querySelector('.shop').textContent = spot.name || '';
+    // 홍보물 필수 문구(site-config.js brand) — 2026-11-17 가르시아
+    var BR = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || {};
+    c.querySelector('.top b').textContent = BR.name || '';
+    c.querySelector('.slogan').textContent = BR.tagline || '';
     sheet.appendChild(c);
   }
   sheet.hidden = false;

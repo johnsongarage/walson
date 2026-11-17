@@ -1,5 +1,9 @@
 // 사이트 공통 설정(2026-11-15). 값만 바꾸면 여러 화면에 한꺼번에 반영된다.
 window.WALSON_CONFIG = {
+  // 홍보물 필수 문구(2026-11-17 가르시아 "이 문구가 앞으로 홍보 전단에 반드시 들어가야 해") — 글자 그대로, 고칠 땐 여기 한 곳만.
+  // 쓰는 곳: 공원 포스터·전단(poster.html), 방문 키트 안내지·명함(visit-kit.html), 제휴 제안서(partner-proposal.html),
+  //         카운터 체크인 QR(checkin-qr.html), 산책 영수증 아래 줄(walk-receipt.js). 새 홍보물을 만들면 꼭 넣는다(CLAUDE.md 텍스트 규칙).
+  brand: { name: 'APP WALSON', tagline: '당신과 강아지의 유의미한 산책' },
   // 카카오톡 채널 주소(예: 'https://pf.kakao.com/_abcd'). 비어 있으면 "새 소식 받기" 버튼이 숨는다.
   // 쓰는 곳: [오늘] 아래 링크, 주민증 완료 화면, 키링 받기 화면.
   kakaoChannel: '',
