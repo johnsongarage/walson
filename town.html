@@ -163,6 +163,14 @@
   .bottom-stack[hidden] { display: none; }
   .bottom-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; pointer-events: none; }
   .bottom-links > * { pointer-events: auto; }
+  /* 사업자 정보 한 줄(2026-11-17) — 카카오톡 채널 비즈니스 심사: 첫 화면에서 서비스명과 사업자 정보가 같이 보이게.
+     지도가 첫 화면이라 아래 버튼 줄 밑에 작게 두고, 누르면 왈슨 소개(about.html) */
+  .biz-line {
+    max-width: 420px; padding: 3px 10px; border-radius: 8px; background: var(--panel); opacity: 0.9;
+    color: var(--ink-soft); font-size: 10.5px; line-height: 1.5; text-align: center; text-decoration: none; word-break: keep-all;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.12);
+  }
+  .biz-line[hidden] { display: none; }
   /* 다음 미션 카드(2026-11-15 가르시아 "어디 가야 하는지 목표·미션을 알려 주자") */
   .mission-card {
     width: 100%; max-width: 420px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer;
@@ -347,7 +355,9 @@
     <button type="button" class="shop-link qr-link" id="qr-link" hidden></button>
     <a class="guard-link" id="guard-link" href="guardians.html" hidden></a>
   </div>
+  <a class="biz-line" id="biz-line" href="about.html" hidden></a>
 </div>
+<script>(function (el) { if (!el || !window.WalsonBizInfo) return; WalsonBizInfo(el); if (!el.hidden) el.insertAdjacentText('beforeend', ' · 왈슨 소개 ›'); })(document.getElementById('biz-line'));</script>
 <div class="shop-sheet" id="sos-sheet" role="dialog" aria-labelledby="sos-title" hidden>
   <div class="sheet-head"><b id="sos-title">급할 때</b><span class="sub" id="sos-sub"></span><button type="button" class="sheet-close" id="sos-close" aria-label="닫기">×</button></div>
   <ul class="shop-list" id="sos-list"></ul>
