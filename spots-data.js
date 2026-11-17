@@ -42,6 +42,6 @@ window.PETWALK_MAP_GROUPS = [
 ];
 // 예시 수호견 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.
 window.PETWALK_DEMO_GUARDIANS = [
-  {"id":"demo-home","cat":"spot","name":"○○ 카페","lat":37.6196,"lng":127.1583,"source":"demo","demo":true,"pet":{"kind":"food","indoor":"no","terrace":true,"water":true},"guardian":{"kind":"home","name":"보리","signal":"green","photo":"demo/guardian-home-ai.jpg","line":"가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요","style":"photo"}},
-  {"id":"demo-work","cat":"spot","name":"○○ 펫샵","lat":37.6206,"lng":127.1626,"source":"demo","demo":true,"pet":{"kind":"pet","indoor":"ok","large":"all","water":true},"guardian":{"kind":"work","name":"콩이","signal":"red","photo":"demo/guardian-work-ai.jpg","line":"미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요","style":"photo"}}
+  {"id":"demo-work","cat":"spot","name":"○○ 펫샵","lat":37.6206,"lng":127.1626,"source":"demo","demo":true,"pet":{"kind":"pet","indoor":"ok","large":"all","water":true},"guardian":{"kind":"work","name":"콩이","signal":"red","photo":"demo/guardian-work-ai.jpg","line":"미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요","style":"photo"}},
+  {"id":"demo-home","cat":"spot","name":"○○ 카페","lat":37.6196,"lng":127.1583,"source":"demo","demo":true,"pet":{"indoor":"no","terrace":true,"water":true,"kind":"food"},"photo":"spots/photos/demo-home-p-91926a2fbe.jpg","guardian":{"name":"보리","kind":"home","style":"photo","signal":"green","line":"가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요","photo":"demo/guardian-home-ai.jpg"}}
 ];
