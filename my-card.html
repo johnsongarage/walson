@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <style>
   /* [주민증] 탭(2026-11-16 자라는 주민증 — 가르시아 "자라는 카드를 주민증에 합쳐"). 예전 [카드] 탭(9/26 자라는 보상 카드)을 바꿨다.
-     공원에서 만든 주민증이 길 기록 산책으로 자란다 — 부제(주민 등급: 새내기 주민 → 정착 주민 → 토박이 → 터줏대감)·승급 도장·
+     공원에서 만든 주민증이 산책 기록으로 자란다(11/17부터 어떻게 기록했든 5분 이상) — 부제(주민 등급: 새내기 주민 → 정착 주민 → 토박이 → 터줏대감)·승급 도장·
      뒷면(승급 기록·발도장 기록·특기·특이 사항). 그림은 id-card.js, 숫자는 reward-rules.js(RANKS·SLOT_RULES·PLACES).
      예전 세로 보상 카드(reward-card-soft.js)와 "스킬 다시 뽑기"는 지웠다 — 특기·특이 사항은 목록에서 고른다(문구는 card-shared.js 그대로).
      "실물로 뽑기"(11/16 가르시아 "③ 추천대로"): A4에 실제 크기(85.6×54mm) 앞·뒷면 네 쌍 — 오려서 등을 맞대 포토카드 홀더에.
@@ -164,7 +164,7 @@
   <!-- 주민증이 아직 없을 때(공원 QR이 아니라 링크로 온 사람) -->
   <div class="panel make" id="make-panel" hidden>
     <b>아직 주민증이 없어요</b>
-    <p>신호등과 이름만 고르면 30초면 나와요.<br>길 기록 산책을 할수록 주민증이 자라요.</p>
+    <p>신호등과 이름만 고르면 30초면 나와요.<br>산책을 기록할수록 주민증이 자라요.</p>
     <a class="btn btn-primary" href="start.html">주민증 만들기</a>
   </div>
 
@@ -222,7 +222,7 @@
   <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
   <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden>스친 강아지 (서버 가정 시험판)</a>
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
-  위치로 확인된 5분·200m 이상 산책만 주민 등급에 들어가요(꾸준함 도장은 모든 산책).</p>
+  5분 이상 산책은 어떻게 기록했든 주민 등급에 들어가요. 발도장은 길 기록 산책에서만 찍혀요.</p>
 </div>
 
 <!-- 실물로 뽑기 — 인쇄할 때만 보인다 -->
@@ -232,7 +232,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=10"></script>
+<script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="id-card.js?v=5"></script>
 <script src="image-editor.js?v=2"></script>

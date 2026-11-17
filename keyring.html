@@ -123,7 +123,7 @@
 </div>
 
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=10"></script>
+<script src="reward-rules.js?v=11"></script>
 <script>
 (function () {
   // 주민증·산책 기록·키링 받음({ givenAt: 'YYYY-MM-DD HH:MM' } — 받은 뒤에만 있다)은 store.js(WalsonStore)로 읽고 쓴다
@@ -141,7 +141,9 @@
   var profile = WalsonStore.profile() || {};
   var p = window.RewardRules.computeProgress(WalsonStore.walks().filter(function (w) { return !(w && w.demo); }));   // 시연 모드(가짜 위치) 산책은 빼고
   var hasCard = !!(profile.name && profile.cardNo);
-  var walksOk = p.walks >= K.minWalks;
+  // 키링은 돈 드는 보상이라 산책 횟수는 길 기록 산책(5분·200m)만 센다 — 주민증 성장(모든 기록 5분 이상)과 다름(2026-11-17)
+  var gw = p.gpsWalks != null ? p.gpsWalks : p.walks;
+  var walksOk = gw >= K.minWalks;
 
   $('c-card').classList.toggle('ok', hasCard);
   $('c-card').querySelector('.mark').textContent = hasCard ? '✓' : '1';
@@ -164,11 +166,11 @@
   }
   if (useWalks) {
     mark('c-walks', walksOk, useStamps ? '3' : '2');
-    $('c-walks-label').innerHTML = (mode === 'either' ? '또는 ' : '') + '길 기록 산책 ' + K.minWalks + '번 (지금 ' + Math.min(p.walks, K.minWalks) + '번)' +
-      '<small>' + (walksOk ? '다 채웠어요' : (K.minWalks - p.walks) + '번 더 하면 돼요 · 5분·200m 이상만 세요') + '</small>';
+    $('c-walks-label').innerHTML = (mode === 'either' ? '또는 ' : '') + '길 기록 산책 ' + K.minWalks + '번 (지금 ' + Math.min(gw, K.minWalks) + '번)' +
+      '<small>' + (walksOk ? '다 채웠어요' : (K.minWalks - gw) + '번 더 하면 돼요 · 5분·200m 이상만 세요') + '</small>';
   }
-  var ratio = mode === 'walks' ? p.walks / K.minWalks : mode === 'stamps' ? stampCount / needStamps
-    : mode === 'either' ? Math.max(stampCount / needStamps, p.walks / K.minWalks) : Math.min(stampCount / needStamps, p.walks / K.minWalks);
+  var ratio = mode === 'walks' ? gw / K.minWalks : mode === 'stamps' ? stampCount / needStamps
+    : mode === 'either' ? Math.max(stampCount / needStamps, gw / K.minWalks) : Math.min(stampCount / needStamps, gw / K.minWalks);
   $('walk-bar').style.width = Math.min(100, Math.round(ratio * 100)) + '%';
   if (K.where || K.when) { $('where').hidden = false; $('where').textContent = '받는 곳 · ' + [K.where, K.when].filter(Boolean).join(' · '); }
 
@@ -190,7 +192,7 @@
   $('t-name').textContent = profile.name;
   // 직원은 명단에 이 카드 번호를 적는다 — 같은 번호가 또 오면(기록을 빌려준 경우 등) 거절
   $('t-cardno').textContent = profile.cardNo;
-  $('t-no').textContent = '주민증 번호 · 산책 ' + p.walks + '번';
+  $('t-no').textContent = '주민증 번호 · 길 기록 산책 ' + gw + '번';
   var imported = localStorage.getItem('petwalk_imported_at');
   if (imported) { $('t-imported').hidden = false; $('t-imported').textContent = '기록 불러옴 · ' + imported.split(',')[0]; }
   // 같은 휴대폰 안에서 카톡 → 크롬으로 옮긴 것(2026-11-15)은 "옮겨 옴"으로 약하게 — 파일로 불러온 표시가 있으면 그쪽이 먼저

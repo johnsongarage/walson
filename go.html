@@ -110,7 +110,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=10"></script>
+<script src="reward-rules.js?v=11"></script>
 <script src="infra-pins.js?v=21"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=4"></script>
@@ -140,10 +140,9 @@
     <p class="lead">위치는 이 휴대폰 안에서만 쓰고 어디로도 보내지 않아요. 위치를 쓰면</p>
     <ul class="perks">
       <li>발도장·미션이 그 자리에서 찍혀요</li>
-      <li>주민증이 자라요(승급·특기)</li>
       <li>걸은 길과 거리가 남아요</li>
     </ul>
-    <p class="mode-note">앱을 켜 둔 채 걸어야 길이 그려지고 보상이 쌓여요. 통화하거나 유튜브를 보면 그동안 기록이 끊길 수 있어요 — 끊긴 곳은 직선으로 이어요.</p>
+    <p class="mode-note">앱을 켜 둔 채 걸어야 길이 그려지고 발도장·미션이 찍혀요. 통화하거나 유튜브를 보면 그동안 기록이 끊길 수 있어요 — 끊긴 곳은 직선으로 이어요.</p>
     <button type="button" class="btn-main" id="ask-on">위치 쓰고 시작</button>
     <button type="button" class="btn-sub" id="ask-off">위치 없이 시간만 재기</button>
     <p class="mode-note">고른 건 기억해요. 산책 나가기 화면이나 프로필에서 언제든 바꿀 수 있어요.</p>
@@ -255,7 +254,7 @@
   }
   // ── 산책 시작 하나(2026-11-16 1단계) ──
   // 위치를 쓸지(LOC_KEY)는 처음 산책 때 한 번 묻고 기억한다. 'on' = 위치 쓰기(길도 기록 → walk.html이 바로 시작),
-  // 'off' = 시간만 재기(여기서). 보상 규칙은 그대로 — 위치로 5분·200m가 확인된 산책만 주민증 성장(11/16 자라는 카드를 주민증에 합침)·발도장·키링.
+  // 'off' = 시간만 재기(여기서). 발도장·미션·키링은 위치로 5분·200m가 확인된 산책만, 주민증 성장은 11/17부터 어떻게 기록했든 5분 이상이면.
   var LOC_KEY = 'petwalk_walk_location';
   function locPref() { try { var v = localStorage.getItem(LOC_KEY); return v === 'on' || v === 'off' ? v : null; } catch (e) { return null; } }
   function setLocPref(v) { try { localStorage.setItem(LOC_KEY, v); } catch (e) { /* 이번만 적용 */ } }
@@ -263,8 +262,8 @@
     var on = locPref() !== 'off';
     document.getElementById('mode-name').textContent = on ? '길도 기록해요 · 위치 사용' : '시간만 재요 · 위치 안 씀';
     document.getElementById('mode-note').textContent = on
-      ? '발도장·미션이 그 자리에서 찍히고 주민증이 자라요. 앱을 켜 둔 채 걸어 주세요 — 통화·유튜브 중엔 기록이 끊길 수 있어요.'
-      : '오늘 목표·이번 주 기록·꾸준함 도장엔 들어가요. 주민증 성장·발도장·미션엔 안 들어가요.';
+      ? '발도장·미션이 그 자리에서 찍혀요. 앱을 켜 둔 채 걸어 주세요 — 통화·유튜브 중엔 기록이 끊길 수 있어요.'
+      : '주민증 성장·오늘 목표·꾸준함 도장엔 들어가요. 발도장·미션은 위치를 쓸 때만 찍혀요.';
     var box = document.getElementById('gps-mission');
     box.hidden = !(on && box.getAttribute('data-ready'));
   }
