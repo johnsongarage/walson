@@ -19,7 +19,8 @@ window.PETWALK_SPOTS = [
   {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"},
   {"id":"field-1794732698033","cat":"toilet","name":"공중화장실","lat":37.62016,"lng":127.16043,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"osm-park-2","cat":"park","name":"다산선형공원","lat":37.62481,"lng":127.15438,"source":"field","verifiedAt":"2026-11-17"},
-  {"id":"field-1794903841997","cat":"park","name":"도농체육공원","lat":37.60753,"lng":127.14902,"source":"field","verifiedAt":"2026-11-17"}
+  {"id":"field-1794903841997","cat":"park","name":"도농체육공원","lat":37.60753,"lng":127.14902,"source":"field","verifiedAt":"2026-11-17"},
+  {"id":"field-1794903936068","cat":"park","name":"왕숙길벗교 벤치","lat":37.62004,"lng":127.14383,"source":"field","verifiedAt":"2026-11-17"}
 ];
 // 운영자가 편집 페이지에서 직접 만든 종류 — { key, label, color }. 아이콘은 별표로 같다.
 window.PETWALK_SPOT_CATEGORIES = [
