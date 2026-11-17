@@ -54,10 +54,10 @@
   // town.html?guardian_demo=1 로 열 때만 이 화면에 예시 수호견 두 마리를 띄운다. 공개 데이터(spots-data.js)에는 넣지 않는다 —
   // 실제 가게에 가짜 수호견을 붙여 모두에게 보이게 하지 않으려는 것(11/15 "사장님 허락 전 게시 → 내림", 수호견은 사장님 동의 필수).
   // 사장님께 보여 드릴 땐 주소에 가게 이름을 붙인다: &home=카페이름(재택 명예 수호견) &work=펫샵이름(출근 수호견).
-  // 가게 이름은 주소로만 받고 어디에도 저장하지 않는다. 그림은 앱의 닮은꼴 그림(demo/guardian-*.jpg) —
-  // AI 사진으로 바꾸려면 같은 이름으로 파일만 바꾸면 된다(정사각형, 강아지가 가운데).
+  // 가게 이름은 주소로만 받고 어디에도 저장하지 않는다. 사진은 가르시아가 Gemini로 만든 AI 예시 사진(11/17) —
+  // 화면 안내에 'AI로 만든 예시 사진'이라고 밝힌다. 바꿀 땐 새 파일 이름으로 올리고 아래 경로를 고친다(같은 이름이면 캐시에 옛 사진이 남음).
   var GUARDIAN_DEMO = /[?&]guardian_demo=1/.test(location.search);
-  var DEMO_DISCLAIMER = '예시 화면이에요 · 그림 강아지이고 실제 수호견이 아니에요';
+  var DEMO_DISCLAIMER = '예시 화면이에요 · AI로 만든 예시 사진이고 실제 수호견이 아니에요';
   function demoParam(key, fallback) {
     var m = new RegExp('[?&]' + key + '=([^&#]*)').exec(location.search);
     var v = '';
@@ -73,10 +73,10 @@
   var DEMO_GUARDIANS = [
     { id: 'demo-home', cat: 'spot', name: demoParam('home', '○○ 카페'), lat: 37.6196, lng: 127.1583, source: 'demo',
       pet: { kind: 'food', indoor: 'no', terrace: true, water: true },
-      guardian: { kind: 'home', name: '보리', signal: 'green', photo: 'demo/guardian-home.jpg', line: '가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요' } },
+      guardian: { kind: 'home', name: '보리', signal: 'green', photo: 'demo/guardian-home-ai.jpg', line: '가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요' } },
     { id: 'demo-work', cat: 'spot', name: demoParam('work', '○○ 펫샵'), lat: 37.6206, lng: 127.1626, source: 'demo',
       pet: { kind: 'pet', indoor: 'ok', large: 'all', water: true },
-      guardian: { kind: 'work', name: '콩이', signal: 'yellow', photo: 'demo/guardian-work.jpg', line: '미용 끝난 친구들 배웅은 제 담당이에요' } }
+      guardian: { kind: 'work', name: '콩이', signal: 'red', photo: 'demo/guardian-work-ai.jpg', line: '미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요' } }
   ];
   if (GUARDIAN_DEMO) window.PETWALK_SPOTS = (window.PETWALK_SPOTS || []).concat(DEMO_GUARDIANS);
 
