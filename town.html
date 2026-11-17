@@ -33,7 +33,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=10"></script>
-<script src="infra-pins.js?v=25"></script>
+<script src="infra-pins.js?v=26"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=3"></script>
 <script src="map-deco.js?v=2"></script>
@@ -414,8 +414,10 @@
   // 내 위치는 버튼을 눌렀을 때만 읽고(이유를 먼저 설명), 이 화면 메모리에만 둔다. 저장하거나 보내지 않는다.
   // 단골 Lv는 가게 카운터 QR로 찍은 방문 도장(visit.html이 남긴 petwalk_visits)으로 센다(shop-visits.js). 이 화면은 읽기만 한다.
   var myPos = null;     // { lat, lng, accuracy } — 이 화면을 닫으면 사라진다
-  var shops = InfraPins.category('spot') ? InfraPins.all().filter(function (p) { return p.cat === 'spot'; }) : [];
-  var shopUi = {};      // 가게 id → { pin, walkEl, regEl }
+  // 동반 가게 목록 = 같이 갈 수 있는 곳(동반 됨·확인 전)만. 동반이 안 되는 수호견 가게는 빠진다(2026-11-17 가르시아 "같은 레벨")
+  var shops = InfraPins.category('spot') ? InfraPins.all().filter(function (p) { return InfraPins.isCompanionShop(p); }) : [];
+  var shopUi = {};      // 가게 id → { pin, walkEl, regEl } — 칸을 끈 것은 null
+  var shopPins = {};    // 지도에 올린 가게 id → pin(마커 Lv 배지를 다시 그릴 때)
   var sheet = document.getElementById('shop-sheet');
   function lvBadge(id) { var v = ShopVisits.info(id); return v.level ? 'Lv' + v.level : ''; }
   function shopDist(pin) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], [pin.lat, pin.lng]) : null; }
@@ -425,11 +427,15 @@
     if (text != null) e.textContent = text;
     return e;
   }
+  // 팝업 아래 칸: 걸어서 몇 분 · QR 단골 안내. 무엇을 넣을지는 InfraPins.extraParts(수호견 팝업은 스팟 편집 6번 칸 설정,
+  // 동반이 안 되는 가게는 QR 안내 없이 걸어서 몇 분만 — 11/17 가르시아 "보이면 걸어서 몇 분 정도는 해 주자")
   function shopExtraEl(pin) {
+    var parts = InfraPins.extraParts(pin);
+    if (!parts.walk && !parts.qr) return null;
     var box = mk('div', 'shop-extra');
-    var walkEl = mk('div'), regEl = mk('div', 'reg');
-    box.appendChild(walkEl);
-    box.appendChild(regEl);
+    var walkEl = parts.walk ? mk('div') : null, regEl = parts.qr ? mk('div', 'reg') : null;
+    if (walkEl) box.appendChild(walkEl);
+    if (regEl) box.appendChild(regEl);
     shopUi[pin.id] = { pin: pin, walkEl: walkEl, regEl: regEl };
     paintShopExtra(pin.id);
     return box;
@@ -438,6 +444,10 @@
     var ui = shopUi[id];
     if (!ui) return;
     var pin = ui.pin, d = shopDist(pin);
+    if (ui.walkEl) paintWalk(ui, d);
+    if (ui.regEl) paintReg(ui, id);
+  }
+  function paintWalk(ui, d) {
     ui.walkEl.innerHTML = '';
     if (d != null) {
       ui.walkEl.className = 'walk-line';
@@ -451,6 +461,8 @@
       wb.addEventListener('click', function () { locate().then(refreshShops, function () {}); });
       ui.walkEl.appendChild(wb);
     }
+  }
+  function paintReg(ui, id) {
     var v = ShopVisits.info(id);
     ui.regEl.innerHTML = '';
     if (!v.count) {
@@ -468,12 +480,14 @@
   }
   // 위치를 읽은 뒤: 팝업 칸(걸어서 N분)·마커 Lv 배지·목록을 다시 그린다
   function refreshShops() {
-    Object.keys(shopUi).forEach(function (id) {
-      paintShopExtra(id);
-      var marker = spotMarkers[id];
-      if (!marker) return;
-      marker.setIcon(L.divIcon(InfraPins.markerFor(shopUi[id].pin, { badge: lvBadge(id) }).icon));
-      if (marker.isPopupOpen()) marker.getPopup().update();
+    Object.keys(shopUi).forEach(paintShopExtra);
+    Object.keys(shopPins).forEach(function (id) {
+      [['shop', shopMarkers[id]], ['guard', guardMarkers[id]]].forEach(function (x) {
+        var marker = x[1];
+        if (!marker) return;
+        marker.setIcon(L.divIcon(InfraPins.markerFor(shopPins[id], { as: x[0], badge: lvBadge(id) }).icon));
+        if (marker.isPopupOpen()) marker.getPopup().update();
+      });
     });
     if (!sheet.hidden) renderShopList();
     if (typeof paintMission === 'function' && missionCard) paintMission();
@@ -484,16 +498,43 @@
   // 나머지 시설은 작고 옅게. 팝업은 사진을 가운데 크게. 동반 스팟 팝업엔 걸어서 N분·방문 도장(단골 Lv) 칸을 붙인다.
   // 아래쪽엔 미션 카드와 버튼 줄이 있어서 그만큼 비켜 연다(동네 스타 줄은 내림).
   var POPUP_OPTS = L.extend({}, InfraPins.POPUP_OPTS, { autoPanPaddingBottomRight: [16, 150] });   // 아래쪽 미션 카드·버튼 줄만큼
-  var spotMarkers = {}; // 스팟 id → 마커(목록·주소의 ?spot=에서 그 자리로 가서 연다)
+  var spotMarkers = {}; // 스팟 id → 마커(가게가 아닌 시설 — 급할 때 목록에서 그 자리로 가서 연다)
+  // 가게(2026-11-17 가르시아 "동반 가게와 수호견 가게는 같은 레벨"): 동반 가게 레이어엔 가게 핀(네모·컵), 수호견 가게 레이어엔 강아지 핀.
+  // 둘 다인 가게(A)는 두 레이어에 다 넣고, 수호견 가게가 보이는 동안엔 가게 핀을 숨겨 한 자리에 핀 하나만 둔다(sync).
+  // 동반도 안 되고 수호견도 없는 가게(D)는 올리지 않는다 — 응원 가게로 올릴지는 결정 대기(notes/petwalk-shop-display-plan.md)
+  var shopMarkers = {}, guardMarkers = {}, bothIds = [];
   InfraPins.all().forEach(function (pin) {
     if (!InfraPins.category(pin.cat)) return;
-    var isShop = pin.cat === 'spot';
-    var m = InfraPins.markerFor(pin, isShop ? { badge: lvBadge(pin.id) } : null);
-    var marker = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: zOf(pin.cat, m.zIndexOffset / 20) })
-      .bindPopup(InfraPins.popupEl(pin, isShop ? { extraEl: shopExtraEl(pin) } : null), POPUP_OPTS);
-    spotMarkers[pin.id] = marker;
-    addTo(pin.cat, marker);
+    if (pin.cat !== 'spot') {
+      var m = InfraPins.markerFor(pin, null);
+      var marker = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: zOf(pin.cat, m.zIndexOffset / 20) })
+        .bindPopup(InfraPins.popupEl(pin, null), POPUP_OPTS);
+      spotMarkers[pin.id] = marker;
+      addTo(pin.cat, marker);
+      return;
+    }
+    var asShop = InfraPins.isCompanionShop(pin), asGuard = InfraPins.isGuardShop(pin);
+    if (!asShop && !asGuard) return;
+    shopPins[pin.id] = pin;
+    // 팝업은 하나를 두 핀이 같이 쓴다(한 번에 하나만 지도에 있음)
+    var popup = InfraPins.popupEl(pin, { extraEl: shopExtraEl(pin) });
+    function place(as, key) {
+      var m = InfraPins.markerFor(pin, { as: as, badge: lvBadge(pin.id) });
+      var marker = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: zOf(key, m.zIndexOffset / 20) })
+        .bindPopup(popup, POPUP_OPTS);
+      addTo(key, marker);
+      return marker;
+    }
+    if (asShop) shopMarkers[pin.id] = place('shop', 'spot');
+    if (asGuard) guardMarkers[pin.id] = place('guard', 'guard');
+    if (asShop && asGuard) bothIds.push(pin.id);
   });
+  // 지금 이 가게를 나타내는 핀 — 수호견 가게 레이어가 보이면 강아지 핀, 아니면 가게 핀
+  function shopMarkerOf(id) {
+    var gm = guardMarkers[id], sm = shopMarkers[id];
+    if (gm && (!sm || (layers.guard && map.hasLayer(layers.guard)))) return gm;
+    return sm || gm || null;
+  }
 
   // 수호지킴이 모아 보기 — 있을 때만
   var guardianCount = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); }).length;
@@ -520,19 +561,20 @@
     var sig = g ? InfraPins.SIGNALS[g.signal] : null;
     if (sig) img.style.borderColor = sig.color;
     var text = document.createElement('span');
-    var t1 = document.createElement('span'); t1.className = 't1'; t1.textContent = g ? InfraPins.guardianKind(g).badge : '동반 스팟';
+    var t1 = document.createElement('span'); t1.className = 't1'; t1.textContent = g ? InfraPins.guardianKind(g).badge : '동반 가게';
     var t2 = document.createElement('span'); t2.className = 't2'; t2.textContent = g ? g.name : (pin.name || '');
     var t3 = document.createElement('span'); t3.className = 't3'; t3.textContent = g ? (pin.name || '') : (pin.tags || []).join(' · ');
     [t1, t2, t3].forEach(function (t) { t.style.display = 'block'; text.appendChild(t); });
     btn.appendChild(img);
     btn.appendChild(text);
     btn.addEventListener('click', function () {
-      // 동반 스팟을 꺼 두었더라도 누르면 다시 켠다
-      filter.set('spot', true); refreshChips();
+      // 동반 가게를 꺼 두었더라도 누르면 다시 켠다
+      filter.set(guardMarkers[pin.id] ? 'guard' : 'spot', true); refreshChips();
       // 바로 옮기고 연다 — 팝업이 위쪽 버튼·아래쪽 줄에 가리지 않게 Leaflet이 알아서 지도를 더 옮긴다(autoPan)
       map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 16), { animate: false });
       sync();
-      spotMarkers[pin.id].openPopup();
+      var sm = shopMarkerOf(pin.id);
+      if (sm) sm.openPopup();
     });
     starsEl.appendChild(btn);
   });
@@ -645,6 +687,13 @@
       var show = !!lay.byKey[key] && zoom >= lay.byKey[key].minZoom && !filter.isOff(key);
       if (show && !map.hasLayer(layers[key])) map.addLayer(layers[key]);
       if (!show && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
+    });
+    // 동반 가게이면서 수호견 가게(A): 수호견 가게가 보이면 강아지 핀 하나만(컵 표시가 동반을 알린다), 꺼지면 가게 핀으로
+    var guardShown = !!layers.guard && map.hasLayer(layers.guard);
+    if (layers.spot) bothIds.forEach(function (id) {
+      var sm = shopMarkers[id];
+      if (guardShown && layers.spot.hasLayer(sm)) layers.spot.removeLayer(sm);
+      if (!guardShown && !layers.spot.hasLayer(sm)) layers.spot.addLayer(sm);
     });
     refreshChips();
   }
@@ -832,16 +881,17 @@
       var item = mk('button', 'shop-item');
       item.type = 'button';
       var thumb = mk('span', 'shop-thumb');
-      var photo = InfraPins.mainPhoto(pin);
+      var photo = InfraPins.shopPhoto(pin) || InfraPins.dogPhoto(pin);
       if (photo) { var img = mk('img'); img.src = photo; img.alt = ''; thumb.appendChild(img); }
       else { var ic = mk('span', 'ic'); ic.innerHTML = InfraPins.iconSvg('spot', 22); thumb.appendChild(ic); }
       if (r.v.level) thumb.appendChild(mk('span', 'lv', 'Lv' + r.v.level));
       var body = mk('span', 'body');
       var row1 = mk('span', 'row1');
-      row1.appendChild(mk('span', 'name', pin.name || '동반 스팟'));
+      row1.appendChild(mk('span', 'name', pin.name || '동반 가게'));
       if (r.d != null) row1.appendChild(mk('span', 'walk', ShopVisits.walkText(r.d)));
       body.appendChild(row1);
       var meta = [];
+      if (InfraPins.hasGuardian(pin)) meta.push('수호견 ' + pin.guardian.name);
       if (pin.area) meta.push(pin.area);
       if (r.v.count) meta.push('방문 도장 ' + r.v.count + '번');
       meta.push(pin.verifiedAt ? shortDate(pin.verifiedAt) + ' 확인' : '현장 확인 전');
@@ -864,12 +914,12 @@
     });
   }
   function goToShop(id) {
-    var marker = spotMarkers[id];
-    if (!marker) return;
-    filter.set('spot', true);   // 동반 스팟을 꺼 두었더라도 다시 켠다
-    map.setView(marker.getLatLng(), Math.max(map.getZoom(), 16), { animate: false });
+    if (!shopMarkers[id] && !guardMarkers[id]) return;
+    filter.set(shopMarkers[id] ? 'spot' : 'guard', true);   // 동반 가게 목록에서 왔으니 동반 가게를 꺼 두었더라도 다시 켠다
+    var at = (shopMarkers[id] || guardMarkers[id]).getLatLng();
+    map.setView(at, Math.max(map.getZoom(), 16), { animate: false });
     sync();
-    marker.openPopup();
+    shopMarkerOf(id).openPopup();
   }
 
   // ── 다음 미션 카드 ──
@@ -1034,12 +1084,11 @@
   // 수호지킴이 목록에서 "지도에서 보기"로 오면(town.html?spot=id) 그 스팟으로 가서 팝업을 연다
   var openId = (location.search.match(/[?&]spot=([^&]+)/) || [])[1];
   if (openId) openId = decodeURIComponent(openId);
-  if (openId && spotMarkers[openId]) {
-    var target = spotMarkers[openId];
-    filter.set('spot', true);
-    map.setView(target.getLatLng(), 17, { animate: false });
+  if (openId && (guardMarkers[openId] || shopMarkers[openId])) {
+    filter.set(guardMarkers[openId] ? 'guard' : 'spot', true);   // 수호견 목록에서 왔으면 수호견 가게를 켠다
+    map.setView((guardMarkers[openId] || shopMarkers[openId]).getLatLng(), 17, { animate: false });
     sync();
-    target.openPopup();
+    shopMarkerOf(openId).openPopup();
   }
 
   // ── 내 위치: 버튼을 눌렀을 때만, 이유를 먼저 설명하고 읽는다. 지도에 점만 찍고 저장하지 않는다. ──

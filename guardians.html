@@ -49,6 +49,7 @@
   .dog .acts a.idcard { background: #fff; color: var(--ink); border: 1px solid var(--panel-border); }
   .empty { text-align: center; padding: 50px 20px; color: var(--ink-soft); background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; font-size: 13px; line-height: 1.6; }
   .note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 4px 2px 0; }
+  .dog .comp { font-size: 12px; font-weight: 800; margin-top: 2px; }
 </style>
 <script src="store.js?v=1"></script>
 <script src="theme.js?v=9"></script>
@@ -56,7 +57,7 @@
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=21"></script>
+<script src="infra-pins.js?v=26"></script>
 </head>
 <body>
 
@@ -95,15 +96,23 @@
       var g = p.guardian, sig = InfraPins.SIGNALS[g.signal];
       var card = el('article', 'dog');
       var ph = el('div', 'ph');
-      var photo = InfraPins.mainPhoto(p);
+      var photo = InfraPins.dogPhoto(p) || InfraPins.shopPhoto(p);
       if (photo) { var img = el('img'); img.src = photo; img.alt = g.name; img.loading = 'lazy'; ph.appendChild(img); }
       if (sig) { var bar = el('span', 'sig'); bar.style.background = sig.color; ph.appendChild(bar); }
       card.appendChild(ph);
       var body = el('div', 'body');
       body.appendChild(el('div', 'badge', InfraPins.guardianKind(g).badge));
       body.appendChild(el('div', 'name', g.name));
-      if (sig) { var st = el('div', 'sigtxt', sig.label + ' · ' + sig.line); st.style.color = sig.color; body.appendChild(st); }
+      // 신호등 이름(초록불 등)은 스팟 편집 6번 칸 설정을 따른다(11/17 "초록불 글씨 빼")
+      if (sig) { var st = el('div', 'sigtxt', (InfraPins.guardianText.showSignalLabel ? sig.label + ' · ' : '') + sig.line); st.style.color = sig.color; body.appendChild(st); }
       body.appendChild(el('div', 'shop', p.name || ''));
+      // 수호견 가게는 동반 가게와 따로라(11/17) 같이 들어갈 수 있는지를 같이 보여 준다
+      var comp = InfraPins.companion(p);
+      if (comp) {
+        var ce = el('div', 'comp', comp === 'no' ? '가게엔 같이 못 들어가요' : '같이 들어갈 수 있어요');
+        ce.style.color = InfraPins.TONES[comp === 'no' ? 'no' : 'ok'].ink;
+        body.appendChild(ce);
+      }
       if (g.line) body.appendChild(el('div', 'line', '“' + g.line + '”'));
       var acts = el('div', 'acts');
       var a1 = el('a', 'map', '지도에서'); a1.href = 'town.html?spot=' + encodeURIComponent(p.id);

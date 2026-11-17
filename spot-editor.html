@@ -11,7 +11,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="site-config.js?v=8"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=25"></script>
+<script src="infra-pins.js?v=26"></script>
 <script src="reward-rules.js?v=10"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
@@ -177,6 +177,8 @@
   .stats .move-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   .stats .move-btn.nudge { animation: move-nudge 0.5s ease 2; }
   @keyframes move-nudge { 50% { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(184, 86, 58, 0.25); } }
+  .shop-case { font-size: 12px; font-weight: 700; line-height: 1.55; background: #fbeee6; color: var(--accent); border-radius: 10px; padding: 8px 10px; margin: 8px 0 10px; }
+  .shop-case.is-hidden { background: #efe8de; color: #6f6253; }
   .move-hint { font-size: 12px; font-weight: 700; color: var(--accent); background: #fbeee6; border-radius: 8px; padding: 7px 9px; margin: -4px 0 10px; line-height: 1.5; }
   .move-hint[hidden], .stats .move-btn[hidden] { display: none; }
   /* 좌표 수정 중: 손가락으로 잡기 쉽게 크고 진한 원, 가운데 흰 십자가 저장되는 자리 */
@@ -245,8 +247,8 @@
       </div>
 
       <div class="spot-extra" id="spot-extra" hidden>
-        <h3>동반 조건</h3>
-        <p class="hint">직접 가서 확인한 것만 고르세요. "확인 전"으로 두면 지도에 안 나와요. 저장하면 확인 날짜가 오늘로 바뀌어요. 동반 조건과 단골 도장은 "동반 스팟" 종류에만 붙어요.</p>
+        <h3>반려견 동반</h3>
+        <p class="hint">직접 가서 확인한 것만 고르세요. "확인 전"으로 두면 지도에 안 나와요. 저장하면 확인 날짜가 오늘로 바뀌어요. 동반 조건과 단골 도장은 "가게" 종류에만 붙어요.</p>
         <div class="field"><label for="f-kind">가게 종류 (동반 기준이 달라요)</label><select id="f-kind">
           <option value="">확인 전</option><option value="food">음식·음료를 파는 곳 (음식점·카페·빵집·술집)</option><option value="pet">반려견 가게 (용품·미용·간식·병원)</option><option value="other">음식을 안 파는 가게 (꽃집·옷가게 등)</option>
         </select></div>
@@ -264,9 +266,10 @@
         </div>
         <label class="check"><input type="checkbox" id="f-terrace"> 바깥 자리(테라스·야외석)에서 강아지와 함께 앉을 수 있음</label>
         <label class="check"><input type="checkbox" id="f-water"> 물그릇 있음</label>
+        <p class="shop-case" id="shop-case"></p>
         <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: 다산1동, 아울렛 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
-        <h3>가게 사진 (선택)</h3>
-        <p class="hint">수호지킴이 사진이 없을 때 지도에 이 사진이 크게 나옵니다. 고르면 보여 줄 부분을 고를 수 있어요.</p>
+        <h3>가게 이미지 (로고·간판 사진, 선택)</h3>
+        <p class="hint">수호견이 없는 동반 가게는 지도에 이 이미지가 둥근 네모로 나오고(강아지 동그라미와 구분), 수호견이 있으면 팝업의 가게 줄에 작게 나와요. 고르면 보여 줄 부분을 고를 수 있어요.</p>
         <div class="photo-row">
           <div class="thumb"><img id="p-preview" alt="" hidden></div>
           <div>
@@ -395,7 +398,8 @@
         <label><input type="checkbox" id="gt-showLine"> 강아지 한마디</label>
         <label><input type="checkbox" id="gt-showKindLine"> 재택·출근 설명 줄</label>
         <label><input type="checkbox" id="gt-showPetChips"> 동반 조건 칩 (실내·바깥 자리·물그릇)</label>
-        <label><input type="checkbox" id="gt-showTownExtra"> 걸어서 몇 분 · QR 단골 안내</label>
+        <label><input type="checkbox" id="gt-showWalk"> 걸어서 몇 분</label>
+        <label><input type="checkbox" id="gt-showQr"> QR 단골 안내 (동반 되는 가게만)</label>
       </div>
       <p class="hint">늘 보이는 줄(끌 수 없음): 실제 핀의 출처, 실제 수호견의 "사장님 동의 · 제휴 아님". 확인 안 된 것이 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게 하려는 거예요. 예시 화면은 지도 아래 띠("수호견 예시 화면 · 실제 지도에는 없어요")가 예시임을 알려요.</p>
       <div class="grp-actions"><button type="button" id="gt-reset">기본값으로</button></div>
@@ -537,7 +541,7 @@
   // ── 6. 수호견 팝업 문구(2026-11-17 가르시아 "화면에 들어가는 양식 편집") ──
   // 값은 infra-pins.js의 readGuardianText로 정리한다(빈 칸은 기본값). 고치면 초안에 두고 "모두에게 반영"으로 올린다.
   var GT_TEXT = ['homeBadge', 'homeLine', 'workBadge', 'workLine'];
-  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showTownExtra'];
+  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showWalk', 'showQr'];
   function renderGText() {
     GT_TEXT.forEach(function (k) { $('gt-' + k).value = gtext[k] || ''; });
     GT_FLAGS.forEach(function (k) { $('gt-' + k).checked = !!gtext[k]; });
@@ -896,7 +900,7 @@
     g.photo = gPhoto;
     return Promise.resolve(g);
   }
-  var showPPhoto = photoField('p', function (v) { pPhoto = v; }, true);
+  var showPPhoto = photoField('p', function (v) { pPhoto = v; paintShopCase(); }, true);
 
   // ── 직접 만든 종류 ──
   var NEW_CAT = '__new__';
@@ -1020,7 +1024,36 @@
     var saved = editingId && baseSpots.some(function (s) { return s.id === editingId && InfraPins.hasGuardianData(s) && (InfraPins.GUARDIANS_ON || s.demo); });
     $('g-card-btn').disabled = !saved;
     $('g-card-btn').textContent = saved ? '주민증 카드 보기' : '주민증 카드 보기 (모두에게 반영한 뒤에)';
+    paintShopCase();
   }
+  // 지도에서 어떻게 보일지 한 줄(2026-11-17 가르시아 "동반 가게와 수호견 가게는 같은 레벨", notes/petwalk-shop-display-plan.md)
+  // 동반 칸(실내·바깥 자리)과 수호견 칸 두 개로 정해진다: A 동반+수호견 · B 동반 · C 수호견(동반 안 됨) · D 둘 다 아님
+  function paintShopCase() {
+    var box = $('shop-case');
+    if (!box) return;
+    if (fCat.value !== 'spot') { box.textContent = ''; return; }
+    var demoOn = fDemo.checked;
+    var tmp = { cat: 'spot', pet: {} };
+    if (fIndoor.value) tmp.pet.indoor = fIndoor.value;
+    if (fTerrace.checked) tmp.pet.terrace = true;
+    if (fKind.value) tmp.pet.kind = fKind.value;
+    if (fRules.checked) tmp.pet.rules = true;
+    // 수호견 칸이 꺼져 있으면(공개 수호견 입력 꺼 둠) 고칠 때 예전 수호견을 그대로 둔다 — 저장 때와 같은 규칙
+    var keepOld = !!editingId && !(GUARDIAN_INPUT || demoOn) && spots.some(function (x) { return x.id === editingId && InfraPins.hasGuardianData(x); });
+    var gOn = (GUARDIAN_INPUT || demoOn) ? !!gName.value.trim() : keepOld;
+    if (gOn) tmp.guardian = { name: gName.value.trim() || '수호견' };
+    var c = InfraPins.shopCase(tmp), comp = InfraPins.companion(tmp);
+    var t;
+    if (c === 'A') t = '지도에서: 동반 가게 + 수호견 — 강아지 동그라미에 컵 표시(같이 들어갈 수 있어요). 동반 가게 목록과 수호견 모아 보기 둘 다에 나와요.';
+    else if (c === 'B') t = '지도에서: 동반 가게 — ' + (pPhoto ? '가게 이미지가 둥근 네모로' : '컵 아이콘으로') + ' 나와요.' + (comp ? '' : ' 동반 조건이 확인 전이라 "확인 전" 안내가 붙어요.');
+    else if (c === 'C') t = '지도에서: 수호견 가게(동반 안 됨) — 강아지 동그라미(컵 표시 없음), 팝업에 "반려견은 같이 못 들어가요". 동반 가게 목록엔 안 나와요.';
+    else t = '지도에서: 안 나와요 — 동반도 안 되고 수호견도 없는 가게예요. 저장은 되고 목록에 "지도에 안 나옴"으로 보여요(응원 가게로 올릴지는 결정 대기).';
+    if (c === 'A' || c === 'C') t += demoOn ? ' (예시 화면에서만)' : (InfraPins.GUARDIANS_ON ? '' : ' 단, 수호견은 아직 공개 지도에서 꺼져 있어서 지금은 ' + (c === 'C' ? '지도에 안 나와요.' : '동반 가게로만 나와요.'));
+    box.textContent = t;
+    box.classList.toggle('is-hidden', c === 'D' || (c === 'C' && !demoOn && !InfraPins.GUARDIANS_ON));
+  }
+  [fIndoor, fTerrace, fKind, fRules].forEach(function (x) { x.addEventListener('change', paintShopCase); });
+  gName.addEventListener('input', paintShopCase);
   fCat.addEventListener('change', refreshExtras);
   fDemo.addEventListener('change', refreshExtras);
   $('g-card-btn').addEventListener('click', function () {
@@ -1161,8 +1194,10 @@
       if (!InfraPins.category(pin.cat)) return;
       var size = pin.cat === 'spot' ? 36 : 24;
       var html = InfraPins.markerHtml(pin.cat, size);
-      var photo = InfraPins.mainPhoto(pin);
-      if (photo) html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;overflow:hidden;border:3px ' + (pin.demo ? 'dashed #3b6ea8' : 'solid #b8563a') + ';box-sizing:border-box;"><img src="' + src(photo) + '" style="width:100%;height:100%;object-fit:cover"></div>';
+      // 강아지는 동그라미, 가게 이미지는 둥근 네모(11/17 가르시아 "가게 이미지 핀은 네모로") — 예시는 파란 점선
+      var dogPh = InfraPins.hasGuardianData(pin) && pin.guardian.photo && (pin.demo || GUARDIAN_INPUT) ? pin.guardian.photo : null;
+      var photo = dogPh || pin.photo || null;
+      if (photo) html = '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:' + (dogPh || pin.cat !== 'spot' ? '50%' : '9px') + ';overflow:hidden;border:3px ' + (pin.demo ? 'dashed #3b6ea8' : 'solid #b8563a') + ';box-sizing:border-box;"><img src="' + src(photo) + '" style="width:100%;height:100%;object-fit:cover"></div>';
       markers[pin.id] = L.marker([pin.lat, pin.lng], {
         icon: L.divIcon({ className: '', html: html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] }),
         zIndexOffset: pin.cat === 'spot' ? 500 : 0
@@ -1192,7 +1227,7 @@
         var meta = document.createElement('div');
         meta.className = 'meta';
         var petText = pin.cat === 'spot' ? InfraPins.petBadges(pin).map(function (b) { return b.text; }).join('·') : '';
-        meta.textContent = cat.label + (pin.area ? ' · ' + pin.area : '') + (petText ? ' · ' + petText : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
+        meta.textContent = cat.label + (pin.cat === 'spot' && !pin.demo && InfraPins.shopCase(pin) === 'D' ? ' · 지도에 안 나옴' : '') + (pin.area ? ' · ' + pin.area : '') + (petText ? ' · ' + petText : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
         info.appendChild(name); info.appendChild(meta);
         info.addEventListener('click', function () { map.setView([pin.lat, pin.lng], 17); });
         var edit = document.createElement('button');
@@ -1288,10 +1323,13 @@
         var r = document.createElement('span'); r.className = 'rank'; r.textContent = rank; row.appendChild(r);
         var dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = info.color; row.appendChild(dot);
         var name = document.createElement('span'); name.className = 'label';
-        var used = spots.filter(function (s) { return s.cat === l.key; }).length;
-        name.textContent = info.label;
+        // 동반 가게·수호견 가게는 같은 가게 데이터에서 나뉜다(11/17) — 예시는 세지 않는다
+        var used = l.key === 'guard' ? spots.filter(function (s) { return s.cat === 'spot' && !s.demo && InfraPins.hasGuardianData(s); }).length
+          : l.key === 'spot' ? spots.filter(function (s) { return s.cat === 'spot' && !s.demo && InfraPins.companion(s) !== 'no'; }).length
+          : spots.filter(function (s) { return s.cat === l.key; }).length;
+        name.textContent = info.layerLabel || info.label;
         var sub = document.createElement('span'); sub.style.cssText = 'font-weight:500;color:var(--ink-soft);font-size:11px;';
-        sub.textContent = info.system ? ' · 동네 지도 전용' : ' · 스팟 ' + used + '개';
+        sub.textContent = info.fromShops || l.key === 'spot' ? ' · 가게 ' + used + '곳' : info.system ? ' · 동네 지도 전용' : ' · 스팟 ' + used + '개';
         name.appendChild(sub);
         row.appendChild(name);
         var zoom = document.createElement('select'); zoom.title = '얼마나 넓게 볼 때까지 보일지';
