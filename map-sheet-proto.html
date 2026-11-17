@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>지도 목록 시트 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
+<script src="store.js?v=1"></script>
+<script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=10"></script>
+<script src="infra-pins.js?v=25"></script>
+<script src="shop-visits.js?v=4"></script>
+<style>
+  /* 시안(2026-11-17, 가르시아 "A안으로 시안 그려줘") — hq notes/petwalk-map-list-view-plan.md의 A안:
+     [동네] 지도 위에 끌어 올리는 목록 시트(접힘 · 반 · 펼침). 메뉴에 없고 주소로만 연다. 실제 [동네](town.html)는 그대로.
+     지도·핀·팝업 모양은 진짜와 같은 infra-pins.js, 데이터도 진짜(spots-data.js). '핀 많을 때 보기'는 가짜 예시 핀을 잠깐 더한다.
+     내 위치는 읽지 않는다 — 거리는 '화면 가운데(시트 위로 보이는 곳)'에서 잰다. */
+  :root {
+    --bg: #f7ede2; --bg-deep: #efe0cd; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --sos: #c2453f;
+    --shadow-rgb: 74, 63, 53; --radius-pill: 999px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 0 !important; overflow: hidden; }
+  #map { position: fixed; top: 0; left: 0; right: 0; bottom: var(--tabbar-h, 58px); background: var(--bg-deep); }
+  .leaflet-container { font-family: inherit; }
+  .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
+
+  .proto-band { position: fixed; top: 0; left: 0; right: 0; z-index: 1200; display: flex; align-items: center; gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 6px) 12px 6px; background: #3a2e24; color: #fff; font-size: 12px; font-weight: 700; }
+  .proto-band span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proto-band button { flex: none; white-space: nowrap; font: inherit; font-size: 12px; font-weight: 800; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+  .proto-band button[aria-pressed="true"] { background: #f2b831; color: #3a2e24; border-color: #f2b831; }
+
+  .top-stack { position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 12px; right: 58px; z-index: 1000; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; display: flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 10px 0 8px; border-radius: var(--radius-pill);
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink-soft); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1); }
+  .chip .dot { width: 12px; height: 12px; border-radius: 50%; opacity: 0.4; }
+  .chip[aria-pressed="true"] { color: var(--ink); border-color: var(--ink-soft); }
+  .chip[aria-pressed="true"] .dot { opacity: 1; }
+  .side { position: fixed; top: calc(env(safe-area-inset-top) + 40px); right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+  .side button { width: 38px; height: 38px; border: none; border-radius: 12px; background: #fffdf8; color: var(--ink); font: inherit; font-size: 20px; font-weight: 700;
+    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.18); cursor: pointer; }
+
+  /* ── 목록 시트 ── 높이만 바꾼다(접힘·반·펼침). 손잡이·요약 줄을 끌어 올리거나 눌러서 바꾼다 */
+  .sheet { position: fixed; left: 0; right: 0; bottom: var(--tabbar-h, 58px); z-index: 1100; display: flex; flex-direction: column;
+    background: var(--panel); border-radius: 20px 20px 0 0; box-shadow: 0 -6px 24px rgba(var(--shadow-rgb), 0.22); overflow: hidden;
+    transition: height .22s ease; touch-action: none; }
+  .sheet.dragging { transition: none; }
+  .grab { flex: none; display: flex; justify-content: center; padding: 8px 0 4px; cursor: grab; }
+  .grab .bar { width: 40px; height: 5px; border-radius: 3px; background: #d8c8b3; }
+  .head { flex: none; padding: 0 14px; display: grid; gap: 8px; }
+  .summary { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border: none; background: none; padding: 0; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+  .summary b { font-size: 14px; font-weight: 800; }
+  .summary .cnt { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); }
+  .summary .cnt i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+  .summary .more { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--accent); }
+  .modes { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 2px; }
+  .modes::-webkit-scrollbar { display: none; }
+  .mode { flex: none; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+  .mode[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .mode.sos { color: var(--sos); border-color: #e9c3bf; }
+  .mode.sos[aria-pressed="true"] { background: var(--sos); color: #fff; border-color: var(--sos); }
+  .mission { display: flex; align-items: center; gap: 10px; border: 1px solid var(--panel-border); background: #fff; border-radius: 14px; padding: 9px 12px; font: inherit; color: var(--ink); text-align: left; }
+  .mission .ic { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #f2b831; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+  .mission b { display: block; font-size: 13.5px; }
+  .mission small { display: block; font-size: 12px; color: var(--ink-soft); }
+  .tools { flex: none; display: none; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 14px 0; }
+  .sheet[data-state="full"] .tools { display: flex; }
+  .tools input { flex: 1 1 140px; min-width: 0; font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); }
+  .tools .t { border: 1px solid var(--panel-border); background: #fff; color: var(--ink-soft); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .tools .t[aria-pressed="true"] { background: #f4ece0; color: var(--ink); border-color: var(--ink-soft); }
+  .body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 0 14px; touch-action: pan-y; }
+  .sheet[data-state="peek"] .body, .sheet[data-state="peek"] .modes-note { display: none; }
+  .sheet:not([data-state="peek"]) .mission { display: none; }
+  .modes-note { font-size: 11.5px; color: var(--ink-soft); padding: 2px 14px 0; }
+
+  .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 9px 14px; border: none; border-top: 1px solid #f0e6d8; background: none; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+  .row:first-child { border-top: none; }
+  .row:active { background: #f7efe4; }
+  .row .ic { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
+  .row .ic svg { width: 18px; height: 18px; }
+  .row .nm { font-size: 14.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .st { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .row .st .ok { color: #2f8a52; font-weight: 700; } .row .st .warn { color: #a87508; font-weight: 700; } .row .st .no { color: var(--sos); font-weight: 700; }
+  .row .dist { text-align: right; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+  .row .dist small { display: block; font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+  .empty { padding: 18px 14px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 4px 14px 8px; }
+  .card { border: 1px solid var(--panel-border); background: #fff; border-radius: 16px; padding: 10px; display: grid; gap: 6px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+  .card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; border: 3px solid #ccc; background: #f4ece0; }
+  .card b { font-size: 14px; }
+  .card span { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+  .card .ex { justify-self: start; font-size: 10.5px; font-weight: 800; color: #fff; background: #8a7a68; border-radius: 6px; padding: 1px 6px; }
+  .note { font-size: 11.5px; color: var(--ink-soft); padding: 6px 14px 0; line-height: 1.5; }
+</style>
+<script src="theme.js?v=9"></script>
+<script src="site-config.js?v=8"></script>
+</head>
+<body>
+<div id="map"></div>
+<div class="proto-band" role="status">
+  <span>시안 · 지도 위 목록 시트(A안) · 실제 앱엔 아직 없음</span>
+  <button type="button" id="many" aria-pressed="false">핀 많을 때(가짜)</button>
+</div>
+<div class="top-stack"><div class="chips" id="chips" role="group" aria-label="지도에 보일 묶음"></div></div>
+<div class="side">
+  <button type="button" id="zoom-in" aria-label="확대">+</button>
+  <button type="button" id="zoom-out" aria-label="축소">−</button>
+</div>
+
+<section class="sheet" id="sheet" data-state="peek" aria-label="목록">
+  <div class="grab" id="grab" role="button" tabindex="0" aria-label="목록 크기 바꾸기"><span class="bar"></span></div>
+  <div class="head" id="head">
+    <button type="button" class="summary" id="summary"></button>
+    <div class="modes" id="modes" role="group" aria-label="무엇을 볼까"></div>
+    <button type="button" class="mission" id="mission">
+      <span class="ic">1</span>
+      <span><b>미션 1 · 다산 중앙공원 한 바퀴</b><small>3곳 모으면 우리 개 주민증 키링(공원 현장 선착순 10마리) · 시안 문구</small></span>
+    </button>
+  </div>
+  <p class="modes-note" id="modes-note"></p>
+  <div class="tools" id="tools"></div>
+  <div class="body" id="body"></div>
+</section>
+
+<script src="tabbar.js?v=8" data-tab="town"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  var CENTER = [37.6212, 127.1525];
+  var map = L.map('map', { zoomControl: false }).setView(CENTER, 15);
+  WalsonMapTiles(map);
+  $('zoom-in').addEventListener('click', function () { map.zoomIn(); });
+  $('zoom-out').addEventListener('click', function () { map.zoomOut(); });
+
+  // ── 데이터: 진짜 핀(spots-data.js) + '핀 많을 때' 가짜 예시 ──
+  var REAL = InfraPins.all().filter(function (p) { return InfraPins.category(p.cat); });
+  var FAKE = (function () {
+    var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    var plan = [['bag', 14, '봉투함'], ['water', 6, '음수대'], ['spot', 10, '○○ 가게'], ['park', 3, '쉼터'], ['toilet', 4, '화장실'], ['vet', 2, '○○ 동물병원']];
+    var out = [];
+    plan.forEach(function (p) {
+      for (var i = 0; i < p[1]; i++) {
+        var pin = { id: 'fake-' + p[0] + i, cat: p[0], name: p[2] + ' (예시 ' + (i + 1) + ')', source: 'demo', demo: true, fake: true,
+          lat: 37.6085 + rnd() * 0.0235, lng: 127.1395 + rnd() * 0.0300 };
+        if (p[0] === 'spot') {
+          var k = rnd();
+          pin.pet = { indoor: k < 0.35 ? 'ok' : k < 0.6 ? 'carrier' : 'no', terrace: rnd() < 0.5, water: rnd() < 0.5, large: rnd() < 0.5 ? 'all' : 'small', kind: rnd() < 0.4 ? 'pet' : 'cafe' };
+          if (pin.pet.indoor === 'no' && !pin.pet.terrace) pin.pet.terrace = true;   // '동반 안 됨'은 목록·지도에 안 올리므로 예시에선 만들지 않는다
+        }
+        if (p[0] === 'vet') pin.vet = { hours: i ? '평일 9~19시 · 일 휴진' : '매일 10~22시', night: !i };
+        out.push(pin);
+      }
+    });
+    return out;
+  })();
+  var useFake = false;
+  function pins() { return useFake ? REAL.concat(FAKE) : REAL; }
+
+  // ── 묶음 칩(지금 [동네]와 같은 묶음) ──
+  var lay = InfraPins.layout();
+  var groups = lay.groups.filter(function (g) { return g.id !== 'deco' && g.id !== 'dog'; });
+  var onGroup = {}; groups.forEach(function (g) { onGroup[g.id] = g.id === 'go' || g.id === 'handy' || g.id === 'safe'; });
+  var groupOfCat = {}; groups.forEach(function (g) { g.layers.forEach(function (l) { groupOfCat[l.key] = g.id; }); });
+  function catOn(cat) { var g = groupOfCat[cat]; return g ? !!onGroup[g] : false; }
+  function paintChips() {
+    $('chips').innerHTML = groups.map(function (g) {
+      var color = (g.layers[0] && g.layers[0].color) || '#7a6a58';
+      return '<button type="button" class="chip" data-g="' + g.id + '" aria-pressed="' + !!onGroup[g.id] + '"><span class="dot" style="background:' + color + '"></span>' + esc(g.label) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('chips').children, function (b) {
+      b.addEventListener('click', function () { var g = b.getAttribute('data-g'); onGroup[g] = !onGroup[g]; paintChips(); drawMarkers(); refresh(); });
+    });
+  }
+
+  // ── 지도 핀(모양·팝업은 진짜와 같은 infra-pins.js) ──
+  var layer = L.layerGroup().addTo(map), markers = {};
+  function drawMarkers() {
+    layer.clearLayers(); markers = {};
+    pins().forEach(function (pin) {
+      if (!catOn(pin.cat)) return;
+      var m = InfraPins.markerFor(pin);
+      var mk = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: m.zIndexOffset || 0 })
+        .bindPopup(InfraPins.popupEl(pin), L.extend({}, InfraPins.POPUP_OPTS, { autoPanPaddingBottomRight: [16, sheetH() + 16], autoPanPaddingTopLeft: [16, 90] }));
+      mk.addTo(layer); markers[pin.id] = mk;
+    });
+  }
+
+  // ── 거리: 시트 위로 보이는 지도의 가운데에서(내 위치는 안 읽음) ──
+  function viewCenter() {
+    var s = map.getSize(), visibleH = Math.max(80, s.y - sheetH());
+    return map.containerPointToLatLng([s.x / 2, visibleH / 2]);
+  }
+  function distFrom(c, pin) { return ShopVisits.distanceM([c.lat, c.lng], [pin.lat, pin.lng]); }
+  function inView(pin) {
+    var s = map.getSize(), p = map.latLngToContainerPoint([pin.lat, pin.lng]);
+    return p.x >= 0 && p.x <= s.x && p.y >= 0 && p.y <= s.y - sheetH() + 10;
+  }
+
+  // ── 시트 상태 ──
+  var sheet = $('sheet'), state = 'peek', mode = 'view', sort = 'near', query = '', shopFilter = {};
+  function tabH() { var v = getComputedStyle(document.documentElement).getPropertyValue('--tabbar-h'); return parseInt(v, 10) || 58; }
+  function heights() {
+    var H = window.innerHeight - tabH();
+    var peek = Math.min(Math.round(H * 0.42), $('grab').offsetHeight + $('head').offsetHeight + 14);
+    return { peek: peek, half: Math.round(H * 0.52), full: Math.round(H - 56) };
+  }
+  function sheetH() { return sheet.getBoundingClientRect().height || 0; }
+  function setState(s) {
+    state = s; sheet.setAttribute('data-state', s);
+    sheet.style.height = heights()[s] + 'px';
+    paintTools();
+    setTimeout(refresh, 240);
+  }
+
+  // 끌어서 바꾸기 — 손잡이·요약 줄 어디서나. 조금만 움직이면 '누름'으로 보고 다음 단계로
+  (function drag() {
+    var startY = 0, startH = 0, moved = false, active = false;
+    function down(e) {
+      if (e.target.closest('.mode, .mission')) return;
+      active = true; moved = false; startY = e.clientY; startH = sheetH();
+      sheet.classList.add('dragging');
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    }
+    function move(e) {
+      if (!active) return;
+      var dy = startY - e.clientY;
+      if (Math.abs(dy) > 6) moved = true;
+      var h = heights();
+      sheet.style.height = Math.max(h.peek - 30, Math.min(h.full, startH + dy)) + 'px';
+    }
+    function up(e) {
+      if (!active) return; active = false;
+      sheet.classList.remove('dragging');
+      var h = heights(), cur = sheetH();
+      if (!moved) { setState(state === 'peek' ? 'half' : state === 'half' ? 'full' : 'peek'); return; }
+      var best = 'peek', bd = Infinity;
+      ['peek', 'half', 'full'].forEach(function (s) { var d = Math.abs(h[s] - cur); if (d < bd) { bd = d; best = s; } });
+      setState(best);
+    }
+    [$('grab'), $('summary')].forEach(function (el) {
+      el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+    });
+    $('grab').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setState(state === 'peek' ? 'half' : state === 'half' ? 'full' : 'peek'); } });
+  })();
+
+  // ── 볼 것(모드): 지금 보이는 곳 · 급할 때 · 동반 가게 · 공원 · 수호견 ──
+  // 넷만 — 한 줄에 다 보이게(옆으로 밀지 않게). 공원·봉투함 같은 나머지는 '지금 화면' + 위 묶음 칩으로 거른다
+  var MODES = [
+    { id: 'view', label: '지금 화면', note: '시트 위로 보이는 지도 안, 위 칩으로 켠 것만 · 화면 가운데에서 가까운 순' },
+    { id: 'sos', label: '급할 때', cls: 'sos', note: '병원·화장실을 가까운 순으로(제휴와 상관없이)' },
+    { id: 'shop', label: '동반 가게', note: '같이 들어갈 수 있는 곳(동반 안 됨은 안 보여요)' },
+    { id: 'guard', label: '수호견', note: '얼굴이 주인공이라 카드로 — 지금은 예시만 있어요' }
+  ];
+  function paintModes() {
+    $('modes').innerHTML = MODES.map(function (m) {
+      return '<button type="button" class="mode' + (m.cls ? ' ' + m.cls : '') + '" data-m="' + m.id + '" aria-pressed="' + (mode === m.id && state !== 'peek') + '">' + esc(m.label) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('modes').children, function (b) {
+      b.addEventListener('click', function () {
+        mode = b.getAttribute('data-m'); shopFilter = {}; query = '';
+        if (state === 'peek') setState('half'); else { paintTools(); refresh(); }
+        paintModes();
+      });
+    });
+    var m = MODES.filter(function (x) { return x.id === mode; })[0];
+    $('modes-note').textContent = m && m.note ? m.note : '';
+  }
+  function paintTools() {
+    var t = '<input type="search" id="q" placeholder="이름으로 찾기" value="' + esc(query) + '" aria-label="이름으로 찾기">' +
+      '<button type="button" class="t" data-sort="near" aria-pressed="' + (sort === 'near') + '">가까운 순</button>' +
+      '<button type="button" class="t" data-sort="name" aria-pressed="' + (sort === 'name') + '">이름순</button>';
+    if (mode === 'shop') t += [['indoor', '실내 OK'], ['terrace', '바깥 자리'], ['large', '대형견 OK'], ['water', '물그릇']].map(function (f) {
+      return '<button type="button" class="t" data-f="' + f[0] + '" aria-pressed="' + !!shopFilter[f[0]] + '">' + f[1] + '</button>';
+    }).join('');
+    $('tools').innerHTML = t;
+    var q = $('q');
+    q.addEventListener('input', function () { query = q.value.trim(); refresh(true); });
+    Array.prototype.forEach.call($('tools').querySelectorAll('[data-sort]'), function (b) { b.addEventListener('click', function () { sort = b.getAttribute('data-sort'); paintTools(); refresh(); }); });
+    Array.prototype.forEach.call($('tools').querySelectorAll('[data-f]'), function (b) { b.addEventListener('click', function () { var f = b.getAttribute('data-f'); shopFilter[f] = !shopFilter[f]; paintTools(); refresh(); }); });
+  }
+
+  // ── 한 줄의 상태 글 ──
+  function statusHtml(pin) {
+    var c = InfraPins.category(pin.cat) || { label: '' };
+    if (pin.cat === 'spot') {
+      var b = InfraPins.petBadges(pin);
+      if (!b.length) return esc(c.label) + ' · <span class="warn">동반 조건 확인 전</span>';
+      return b.slice(0, 3).map(function (x) { return '<span class="' + x.tone + '">' + esc(x.text) + '</span>'; }).join(' · ');
+    }
+    if (pin.cat === 'vet') { var v = InfraPins.vetInfo(pin); return esc(c.label) + ' · ' + (v.hours ? esc(v.hours) : '진료 시간 확인 전') + (v.night ? ' · <span class="ok">야간</span>' : ''); }
+    return esc(c.label) + (pin.note ? ' · ' + esc(pin.note) : '');
+  }
+  function shopOk(pin) {
+    var i = InfraPins.petInfo(pin);
+    if (i.indoor === 'no' && !i.terrace) return false;   // 동반 안 됨 — 가게 표시 기획: 동반 가게 목록엔 A·B만
+    if (shopFilter.indoor && !(i.indoor === 'ok' || i.indoor === 'carrier')) return false;
+    if (shopFilter.terrace && !i.terrace) return false;
+    if (shopFilter.large && i.large !== 'all') return false;
+    if (shopFilter.water && !i.water) return false;
+    return true;
+  }
+  function listFor(c) {
+    var all = pins(), out;
+    if (mode === 'view') out = all.filter(function (p) { return catOn(p.cat) && inView(p); });
+    else if (mode === 'sos') out = all.filter(function (p) { return p.cat === 'vet' || p.cat === 'toilet'; });
+    else if (mode === 'shop') out = all.filter(function (p) { return p.cat === 'spot' && shopOk(p); });
+    else if (mode === 'park') out = all.filter(function (p) { return p.cat === 'park'; });
+    else if (mode === 'handy') out = all.filter(function (p) { return p.cat === 'bag' || p.cat === 'water'; });
+    else out = [];
+    if (query) out = out.filter(function (p) { return (p.name || '').indexOf(query) >= 0 || ((InfraPins.category(p.cat) || {}).label || '').indexOf(query) >= 0; });
+    out = out.map(function (p) { return { pin: p, d: distFrom(c, p) }; });
+    out.sort(sort === 'name' && state === 'full' ? function (a, b) { return (a.pin.name || '').localeCompare(b.pin.name || '', 'ko'); } : function (a, b) { return a.d - b.d; });
+    return out;
+  }
+  function rowHtml(x) {
+    var c = InfraPins.category(x.pin.cat) || { color: '#7a6a58', label: '' };
+    return '<button type="button" class="row" data-id="' + esc(x.pin.id) + '">' +
+      '<span class="ic" style="background:' + c.color + '">' + (InfraPins.iconSvg(x.pin.cat, 18) || '') + '</span>' +
+      '<span style="min-width:0"><span class="nm" style="display:block">' + esc(x.pin.name || c.label) + '</span><span class="st" style="display:block">' + statusHtml(x.pin) + '</span></span>' +
+      '<span class="dist">' + esc(ShopVisits.walkText(x.d).replace('걸어서 약 ', '')) + '<small>' + esc(ShopVisits.distText(x.d)) + '</small></span></button>';
+  }
+
+  // ── 수호견 그리드(예시) ──
+  var GUARD = (window.PETWALK_DEMO_GUARDIANS || []).filter(function (p) { return p && p.guardian && p.guardian.name; });
+  function gridHtml() {
+    if (!GUARD.length) return '<p class="empty">아직 수호견이 없어요.</p>';
+    return '<div class="grid">' + GUARD.map(function (p) {
+      var g = p.guardian, sig = InfraPins.SIGNALS[g.signal] || { color: '#ccc', label: '' };
+      var photo = g.photo || p.photo || 'icons/sample-walson.jpg';
+      return '<button type="button" class="card" data-g="' + esc(p.id) + '"><img src="' + esc(photo) + '" alt="" style="border-color:' + sig.color + '">' +
+        '<b>' + esc(g.name) + '</b><span>' + esc(p.name || '') + ' · ' + esc(sig.label || '') + '</span><span class="ex">예시</span></button>';
+    }).join('') + '</div><p class="note">진짜 수호견은 사장님 동의를 받은 가게만 올라와요(공개 지도엔 가짜를 섞지 않아요).</p>';
+  }
+
+  // ── 요약 줄 + 목록 그리기 ──
+  var lastQ = '';
+  function refresh(keepFocus) {
+    var c = viewCenter();
+    // 요약: 지금 화면 안에 켜진 종류별 개수
+    var cnt = {}, total = 0;
+    pins().forEach(function (p) { if (catOn(p.cat) && inView(p)) { cnt[p.cat] = (cnt[p.cat] || 0) + 1; total++; } });
+    var parts = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).slice(0, 4).map(function (k) {
+      var cat = InfraPins.category(k) || { label: k, color: '#7a6a58' };
+      return '<span class="cnt"><i style="background:' + cat.color + '"></i>' + esc(cat.label) + ' ' + cnt[k] + '</span>';
+    });
+    var more = '<span class="more">' + (state === 'peek' ? '목록 ▲' : state === 'half' ? '더 보기 ▲' : '접기 ▼') + '</span>';
+    if (state === 'peek') {
+      $('summary').innerHTML = '<b>' + (total ? '이 화면 ' + total + '곳' : '이 화면엔 표시할 곳이 없어요') + '</b>' + parts.join('') + more;
+      if (!sheet.classList.contains('dragging')) sheet.style.height = heights().peek + 'px';
+      return;
+    }
+    var body = $('body'), ml = (MODES.filter(function (x) { return x.id === mode; })[0] || {}).label || '';
+    if (mode === 'guard') { $('summary').innerHTML = '<b>' + ml + ' ' + GUARD.length + '마리</b>' + more; body.innerHTML = gridHtml(); bindGrid(); return; }
+    var list = listFor(c);
+    $('summary').innerHTML = '<b>' + ml + ' ' + list.length + '곳</b>' + more;
+    body.innerHTML = list.length ? list.map(rowHtml).join('') :
+      '<p class="empty">' + (mode === 'view' ? '지금 화면엔 켠 묶음의 곳이 없어요. 지도를 옮기거나 위 칩을 켜 보세요.' : '조건에 맞는 곳이 없어요.') + '</p>';
+    Array.prototype.forEach.call(body.querySelectorAll('.row'), function (b) { b.addEventListener('click', function () { goTo(b.getAttribute('data-id')); }); });
+  }
+  function bindGrid() {
+    Array.prototype.forEach.call($('body').querySelectorAll('.card'), function (b) {
+      b.addEventListener('click', function () {
+        var p = GUARD.filter(function (x) { return x.id === b.getAttribute('data-g'); })[0];
+        if (!p) return;
+        setState('peek');
+        setTimeout(function () {
+          map.setView([p.lat, p.lng], 17, { animate: false });
+          map.panBy([0, sheetH() / 2], { animate: false });
+          L.popup(InfraPins.POPUP_OPTS).setLatLng([p.lat, p.lng]).setContent('<b>' + esc(p.guardian.name) + '</b> · ' + esc(p.name || '') + '<br><small>예시 수호견 — 실제 지도엔 없어요</small>').openOn(map);
+        }, 250);
+      });
+    });
+  }
+  // 목록에서 누르면: 시트를 접고, 그 핀이 시트 위 보이는 곳 가운데 오게 옮긴 뒤 팝업
+  function goTo(id) {
+    var pin = pins().filter(function (p) { return p.id === id; })[0];
+    if (!pin) return;
+    var g = groupOfCat[pin.cat]; if (g && !onGroup[g]) { onGroup[g] = true; paintChips(); drawMarkers(); }
+    setState('peek');
+    setTimeout(function () {
+      map.setView([pin.lat, pin.lng], Math.max(map.getZoom(), 16), { animate: false });
+      map.panBy([0, sheetH() / 2], { animate: false });
+      if (markers[id]) markers[id].openPopup();
+    }, 250);
+  }
+
+  $('many').addEventListener('click', function () {
+    useFake = !useFake; this.setAttribute('aria-pressed', String(useFake));
+    drawMarkers(); refresh();
+  });
+  $('mission').addEventListener('click', function () { map.setView([37.6233, 127.15962], 16); map.panBy([0, sheetH() / 2], { animate: false }); });
+  map.on('moveend zoomend', function () { refresh(); });
+  window.addEventListener('resize', function () { setState(state); });
+
+  var bandH = document.querySelector('.proto-band').offsetHeight;
+  document.querySelector('.top-stack').style.top = (bandH + 8) + 'px';
+  document.querySelector('.side').style.top = (bandH + 8) + 'px';
+  paintChips(); drawMarkers(); paintModes();
+  setState('peek');
+  setTimeout(refresh, 50);
+})();
+</script>
+</body>
+</html>
