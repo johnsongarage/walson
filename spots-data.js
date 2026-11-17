@@ -46,4 +46,4 @@ window.PETWALK_DEMO_GUARDIANS = [
   {"id":"demo-home","cat":"spot","name":"○○ 카페","lat":37.6196,"lng":127.1583,"source":"demo","demo":true,"pet":{"indoor":"no","terrace":true,"water":true,"kind":"food"},"photo":"spots/photos/demo-home-p-91926a2fbe.jpg","guardian":{"name":"보리","kind":"home","style":"photo","signal":"green","line":"가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요","photo":"demo/guardian-home-ai.jpg"}}
 ];
 // 수호견 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).
-window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 수호견","homeLine":"사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견","workBadge":"출근 수호견","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","demoNote":"예시 화면이에요 · AI로 만든 사진이고, 실제 지도에는 없는 가게·강아지예요","showSignal":true,"showSignalLabel":false,"showLine":true,"showKindLine":true,"showPetChips":true,"showTownExtra":false};
+window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 수호견","homeLine":"사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견","workBadge":"출근 수호견","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","demoNote":".","showSignal":true,"showSignalLabel":false,"showLine":true,"showKindLine":true,"showPetChips":true,"showTownExtra":false};
