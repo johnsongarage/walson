@@ -50,6 +50,36 @@
     } catch (e) { /* 초안이 없거나 깨졌으면 서비스 내용 그대로 */ }
   }
 
+  // ── 수호견 예시 화면(2026-11-17 가르시아 "수호견 샘플 두 군데 만들어 보자") ──
+  // town.html?guardian_demo=1 로 열 때만 이 화면에 예시 수호견 두 마리를 띄운다. 공개 데이터(spots-data.js)에는 넣지 않는다 —
+  // 실제 가게에 가짜 수호견을 붙여 모두에게 보이게 하지 않으려는 것(11/15 "사장님 허락 전 게시 → 내림", 수호견은 사장님 동의 필수).
+  // 사장님께 보여 드릴 땐 주소에 가게 이름을 붙인다: &home=카페이름(재택 명예 수호견) &work=펫샵이름(출근 수호견).
+  // 가게 이름은 주소로만 받고 어디에도 저장하지 않는다. 그림은 앱의 닮은꼴 그림(demo/guardian-*.jpg) —
+  // AI 사진으로 바꾸려면 같은 이름으로 파일만 바꾸면 된다(정사각형, 강아지가 가운데).
+  var GUARDIAN_DEMO = /[?&]guardian_demo=1/.test(location.search);
+  var DEMO_DISCLAIMER = '예시 화면이에요 · 그림 강아지이고 실제 수호견이 아니에요';
+  function demoParam(key, fallback) {
+    var m = new RegExp('[?&]' + key + '=([^&#]*)').exec(location.search);
+    var v = '';
+    try { v = m ? decodeURIComponent(m[1].replace(/\+/g, ' ')).trim().slice(0, 20) : ''; } catch (e) { v = ''; }
+    return v || fallback;
+  }
+  function demoQuery() {   // 예시 화면끼리 넘어갈 때(주민증 보기) 가게 이름을 같이 넘긴다
+    return '&guardian_demo=1' + ['home', 'work'].map(function (k) {
+      var m = new RegExp('[?&]' + k + '=([^&#]*)').exec(location.search);
+      return m ? '&' + k + '=' + m[1] : '';
+    }).join('');
+  }
+  var DEMO_GUARDIANS = [
+    { id: 'demo-home', cat: 'spot', name: demoParam('home', '○○ 카페'), lat: 37.6196, lng: 127.1583, source: 'demo',
+      pet: { kind: 'food', indoor: 'no', terrace: true, water: true },
+      guardian: { kind: 'home', name: '보리', signal: 'green', photo: 'demo/guardian-home.jpg', line: '가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요' } },
+    { id: 'demo-work', cat: 'spot', name: demoParam('work', '○○ 펫샵'), lat: 37.6206, lng: 127.1626, source: 'demo',
+      pet: { kind: 'pet', indoor: 'ok', large: 'all', water: true },
+      guardian: { kind: 'work', name: '콩이', signal: 'yellow', photo: 'demo/guardian-work.jpg', line: '미용 끝난 친구들 배웅은 제 담당이에요' } }
+  ];
+  if (GUARDIAN_DEMO) window.PETWALK_SPOTS = (window.PETWALK_SPOTS || []).concat(DEMO_GUARDIANS);
+
   var BUILTIN_COUNT = CATEGORIES.length;
   function setCustomCategories(list) {
     CATEGORIES.length = BUILTIN_COUNT;
@@ -195,6 +225,7 @@
   }
 
   function sourceText(pin) {
+    if (pin.source === 'demo') return '예시 화면에만 보이는 가게예요 · 실제 지도에는 없어요';
     if (pin.source === 'field') return '직접 확인' + (pin.verifiedAt ? ' · ' + pin.verifiedAt : '');
     return 'OpenStreetMap 기준 · 현장 확인 전';
   }
@@ -301,13 +332,14 @@
   // ── 수호견 v2(2026-11-15) ──
   // 켜고 끄는 스위치는 이것 하나. false면 데이터에 수호견이 있어도 지도·목록·카드 어디에도 안 보인다.
   // 켜기 전에: 사장님 본인 동의, (음식점·카페는) 매장 조리·취식 공간에 두지 않는다는 확인 — 스팟 편집이 등록할 때 받는다.
-  var GUARDIANS_ON = false;
+  var GUARDIANS_ON = GUARDIAN_DEMO;   // 예시 화면(?guardian_demo=1)에서만 켜진다 — 공개 지도에선 꺼 둔 그대로
   // kind: 'home' = 재택 명예 수호견(음식점·카페 — 매장에 없음), 'work' = 출근 수호견(펫샵·미용실 등 비식품 업종)
   var GUARDIAN_KINDS = {
     home: { badge: '재택 명예 수호견', line: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견' },
     work: { badge: '출근 수호견', line: '가게에서 손님을 맞는 사장님네 강아지예요' }
   };
   var GUARDIAN_DISCLAIMER = '사장님 동의를 받고 올렸어요 · 가게·브랜드와 제휴 관계가 아니에요';
+  function guardianDisclaimer(pin) { return pin && pin.source === 'demo' ? DEMO_DISCLAIMER : GUARDIAN_DISCLAIMER; }
   function guardianKind(g) { return GUARDIAN_KINDS[g && g.kind] || GUARDIAN_KINDS.home; }
   function hasGuardianData(pin) { return !!(pin && pin.guardian && pin.guardian.name); }
   function hasGuardian(pin) { return GUARDIANS_ON && hasGuardianData(pin); }
@@ -443,7 +475,7 @@
     // 수호견은 가게·브랜드의 공식 캐릭터가 아니다 — 제휴로 오해하지 않게(2026-11-15, 상표 혼동 방지)
     if (g) {
       wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianKind(g).line));
-      wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', GUARDIAN_DISCLAIMER));
+      wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianDisclaimer(pin)));
     }
 
     if (opts && opts.extraEl) wrap.appendChild(opts.extraEl);
@@ -451,7 +483,7 @@
     var linkCss = 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
     if (g) {
       var card = el('a', linkCss, '주민증 보기');
-      card.href = 'start.html?guardian=' + encodeURIComponent(pin.id);
+      card.href = 'start.html?guardian=' + encodeURIComponent(pin.id) + (pin.source === 'demo' ? demoQuery() : '');
       links.appendChild(card);
     }
     // 길찾기는 카카오맵 웹 링크 — 넘기는 건 이 장소의 이름·좌표뿐이고 내 위치는 넣지 않는다
@@ -459,7 +491,7 @@
     nav.href = 'https://map.kakao.com/link/to/' + encodeURIComponent(pin.name || cat.label) + ',' + pin.lat + ',' + pin.lng;
     nav.target = '_blank';
     nav.rel = 'noopener';
-    links.appendChild(nav);
+    if (pin.source !== 'demo') links.appendChild(nav);   // 예시 가게는 실제 자리가 아니라 길찾기를 걸지 않는다
     if (pin.phone) {
       var tel = el('a', linkCss, '전화 걸기');
       tel.href = 'tel:' + String(pin.phone).replace(/[^0-9+]/g, '');
@@ -483,7 +515,7 @@
     SIGNALS: SIGNALS, hasGuardian: hasGuardian, mainPhoto: mainPhoto,
     popupEl: popupEl, POPUP_OPTS: POPUP_OPTS, isAdminDevice: isAdminDevice,
     setCustomCategories: setCustomCategories, GUARDIAN_DISCLAIMER: GUARDIAN_DISCLAIMER,
-    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
+    GUARDIANS_ON: GUARDIANS_ON, GUARDIAN_DEMO: GUARDIAN_DEMO, DEMO_GUARDIANS: GUARDIAN_DEMO ? DEMO_GUARDIANS : [], guardianDisclaimer: guardianDisclaimer, GUARDIAN_KINDS: GUARDIAN_KINDS, guardianKind: guardianKind, hasGuardianData: hasGuardianData,
     SYSTEM_LAYERS: SYSTEM_LAYERS, ZOOMS: ZOOMS, DEFAULT_GROUPS: DEFAULT_GROUPS, ETC_GROUP_ID: ETC_GROUP_ID,
     layerInfo: layerInfo, normalizeGroups: normalizeGroups, layout: layout, filterState: filterState,
     PET_LABELS: PET_LABELS, PET_KINDS: PET_KINDS, petTag: petTag, petInfo: petInfo, extraTags: extraTags, petBadges: petBadges,

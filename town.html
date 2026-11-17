@@ -33,7 +33,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=10"></script>
-<script src="infra-pins.js?v=21"></script>
+<script src="infra-pins.js?v=22"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=3"></script>
 <script src="map-deco.js?v=2"></script>
@@ -302,7 +302,7 @@
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
 <script src="theme.js?v=9"></script>
-<script src="site-config.js?v=4"></script>
+<script src="site-config.js?v=5"></script>
 <script src="inapp.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
@@ -372,6 +372,24 @@
   document.getElementById('draft-note').hidden = !InfraPins.DRAFT_PREVIEW;
 
   var map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
+  // 수호견 예시 화면(2026-11-17): 예시 두 마리가 바로 보이게 그 사이로 옮기고, 아래에 '예시 화면' 띠를 단다
+  if (InfraPins.GUARDIAN_DEMO && InfraPins.DEMO_GUARDIANS.length) {
+    var dg = InfraPins.DEMO_GUARDIANS;
+    map.setView([(dg[0].lat + dg[1].lat) / 2, (dg[0].lng + dg[1].lng) / 2], 16, { animate: false });
+    window.addEventListener('load', function () {
+      var wrap = document.querySelector('.tabbar-wrap');
+      if (!wrap) return;
+      var band = document.createElement('div');
+      band.className = 'sample-band';
+      band.setAttribute('role', 'status');
+      band.appendChild(document.createTextNode('수호견 예시 화면 · 실제 지도에는 없어요'));
+      var off = document.createElement('a');
+      off.href = 'town.html';
+      off.textContent = '예시 끄기';
+      band.appendChild(off);
+      wrap.insertBefore(band, wrap.firstChild);
+    });
+  }
   WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
   document.getElementById('zoom-in').addEventListener('click', function () { map.zoomIn(); });
   document.getElementById('zoom-out').addEventListener('click', function () { map.zoomOut(); });
@@ -477,7 +495,7 @@
 
   // 수호지킴이 모아 보기 — 있을 때만
   var guardianCount = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); }).length;
-  if (guardianCount) {
+  if (guardianCount && !InfraPins.GUARDIAN_DEMO) {   // 예시 화면에선 목록으로 넘어가지 않는다(넘어가면 예시가 사라짐)
     var gl = document.getElementById('guard-link');
     gl.textContent = '수호견 ' + guardianCount + '마리 모아 보기';
     gl.hidden = false;
@@ -863,7 +881,8 @@
   }
   function placeDist(pl) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], pl.center) : null; }
   function paintMission() {
-    if (!missionAll.length) { missionCard.hidden = true; return; }
+    // 수호견 예시 화면은 사장님께 보여 드리는 화면이라 미션 카드를 띄우지 않는다(가게 팝업이 카드에 가리지 않게)
+    if (!missionAll.length || InfraPins.GUARDIAN_DEMO) { missionCard.hidden = true; return; }
     var done = missionAll.filter(function (m) { return m.done; }).length;
     missionCard.innerHTML = '';
     var flag = mk('span', 'mc-flag'); flag.innerHTML = FLAG_SVG;
@@ -1094,7 +1113,9 @@
 <script>
   (function () {
     var inappBusy = window.WalsonInApp && (WalsonInApp.escaped || WalsonInApp.receiving);
-    if (!inappBusy && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
+    // 수호견 예시 화면(?guardian_demo=1)은 샘플로 넘어가지 않는다 — 넘어가면 주소의 가게 이름이 사라진다
+    var guardianDemo = /[?&]guardian_demo=1/.test(location.search);
+    if (!inappBusy && !guardianDemo && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
       PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('town.html'); });
     }
   })();
