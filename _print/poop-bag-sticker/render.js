@@ -28,6 +28,10 @@ const URL = 'file://' + path.join(DIR, 'sticker.html');
   await page.setViewportSize({ width: 794, height: 1123 });
   await page.screenshot({ path: path.join(OUT, 'sticker-test-sheet-A4-preview.png'), fullPage: false });
   await ctx.close();
+  // 2-1) 고른 시안(B 노랑, 11/17) 한 가지로 채운 A4 라벨지
+  ({ ctx, page } = await open('sheet1=B-yellow'));
+  await page.pdf({ path: path.join(OUT, 'sticker-B-yellow-sheet-A4.pdf'), width: '210mm', height: '297mm', printBackground: true });
+  await ctx.close();
   // 3) 인쇄소용 한 장씩
   const dims = { A: [25, 25], B: [44, 20], C: [62, 34] };
   for (const key of ['A', 'B', 'C']) {

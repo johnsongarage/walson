@@ -17,6 +17,7 @@
   .grid { display: flex; flex-wrap: wrap; gap: 5mm 6mm; align-items: center; margin-bottom: 7mm; }
   .grid h2 { width: 100%; font: 900 3.3mm 'Noto Sans KR'; margin: 0; }
   .cut { position: relative; }
+  .cut svg { display: block; }   /* 글줄 높이만큼 아래가 뜨지 않게(한 장에 다 들어가게) */
   .cut svg.cutline { position: absolute; left: 0; top: 0; pointer-events: none; }
 </style></head>
 <body>
@@ -156,6 +157,15 @@ if (mode[0] === 'board') {
     g += '</div>';
   });
   root.innerHTML = g + '</div>';
+} else if (mode[0] === 'sheet1') {
+  // 고른 시안 한 가지로 A4 라벨지를 채운 시험지(2026-11-17 가르시아 "B 노랑으로 가자") — 실제 크기, 점선 = 오리는 선
+  var pk = mode[1].split('-'), S1 = SHAPES[pk[0]], gap = 4;
+  var cols = Math.floor((190 + gap) / (S1.w + gap)), rows = Math.floor((262 + gap) / (S1.h + gap));
+  var g1 = '<div class="sheet"><p class="note">왈슨 배변봉투 케이스 스티커 · ' + S1.title + ' · ' + PAL[pk[1]].label + ' — 실제 크기(인쇄 배율 100%), A4 라벨지</p>' +
+    '<p class="note2">점선을 따라 오려 케이스에 붙이세요. ' + (cols * rows) + '장. 인쇄소 주문 전 공원 반응·곡면 부착 시험용이에요.</p>' +
+    '<div class="grid" style="gap:' + gap + 'mm ' + gap + 'mm">';
+  for (var n = 0; n < cols * rows; n++) g1 += '<div class="cut">' + sticker(pk[0], pk[1], { cut: true, dash: true, cutColor: '#888', cutW: 0.2 }) + '</div>';
+  root.innerHTML = g1 + '</div></div>';
 } else if (mode[0] === 'single') {
   // 인쇄소용 한 장: 사방 재단 여유 1.5mm 포함(칼선은 따로 SVG)
   var parts = mode[1].split('-');
