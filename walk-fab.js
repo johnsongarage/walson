@@ -51,15 +51,16 @@
     '.wf-save:disabled{opacity:0.5;}' +
     '.wf-close{display:block;width:100%;margin-top:6px;padding:10px;background:none;border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}';
   var soft =
-    '.wf-fab{background:linear-gradient(180deg,#c96b4f 0%,#b8563a 100%);color:#fff;box-shadow:0 6px 16px rgba(74,63,53,0.32);}' +
-    '.wf-card{background:#fffaf3;border-radius:22px 22px 0 0;color:#4a3f35;}' +
-    '.wf-sub,.wf-choice span,.wf-close{color:#6b5d4e;}' +
-    '.wf-choice{background:#fff;border:2px solid #e6d6c1;border-radius:16px;color:#4a3f35;}' +
-    '.wf-choice.is-main{background:#b8563a;border-color:#b8563a;color:#fff;}.wf-choice.is-main span{color:#fbe3d9;}' +
-    '.wf-opts button{background:#fff;border:2px solid #e6d6c1;border-radius:14px;color:#4a3f35;}' +
-    '.wf-opts button[aria-pressed="true"]{background:#b8563a;border-color:#b8563a;color:#fff;}' +
-    '.wf-custom input{border:2px solid #e6d6c1;border-radius:12px;}' +
-    '.wf-save{background:linear-gradient(180deg,#c96b4f 0%,#b8563a 100%);color:#fff;border-radius:18px;}';
+    // 색은 화면 테마(theme.js 색 세 가지)를 따른다(2026-11-17) — 버튼은 로고처럼 채움 + 진한 테두리
+    '.wf-fab{background:var(--hl,#b8563a);color:var(--hl-ink,#fff);border:2px solid var(--line,#4a3f35);box-shadow:0 3px 0 var(--line,#4a3f35),0 6px 16px rgba(74,63,53,0.25);}' +
+    '.wf-card{background:var(--panel,#fffaf3);border-radius:18px 18px 0 0;color:var(--ink,#4a3f35);}' +
+    '.wf-sub,.wf-choice span,.wf-close{color:var(--ink-soft,#6b5d4e);}' +
+    '.wf-choice{background:#fff;border:2px solid var(--panel-border,#e6d6c1);border-radius:12px;color:var(--ink,#4a3f35);}' +
+    '.wf-choice.is-main{background:var(--hl,#b8563a);border-color:var(--line,#b8563a);color:var(--hl-ink,#fff);}.wf-choice.is-main span{color:var(--hl-ink,#fbe3d9);opacity:0.85;}' +
+    '.wf-opts button{background:#fff;border:2px solid var(--panel-border,#e6d6c1);border-radius:12px;color:var(--ink,#4a3f35);}' +
+    '.wf-opts button[aria-pressed="true"]{background:var(--hl,#b8563a);border-color:var(--line,#b8563a);color:var(--hl-ink,#fff);}' +
+    '.wf-custom input{border:2px solid var(--panel-border,#e6d6c1);border-radius:12px;}' +
+    '.wf-save{background:var(--hl,#b8563a);color:var(--hl-ink,#fff);border:2px solid var(--line,#4a3f35);box-shadow:0 3px 0 var(--line,#4a3f35);border-radius:999px;}';
   var style = document.createElement('style');
   style.textContent = css + soft;   // 화면 테마는 11/16부터 차분 하나뿐
   document.head.appendChild(style);

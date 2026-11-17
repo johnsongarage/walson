@@ -44,12 +44,12 @@
       var d = document.createElement('div');
       d.id = 'inapp-escape';
       d.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(247,237,226,.97);display:flex;align-items:center;justify-content:center;padding:24px;' +
-        'font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:#4a3f35;text-align:center;';
+        'font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink,#4a3f35);text-align:center;';
       d.innerHTML = '<div style="max-width:340px;line-height:1.6;">' +
         '<div style="font-size:20px;font-weight:900;margin-bottom:8px;">' + (ios ? '사파리' : '크롬') + '에서 열었어요</div>' +
         '<div style="font-size:14px;">왈슨은 ' + (ios ? '사파리' : '크롬') + '에서 써야 기록이 안전하게 남고, 홈 화면에 추가해도 그대로 이어져요. 이 카톡 창은 닫아도 돼요.</div>' +
-        '<button type="button" id="inapp-retry" style="margin-top:16px;width:100%;padding:13px;border:none;border-radius:999px;background:#b8563a;color:#fff;font:800 15px inherit;">안 열렸으면 다시 열기</button>' +
-        '<button type="button" id="inapp-stay" style="margin-top:8px;width:100%;padding:12px;border:1px solid #e6d6c1;border-radius:999px;background:#fff;color:#4a3f35;font:800 14px inherit;">카톡에서 그냥 보기</button>' +
+        '<button type="button" id="inapp-retry" style="margin-top:16px;width:100%;padding:13px;border:2px solid var(--line,#b8563a);border-radius:999px;background:var(--hl,#b8563a);color:var(--hl-ink,#fff);font:800 15px inherit;">안 열렸으면 다시 열기</button>' +
+        '<button type="button" id="inapp-stay" style="margin-top:8px;width:100%;padding:12px;border:1px solid var(--panel-border,#e6d6c1);border-radius:999px;background:#fff;color:var(--ink,#4a3f35);font:800 14px inherit;">카톡에서 그냥 보기</button>' +
         '</div>';
       document.body.appendChild(d);
       document.getElementById('inapp-retry').addEventListener('click', function () { openExternal(location.href); });
