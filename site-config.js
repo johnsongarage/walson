@@ -3,7 +3,8 @@ window.WALSON_CONFIG = {
   // 홍보물 필수 문구(2026-11-17 가르시아 "이 문구가 앞으로 홍보 전단에 반드시 들어가야 해") — 글자 그대로, 고칠 땐 여기 한 곳만.
   // 쓰는 곳: 공원 포스터·전단(poster.html), 방문 키트 안내지·명함(visit-kit.html), 제휴 제안서(partner-proposal.html),
   //         카운터 체크인 QR(checkin-qr.html), 산책 영수증 아래 줄(walk-receipt.js). 새 홍보물을 만들면 꼭 넣는다(CLAUDE.md 텍스트 규칙).
-  brand: { name: 'APP WALSON', tagline: '당신과 강아지의 유의미한 산책' },
+  // 11/18 가르시아 "APP 문구 빼는 걸로 통일" — 'APP WALSON' → 'WALSON'(사업자 정보 서비스명 '왈슨(WALSON)'과 같은 이름)
+  brand: { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' },
   // 운영자(사업자) 정보(2026-11-17 가르시아) — 카카오톡 채널 비즈니스 심사가 반려돼서: 홈페이지에서 서비스명(왈슨)과
   // 하단 사업자 정보가 같이 보여야 한다(카카오 '사업자-채널 연관성 확인 방법'). 사업자등록증 그대로 적는다.
   // 쓰는 곳: 개인정보 안내(privacy.html) 맨 아래, [오늘]·주민증 만들기 화면 하단 한 줄(아래 WalsonBizInfo).

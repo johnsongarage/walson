@@ -32,7 +32,11 @@
      응가다운 색에서 시작해 세 번 다시 배움. 응가를 톡 누르면 그 위에 더함. 애매하면 바닥까지 그림 — 11/16 실제 사진 3장으로 고침)
      → 응가 안의 색을 Lab 좌표에서 최대 5묶음으로 뽑아 그 색 그대로 칠함(빨간 줄·흰 점액·노란·검은 변도 남음) → 굵은 테두리 + 흰 스티커 테두리
      (못 나누면 동그란 스티커로 바닥까지 그림으로).
-     통계: 화면 열기(page_view)와 보내기 횟수(share_click what=poop_toon / 내려받기 poop_toon_save)만 — 사진·그림은 보내지 않는다. */
+     통계: 화면 열기(page_view)와 보내기 횟수(share_click what=poop_toon / 내려받기 poop_toon_save)만 — 사진·그림은 보내지 않는다.
+     11/18 길에서 치운 응가(가르시아 "개똥 대신 치우기 … 앱에 이걸 녹일 수 없어?" → "그래봐"): 남의 강아지가 두고 간 응가를 대신 치웠으면
+     같은 화면에서 '야생 응가 포획' 카드로. 견주를 탓하지 않는다("폰 보느라 놓쳤다"). 몇 마리째는 이 휴대폰에서만 센다(petwalk_poop_catch,
+     저장·보낸 사진만, 같은 사진은 한 번, 예시 그림은 안 셈). 카드엔 날짜만 — 시각·장소·지도 깃발 없음(치운 곳이 쌓여 공개되지 않게).
+     통계는 share_click what=poop_catch / poop_catch_save, 보내는 글의 주소는 ?mode=catch&from=poop_catch. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-ink: #9c4530; --accent-tint: #f3ddd2;
@@ -94,6 +98,12 @@
   details.more summary { font-size: 14px; font-weight: 800; cursor: pointer; }
   details.more[open] summary { margin-bottom: 12px; }
   .field { display: grid; gap: 6px; margin: 0 0 12px; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+  .group[hidden], .field[hidden] { display: none; }
+  /* 무슨 응가인가요(11/18): 우리 애 응가 / 길에서 치운 응가(야생 응가 포획 카드) */
+  .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 0 0 14px; padding: 4px; border-radius: 999px; background: #efe1cf; }
+  .mode button { min-height: 40px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; font-family: inherit; font-size: 14px;
+    font-weight: 800; color: var(--ink-soft); cursor: pointer; word-break: keep-all; }
+  .mode button[aria-pressed="true"] { background: #fff; color: var(--accent-ink); box-shadow: 0 2px 6px rgba(var(--shadow-rgb), 0.16); }
   .field input[type="text"] { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
     font-family: inherit; font-size: 16px; }
   .field input[type="range"] { accent-color: var(--accent); }
@@ -122,7 +132,7 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="theme.js?v=10"></script>
-<script src="site-config.js?v=8"></script>
+<script src="site-config.js?v=9"></script>
 <script src="inapp.js?v=4"></script>
 <script src="track.js?v=9"></script>
 <script src="save-image.js?v=3"></script>
@@ -137,8 +147,14 @@
 
   <!-- 1. 사진 고르기 -->
   <section class="step" id="step-pick">
-    <h1>우리 애 응가,<br>캐릭터로 만들어요</h1>
-    <p class="lead">산책 중에 찍은 응가 사진에 눈알과 입을 달아 그림으로 바꿔요. 가족 단톡에 "오늘도 했어요" 대신 보내 보세요.</p>
+    <!-- 무슨 응가인가요(11/18 가르시아 "앱에 이걸 녹일 수 없어?" → "그래봐"): 남의 응가를 대신 치웠으면 '야생 응가 포획' 카드로.
+         처음 고른 쪽은 주소(?mode=catch)로 정한다 — 산책 끝 화면 "남의 응가도 치웠다면"에서 오면 길에서 치운 응가 -->
+    <div class="mode" id="modes" role="group" aria-label="어떤 응가인가요">
+      <button type="button" data-mode="mine" aria-pressed="true">우리 애 응가</button>
+      <button type="button" data-mode="catch" aria-pressed="false">길에서 치운 응가</button>
+    </div>
+    <h1 id="pick-title">우리 애 응가,<br>캐릭터로 만들어요</h1>
+    <p class="lead" id="pick-lead">산책 중에 찍은 응가 사진에 눈알과 입을 달아 그림으로 바꿔요. 가족 단톡에 "오늘도 했어요" 대신 보내 보세요.</p>
     <canvas class="hero" id="hero" width="560" height="560" aria-hidden="true"></canvas>
     <div class="pick">
       <label class="btn-main" for="file-camera">사진 찍기</label>
@@ -147,11 +163,17 @@
     <input type="file" id="file-camera" accept="image/*" capture="environment" hidden>
     <input type="file" id="file-album" accept="image/*" hidden>
     <button type="button" class="btn-text" id="demo-btn">사진 없이 예시로 해 보기</button>
-    <ul class="notes">
+    <ul class="notes" id="notes-mine">
       <li>사진은 이 휴대폰 안에서만 그림으로 바꿔요. 원본은 저장하지도, 어디로 보내지도 않아요.</li>
       <li>산책 중엔 휴대폰 카메라로 한 장만 찍어 두고, 집에 와서 여기서 골라도 돼요.</li>
       <li>응가가 가운데 오게 가까이 찍으면 잘 나와요. 바닥이 적게 보일수록 좋아요.</li>
       <li>재미로 만드는 그림이에요. 건강 상태를 판단하지 않아요.</li>
+    </ul>
+    <ul class="notes" id="notes-catch" hidden>
+      <li>사진은 이 휴대폰 안에서만 그림으로 바꿔요. 원본은 저장하지도, 어디로 보내지도 않아요.</li>
+      <li>치우기 전에 응가만 가까이 한 장 찍어요. 사람 얼굴·차 번호·집 앞이 나오지 않게요.</li>
+      <li>카드에는 날짜만 들어가요. 시각과 장소는 들어가지 않아요.</li>
+      <li>몇 마리째인지는 이 휴대폰에서만 세요(저장하거나 보낸 사진만, 같은 사진은 한 번).</li>
     </ul>
   </section>
 
@@ -185,14 +207,16 @@
       눈알 굴리기
     </button>
     <div class="group"><span class="g-label">눈매</span><div class="chips" id="eyes"></div></div>
-    <div class="group"><span class="g-label">오늘 응가</span><div class="chips" id="states"></div></div>
+    <div class="group" id="g-states"><span class="g-label">오늘 응가</span><div class="chips" id="states"></div></div>
+    <!-- 길에서 치운 응가일 때만: 종류(고르면 말풍선이 그 응가 말로) -->
+    <div class="group" id="g-kinds" hidden><span class="g-label">어떤 녀석이었나요</span><div class="chips" id="kinds"></div></div>
     <!-- 멘트(11/17): 상황에 맞는 것 중에서 고르고, 누르면 다른 말로 -->
     <div class="group"><span class="g-label">멘트</span><div class="chips">
       <button type="button" id="say-next">말풍선 다른 말</button><button type="button" id="cap-next">한마디 다른 말</button>
     </div></div>
     <details class="more">
       <summary>더 꾸미기</summary>
-      <label class="field">강아지 이름<input type="text" id="name" maxlength="10" placeholder="우리 애" autocomplete="off"></label>
+      <label class="field" id="name-field">강아지 이름<input type="text" id="name" maxlength="10" placeholder="우리 애" autocomplete="off"></label>
       <label class="field">말풍선 직접 쓰기<input type="text" id="say" maxlength="20" autocomplete="off"></label>
       <label class="field">제목 아래 한마디 직접 쓰기<input type="text" id="cap" maxlength="26" autocomplete="off"></label>
       <label class="field">얼굴 크기<input type="range" id="face-size" min="0.5" max="1.8" step="0.01" value="1"></label>
@@ -239,6 +263,14 @@
     { id: 'diff', label: '평소와 달랐어요', face: 'worry' },
     { id: 'none', label: '안 적기' }
   ];
+  // 길에서 치운 응가(11/18): 어떤 녀석이었나 — 고르면 표정·말풍선이 그 녀석 쪽으로. 이름은 Gemini 기획의 도감 이름(앱 도감은 판정 뒤에 정함)
+  var KINDS = [
+    { id: 'gold', label: '갓 나온 황금', face: 'wow' },
+    { id: 'fossil', label: '돌덩이 화석', face: 'sleepy' },
+    { id: 'hide', label: '풀숲 위장술', face: 'tongue' },
+    { id: 'none', label: '안 적기' }
+  ];
+  var CATCH_KEY = 'petwalk_poop_catch';   // 길에서 치운 응가 수(이 휴대폰에만): { n, k: 종류별 수, first, last } — 밖으로 보내지 않는다
   // ── 멘트(11/17): 가르시아가 모은 가족방 멘트 20줄 + 표정별 말 + 걱정형(Claude 제안) ──
   // 말풍선 = 우리 애가 하는 말(SAYS), 제목 아래 한 줄 = 보내는 사람(보호자) 한마디(CAPS).
   // 무작위로만 띄우지 않고 상황에 맞는 것 중에서 고른 뒤 [다른 말]로 넘긴다(가르시아 "그렇게 해"):
@@ -263,7 +295,16 @@
     { id: 'e5', g: 'excuse', grass: true, text: '풀밭의 숨은 보물, 아니 폭탄 발견.' },
     { id: 'w1', g: 'worry', text: '오늘은 평소와 좀 달랐어요. 지켜볼게요.' },
     { id: 'w2', g: 'worry', text: '내일 응가도 보고 다시 알려 줄게요.' },
-    { id: 'w3', g: 'worry', text: '오늘 우리 애 컨디션, 같이 지켜봐 줘요.' }
+    { id: 'w3', g: 'worry', text: '오늘 우리 애 컨디션, 같이 지켜봐 줘요.' },
+    // 길에서 치운 응가(11/18) — c: 길에서 치운 응가일 때만, kinds: 그 종류일 때만. 남의 견주를 탓하지 않는다(가르시아 "폰 보느라 싼 줄 모르거든")
+    { id: 'p1', g: 'catch', c: 1, text: '주인님 폰 보는 사이 탈출한 녀석입니다.' },
+    { id: 'p2', g: 'catch', c: 1, text: '다산동 신발 밑창은 제가 지킵니다.' },
+    { id: 'p3', g: 'catch', c: 1, text: '같은 견주로서, 대신 치웠습니다.' },
+    { id: 'p4', g: 'catch', c: 1, text: '오늘의 지뢰 하나 제거 완료.' },
+    { id: 'p5', g: 'catch', c: 1, text: '봉투 한 장이면 동네가 웃습니다.' },
+    { id: 'p6', g: 'catch', c: 1, kinds: ['gold'], text: '갓 나온 녀석, 현장에서 바로 포획.' },
+    { id: 'p7', g: 'catch', c: 1, kinds: ['fossil'], text: '오래 버틴 녀석, 드디어 퇴근시켰습니다.' },
+    { id: 'p8', g: 'catch', c: 1, kinds: ['hide'], text: '풀숲에 숨은 지뢰, 발견 즉시 처리.' }
   ];
   var SAYS = [
     { id: 'f1', g: 'face', faces: ['proud'], text: '오늘도 해냈다!' },
@@ -277,7 +318,17 @@
     { id: 'd5', g: 'dog', faces: ['proud'], text: '세상을 향한 나의 시원한 한 방.' },
     { id: 'f4', g: 'worry', faces: ['worry'], text: '나 오늘 좀 이상해…' },
     { id: 'k1', g: 'worry', faces: ['worry'], text: '오늘은 배가 좀 이상했어.' },
-    { id: 'k2', g: 'worry', faces: ['worry'], text: '살살 지켜봐 줘…' }
+    { id: 'k2', g: 'worry', faces: ['worry'], text: '살살 지켜봐 줘…' },
+    // 길에서 치운 응가(11/18): 잡혀 온 녀석이 하는 말
+    { id: 'q1', g: 'catch', c: 1, kinds: ['gold'], faces: ['wow'], text: '방금 탈출했는데 벌써 잡힘…' },
+    { id: 'q2', g: 'catch', c: 1, kinds: ['gold'], faces: ['worry'], text: '주인님 어디 갔어…?' },
+    { id: 'q3', g: 'catch', c: 1, kinds: ['fossil'], faces: ['sleepy'], text: '여기서 사흘 버텼는데…' },
+    { id: 'q4', g: 'catch', c: 1, kinds: ['fossil'], faces: ['proud', 'sleepy'], text: '나 화석 될 뻔했어' },
+    { id: 'q5', g: 'catch', c: 1, kinds: ['hide'], faces: ['tongue'], text: '낙엽인 척했는데 들켰다' },
+    { id: 'q6', g: 'catch', c: 1, kinds: ['hide'], faces: ['wow'], text: '완벽한 위장이었는데…' },
+    { id: 'q7', g: 'catch', c: 1, faces: ['tongue'], text: '주인님 폰 보는 사이 나왔지롱' },
+    { id: 'q8', g: 'catch', c: 1, faces: ['worry'], text: '나 버리고 간 거 아니지?' },
+    { id: 'q9', g: 'catch', c: 1, faces: ['wow', 'sleepy'], text: '이렇게 잡혀가는 건가…' }
   ];
   var RECENT_KEY = 'petwalk_toon_recent';   // 이 휴대폰에서 최근에 보낸 멘트 번호(같은 말이 바로 또 나오지 않게) — 밖으로 보내지 않는다
 
@@ -287,7 +338,11 @@
   var tapPt = null;                        // 자리 맞추기에서 응가를 톡 누른 곳(사진 좌표) — 그 색을 기준으로 떼어 낸다
   var art = null;                          // 그림으로 바꾼 결과(작업 데이터)
   var sticker = null;                      // 지금 배경 방식으로 그린 스티커 캔버스
-  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1, eyes: 'round' };
+  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1, eyes: 'round', mode: 'mine', kind: 'none' };
+  // 무슨 응가인가요: 주소에 ?mode=catch면 길에서 치운 응가로 시작(산책 끝 화면 "남의 응가도 치웠다면")
+  if (/[?&]mode=catch(?:[&#]|$)/.test(location.search)) { opt.mode = 'catch'; opt.face = 'wow'; }
+  var catchCounted = false;   // 지금 사진을 이미 셌는지 — 같은 사진은 다시 보내거나 꾸밈을 바꿔 저장해도 한 번만
+  var isSample = false;       // "사진 없이 예시로" 그림이면 세지 않는다
   try { var savedEyes = localStorage.getItem(EYES_KEY); if (savedEyes && EYES.some(function (e) { return e.id === savedEyes; })) opt.eyes = savedEyes; } catch (e) { /* 기본 */ }
   var face = { x: 0, y: 0, base: 40, pupils: [[0.3, -0.2], [-0.25, 0.25]] };   // 작업 좌표(여백 포함)
   var cardBlob = null, cardDirty = true, blobTimer = null;
@@ -324,6 +379,7 @@
       c.width = Math.max(1, Math.round(img.naturalWidth * k));
       c.height = Math.max(1, Math.round(img.naturalHeight * k));
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      isSample = false;
       startCrop(c);
     };
     img.onerror = function () { URL.revokeObjectURL(url); alert('사진을 열지 못했어요. 다른 사진으로 해 주세요.'); };
@@ -332,7 +388,7 @@
   ['file-camera', 'file-album'].forEach(function (id) {
     $(id).addEventListener('change', function () { var f = this.files && this.files[0]; this.value = ''; loadFile(f); });
   });
-  $('demo-btn').addEventListener('click', function () { startCrop(makeSample(1)); });
+  $('demo-btn').addEventListener('click', function () { isSample = true; startCrop(makeSample(1)); });
 
   // ════════ 예시 사진(지어낸 그림 — 실제 사진이 아님) ════════
   function rng(seed) {
@@ -433,6 +489,7 @@
   }
   function startCrop(canvas) {
     src = canvas; tapPt = null; paintTapNote();
+    catchCounted = false;   // 새 사진 — 길에서 치운 응가면 저장·보낼 때 한 마리 더
     $('crop-lead').innerHTML = '끌어서 옮기고, 두 손가락이나 아래 막대로 키워요. <b>응가 하나를 톡 누르면</b> 더 정확하게 떼어 내요.';
     crop.zoom = 1; crop.cx = src.width / 2; crop.cy = src.height / 2;
     $('crop-zoom').value = 1;
@@ -505,7 +562,7 @@
       art.ms = Math.round(performance.now() - t0);
       opt.bg = art.cutOk ? 'cut' : 'keep';
       $('bg-note').hidden = art.cutOk;
-      opt.sayId = ''; opt.capId = ''; pickLine('say', true); pickLine('cap');
+      opt.sayId = ''; opt.capId = ''; pickLine('say', true, true); pickLine('cap', false, true);
       placeFace();
       rollEyes(true);
       buildSticker();
@@ -1460,7 +1517,27 @@
   var card = $('card'), cctx = card.getContext('2d');
   var SX = (CARD_W - STICKER) / 2, SY = 236;   // 스티커 자리
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
-  function title() { return opt.name ? opt.name + '의 오늘 응가' : '우리 애 오늘 응가'; }
+  function title() {
+    if (opt.mode === 'catch') return '야생 응가 포획 완료!';
+    return opt.name ? opt.name + '의 오늘 응가' : '우리 애 오늘 응가';
+  }
+  // ── 길에서 치운 응가 수(이 휴대폰에만, CATCH_KEY) ──
+  function catchData() {
+    try { var d = JSON.parse(localStorage.getItem(CATCH_KEY)); if (d && typeof d.n === 'number' && d.n >= 0) return d; } catch (e) { /* 처음 */ }
+    return { n: 0, k: {} };
+  }
+  // 카드에 찍는 수: 아직 안 센 사진이면 이번 것까지 넣어서(저장·보내면 그 수가 그대로 남는다)
+  function catchShownN() { return catchData().n + (catchCounted ? 0 : 1); }
+  function countCatch() {
+    if (opt.mode !== 'catch' || catchCounted || isSample) return;
+    var d = catchData(), t = new Date();
+    var day = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
+    d.n += 1; d.k = d.k || {}; d.k[opt.kind] = (d.k[opt.kind] || 0) + 1;
+    if (!d.first) d.first = day;
+    d.last = day;
+    try { localStorage.setItem(CATCH_KEY, JSON.stringify(d)); catchCounted = true; } catch (e) { /* 저장 공간이 꽉 찼으면 이번만 못 센다 */ }
+  }
+  function catchMsg() { return isSample ? '예시 그림이라 마릿수는 세지 않았어요.' : '지금까지 ' + catchData().n + '마리 포획!'; }
   function lineById(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
   function sayText() {
     if (opt.say) return opt.say;
@@ -1478,8 +1555,11 @@
   }
   // 지금 상황에 맞는 멘트들
   function linePool(kind) {
+    var isC = opt.mode === 'catch';
     var diff = opt.state === 'diff', grass = !!(art && art.dbg && art.dbg.grassy), am = nowHour() < 11, gold = isGolden();
     return (kind === 'say' ? SAYS : CAPS).filter(function (l) {
+      if (!!l.c !== isC) return false;   // 우리 애 응가 말과 길에서 치운 응가 말은 섞지 않는다
+      if (isC) return !l.kinds || l.kinds.indexOf(opt.kind) >= 0;
       if (diff) return l.g === 'worry';
       if (l.g === 'worry') return kind === 'say' && opt.face === 'worry';   // 걱정 표정을 고르면 말풍선도 걱정하는 말
       if (l.usual && opt.state !== 'usual') return false;
@@ -1490,11 +1570,13 @@
     });
   }
   // 고르기: 지금 것·최근에 보낸 것은 빼고 무작위로. byFace면 말풍선은 지금 표정에 맞는 말을 먼저
-  function pickLine(kind, byFace) {
+  // byKind: 길에서 치운 응가에서 종류를 막 골랐으면 그 종류 말을 먼저
+  function pickLine(kind, byFace, byKind) {
     var cur = kind === 'say' ? opt.sayId : opt.capId, rec = recentIds(), all = linePool(kind);
     var cand = all.filter(function (l) { return l.id !== cur && rec.indexOf(l.id) < 0; });
     if (!cand.length) cand = all.filter(function (l) { return l.id !== cur; });
     if (!cand.length) cand = all;
+    if (byKind && opt.mode === 'catch') { var fk = cand.filter(function (l) { return l.kinds && l.kinds.indexOf(opt.kind) >= 0; }); if (fk.length) cand = fk; }
     if (kind === 'say' && byFace) { var fit = cand.filter(function (l) { return l.faces && l.faces.indexOf(opt.face) >= 0; }); if (fit.length) cand = fit; }
     var l = cand.length ? cand[Math.floor(Math.random() * cand.length)] : null;
     if (kind === 'say') opt.sayId = l ? l.id : ''; else opt.capId = l ? l.id : '';
@@ -1548,22 +1630,24 @@
     // 말풍선
     var t = sayText();
     if (t) bubble(ctx, t, fc);
-    // 상태
+    // 상태(우리 애 응가) · 몇 마리째(길에서 치운 응가)
     var st = STATES.filter(function (s) { return s.id === opt.state; })[0];
-    if (st && st.id !== 'none') {
-      var good = st.id === 'usual', label = good ? '평소대로 ✓' : '평소와 달랐어요';
-      ctx.font = "800 44px 'Pretendard', sans-serif";
-      var w = ctx.measureText(label).width + 64, x = CARD_W / 2 - w / 2, y = 1176;
-      ctx.fillStyle = good ? '#e3f1e5' : '#fbe7d6'; roundRect(ctx, x, y, w, 76, 38); ctx.fill();
-      ctx.lineWidth = 3; ctx.strokeStyle = good ? '#b9d9be' : '#ecc4a4'; ctx.stroke();
-      ctx.fillStyle = good ? '#2f6b3a' : '#9c4530'; ctx.textBaseline = 'middle'; ctx.fillText(label, CARD_W / 2, y + 40);
-      ctx.textBaseline = 'alphabetic';
-    }
+    if (opt.mode === 'catch') badge(ctx, '누적 ' + catchShownN() + '마리째 포획', true);
+    else if (st && st.id !== 'none') badge(ctx, st.id === 'usual' ? '평소대로 ✓' : '평소와 달랐어요', st.id === 'usual');
     ctx.font = "700 30px 'Pretendard', sans-serif"; ctx.fillStyle = '#a08f7c';
     plateText(ctx, (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일 · 왈슨 · 다산동 강아지 산책 앱', CARD_W / 2, 1306, 1000, 30, 24, '700', '#8a7a68');
     cardDirty = true;
     clearTimeout(blobTimer);
     blobTimer = setTimeout(makeBlob, 250);
+  }
+  // 아래 띠(초록 = 좋은 쪽, 주황 = 살펴볼 쪽)
+  function badge(ctx, label, good) {
+    ctx.font = "800 44px 'Pretendard', sans-serif";
+    var w = ctx.measureText(label).width + 64, x = CARD_W / 2 - w / 2, y = 1176;
+    ctx.fillStyle = good ? '#e3f1e5' : '#fbe7d6'; roundRect(ctx, x, y, w, 76, 38); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = good ? '#b9d9be' : '#ecc4a4'; ctx.stroke();
+    ctx.fillStyle = good ? '#2f6b3a' : '#9c4530'; ctx.textBaseline = 'middle'; ctx.fillText(label, CARD_W / 2, y + 40);
+    ctx.textBaseline = 'alphabetic';
   }
   var askedFont = {};
   function ensureTitleFont(text) {
@@ -1669,6 +1753,15 @@
       fitLines();
       paintControls(); render();
     });
+    chipRow($('kinds'), KINDS, opt.kind, function (it) {
+      opt.kind = it.id;
+      if (it.face && !opt.faceTouched) opt.face = it.face;
+      pickLine('say', true, true); pickLine('cap', false, true);
+      paintControls(); render();
+    });
+    var isC = opt.mode === 'catch';
+    $('g-states').hidden = isC; $('g-kinds').hidden = !isC; $('name-field').hidden = isC;
+    document.body.setAttribute('data-kind', opt.kind);
     chipRow($('eyes'), EYES, opt.eyes, function (it) {
       opt.eyes = it.id;
       try { localStorage.setItem(EYES_KEY, it.id); } catch (e) { /* 이번만 */ }
@@ -1708,8 +1801,38 @@
   });
   $('again').addEventListener('click', function () { src = null; art = null; sticker = null; show('pick'); });
 
+  // ════════ 무슨 응가인가요: 우리 애 응가 / 길에서 치운 응가(11/18) ════════
+  var PICK_TEXT = {
+    mine: { h: '우리 애 응가,<br>캐릭터로 만들어요', lead: '산책 중에 찍은 응가 사진에 눈알과 입을 달아 그림으로 바꿔요. 가족 단톡에 "오늘도 했어요" 대신 보내 보세요.' },
+    catch: { h: '길에서 치운 응가,<br>포획 카드로 만들어요', lead: '남의 강아지가 두고 간 응가를 대신 치웠다면, 치우기 전에 찍은 사진으로 "야생 응가 포획" 카드를 만들어요. 몇 마리째인지도 세어 드려요.' }
+  };
+  function paintSendBtn() {
+    var desktop = window.WalsonSave && !WalsonSave.isMobile();
+    $('send-btn').textContent = desktop ? '그림 저장하기' : (opt.mode === 'catch' ? '자랑하기' : '가족에게 보내기');
+  }
+  function paintMode() {
+    var isC = opt.mode === 'catch', t = PICK_TEXT[opt.mode];
+    $('pick-title').innerHTML = t.h; $('pick-lead').textContent = t.lead;
+    $('notes-mine').hidden = isC; $('notes-catch').hidden = !isC;
+    Array.prototype.forEach.call($('modes').querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-mode') === opt.mode ? 'true' : 'false');
+    });
+    document.body.setAttribute('data-mode', opt.mode);
+    paintSendBtn();
+  }
+  Array.prototype.forEach.call($('modes').querySelectorAll('button'), function (b) {
+    b.addEventListener('click', function () {
+      var m = b.getAttribute('data-mode');
+      if (m === opt.mode) return;
+      opt.mode = m;
+      if (!opt.faceTouched) opt.face = m === 'catch' ? 'wow' : 'proud';
+      paintMode();
+    });
+  });
+  paintMode();
+
   // ════════ 보내기 ════════
-  function fileName() { var d = new Date(); return 'walson-poop-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.png'; }
+  function fileName() { var d = new Date(); return 'walson-' + (opt.mode === 'catch' ? 'catch' : 'poop') + '-' + d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2) + '.png'; }
   function track(what) {
     rememberLines();
     try {
@@ -1726,6 +1849,7 @@
   var WALK_T = (function () { var m = location.search.match(/[?&]walk=([^&#]+)/); try { return m ? decodeURIComponent(m[1]) : null; } catch (e) { return null; } })();
   function saveToWalk(sent) {
     if (!WALK_T || !art) return false;
+    if (opt.mode === 'catch') return false;   // 남의 응가는 그 산책의 우리 애 응가 기록에 적지 않는다(몇 마리째는 CATCH_KEY에)
     var walks = WalsonStore.walks();   // 없거나 깨졌으면 [] — 아래에서 못 찾고 false
     for (var i = walks.length - 1; i >= 0; i--) {
       var w = walks[i];
@@ -1751,9 +1875,18 @@
       try { canShare = !!(file && WalsonDevice.canShare({ files: [file] })); } catch (e) { canShare = false; }
       if (mobile && canShare) {
         // 글: 제목·상태 + 만든 곳(?from=poop_share — 받은 가족이 눌러 들어오면 통계의 유입 칸에 남는다)
-        WalsonDevice.share({ files: [file], text: title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
-          (capText() ? '\n' + capText() : '') + '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share' })
-          .then(function () { track('poop_toon'); saveToWalk(true); toast('보냈어요. 가족 반응도 알려 주세요!'); })
+        // 길에서 치운 응가: 제목·몇 마리째 + ?mode=catch&from=poop_catch(이 카드를 보고 들어온 사람을 따로 센다)
+        var isC = opt.mode === 'catch';
+        var text = isC
+          ? title() + ' 누적 ' + catchShownN() + '마리째' + (capText() ? '\n' + capText() : '') +
+            '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?mode=catch&from=poop_catch'
+          : title() + (opt.state === 'usual' ? ' · 평소대로' : opt.state === 'diff' ? ' · 평소와 달랐어요' : '') +
+            (capText() ? '\n' + capText() : '') + '\n왈슨에서 만들었어요 https://johnsongarage.co.kr/walson/poop-toon.html?from=poop_share';
+        WalsonDevice.share({ files: [file], text: text })
+          .then(function () {
+            if (isC) { countCatch(); track('poop_catch'); toast('자랑 완료! ' + catchMsg()); return; }
+            track('poop_toon'); saveToWalk(true); toast('보냈어요. 가족 반응도 알려 주세요!');
+          })
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;   // 공유 창을 그냥 닫음
             saveFile(blob);
@@ -1764,13 +1897,14 @@
     }
     function saveFile(blob) {
       if (window.WalsonSave) WalsonSave.download(blob, fileName());
+      if (opt.mode === 'catch') { countCatch(); track('poop_catch_save'); toast('그림을 저장했어요. ' + catchMsg()); return; }
       track('poop_toon_save'); saveToWalk(true);
       toast('그림을 저장했어요. 카톡에서 사진으로 보내 주세요.');
     }
     if (cardBlob && !cardDirty) go(cardBlob);
     else card.toBlob(function (b) { cardBlob = b; cardDirty = false; go(b); }, 'image/png');
   });
-  if (window.WalsonSave && !WalsonSave.isMobile()) $('send-btn').textContent = '그림 저장하기';
+  paintSendBtn();
 
   // ════════ 첫 화면 그림(예시를 미리 바꿔 보여 준다) ════════
   function drawHero() {
@@ -1791,7 +1925,8 @@
   // 글꼴이 준비된 뒤에 그린다(카드 글자가 기본 글꼴로 찍히지 않게) — 늦으면 그냥 그린다
   var fontsReady = (document.fonts && document.fonts.load)
     ? Promise.race([Promise.all([
-        document.fonts.load("400 90px 'Black Han Sans'", '우리 애 오늘 응가의'),
+        document.fonts.load("400 90px 'Black Han Sans'", '우리 애 오늘 응가의 야생 포획 완료!'),
+        document.fonts.load("800 44px 'Pretendard'", '누적 0123456789마리째 포획'),
         document.fonts.load("800 44px 'Pretendard'", '평소대로 달랐어요 오늘도 해냈다'),
         document.fonts.load("700 38px 'Pretendard'", '11월 16일 월요일 왈슨 다산동 강아지 산책 앱')
       ]), new Promise(function (r) { setTimeout(r, 1500); })])
@@ -1813,7 +1948,8 @@
     function med(a) { a.sort(function (x, y) { return x - y; }); return a.length ? a[a.length >> 1] : 0; }
     return { lab: [med(Ls), med(As), med(Bs)].map(function (x) { return Math.round(x * 10) / 10; }), n: n, red: n ? red / n : 0, light: n ? light / n : 0 };
   }
-  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height }, pattern: { ready: patReady, n: PATTERN.length }, say: sayText(), cap: capText(), sayId: opt.sayId, capId: opt.capId }; },
+  window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height }, pattern: { ready: patReady, n: PATTERN.length }, say: sayText(), cap: capText(), sayId: opt.sayId, capId: opt.capId,
+      title: title(), mode: opt.mode, kind: opt.kind, catchN: catchData().n, shownN: catchShownN(), counted: catchCounted, sample: isSample }; },
     pool: function (k) { return linePool(k).map(function (l) { return l.id; }); } };
 })();
 </script>
