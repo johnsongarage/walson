@@ -308,7 +308,7 @@
     var slots = opts.slots || { skill: 1, passive: 3 };
     var n = (career && career.walks) || 0, km = (career && career.km) || 0;
     var rankDates = (career && career.rankDates) || [], visitedAt = (career && career.visitedAt) || {};
-    // 새내기 줄 = "전입": 주민증 발급일과 첫 길 기록 산책 날 중 이른 날(주민증을 나중에 만든 사람도 날짜 순서가 맞게)
+    // 새내기 줄 = "전입": 주민증 발급일과 처음 센 산책 날 중 이른 날(주민증을 나중에 만든 사람도 날짜 순서가 맞게)
     var moveIn = [keyFromText(profile.cardIssued), career && career.firstDate].filter(Boolean).sort()[0] || null;
     var cur = null;
     ranks.forEach(function (r) { if (n >= r.minWalks) cur = r; });
@@ -319,7 +319,8 @@
     ctx.fillStyle = INK;
     ctx.font = font(800, 64);
     ctx.fillText('산책 경력', 96, 158);
-    var sub = (profile.name ? profile.name + ' · ' : '') + '길 기록 산책 ' + n + '회 · ' + km.toFixed(1) + 'km';
+    // 11/18: 횟수는 어떻게 기록했든 5분 이상 산책(11/17부터 주민증 성장 기준) — 예전 '길 기록 산책'이라 적혀 있던 걸 고침
+    var sub = (profile.name ? profile.name + ' · ' : '') + '산책 ' + n + '회 · ' + km.toFixed(1) + 'km';
     ctx.fillStyle = SOFT;
     ctx.font = font(600, fitText(ctx, sub, 1000, 34, 600));
     ctx.fillText(sub, 100, 214);
