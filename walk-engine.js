@@ -111,7 +111,7 @@
 
   // ── 상태 ──
   var walking = false, leaving = false, walkStartTime = null, watchId = null;
-  var routeCoords = [], routeSamples = [], liveKm = 0, liveVisited = {}, walkGapMs = 0, lastFix = null;
+  var routeCoords = [], routeSamples = [], liveKm = 0, liveVisited = {}, walkGapMs = 0, lastFix = null, lastAcc = null;
   var poopMarks = [];   // 응가 찍기(2026-11-17) — [{ c:[lat,lng], t }] 이 휴대폰 안에만
   var routeSavedAt = 0;
   var locationExplained = false;
@@ -123,7 +123,7 @@
   function state() {
     return {
       walking: walking, leaving: leaving, startedAt: walkStartTime,
-      routeSamples: routeSamples, routeCoords: routeCoords, lastFix: lastFix,
+      routeSamples: routeSamples, routeCoords: routeCoords, lastFix: lastFix, lastAcc: lastAcc,
       liveKm: liveKm, liveVisited: liveVisited, gapMs: walkGapMs, poopMarks: poopMarks
     };
   }
@@ -214,6 +214,7 @@
     if (!walking) return;
     var coord = [pos.coords.latitude, pos.coords.longitude];
     lastFix = coord;   // 정확도가 낮은 점도 지금 위치·미션 거리에는 쓰되, 길(선)에는 넣지 않는다
+    lastAcc = pos.coords.accuracy;   // 화면이 '대략적인 위치'(오차 1km 넘음)를 알아보고 켜는 법을 알려 주려고(2026-11-18)
     if (pos.coords.accuracy > WALK_RULES.maxAccuracyM) { notifyFix(true); return; }
     var t = pos.timestamp || Date.now();
     var last = routeSamples[routeSamples.length - 1];

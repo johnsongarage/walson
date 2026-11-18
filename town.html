@@ -106,6 +106,12 @@
   /* 상시 주의 문구(기획표 V1-21) — 핀이 없는 곳을 "안전하다"고 읽지 않게 */
   .acc-note { white-space: normal !important; color: #2f6aa8 !important; background: rgba(255,255,255,0.85); border-radius: 8px; padding: 3px 6px; }
   .acc-note[hidden] { display: none; }
+  /* 휴대폰에서 대략적인 위치면 '정확한 위치 켜는 법'(location-guide.html)으로 — 이 줄만 눌린다 */
+  .caveat.acc-note { pointer-events: auto !important; }
+  .acc-note a { color: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+  .ls-warn { margin: 0 0 8px; padding: 12px 14px; border-radius: 12px; background: #fdeee9; border: 1.5px solid #e9b4a6; font-size: 13px; line-height: 1.55; color: var(--ink); }
+  .ls-warn strong { display: block; font-size: 14px; font-weight: 800; }
+  .ls-warn a { display: inline-block; margin-top: 4px; font-weight: 800; color: var(--accent-ink, #9c4530); }
   .caveat {
     align-self: stretch; margin: 0 0 4px 4px; pointer-events: none !important;
     font-size: 11px; font-weight: 700; color: var(--ink-soft); pointer-events: none;
@@ -343,7 +349,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
-<script src="mission-alert.js?v=1"></script>
+<script src="mission-alert.js?v=2"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 다산동 강아지 산책 앱. 제작 johnsongarage">
@@ -462,6 +468,21 @@
   // 내 위치는 버튼을 눌렀을 때만 읽고(이유를 먼저 설명), 이 화면 메모리에만 둔다. 저장하거나 보내지 않는다.
   // 단골 Lv는 가게 카운터 QR로 찍은 방문 도장(visit.html이 남긴 petwalk_visits)으로 센다(shop-visits.js). 이 화면은 읽기만 한다.
   var myPos = null;     // { lat, lng, accuracy } — 이 화면을 닫으면 사라진다
+  // 정확한 위치 켜기 안내(location-guide.html, 2026-11-18) — 넘어갈 때 방금 읽은 위치의 오차(숫자 하나)만 이 창에 넘긴다(sessionStorage, 서버로 안 감)
+  var PHONE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '') || (/Macintosh/.test(navigator.userAgent || '') && navigator.maxTouchPoints > 1);
+  var GUIDE_HREF = 'location-guide.html?back=town';
+  function accText(m) { return m >= 1000 ? (m / 1000).toFixed(1) + 'km' : Math.round(m / 10) * 10 + 'm'; }
+  function rememberAcc() {
+    if (!myPos) return;
+    try { sessionStorage.setItem('walson_loc_hint', JSON.stringify({ acc: Math.round(myPos.accuracy), at: Date.now(), src: 'town' })); } catch (e) { /* 넘기지 못해도 안내 화면이 다시 잰다 */ }
+  }
+  function guideLink(text) {
+    var a = document.createElement('a');
+    a.href = GUIDE_HREF;
+    a.textContent = text;
+    a.addEventListener('click', rememberAcc);
+    return a;
+  }
   // 동반 가게 목록 = 같이 갈 수 있는 곳(동반 됨·확인 전)만. 동반이 안 되는 수호견 가게는 빠진다(2026-11-17 가르시아 "같은 레벨")
   var shops = InfraPins.category('spot') ? InfraPins.all().filter(function (p) { return InfraPins.isCompanionShop(p); }) : [];
   var shopUi = {};      // 가게 id → { pin, walkEl, regEl } — 칸을 끈 것은 null
@@ -1487,6 +1508,14 @@
   var CHECK_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function renderMissionMode() {
     var cardOn = !missionCard.hidden;
+    // 위치 오차가 100m를 넘으면(대략적인 위치·실내) 미션 장소에 가도 도착을 알 수 없다 — 맨 위에 켜는 법으로 가는 줄
+    if (PHONE && myPos && myPos.accuracy > 100) {
+      var warn = mk('li', 'ls-warn');
+      warn.appendChild(mk('strong', '', myPos.accuracy >= 1000 ? '지금은 ‘대략적인 위치’예요(오차 약 ' + accText(myPos.accuracy) + ')' : '지금 위치가 흐릿해요(오차 약 ' + accText(myPos.accuracy) + ')'));
+      warn.appendChild(mk('span', '', myPos.accuracy >= 1000 ? '이대로는 미션 장소에 가도 도착을 알 수 없어요. ' : '실내라면 밖에서 [내 위치]를 다시 눌러 보세요. '));
+      warn.appendChild(guideLink('정확한 위치 켜는 법 ›'));
+      lsList.appendChild(warn);
+    }
     if (cardOn) { var top = mk('li', 'ls-mission-now'); top.appendChild(missionCard); lsList.appendChild(top); }
     missionAll.forEach(function (m) {
       var isNow = !!(missionNow && m.place.id === missionNow.place.id);
@@ -1588,7 +1617,7 @@
     try { explained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 다시 설명 */ }
     if (!explained) {
       if (quiet) return Promise.reject();
-      if (!confirm('내 위치를 지도에 점으로 보여 주고 가게까지 걸어서 몇 분인지 계산하려면 위치 정보 접근 권한이 필요합니다. 위치는 이 화면에서만 쓰고 저장하거나 보내지 않아요. 허용할까요?')) return Promise.reject();
+      if (!confirm('내 위치를 지도에 점으로 보여 주고 가게까지 걸어서 몇 분인지 계산하려면 위치 정보 접근 권한이 필요합니다. 위치는 이 화면에서만 쓰고 저장하거나 보내지 않아요.' + (/Android/i.test(navigator.userAgent || '') ? '\n\n다음 창에서 ‘정확한 위치’가 골라진 채로 허용해 주세요. 미션 발도장에 필요해요.' : '') + '\n\n허용할까요?')) return Promise.reject();
       try { localStorage.setItem(LOCATION_EXPLAINED_KEY, '1'); } catch (e) { /* 다음에 다시 설명 */ }
     }
     locateBtn.classList.add('is-busy');
@@ -1605,13 +1634,20 @@
         // PC·실내는 GPS가 없어 와이파이·인터넷 주소로 어림잡는다 — 수백 m~몇 km 틀릴 수 있어서 알려 준다
         var accNote = document.getElementById('acc-note');
         if (myPos.accuracy > 100) {
-          var a = myPos.accuracy >= 1000 ? (myPos.accuracy / 1000).toFixed(1) + 'km' : Math.round(myPos.accuracy / 10) * 10 + 'm';
-          accNote.textContent = '위치가 대략적이에요(오차 약 ' + a + ') · PC·실내는 GPS가 없어요. 미션은 휴대폰으로 밖에서';
+          var a = accText(myPos.accuracy);
+          accNote.innerHTML = '';
+          // 휴대폰이면 정확한 위치 켜는 법으로(2026-11-18 가르시아 "정교한 위치 기능을 켜도록 가이드") — PC는 GPS가 없으니 예전 안내 그대로
+          if (!PHONE) accNote.textContent = '위치가 대략적이에요(오차 약 ' + a + ') · PC·실내는 GPS가 없어요. 미션은 휴대폰으로 밖에서';
+          else if (myPos.accuracy >= 1000) { accNote.appendChild(document.createTextNode('‘대략적인 위치’로 잡혀요(오차 약 ' + a + ') · ')); accNote.appendChild(guideLink('정확한 위치 켜는 법')); }
+          else { accNote.appendChild(document.createTextNode('위치가 흐릿해요(오차 약 ' + a + ') · 밖에서 [내 위치]를 다시 · ')); accNote.appendChild(guideLink('도움말')); }
           accNote.hidden = false;
         } else accNote.hidden = true;
         resolve(myPos);
       }, function (info) {
-        if (!quiet) alert(info.message);
+        if (!quiet) {
+          if (info.code === 1 && PHONE) { if (confirm('위치 권한이 막혀 있어요.\n\n켜는 방법을 그림으로 볼까요?')) location.href = GUIDE_HREF; }
+          else alert(info.message);
+        }
         reject();
       });
     });

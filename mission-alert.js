@@ -4,7 +4,8 @@
 // 정확한 위치가 켜진 폰에서만 도착을 안다(대략적인 위치는 오차가 2km 넘어서 도착이라 하지 않는다 — town.html·walk-engine.js).
 //
 //   WalsonMissionAlert.show({
-//     icon: 'flag' | 'paw',           // 깃발 = 장소에 왔어요, 발바닥 = 발도장 받았어요
+//     icon: 'flag' | 'paw' | 'pin',   // 깃발 = 장소에 왔어요, 발바닥 = 발도장 받았어요, 핀 = 위치 안내(정확한 위치 켜기)
+//     tone: 'good',                   // 초록(발바닥은 늘 초록). 없으면 기본 색
 //     badge: '미션 1 · 발도장 1/5',    // 맨 위 작은 줄(없어도 됨)
 //     title: '발도장 받았어요!',
 //     place: '다산 중앙공원',          // 장소 이름(글자로만 넣는다)
@@ -24,7 +25,7 @@
       'box-shadow:0 18px 50px rgba(43,29,20,.35);animation:wma-pop .32s cubic-bezier(.2,1.4,.4,1);}' +
     '#' + ID + ' .wma-ic{width:72px;height:72px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
       'background:var(--accent,#b8563a);color:#fff;box-shadow:0 0 0 8px var(--accent-tint,#f3ddd2);}' +
-    '#' + ID + ' .wma-ic.is-paw{background:#3f7d4a;box-shadow:0 0 0 8px #e3f1e5;}' +
+    '#' + ID + ' .wma-ic.is-good{background:#3f7d4a;box-shadow:0 0 0 8px #e3f1e5;}' +
     '#' + ID + ' .wma-badge{font-size:12px;font-weight:800;color:var(--accent-ink,#9c4530);margin:0 0 4px;}' +
     '#' + ID + ' .wma-title{font-size:22px;font-weight:900;line-height:1.3;margin:0;letter-spacing:-.01em;word-break:keep-all;}' +
     '#' + ID + ' .wma-place{font-size:17px;font-weight:800;margin:6px 0 0;word-break:keep-all;}' +
@@ -39,6 +40,7 @@
     '@media (prefers-reduced-motion:reduce){#' + ID + ',#' + ID + ' .wma-card{animation:none}}';
   var ICONS = {
     flag: '<svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M7 4h11l-2.6 4.2L18 12.4H7z" fill="currentColor"/></svg>',
+    pin: '<svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 6.1 12.1 6.4 12.4a.8.8 0 0 0 1.2 0C12.9 21.1 19 14.2 19 9a7 7 0 0 0-7-7zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2z"/></svg>',
     paw: '<svg width="36" height="36" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm72,0a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm23.12,60.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72Z"/></svg>'
   };
   var styled = false, lastFocus = null;
@@ -86,8 +88,8 @@
     wrap.setAttribute('role', 'dialog');
     wrap.setAttribute('aria-modal', 'true');
     var card = el('div', 'wma-card');
-    var ic = el('div', 'wma-ic' + (o.icon === 'paw' ? ' is-paw' : ''));
-    ic.innerHTML = ICONS[o.icon === 'paw' ? 'paw' : 'flag'];
+    var ic = el('div', 'wma-ic' + (o.icon === 'paw' || o.tone === 'good' ? ' is-good' : ''));
+    ic.innerHTML = ICONS[ICONS[o.icon] ? o.icon : 'flag'];
     card.appendChild(ic);
     if (o.badge) card.appendChild(el('p', 'wma-badge', o.badge));
     var title = el('h2', 'wma-title', o.title || '');

@@ -74,6 +74,8 @@
   .pin-popup { display: flex; flex-direction: column; gap: 8px; min-width: 120px; }
   .pin-popup-memo { color: var(--ink); }
   .pin-popup-empty { color: var(--ink-soft); font-style: italic; }
+  /* 대략적인 위치일 때 미션 카드 안 '켜는 법' 링크(2026-11-18) */
+  .ws-mlink { display: inline-block; margin-left: 4px; font-weight: 800; color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
   .pin-delete-btn { align-self: flex-start; border: none; background: none; padding: 2px 0; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #b3392b; }
 </style>
 <script src="theme.js?v=12"></script>
@@ -82,9 +84,9 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
-<script src="mission-alert.js?v=1"></script>
+<script src="mission-alert.js?v=2"></script>
 <script src="walk-screen.js?v=2"></script>
-<script src="walk-engine.js?v=4"></script>
+<script src="walk-engine.js?v=5"></script>
 </head>
 <body>
 
@@ -219,13 +221,17 @@
       card.className = 'ws-mission is-done';
       html += '<span class="ws-m1">발도장 ' + done + '/' + M.all.length + '</span><span class="ws-m2">미션을 다 했어요</span>';
     } else {
-      var here = lastFix && window.RewardRules.distanceKm(lastFix, now.place.center) <= now.place.radiusKm;
+      // 오차가 100m를 넘는 위치(대략적인 위치·실내)로는 '도착'이라 하지 않는다 — 발도장도 오차 50m 안쪽 점으로만 찍힌다(엔진)
+      var weak = s.lastAcc != null && s.lastAcc > 100;
+      var here = !weak && lastFix && window.RewardRules.distanceKm(lastFix, now.place.center) <= now.place.radiusKm;
       var pending = s.liveVisited[now.place.id] === 'pending';
       card.className = 'ws-mission' + (here ? ' is-here' : '');
       html += '<span class="ws-m1">미션 ' + now.no + ' · 발도장 ' + done + '/' + M.all.length + '</span>' +
         '<span class="ws-m2"></span>' +
-        '<span class="ws-m3">' + (pending ? '도착! 5분·200m 넘게 걸으면 찍혀요' : here ? '도착했어요' : (keepScreen() ? '도착하면 발도장이 찍혀요' : '도착하면 꺼내서 "여기 찍기"를 눌러 주세요')) + '</span>';
-      if (lastFix) {
+        '<span class="ws-m3">' + (weak && !pending ? (s.lastAcc >= 1000 ? '‘대략적인 위치’라 도착을 알 수 없어요' : '위치가 흐려서 도착을 아직 몰라요') +
+          '<a class="ws-mlink" href="location-guide.html?back=walk">켜는 법</a>'
+          : pending ? '도착! 5분·200m 넘게 걸으면 찍혀요' : here ? '도착했어요' : (keepScreen() ? '도착하면 발도장이 찍혀요' : '도착하면 꺼내서 "여기 찍기"를 눌러 주세요')) + '</span>';
+      if (lastFix && !(s.lastAcc >= 1000)) {   // 2km 넘게 틀린 위치로는 방향·거리를 안 보여 준다
         var km = window.RewardRules.distanceKm(lastFix, now.place.center);
         dir = here ? '<span class="ws-mdir">도착</span>'
           : '<span class="ws-mdir"><span style="display:flex;transform:rotate(' + Math.round(E.bearingDeg(lastFix, now.place.center)) + 'deg)">' + ARROW_SVG + '</span>' + kmText(km) + '</span>';
@@ -234,6 +240,39 @@
     card.innerHTML = html + '</span>' + dir;
     if (now) card.querySelector('.ws-m2').textContent = targetText(now.place);   // 장소 이름은 글자로만 넣는다
     card.hidden = false;
+  }
+
+  // ── 대략적인 위치 알림(2026-11-18 가르시아 "미션 하려면 정교한 위치 기능을 켜도록 가이드") ──
+  // 오차 1km 넘는 위치만 15초 넘게 들어오면 정확한 위치가 꺼진 폰이다 — 이대로면 길도 발도장도 안 남는다. 산책마다 한 번만 가운데 카드로.
+  // (GPS가 막 잡히는 동안 첫 점이 넓게 오는 건 흔해서 바로 띄우지 않는다. 오차 100m 안쪽 점이 한 번이라도 오면 알리지 않는다)
+  var APPROX_KEY = 'petwalk_approx_warned', approxTimer = null, sawGoodFix = false;
+  function accText(m) { return m >= 1000 ? (m / 1000).toFixed(1) + 'km' : Math.round(m / 10) * 10 + 'm'; }
+  function rememberAcc() {
+    var a = E.state().lastAcc;
+    if (a == null) return;
+    try { sessionStorage.setItem('walson_loc_hint', JSON.stringify({ acc: Math.round(a), at: Date.now(), src: 'walk' })); } catch (e) { /* 안내 화면이 다시 잰다 */ }
+  }
+  $('mission-card').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.ws-mlink')) rememberAcc(); });
+  function watchAccuracy(s) {
+    var acc = s.lastAcc;
+    if (acc == null || !s.walking) return;
+    if (acc <= 100) { sawGoodFix = true; if (approxTimer) { clearTimeout(approxTimer); approxTimer = null; } return; }
+    if (acc < 1000 || sawGoodFix || approxTimer) return;
+    var started = String(s.startedAt || '');
+    try { if (localStorage.getItem(APPROX_KEY) === started) return; } catch (e) { /* 아래로 */ }
+    approxTimer = setTimeout(function () {
+      approxTimer = null;
+      var s2 = E.state();
+      if (sawGoodFix || !s2.walking || !(s2.lastAcc >= 1000) || !window.WalsonMissionAlert || WalsonMissionAlert.isOpen()) return;
+      try { localStorage.setItem(APPROX_KEY, started); } catch (e) { /* 이번만 */ }
+      WalsonMissionAlert.show({
+        icon: 'pin', badge: '위치 오차 약 ' + accText(s2.lastAcc),
+        title: '‘대략적인 위치’로 잡혀요',
+        lines: ['이대로는 걸은 길이 안 그려지고', '발도장도 안 찍혀요. 시간은 계속 재요.'],
+        primary: { label: '정확한 위치 켜는 법', href: 'location-guide.html?back=walk', onClick: rememberAcc },
+        secondary: { label: '닫기' }
+      });
+    }, 15000);
   }
 
   // 바로 판정으로 받은 발도장(엔진 onStamp 'got')을 알린다 — 화면 가운데 카드 + 진동
@@ -460,6 +499,7 @@
     // 위치가 들어와 바뀜 — 미션 카드, 지도를 펼쳐 둔 중이면 지도도(mapToo가 false면 지도는 그대로)
     onFix: function (s, mapToo) {
       paintMission();
+      watchAccuracy(s);
       if (mapToo && mapOpen) drawMap(false);
     },
     // 바로 판정한 발도장 — 받음·도착 모두 화면 가운데 카드(mission-alert.js)와 진동. 도착했지만 5분·200m 전이면 "도착" 카드만(기준을 넘는 순간 받는다)

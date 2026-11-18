@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>정확한 위치 켜기</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#f7ede2">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 정확한 위치 켜기 안내(2026-11-18 가르시아 "미션 하려면 웹앱에서 정교한 위치 기능을 켜도록 가이드 해 줘야 할 거야.
+     이 화면 만들어 봐. 아이폰, 안드 다 만들어야겠지?").
+     왜: 휴대폰이 '대략적인 위치'만 주면 오차가 2km를 넘어 발도장·도착 알림·길 기록이 안 된다. 웹에서는 팝업 한 번으로
+     켜게 할 방법이 없어서(hq notes/petwalk-location-precision-research.md) 사용자가 설정에서 직접 켜야 한다.
+     ① 위에서 지금 폰의 위치 오차를 재서 상태를 보여 준다(위치는 오차 재기에만 쓰고 저장·전송 없음)
+     ② 아이폰/안드로이드 순서를 그림과 함께 — 지금 폰과 브라우저(사파리·크롬·삼성 인터넷·카톡 안)를 알아서 골라 둔다
+     ③ 설정 앱에 갔다가 돌아오면 저절로 다시 잰다.
+     그림 속 글자는 실제 화면 문구를 확인한 것만 쓴다 — 안드로이드 권한 화면은 AOSP 권한 관리자 한국어 문구,
+     크롬 사이트 설정은 크로미움 한국어 문구, 아이폰은 애플 한국어 메뉴 이름. 확인 못 한 줄은 회색 막대로 둔다. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-ink: #9c4530; --accent-tint: #f3ddd2;
+    --hl: #b8563a; --hl-ink: #fff; --line: #4a3f35; --shadow-rgb: 74, 63, 53;
+    --good: #2f7a43; --good-tint: #e1f1e5; --warn: #8a5a0b; --warn-tint: #fbefd2; --bad: #b2392c; --bad-tint: #f8dfd9;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 16px 16px calc(100px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 460px; margin: 0 auto; }
+  .back { display: inline-block; color: var(--ink-soft); font-size: 14px; font-weight: 700; text-decoration: none; padding: 6px 0; }
+  h1 { font-size: 23px; font-weight: 800; line-height: 1.35; margin: 12px 0 8px; letter-spacing: -0.02em; word-break: keep-all; }
+  .lead { font-size: 14.5px; line-height: 1.65; color: var(--ink-soft); margin: 0 0 16px; word-break: keep-all; }
+
+  /* ── 지금 내 폰 상태 ── */
+  .check { background: var(--panel); border: 1.5px solid var(--panel-border); border-radius: 14px; padding: 16px; }
+  .check[data-state="good"] { border-color: var(--good); }
+  .check[data-state="approx"], .check[data-state="denied"] { border-color: var(--bad); }
+  .check[data-state="blurry"], .check[data-state="fail"], .check[data-state="pc"] { border-color: var(--warn); }
+  .ck-head { display: flex; gap: 12px; align-items: flex-start; }
+  .ck-ic { flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--accent-tint); color: var(--accent); }
+  .check[data-state="good"] .ck-ic { background: var(--good-tint); color: var(--good); }
+  .check[data-state="approx"] .ck-ic, .check[data-state="denied"] .ck-ic { background: var(--bad-tint); color: var(--bad); }
+  .check[data-state="blurry"] .ck-ic, .check[data-state="fail"] .ck-ic, .check[data-state="pc"] .ck-ic { background: var(--warn-tint); color: var(--warn); }
+  .check[data-state="busy"] .ck-ic svg { animation: ck-spin 1s linear infinite; }
+  @keyframes ck-spin { to { transform: rotate(360deg); } }
+  .ck-text { flex: 1; min-width: 0; }
+  .ck-title { font-size: 17px; font-weight: 800; margin: 2px 0 4px; line-height: 1.35; word-break: keep-all; }
+  .ck-sub { font-size: 14px; line-height: 1.6; color: var(--ink-soft); margin: 0; word-break: keep-all; }
+  .ck-sub b { color: var(--ink); }
+  .ck-meter { height: 6px; border-radius: 3px; background: rgba(var(--shadow-rgb), 0.1); overflow: hidden; margin: 14px 0 0; }
+  .ck-meter[hidden] { display: none; }
+  .ck-meter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.25s linear; }
+  .btn-main { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin-top: 14px; padding: 0 16px;
+    border: 0; border-radius: 999px; font-family: inherit; font-size: 16px; font-weight: 800; background: var(--hl); color: var(--hl-ink); cursor: pointer; }
+  .btn-main[disabled] { opacity: 0.6; cursor: default; }
+  .ck-note { font-size: 12.5px; color: var(--ink-soft); margin: 10px 2px 0; line-height: 1.5; word-break: keep-all; }
+
+  /* ── 아이폰 / 안드로이드 ── */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; margin: 24px 0 6px; border-radius: 999px; background: rgba(var(--shadow-rgb), 0.08); }
+  .seg button { min-height: 42px; border: 0; border-radius: 999px; background: transparent; font-family: inherit; font-size: 15px; font-weight: 800;
+    color: var(--ink-soft); cursor: pointer; }
+  .seg button[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .device { font-size: 13px; color: var(--ink-soft); margin: 6px 4px 12px; text-align: center; word-break: keep-all; }
+  .device:empty { display: none; }
+  .guide[hidden] { display: none; }
+  .ok-note { font-size: 13.5px; line-height: 1.55; margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--good-tint); color: var(--good); font-weight: 700; word-break: keep-all; }
+  .ok-note[hidden] { display: none; }
+  .steps { list-style: none; padding: 0; margin: 0; counter-reset: st; }
+  .step { position: relative; padding: 14px 14px 16px 54px; margin: 0 0 10px; background: var(--panel); border: 1.5px solid var(--panel-border); border-radius: 12px; }
+  .step::before { counter-increment: st; content: counter(st); position: absolute; left: 13px; top: 12px; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--hl); color: var(--hl-ink); border: 2px solid var(--line); font-weight: 900; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .step h3 { font-size: 15.5px; font-weight: 800; margin: 3px 0 0; line-height: 1.45; word-break: keep-all; }
+  .step p { font-size: 13.5px; color: var(--ink-soft); margin: 5px 0 0; line-height: 1.55; word-break: keep-all; }
+  .step .mock { margin-top: 12px; }
+  .more-h { font-size: 15.5px; font-weight: 800; margin: 22px 2px 4px; word-break: keep-all; }
+  .more-lead { font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 2px 10px; word-break: keep-all; }
+  .steps.is-more { counter-reset: st var(--from, 0); }
+  .mock-note { font-size: 12px; color: var(--ink-soft); margin: 2px 4px 0; line-height: 1.5; }
+
+  /* ── 설정 화면 흉내(실제 화면 그림이 아니라 어디를 누르는지 보여 주는 예시) ── */
+  .mock { border-radius: 14px; padding: 10px 10px 12px; font-family: -apple-system, "Apple SD Gothic Neo", 'Pretendard', "Malgun Gothic", sans-serif;
+    font-size: 13px; color: #1c1c1e; -webkit-user-select: none; user-select: none; }
+  .mock.is-ios { background: #f2f2f7; }
+  .mock.is-and { background: #eff2f7; font-family: 'Pretendard', "Noto Sans KR", -apple-system, sans-serif; }
+  .mk-bar { font-weight: 700; font-size: 13.5px; padding: 2px 4px 8px; text-align: center; }
+  .mock.is-and .mk-bar { text-align: left; font-size: 15px; font-weight: 600; padding: 4px 6px 8px; }
+  .mk-bar small { display: block; font-size: 11.5px; font-weight: 500; color: #6e6e73; margin-top: 1px; }
+  .mk-grp { background: #fff; border-radius: 10px; margin-top: 8px; }
+  .mock.is-and .mk-grp { border-radius: 16px; }
+  .mk-grp:first-of-type { margin-top: 0; }
+  .mk-head { font-size: 11.5px; color: #6e6e73; padding: 8px 12px 0; }
+  .mk-row { position: relative; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 12px; }
+  .mk-row + .mk-row { box-shadow: inset 0 1px 0 #e7e7ec; }
+  .mk-row.is-hit { background: #fff3dc; box-shadow: inset 0 0 0 2.5px var(--accent) !important; border-radius: 10px; }
+  .mk-ic { flex-shrink: 0; width: 22px; height: 22px; border-radius: 6px; background: #c7c7cc; }
+  .mk-t { flex: 1; min-width: 0; font-weight: 500; line-height: 1.35; }
+  .mk-t small { display: block; font-size: 11.5px; color: #6e6e73; font-weight: 400; margin-top: 1px; line-height: 1.35; }
+  .mk-sk { display: block; height: 9px; border-radius: 5px; background: #e1e1e7; }
+  .mk-ctl { position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; min-width: 16px; }
+  .mk-chev { width: 8px; height: 8px; border-right: 2px solid #c4c4c7; border-top: 2px solid #c4c4c7; transform: rotate(45deg); margin-right: 3px; }
+  .mk-sw { width: 42px; height: 25px; border-radius: 13px; background: #34c759; position: relative; }
+  .mk-sw::after { content: ''; position: absolute; top: 2px; right: 2px; width: 21px; height: 21px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+  .mock.is-and .mk-sw { width: 44px; height: 26px; background: #2a62d6; }
+  .mock.is-and .mk-sw::after { top: 4px; right: 4px; width: 18px; height: 18px; box-shadow: none; }
+  .mk-check { width: 13px; height: 7px; border-left: 2.5px solid #0a7aff; border-bottom: 2.5px solid #0a7aff; transform: rotate(-45deg); margin: -4px 3px 0 0; }
+  .mk-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #74777f; }
+  .mk-radio.is-on { border-color: #2a62d6; background: radial-gradient(circle, #2a62d6 0 4px, transparent 4.5px); }
+  .mk-info { width: 18px; height: 18px; border-radius: 50%; border: 1.8px solid #44474e; font: 700 11px/14px Georgia, serif; text-align: center; color: #44474e; }
+  .mk-tap { position: absolute; left: 50%; top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; border: 3px solid var(--accent);
+    pointer-events: none; animation: mk-pulse 1.6s ease-out infinite; }
+  @keyframes mk-pulse { 0% { transform: scale(0.65); opacity: 1; } 80%, 100% { transform: scale(1.3); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .mk-tap { animation: none; opacity: 0.9; } }
+  /* 안드로이드 홈 화면에서 아이콘 길게 누르기 */
+  .mk-home { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 6px; padding: 6px 4px 0; }
+  .mk-app { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #1c1c1e; }
+  .mk-appic { width: 40px; height: 40px; border-radius: 50%; background: #d4d8e1; }
+  .mk-app.is-target .mk-appic { background: #fff; box-shadow: inset 0 0 0 3px #9aa3b5; }
+  .mk-pop { grid-column: 2 / 5; background: #fff; border-radius: 16px; box-shadow: 0 6px 18px rgba(20, 30, 60, 0.16); margin-top: 2px; }
+  /* 크롬 사이트 설정 — 고르는 창 */
+  .mk-dialog { background: #fff; border-radius: 20px; padding: 6px 4px 8px; box-shadow: 0 6px 18px rgba(20, 30, 60, 0.12); }
+  .mk-dialog .mk-title { font-size: 14px; font-weight: 600; padding: 8px 12px 4px; }
+
+  /* ── 궁금한 것 ── */
+  .faq { margin-top: 26px; }
+  .faq h2 { font-size: 17px; font-weight: 800; margin: 0 2px 8px; }
+  .faq details { background: var(--panel); border: 1.5px solid var(--panel-border); border-radius: 12px; margin-bottom: 8px; }
+  .faq summary { list-style: none; cursor: pointer; padding: 14px 40px 14px 14px; font-size: 15px; font-weight: 800; position: relative; word-break: keep-all; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: ''; position: absolute; right: 18px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft); transform: rotate(45deg); }
+  .faq details[open] summary::after { transform: rotate(-135deg); margin-top: -2px; }
+  .faq details p { margin: 0; padding: 0 14px 14px; font-size: 14px; line-height: 1.65; color: var(--ink-soft); word-break: keep-all; }
+  .faq a, .help a { color: var(--accent-ink); font-weight: 700; }
+  .help { font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); margin: 18px 4px 0; word-break: keep-all; }
+
+  /* ── 아래로 내렸을 때 늘 보이는 "다시 확인" ── */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 250, 243, 0.96); border-top: 1.5px solid var(--panel-border); }
+  .dock[hidden] { display: none; }
+  .dock-in { max-width: 460px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  .dk-pill { flex: 1; min-width: 0; font-size: 14px; font-weight: 800; line-height: 1.35; word-break: keep-all; display: flex; align-items: center; gap: 8px; }
+  .dk-pill::before { content: ''; flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--ink-soft); }
+  .dock[data-state="good"] .dk-pill::before { background: var(--good); }
+  .dock[data-state="approx"] .dk-pill::before, .dock[data-state="denied"] .dk-pill::before { background: var(--bad); }
+  .dock[data-state="blurry"] .dk-pill::before, .dock[data-state="fail"] .dk-pill::before, .dock[data-state="pc"] .dk-pill::before { background: var(--warn); }
+  .dk-btn { flex-shrink: 0; min-height: 44px; padding: 0 18px; border: 2px solid var(--line); border-radius: 999px; background: var(--hl); color: var(--hl-ink);
+    font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .dk-btn[disabled] { opacity: 0.6; }
+</style>
+<script src="store.js?v=1"></script>
+<script src="theme.js?v=12"></script>
+<script src="site-config.js?v=10"></script>
+<script src="inapp.js?v=4"></script>
+<script src="install.js?v=1"></script>
+<script src="track.js?v=8"></script>
+<script src="mission-alert.js?v=2"></script>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" id="back" href="town.html">‹ 돌아가기</a>
+  <h1>미션을 하려면<br>‘정확한 위치’를 켜 주세요</h1>
+  <p class="lead">발도장은 미션 장소의 동그라미 안에 들어가야 찍혀요. 휴대폰이 ‘대략적인 위치’만 알려 주면 오차가 2km 넘게 생겨서, 장소에 와도 왈슨이 알 수 없어요. 웹에서는 켜 달라고 물어볼 수가 없어서 설정에서 한 번만 켜 주시면 돼요.</p>
+
+  <section class="check" id="check" data-state="idle" aria-live="polite">
+    <div class="ck-head">
+      <span class="ck-ic" id="ck-ic" aria-hidden="true"></span>
+      <div class="ck-text">
+        <p class="ck-title" id="ck-title">내 폰은 어떤지 확인해 볼까요?</p>
+        <p class="ck-sub" id="ck-sub"></p>
+      </div>
+    </div>
+    <div class="ck-meter" id="ck-meter" hidden><i id="ck-meter-bar"></i></div>
+    <button type="button" class="btn-main" id="ck-btn">지금 확인하기</button>
+    <p class="ck-note">위치는 오차가 몇 m인지 재는 데만 쓰고, 저장하거나 보내지 않아요.</p>
+  </section>
+
+  <div class="seg" role="tablist" aria-label="휴대폰 종류">
+    <button type="button" role="tab" id="tab-ios" aria-controls="guide-ios" aria-selected="false">아이폰</button>
+    <button type="button" role="tab" id="tab-android" aria-controls="guide-android" aria-selected="false">안드로이드</button>
+  </div>
+  <p class="device" id="device"></p>
+  <section class="guide" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios" hidden></section>
+  <section class="guide" id="guide-android" role="tabpanel" aria-labelledby="tab-android" hidden></section>
+  <p class="mock-note">그림은 어디를 누르는지 보여 주는 예시예요. 폰과 버전마다 모양이 조금 달라요.</p>
+
+  <section class="faq">
+    <h2>궁금한 것</h2>
+    <details>
+      <summary>배터리가 더 닳지 않나요?</summary>
+      <p>켜 두기만 해서는 배터리를 쓰지 않아요. 배터리는 앱이 위치를 읽는 동안에만 써요. 왈슨은 길 기록 산책 중에만 위치를 계속 읽고, [끝내기]를 누르면 멈춰요. [동네] 지도는 열 때와 [내 위치]를 누를 때 한 번씩만 읽어요.</p>
+    </details>
+    <details>
+      <summary>다른 앱도 내 정확한 위치를 알게 되나요?</summary>
+      <p id="faq-other"></p>
+    </details>
+    <details>
+      <summary>왈슨은 내 위치를 어디로 보내나요?</summary>
+      <p>보내지 않아요. 위치는 이 휴대폰 안에서 발도장과 거리를 계산하는 데만 쓰고, 걸은 길은 이 휴대폰에만 저장돼요. 지도 그림을 받아 올 때 보고 있는 지역이 지도 서버(OpenStreetMap)에 전달되는 것까지 <a href="privacy.html">개인정보 안내</a>에 적어 두었어요.</p>
+    </details>
+    <details>
+      <summary>다시 끄고 싶으면요?</summary>
+      <p>같은 곳에서 언제든 끌 수 있어요. 꺼도 기록·주민증·지도는 그대로 쓰고, 발도장·길 기록·도착 알림만 안 돼요.</p>
+    </details>
+  </section>
+
+  <p class="help" id="help">그래도 안 되면 휴대폰을 껐다 켠 뒤 다시 확인해 보세요.<span id="help-chat"></span></p>
+</div>
+
+<div class="dock" id="dock" data-state="idle" hidden>
+  <div class="dock-in">
+    <span class="dk-pill" id="dk-pill"></span>
+    <button type="button" class="dk-btn" id="dk-btn">다시 확인</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var ua = navigator.userAgent || '';
+  var IOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var ANDROID = !IOS && /Android/i.test(ua);
+  var MOBILE = IOS || ANDROID;
+  var STANDALONE = false;
+  try { STANDALONE = !!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone); } catch (e) { STANDALONE = false; }
+  var HOST = location.hostname || 'johnsongarage.co.kr';
+  var APP = detectApp();
+
+  // 지금 왈슨을 연 앱 — 위치 권한은 이 앱 것을 쓴다(홈 화면 왈슨은 설치한 브라우저의 권한, 카톡 안은 카톡 앱의 권한)
+  function detectApp() {
+    var inapp = /KAKAOTALK/i.test(ua) ? '카카오톡' : /NAVER\(inapp/i.test(ua) ? '네이버' : /Instagram/i.test(ua) ? 'Instagram' :
+      /FBAN|FBAV/i.test(ua) ? 'Facebook' : /Line\//i.test(ua) ? 'LINE' : '';
+    if (inapp) return { kind: 'inapp', label: inapp };
+    if (IOS) {
+      if (/CriOS/.test(ua)) return { kind: 'other', label: 'Chrome' };
+      if (/FxiOS/.test(ua)) return { kind: 'other', label: 'Firefox' };
+      if (/EdgiOS/.test(ua)) return { kind: 'other', label: 'Edge' };
+      if (/Whale/i.test(ua)) return { kind: 'other', label: 'Whale' };
+      return { kind: 'safari', label: 'Safari' };
+    }
+    if (ANDROID) {
+      if (/SamsungBrowser/i.test(ua)) return { kind: 'samsung', label: '삼성 인터넷' };
+      if (/Whale/i.test(ua)) return { kind: 'other', label: 'Whale' };
+      if (/Firefox/i.test(ua)) return { kind: 'other', label: 'Firefox' };
+      if (/EdgA/i.test(ua)) return { kind: 'other', label: 'Edge' };
+      if (/; wv\)/.test(ua)) return { kind: 'inapp', label: '지금 쓰는 앱' };
+      return { kind: 'chrome', label: 'Chrome' };
+    }
+    return { kind: 'pc', label: '' };
+  }
+  // 아이폰 위치 서비스 목록에서 찾을 이름 — 사파리와 홈 화면 왈슨은 'Safari 웹 사이트', 나머지는 그 앱 이름
+  var IOS_ENTRY = IOS ? (APP.kind === 'safari' ? 'Safari 웹 사이트' : APP.label) : 'Safari 웹 사이트';
+  var AND_APP = ANDROID ? APP.label : 'Chrome';
+  // 받침에 따라 을/를
+  var OBJ = { 'Chrome': '을', '삼성 인터넷': '을', '카카오톡': '을', 'Instagram': '을', 'Facebook': '을', 'LINE': '을', 'Whale': '을',
+    'Safari 웹 사이트': '를', '네이버': '를', 'Firefox': '를', 'Edge': '를', '지금 쓰는 앱': '을' };
+  function obj(word) { return word + (OBJ[word] || '을(를)'); }
+
+  // ── 돌아가기 ── ?back=town|walk|go (?from=은 유입 통계가 쓰는 이름이라 피함)
+  var BACKS = { town: ['town.html', '지도로 돌아가기'], walk: ['walk.html', '산책 화면으로 돌아가기'], go: ['go.html', '산책 시작 화면으로'] };
+  var backKey = (location.search.match(/[?&]back=([a-z]+)/) || [])[1];
+  var back = BACKS[backKey] || null;
+  var fromHere = false;
+  try { fromHere = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) { fromHere = false; }
+  var backLink = $('back');
+  backLink.href = back ? back[0] : 'town.html';
+  if (back) backLink.textContent = '‹ ' + back[1];
+  backLink.addEventListener('click', function (e) {
+    // 왈슨 안에서 왔으면 뒤로 가기(산책 화면은 그대로 이어진다)
+    if (fromHere && history.length > 1) { e.preventDefault(); history.back(); }
+  });
+
+  // ── 상태 그리기 ──
+  var ICON = {
+    pin: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 6.1 12.1 6.4 12.4a.8.8 0 0 0 1.2 0C12.9 21.1 19 14.2 19 9a7 7 0 0 0-7-7zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2z"/></svg>',
+    ok: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    warn: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2 1.8 20.5h20.4zm-1 6h2v5.6h-2zm0 7.2h2v2h-2z"/></svg>',
+    spin: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 1-9 9"/></svg>'
+  };
+  var TITLES = {
+    idle: '내 폰은 어떤지 확인해 볼까요?',
+    busy: '위치를 재는 중이에요…',
+    good: '정확한 위치가 켜져 있어요',
+    blurry: '위치가 아직 흐릿해요',
+    approx: '‘대략적인 위치’로 되어 있어요',
+    denied: '위치 권한이 막혀 있어요',
+    fail: '위치를 못 읽었어요',
+    pc: 'PC에는 GPS가 없어요'
+  };
+  var DOCK = { good: '정확한 위치 켜짐', blurry: '아직 흐릿해요', approx: '대략적인 위치', denied: '위치 권한 막힘', fail: '위치를 못 읽었어요', pc: 'PC라 대략적이에요' };
+  var state = 'idle', lastAcc = null, checkedOnce = false, busy = false;
+
+  function accText(m) {
+    if (m == null) return '';
+    if (m >= 1000) return (m / 1000).toFixed(1).replace(/\.0$/, '') + 'km';
+    if (m >= 100) return Math.round(m / 10) * 10 + 'm';
+    return Math.max(1, Math.round(m)) + 'm';
+  }
+  function verdict(acc) {
+    if (!MOBILE) return 'pc';
+    if (acc <= 100) return 'good';
+    if (acc < 1000) return 'blurry';
+    return 'approx';
+  }
+  function setSub(parts) {
+    // parts: 글자와 {b: '굵게'}를 섞은 목록 — 글자는 textContent로만 넣는다
+    var el = $('ck-sub');
+    el.innerHTML = '';
+    parts.forEach(function (p) {
+      if (p == null || p === '') return;
+      if (typeof p === 'string') el.appendChild(document.createTextNode(p));
+      else { var b = document.createElement('b'); b.textContent = p.b; el.appendChild(b); }
+    });
+  }
+  function subFor(s, acc, from) {
+    var a = acc != null ? { b: '오차 약 ' + accText(acc) } : '';
+    var head = from ? [from + ' — ', a, '. '] : (a ? [a, ' · '] : []);
+    switch (s) {
+      case 'idle':
+        return ['버튼을 누르면 위치를 몇 초 읽어 오차가 몇 m인지 보여 줘요.' +
+          (ANDROID ? ' 처음이면 위치 허용 창이 떠요 — ‘정확한 위치’가 골라진 채로 허용해 주세요.' : IOS ? ' 처음이면 위치 허용 창이 떠요 — ‘허용’을 눌러 주세요.' : '')];
+      case 'busy':
+        return from && acc != null ? [from + '는 ', { b: '오차 약 ' + accText(acc) }, '였어요. 다시 재는 중이에요 — 최대 10초, 창가나 밖이면 더 빨라요.']
+          : ['최대 10초 걸려요. 창가나 밖이면 더 빨라요.'];
+      case 'good':
+        return head.concat(['이제 미션 장소에 가면 왈슨이 알 수 있어요.']);
+      case 'blurry':
+        return head.concat(['실내라서 그럴 수 있어요. 창가나 밖에서 [다시 확인]을 눌러 보세요. 밖에서도 그대로면 아래 순서대로 설정을 확인해 주세요.']);
+      case 'approx':
+        return head.concat(['이대로는 미션 장소에 와도 알 수 없어요. 아래 순서대로 ‘정확한 위치’를 켜 주세요.']);
+      case 'denied':
+        return ['왈슨이 위치를 읽지 못하게 막혀 있어요. 아래 순서대로 위치를 허용하고 ‘정확한 위치’도 같이 켜 주세요.'];
+      case 'fail':
+        return [IOS ? '설정 > 개인정보 보호 및 보안 > 위치 서비스가 켜져 있는지 봐 주세요. 켜져 있으면 창가나 밖에서 다시 확인해 주세요.'
+          : ANDROID ? '화면 맨 위를 아래로 쓸어 내려 ‘위치’가 켜져 있는지 봐 주세요. 켜져 있으면 창가나 밖에서 다시 확인해 주세요.'
+          : '잠시 뒤 다시 확인해 주세요.'];
+      case 'pc':
+        return head.concat(['PC는 인터넷 주소로 위치를 어림잡아서 늘 대략적이에요. 휴대폰으로 왈슨을 열어 확인해 주세요.']);
+    }
+    return [];
+  }
+  function paint(s, acc, from) {
+    state = s;
+    $('check').setAttribute('data-state', s);
+    $('ck-ic').innerHTML = ICON[s === 'busy' ? 'spin' : s === 'good' ? 'ok' : s === 'idle' ? 'pin' : 'warn'];
+    $('ck-title').textContent = TITLES[s];
+    setSub(subFor(s, acc, from));
+    var btn = $('ck-btn');
+    btn.disabled = s === 'busy';
+    btn.textContent = s === 'busy' ? '재는 중…' : s === 'idle' ? '지금 확인하기' : '다시 확인';
+    $('ck-meter').hidden = s !== 'busy';
+    // 아래 고정 줄
+    var dock = $('dock');
+    dock.setAttribute('data-state', s);
+    $('dk-pill').textContent = s === 'busy' ? '재는 중…' : (DOCK[s] || '') + (acc != null && s !== 'denied' && s !== 'fail' ? ' · 오차 ' + accText(acc) : '');
+    $('dk-btn').disabled = s === 'busy';
+    paintDock();
+    // 이미 켜져 있으면 순서는 다른 사람 폰을 도와줄 때 보는 것
+    document.querySelectorAll('.ok-note').forEach(function (n) { n.hidden = s !== 'good'; });
+  }
+
+  // ── 위치 재기 ── 최대 10초 동안 몇 번 받아 가장 좁은 오차를 쓴다(GPS가 잡히는 동안 좁아진다).
+  // 좌표는 어디에도 남기지 않는다 — 오차(숫자)만 화면에 보여 주고 버린다.
+  function measure(onProgress, done) {
+    var best = null, finished = false, watchId = null, t0 = Date.now(), lastErr = null;
+    function finish() {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer); clearInterval(ticker);
+      if (watchId != null) { try { navigator.geolocation.clearWatch(watchId); } catch (e) { /* 무시 */ } }
+      done(best, best == null ? (lastErr || { code: 3 }) : null);
+    }
+    var timer = setTimeout(finish, 10000);
+    var ticker = setInterval(function () {
+      onProgress(Math.min(1, (Date.now() - t0) / 10000));
+      // 6초가 지나도 2km 넘게 그대로면 대략적인 위치 — 더 기다려도 안 좁아진다
+      if (best != null && best >= 1000 && Date.now() - t0 > 6000) finish();
+    }, 250);
+    try {
+      watchId = navigator.geolocation.watchPosition(function (pos) {
+        var acc = pos && pos.coords && pos.coords.accuracy;
+        if (typeof acc !== 'number' || !(acc > 0)) acc = 99999;
+        if (best == null || acc < best) best = acc;
+        if (acc <= 25) finish();
+      }, function (err) {
+        lastErr = err;
+        if (err && err.code === 1) finish();   // 권한 거부는 기다려도 같다
+      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 9500 });
+    } catch (e) { lastErr = { code: 2 }; finish(); }
+  }
+
+  function runCheck(auto) {
+    if (busy) return;
+    if (!navigator.geolocation) { paint('fail', null); setSub(['이 브라우저에서는 위치 기능을 쓸 수 없어요.']); return; }
+    busy = true;
+    var before = state, wasChecked = checkedOnce;
+    paint('busy', hint ? hint.acc : null, hint ? hint.from : '');
+    hint = null;   // 넘겨받은 숫자는 처음 잴 때 한 번만 보여 준다
+    $('ck-meter-bar').style.width = '0%';
+    measure(function (f) { $('ck-meter-bar').style.width = Math.round(f * 100) + '%'; }, function (acc, err) {
+      busy = false;
+      checkedOnce = true;
+      if (err) { paint(err.code === 1 ? 'denied' : 'fail', null); return; }
+      lastAcc = acc;
+      var v = verdict(acc);
+      paint(v, acc);
+      // 꺼져 있다가 켜졌으면 가운데 카드로 알린다
+      // (넘겨받은 숫자만 보고 그린 첫 상태에서 바로 좋아진 건 알리지 않는다 — 이 화면에서 재 본 뒤 바뀐 것만)
+      if (v === 'good' && wasChecked && before !== 'good' && window.WalsonMissionAlert) {
+        WalsonMissionAlert.show({
+          icon: 'pin', tone: 'good', badge: '오차 약 ' + accText(acc),
+          title: '정확한 위치가 켜졌어요!',
+          lines: ['이제 미션 장소에 가면', '화면 가운데로 알려 드려요.'],
+          primary: { label: back ? back[1] : '확인', href: back ? (fromHere ? undefined : back[0]) : undefined,
+            onClick: back && fromHere ? function () { history.back(); } : undefined },
+          secondary: back ? { label: '닫기' } : undefined
+        });
+      }
+      if (!auto && v !== 'good') {
+        // 결과를 본 다음 순서로 — 상태 카드 바로 아래로 살짝 내려 준다
+        var seg = document.querySelector('.seg');
+        if (seg && seg.getBoundingClientRect().top > window.innerHeight) seg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+  $('ck-btn').addEventListener('click', function () { runCheck(false); });
+  $('dk-btn').addEventListener('click', function () { runCheck(false); });
+  // 설정 앱에 갔다가 돌아오면 저절로 다시 잰다(한 번이라도 재 본 뒤에만 — 허용 창이 갑자기 뜨지 않게)
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && checkedOnce && !busy) runCheck(true);
+  });
+  window.addEventListener('pageshow', function (e) { if (e.persisted && checkedOnce && !busy) runCheck(true); });
+
+  // 아래 고정 줄은 상태 카드가 화면 밖으로 나갔을 때만
+  var checkVisible = true;
+  function paintDock() { $('dock').hidden = checkVisible || state === 'idle'; }
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) { checkVisible = es[0].isIntersecting; paintDock(); }, { threshold: 0.15 }).observe($('check'));
+  }
+
+  // ── 설정 화면 흉내 만들기 ──
+  function h(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function sk(w) { var s = h('span', 'mk-sk'); s.style.width = w + '%'; return s; }
+  // r: { t, small, ic, chev, sw, check, radio:'on'|'off', info, hit, sk }
+  function row(r) {
+    var el = h('div', 'mk-row' + (r.hit ? ' is-hit' : ''));
+    var ctl = null;
+    function control(child) { ctl = h('span', 'mk-ctl'); ctl.appendChild(child); return ctl; }
+    if (r.radio) el.appendChild(control(h('span', 'mk-radio' + (r.radio === 'on' ? ' is-on' : ''))));
+    if (r.info) el.appendChild(control(h('span', 'mk-info', 'i')));
+    if (r.ic) { var ic = h('span', 'mk-ic'); ic.style.background = r.ic; el.appendChild(ic); }
+    if (r.sk) { var wrap = h('span', 'mk-t'); wrap.appendChild(sk(r.sk)); el.appendChild(wrap); }
+    else {
+      var t = h('span', 'mk-t', r.t);
+      if (r.small) t.appendChild(h('small', '', r.small));
+      el.appendChild(t);
+    }
+    if (r.chev) el.appendChild(control(h('span', 'mk-chev')));
+    if (r.sw) el.appendChild(control(h('span', 'mk-sw')));
+    if (r.check) el.appendChild(control(h('span', 'mk-check')));
+    if (r.hit) { if (!ctl) el.appendChild(control(h('span', ''))); ctl.appendChild(h('span', 'mk-tap')); }
+    return el;
+  }
+  function screen(kind, title, sub, groups) {
+    var m = h('div', 'mock is-' + kind);
+    m.setAttribute('aria-hidden', 'true');
+    if (title) { var bar = h('div', 'mk-bar', title); if (sub) bar.appendChild(h('small', '', sub)); m.appendChild(bar); }
+    groups.forEach(function (g) {
+      var grp = h('div', 'mk-grp');
+      if (g.head) grp.appendChild(h('div', 'mk-head', g.head));
+      (g.rows || g).forEach(function (r) { grp.appendChild(row(r)); });
+      m.appendChild(grp);
+    });
+    return m;
+  }
+  function longPress(app) {
+    var m = h('div', 'mock is-and');
+    m.setAttribute('aria-hidden', 'true');
+    var home = h('div', 'mk-home');
+    for (var i = 0; i < 3; i++) { var g = h('div', 'mk-app'); g.appendChild(h('span', 'mk-appic')); g.appendChild(sk(70)); home.appendChild(g); }
+    var tg = h('div', 'mk-app is-target'); tg.appendChild(h('span', 'mk-appic')); tg.appendChild(h('span', '', app)); home.appendChild(tg);
+    var pop = h('div', 'mk-pop');
+    pop.appendChild(row({ info: true, t: '앱 정보', hit: true }));
+    pop.appendChild(row({ sk: 50 }));
+    home.appendChild(pop);
+    m.appendChild(home);
+    return m;
+  }
+  function chromeDialog() {
+    var m = h('div', 'mock is-and');
+    m.setAttribute('aria-hidden', 'true');
+    var d = h('div', 'mk-dialog');
+    d.appendChild(h('div', 'mk-title', HOST));
+    d.appendChild(row({ radio: 'on', t: '정확한 위치', hit: true }));
+    d.appendChild(row({ radio: 'off', t: '대략적인 위치' }));
+    m.appendChild(d);
+    return m;
+  }
+
+  // ── 순서 ──
+  function step(title, text, mock) {
+    var li = h('li', 'step');
+    li.appendChild(h('h3', '', title));
+    if (text) li.appendChild(h('p', '', text));
+    if (mock) li.appendChild(mock);
+    return li;
+  }
+  function list(items, from) {
+    var ol = h('ol', 'steps' + (from ? ' is-more' : ''));
+    if (from) ol.style.setProperty('--from', from);
+    items.forEach(function (it) { ol.appendChild(it); });
+    return ol;
+  }
+  function okNote() { var n = h('p', 'ok-note', '이 폰은 이미 켜져 있어요. 아래는 다른 사람 폰을 도와줄 때 보세요.'); n.hidden = true; return n; }
+
+  function buildIOS() {
+    var box = $('guide-ios');
+    var entry = IOS_ENTRY;
+    box.appendChild(okNote());
+    if (IOS && APP.kind === 'inapp') box.appendChild(h('p', 'more-lead', '지금은 ' + APP.label + ' 안에서 열려 있어서 ' + APP.label + ' 앱의 위치 설정을 써요. 아래 3번에서 ‘' + APP.label + '’' + (OBJ[APP.label] || '을') + ' 찾아 주세요.'));
+    box.appendChild(list([
+      step('설정 앱에서 ‘개인정보 보호 및 보안’을 눌러요', null,
+        screen('ios', '설정', null, [[{ ic: '#c7c7cc', sk: 46 }, { ic: '#c7c7cc', sk: 34 }], [{ ic: '#c7c7cc', sk: 40 }, { ic: '#3a82f7', t: '개인정보 보호 및 보안', chev: true, hit: true }, { ic: '#c7c7cc', sk: 30 }]])),
+      step('‘위치 서비스’를 눌러요', null,
+        screen('ios', '개인정보 보호 및 보안', null, [[{ ic: '#3a82f7', t: '위치 서비스', chev: true, hit: true }, { ic: '#c7c7cc', sk: 38 }, { ic: '#c7c7cc', sk: 30 }]])),
+      step('목록에서 ‘' + entry + '’' + (OBJ[entry] || '을') + ' 찾아 눌러요', '맨 위 ‘위치 서비스’ 스위치는 켜져 있어야 해요.',
+        screen('ios', '위치 서비스', null, [[{ t: '위치 서비스', sw: true }], [{ ic: '#c7c7cc', sk: 36 }, { ic: '#3a82f7', t: entry, chev: true, hit: true }, { ic: '#c7c7cc', sk: 28 }]])),
+      step('‘앱을 사용하는 동안’을 고르고 ‘정확한 위치’를 켜요', '‘정확한 위치’가 꺼져 있으면 오차가 몇 km씩 생겨요.',
+        screen('ios', entry, null, [[{ sk: 22 }, { sk: 52 }, { t: '앱을 사용하는 동안', check: true, hit: true }], [{ t: '정확한 위치', sw: true, hit: true }]])),
+      step('왈슨으로 돌아오면 저절로 다시 확인해요', '안 바뀌면 위의 [다시 확인]을 눌러 주세요.')
+    ]));
+    // 사이트 권한이 막혔을 때(사파리만 — 홈 화면 왈슨에는 주소창이 없다)
+    if (!(IOS && (APP.kind !== 'safari' || STANDALONE))) {
+      box.appendChild(h('h3', 'more-h', '‘위치 권한이 막혀 있어요’가 계속 나오면'));
+      box.appendChild(h('p', 'more-lead', 'Safari가 이 사이트만 막아 두었을 수 있어요. 주소창 왼쪽 버튼(가가)을 누르고 ‘웹 사이트 설정’ > ‘위치’를 ‘허용’으로 바꾼 뒤 새로고침해 주세요.'));
+    }
+  }
+  function buildAndroid() {
+    var box = $('guide-android');
+    var app = AND_APP;
+    box.appendChild(okNote());
+    if (ANDROID && APP.kind === 'inapp') box.appendChild(h('p', 'more-lead', '지금은 ' + APP.label + ' 안에서 열려 있어서 ' + APP.label + ' 앱의 위치 권한을 써요.'));
+    var first = '또는 설정 > 애플리케이션(픽셀은 ‘앱’) > ' + app + '.';
+    if (ANDROID && STANDALONE) first += ' 홈 화면의 왈슨 아이콘이 아니라 ' + app + ' 아이콘이에요 — 홈 화면 왈슨은 ' + app + '의 위치 권한을 써요.';
+    box.appendChild(list([
+      step(app + ' 아이콘을 길게 누르고 ‘앱 정보’를 눌러요', first, longPress(app)),
+      step('‘권한’을 눌러요', null,
+        screen('and', app, null, [[{ sk: 36 }, { t: '권한', hit: true }, { sk: 44 }]])),
+      step('‘위치’를 눌러요', null,
+        screen('and', '앱 권한', app, [{ head: '허용됨', rows: [{ t: '위치', hit: true }, { sk: 30 }] }])),
+      step('‘앱 사용 중에만 허용’을 고르고 ‘정확한 위치 사용’을 켜요', '‘정확한 위치 사용’이 꺼져 있으면 오차가 몇 km씩 생겨요.',
+        screen('and', '위치 액세스 권한', app, [[{ radio: 'on', t: '앱 사용 중에만 허용', hit: true }, { radio: 'off', t: '항상 확인' }, { radio: 'off', t: '허용 안함' }],
+          [{ t: '정확한 위치 사용', small: '정확한 위치가 사용 중지된 경우 앱이 대략적인 위치 정보에 액세스할 수 있습니다.', sw: true, hit: true }]])),
+      step('왈슨으로 돌아오면 저절로 다시 확인해요', '안 바뀌면 ' + obj(app) + ' 완전히 닫았다가 다시 열어 주세요.')
+    ]));
+    if (APP.kind === 'chrome' || !ANDROID) {
+      // 크롬 148(2026-05)부터 사이트마다 정확/대략을 따로 기억한다 — 예전에 왈슨에 '대략'을 골랐으면 여기서만 바뀐다
+      box.appendChild(h('h3', 'more-h', '그래도 안 되면 — Chrome 안의 왈슨 설정'));
+      box.appendChild(h('p', 'more-lead', 'Chrome은 사이트마다 정확한 위치를 따로 기억해요. 예전에 왈슨에서 ‘대략적인 위치’를 골랐거나 위치를 막았다면 여기서 바꿔요.'));
+      box.appendChild(list([
+        step('Chrome 오른쪽 위 ⋮ > 설정 > 사이트 설정 > 위치', ANDROID && STANDALONE ? '홈 화면 왈슨에는 메뉴가 없어서 Chrome 앱을 열어서 해요.' : null,
+          screen('and', '위치', null, [[{ sk: 40 }, { t: HOST, small: '허용됨 • 대략적인 위치', hit: true }, { sk: 32 }]])),
+        step('‘' + HOST + '’를 눌러 ‘정확한 위치’를 골라요', '‘허용됨 • 대략적인 위치’라고 적혀 있으면 이 경우예요. ‘차단됨’ 쪽에 있으면 눌러서 허용으로 바꿔 주세요.', chromeDialog())
+      ], 5));
+    } else if (APP.kind === 'samsung') {
+      box.appendChild(h('h3', 'more-h', '그래도 안 되면 — 삼성 인터넷 안의 사이트 권한'));
+      box.appendChild(h('p', 'more-lead', '삼성 인터넷 메뉴(☰) > 설정에서 ‘사이트 권한’을 찾아, 위치에서 ' + HOST + '가 막혀 있지 않은지 봐 주세요.'));
+    }
+  }
+  function faqOther() {
+    var a;
+    if (IOS && APP.kind === 'safari') a = '아니요. ‘Safari 웹 사이트’ 설정이라 Safari에서 위치를 허용한 웹 사이트에만 해당돼요. 사이트마다 따로 물어보고, 다른 앱의 설정은 그대로예요.';
+    else if (IOS) a = '아니요. ' + APP.label + ' 앱의 설정이라 ' + APP.label + '에서 위치를 허용한 곳에만 해당돼요. 다른 앱의 설정은 그대로예요.';
+    else a = '아니요. ' + AND_APP + ' 앱의 설정이라 ' + AND_APP + '에서 위치를 허용한 곳에만 해당돼요. 사이트마다 따로 물어보고, 다른 앱의 설정은 그대로예요.';
+    $('faq-other').textContent = a;
+  }
+
+  // ── 탭 ──
+  function selectTab(which) {
+    ['ios', 'android'].forEach(function (k) {
+      var on = k === which;
+      $('tab-' + k).setAttribute('aria-selected', on ? 'true' : 'false');
+      $('guide-' + k).hidden = !on;
+    });
+    var d = '';
+    if (which === 'ios' && IOS) d = '지금 폰: 아이폰 · ' + (STANDALONE ? '홈 화면 왈슨' : APP.kind === 'inapp' ? APP.label + ' 안' : APP.label);
+    if (which === 'android' && ANDROID) d = '지금 폰: 안드로이드 · ' + (STANDALONE ? '홈 화면 왈슨(' + AND_APP + ')' : APP.kind === 'inapp' ? APP.label + ' 안' : AND_APP);
+    $('device').textContent = d;
+  }
+  $('tab-ios').addEventListener('click', function () { selectTab('ios'); });
+  $('tab-android').addEventListener('click', function () { selectTab('android'); });
+
+  buildIOS();
+  buildAndroid();
+  faqOther();
+  selectTab(IOS ? 'ios' : 'android');   // PC면 안드로이드부터(국내 휴대폰은 안드로이드가 더 많다)
+
+  // 도움 요청 — 카톡 채널 1:1 채팅(site-config.js)
+  var C = window.WALSON_CONFIG || {};
+  var chat = C.kakaoChannel ? C.kakaoChannel.replace(/\/$/, '') + '/chat' : '';
+  if (chat) {
+    var hc = $('help-chat');
+    hc.appendChild(document.createTextNode(' 계속 안 되면 '));
+    var a = h('a', '', '카톡 채널 ‘왈슨’');
+    a.href = chat; a.target = '_blank'; a.rel = 'noopener';
+    hc.appendChild(a);
+    hc.appendChild(document.createTextNode('으로 폰 기종을 알려 주세요. 같이 봐 드릴게요.'));
+  }
+
+  // ── 처음 상태 ──
+  // 다른 화면([동네]·산책)에서 넘어올 때 방금 읽은 위치의 오차만 이 창에 잠깐 넘겨받는다(sessionStorage — 서버로 가지 않음)
+  var hint = null;
+  try {
+    var hh = JSON.parse(sessionStorage.getItem('walson_loc_hint') || 'null');
+    if (hh && typeof hh.acc === 'number' && Date.now() - hh.at < 10 * 60000) hint = { acc: hh.acc, from: hh.src === 'walk' ? '방금 산책 화면에서 읽은 위치' : '방금 [동네] 지도에서 읽은 위치' };
+    sessionStorage.removeItem('walson_loc_hint');
+  } catch (e) { hint = null; }
+  if (hint) paint(verdict(hint.acc), hint.acc, hint.from);
+  else paint('idle', null);
+  if (!MOBILE && !hint) paint('pc', null);
+  // 위치를 이미 허용한 폰이면 열자마자 잰다(허용 창이 뜨지 않으니까). 막혀 있으면 막힌 상태부터 보여 준다.
+  try {
+    navigator.permissions.query({ name: 'geolocation' }).then(function (p) {
+      if (p.state === 'granted') runCheck(true);
+      else if (p.state === 'denied') { checkedOnce = true; paint('denied', null); }
+    }, function () { /* 모르면 버튼으로 */ });
+  } catch (e) { /* 모르면 버튼으로 */ }
+})();
+</script>
+</body>
+</html>
