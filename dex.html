@@ -102,7 +102,7 @@
 
   <div class="count"><b id="dex-count">0</b><span>마리를 만났어요</span></div>
   <div class="grid" id="grid"></div>
-  <p class="note">QR에 담기는 것: 강아지 이름 · 크기 · 신호등 · 털색(프로필 사진에서 뽑은 색 하나).
+  <p class="note">QR에 담기는 것: 강아지 이름 · 크기 · 성향 · 털색(프로필 사진에서 뽑은 색 하나).
   위치 · 사진 · 견주 정보는 담지 않아요.<br>
   서로 도감에 넣으려면 둘 다 찍어야 해요. 상대가 나중에 이름을 바꾸면 다시 찍어야 바뀌어요.</p>
 </div>
@@ -115,7 +115,7 @@
     <div class="qr" id="my-qr"></div>
     <!-- 카드 주소 보내기(2026-11-16 가르시아): 키링을 신청할 때 운영자에게 이 주소를 보낸다 — 키링 뒷면 QR·NFC에 그대로 들어간다 -->
     <button type="button" class="btn btn-main" id="share-btn">카드 주소 보내기 · 키링 신청용</button>
-    <p class="sub" style="margin:8px 0 12px;">이 주소에는 강아지 이름·크기·신호등·털색만 들어가요. 주소를 받은 사람은 누구나 열어 볼 수 있어요.</p>
+    <p class="sub" style="margin:8px 0 12px;">이 주소에는 강아지 이름·크기·성향·털색만 들어가요. 주소를 받은 사람은 누구나 열어 볼 수 있어요.</p>
     <button type="button" class="btn btn-sub" data-close>닫기</button>
   </div>
 </div>
@@ -147,9 +147,9 @@
   // 도감(petwalk_dex)·내 번호(petwalk_dex_me)·주민증은 store.js(WalsonStore)로 읽고 쓴다
   // 상대 QR 찍기(카메라)는 qr-scan.js(WalsonQR), 공유 창은 device.js(WalsonDevice)
   var SIGNAL = {
-    g: { color: 'var(--green)', label: '초록불', desc: '다가와도 좋아요' },
-    y: { color: 'var(--yellow)', label: '노랑불', desc: '천천히 인사해요' },
-    r: { color: 'var(--red)', label: '빨강불', desc: '눈으로만 예뻐해 주세요' }
+    g: { color: 'var(--green)', desc: '다가와도 좋아요' },
+    y: { color: 'var(--yellow)', desc: '천천히 인사해요' },
+    r: { color: 'var(--red)', desc: '눈으로만 예뻐해 주세요' }
   };
   var SIZE = { s: '소형견', m: '중형견', l: '대형견' };
   var SIZE_FROM = { small: 's', medium: 'm', large: 'l' };
@@ -246,7 +246,7 @@
     box.innerHTML = '';
     box.appendChild(avatar(dog, true));
     box.appendChild(el('h2', '', title || dog.n));
-    var meta = SIZE[dog.s] + (SIGNAL[dog.g] ? ' · ' + SIGNAL[dog.g].label + ' · ' + SIGNAL[dog.g].desc : '');
+    var meta = SIZE[dog.s] + (SIGNAL[dog.g] ? ' · ' + SIGNAL[dog.g].desc : '');
     var m = el('p', 'sub', meta); m.style.marginBottom = '8px';
     if (SIGNAL[dog.g]) m.style.color = SIGNAL[dog.g].color;
     box.appendChild(m);
@@ -262,7 +262,7 @@
       b.appendChild(avatar(d));
       b.appendChild(el('div', 'name', d.n));
       b.appendChild(el('div', 'meta', SIZE[d.s]));
-      if (SIGNAL[d.g]) { var s = el('div', 'sig', SIGNAL[d.g].label); s.style.color = SIGNAL[d.g].color; b.appendChild(s); }
+      if (SIGNAL[d.g]) { var s = el('div', 'sig', SIGNAL[d.g].desc); s.style.color = SIGNAL[d.g].color; b.appendChild(s); }
       b.appendChild(el('div', 'met', (d.days > 1 ? d.days + '번 만남 · ' : '') + dayLabel(d.last)));
       b.addEventListener('click', function () { openInfo(d.i); });
       grid.appendChild(b);
