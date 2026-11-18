@@ -33,6 +33,8 @@
   .poster { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 16mm 16mm 12mm; background: var(--yellow); }
   .poster .logo { width: 70mm; height: auto; }
   .poster .brand { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 17mm; line-height: 1; margin: 2mm 0 0; letter-spacing: 0.01em; }
+  /* 한글 이름(11/18 가르시아 "포스터에도 한글 왈슨") — 전단과 같이 WALSON 옆, 세로줄로 나눔 */
+  .poster .brand .ko { margin-left: 5mm; padding-left: 5mm; border-left: 1mm solid var(--ink); }
   .poster .tag { font-size: 6mm; font-weight: 800; margin: 2.5mm 0 8mm; letter-spacing: -0.01em; }
   .poster h1 { font-size: 13mm; line-height: 1.2; margin: 0; letter-spacing: -0.03em; font-weight: 900; }
   .poster h1 em { font-style: normal; background: #fff; padding: 0 2mm; }
@@ -134,7 +136,9 @@
   // 홍보물 필수 문구 — site-config.js 한 곳에서(포스터·전단 모두)
   var BR = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || {};
   function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-  document.getElementById('brand-name').textContent = BR.name || '';
+  var bn = document.getElementById('brand-name');
+  bn.textContent = BR.name || '';
+  if (BR.nameKo) { var ko = document.createElement('span'); ko.className = 'ko'; ko.textContent = BR.nameKo; bn.appendChild(ko); }
   document.getElementById('brand-tagline').textContent = BR.tagline || '';
   // start.html의 SHARE_URL과 같은 주소 — 카드 QR과 같은 곳으로 보낸다
   var URL_FULL = 'https://johnsongarage.co.kr/walson/start.html';
