@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>왈슨 공원 홍보물 인쇄</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
 <style>
@@ -105,7 +105,7 @@
   <h1>30초면<br>우리 강아지 <em>주민증</em> 발급</h1>
   <p class="lead">다산동 강아지라면 누구나. 사진 한 장이면 끝!</p>
   <div class="steps">
-    <div class="step"><b>1</b><span>신호등 고르기</span><small>다른 강아지를<br>만났을 때 우리 애는?</small>
+    <div class="step"><b>1</b><span>강아지 성향 고르기</span><small>다른 강아지를<br>만났을 때 우리 애는?</small>
       <div class="lamps"><i style="background:#3f9b5b"></i><i style="background:#dfa21f"></i><i style="background:#d2493f"></i></div></div>
     <div class="step"><b>2</b><span>이름·사진</span><small>앨범에서 한 장<br>골라 주세요</small></div>
     <div class="step"><b>3</b><span>카드 저장</span><small>카톡 프사·스토리용<br>모양도 있어요</small></div>
@@ -125,7 +125,7 @@
 <div class="sheet flyers" id="sheet-flyers" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="site-config.js?v=8"></script>
+<script src="site-config.js?v=9"></script>
 <script>
 (function () {
   // 홍보물 필수 문구 — site-config.js 한 곳에서(포스터·전단 모두)
@@ -165,7 +165,7 @@
         '<div class="top"><img src="icons/walson-logo.webp" alt=""><b>' + esc(BR.name) + '</b></div>' +
         '<div class="slogan">' + esc(BR.tagline) + '</div>' +
         '<h2>30초면 우리 강아지<br><em>주민증</em> 발급</h2>' +
-        '<p>신호등 고르고 사진 한 장이면 끝.<br>설치·로그인 없음, 위치 안 물어봐요.</p>' +
+        '<p>강아지 성향 고르고 사진 한 장이면 끝.<br>설치·로그인 없음, 위치 안 물어봐요.</p>' +
         '<div class="url">' + URL_TEXT + '</div>' +
       '</div>' +
       '<div class="qr">' + svg + '</div>';

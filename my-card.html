@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>주민증</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="왈슨">
@@ -148,7 +148,7 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="theme.js?v=10"></script>
-<script src="site-config.js?v=8"></script>
+<script src="site-config.js?v=9"></script>
 <script src="inapp.js?v=4"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
@@ -207,11 +207,11 @@
     <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·면·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
     <button type="button" class="btn btn-primary" id="save-btn">꾸미고 저장하기</button>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
-    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080. 앞면은 QR 대신 APP WALSON 문구 -->
+    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080. 앞면은 QR 대신 브랜드 문구(site-config.js brand) -->
     <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 인쇄소용 파일 저장 · 지금 보는 면</button>
     <p class="hint">A4에 앞·뒷면이 네 쌍 실제 크기(85.6×54mm)로 나와요. 인쇄 배율은 100%(실제 크기)로. 오려서 등을 맞대고 포토카드 홀더에 넣으면 리드줄에 달 수 있어요.
     인식표(보호자 연락처·동물등록번호)는 따로 달아 주세요.<br>
-    키링 인쇄소용 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 키링 크기에선 안 찍히는 QR 대신 "APP WALSON" 문구가 들어가요.
+    키링 인쇄소용 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 키링 크기에선 안 찍히는 QR 대신 "WALSON" 문구가 들어가요.
     인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로"라고 전해 주세요. 양면으로 하려면 뒷면을 보고 한 번 더 저장하세요.</p>
   </div>
 

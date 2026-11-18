@@ -83,11 +83,14 @@
       fab.setAttribute('aria-label', '산책 — 지금 나가기 또는 다녀왔어요');
     }
   }
-  // [동네]의 아래쪽 덩어리(미션 카드·급할 때·동반 가게 줄) 바로 위에 붙는다. 그 덩어리가 숨으면(목록 창이 열림) 같이 숨는다.
+  // [동네]의 목록 시트(2026-11-18 — 요약 줄·볼 것·미션 카드) 바로 위에 붙는다. 시트를 반·펼침으로 올리면 숨는다.
+  // (예전 화면의 아래쪽 덩어리 #bottom-stack도 그대로 따른다 — 그 덩어리가 숨으면 같이 숨음)
+  function anchor() { return document.getElementById('list-sheet') || document.getElementById('bottom-stack'); }
   function place() {
-    var stack = document.getElementById('bottom-stack');
+    var stack = anchor();
     if (!stack) return;
-    if (stack.hidden) { fab.hidden = true; return; }
+    var state = stack.getAttribute('data-state');
+    if (stack.hidden || (state && state !== 'peek')) { fab.hidden = true; return; }
     fab.hidden = false;
     var top = stack.getBoundingClientRect().top;
     if (top > 0) fab.style.bottom = Math.round(window.innerHeight - top + 10) + 'px';
@@ -231,10 +234,10 @@
     document.body.appendChild(sheet);
     paintFab();
     place();
-    var stack = document.getElementById('bottom-stack');
+    var stack = anchor();
     if (stack) {
       if (window.ResizeObserver) new ResizeObserver(place).observe(stack);
-      if (window.MutationObserver) new MutationObserver(place).observe(stack, { attributes: true, attributeFilter: ['hidden'] });
+      if (window.MutationObserver) new MutationObserver(place).observe(stack, { attributes: true, attributeFilter: ['hidden', 'data-state'] });
     }
     window.addEventListener('resize', place);
     setInterval(paintFab, 30000);   // "N분째"를 가끔 새로

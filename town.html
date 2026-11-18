@@ -12,7 +12,7 @@
 <meta property="og:title" content="왈슨">
 <meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/town.html">
-<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=1">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=3">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="800">
 <meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
@@ -23,8 +23,8 @@
 <link rel="stylesheet" href="splash.css?v=1">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
 <meta name="theme-color" content="#f7ede2">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
@@ -33,7 +33,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="infra-pins.js?v=26"></script>
+<script src="infra-pins.js?v=27"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=4"></script>
 <script src="map-deco.js?v=2"></script>
@@ -154,23 +154,83 @@
     box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.25);
   }
   .tool-link[hidden] { display: none; }
-  /* 아래쪽(2026-11-15): 다음 미션 카드 위에, 버튼 줄(급할 때 · 동반 가게 목록 · 수호견 모아 보기) 아래에 */
-  .bottom-stack {
-    position: fixed; left: 12px; right: 12px; bottom: calc(var(--tabbar-h, 58px) + 12px); z-index: 1000;
-    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+  /* ── 목록 시트(2026-11-18, 가르시아 "공원 홍보 전에 1단계 적용해줘" — hq notes/petwalk-map-list-view-plan.md A안 1단계,
+     시안 map-sheet-proto.html) ──
+     예전 아래쪽 덩어리(미션 카드 + 급할 때·동반 가게·QR·수호견 버튼 줄)와 따로 뜨던 목록 판 둘(급할 때·동반 가게)을 시트 하나로 합쳤다.
+     접힘(기본): 요약 줄("이 화면 N곳 · 종류별 개수") + 볼 것 버튼 + 미션 카드 / 반: 고른 것의 목록 / 펼침: 같은 목록을 크게.
+     손잡이·요약 줄을 끌거나 눌러서 바꾸고, 지도나 핀을 누르면 접힌다. 시트 높이만 바뀌고 지도는 그대로다. */
+  .list-sheet {
+    position: fixed; left: 0; right: 0; bottom: var(--tabbar-h, 58px); z-index: 1001;
+    display: flex; flex-direction: column; word-break: keep-all; overflow: hidden;
+    background: var(--panel); border-top: 1px solid var(--panel-border); border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 24px rgba(var(--shadow-rgb), 0.2);
+    transition: height 0.22s ease;
   }
-  .bottom-stack > * { pointer-events: auto; }
-  .bottom-stack[hidden] { display: none; }
-  .bottom-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; pointer-events: none; }
-  .bottom-links > * { pointer-events: auto; }
-  /* 사업자 정보 한 줄(2026-11-17) — 카카오톡 채널 비즈니스 심사: 첫 화면에서 서비스명과 사업자 정보가 같이 보이게.
-     지도가 첫 화면이라 아래 버튼 줄 밑에 작게 두고, 누르면 왈슨 소개(about.html) */
+  /* PC처럼 넓은 화면에선 가운데 한 칸만(예전 미션 카드처럼) — 양옆 지도는 그대로 보이게 */
+  @media (min-width: 700px) { .list-sheet { left: 50%; right: auto; width: 480px; transform: translateX(-50%); border-left: 1px solid var(--panel-border); border-right: 1px solid var(--panel-border); } }
+  .list-sheet.is-dragging { transition: none; }
+  @media (prefers-reduced-motion: reduce) { .list-sheet { transition: none; } }
+  .ls-grab { flex: none; display: flex; justify-content: center; padding: 8px 0 6px; cursor: grab; touch-action: none; }
+  .ls-grab .bar { width: 40px; height: 5px; border-radius: 3px; background: #d8c8b3; }
+  .ls-head { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 0 14px 10px; }
+  .ls-top { display: flex; align-items: center; gap: 8px; }
+  .ls-summary {
+    flex: 1; min-width: 0; min-height: 32px; display: flex; align-items: center; gap: 8px;
+    padding: 0; border: none; background: none; color: var(--ink); font-family: inherit; text-align: left; cursor: pointer; touch-action: none;
+  }
+  /* 요약은 한 줄 — 넘치면 … (종류별 개수가 많아져도 시트 높이가 들쭉날쭉하지 않게) */
+  .ls-summary .sum { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ls-summary b { font-size: 14px; font-weight: 800; }
+  .ls-summary .cnt { margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .ls-summary .cnt i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+  .ls-summary .more { flex: none; font-size: 12px; font-weight: 800; color: var(--accent); white-space: nowrap; }
+  .list-sheet[data-state="peek"] .ls-close { display: none; }
+  .ls-modes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ls-mode {
+    flex: none; display: flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px;
+    border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font-family: inherit; font-size: 13px; font-weight: 800;
+    white-space: nowrap; cursor: pointer;
+  }
+  .ls-mode[hidden] { display: none; }
+  .ls-mode:active { transform: scale(0.97); }
+  .ls-mode[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  /* 급할 때는 빨간 글씨로 눈에 띄게(예전 버튼과 같은 색) */
+  .ls-mode.is-sos { color: #a33a2f; border-color: #e8c4bd; }
+  .ls-mode.is-sos[aria-pressed="true"] { background: #c2453f; color: #fff; border-color: #c2453f; }
+  /* QR 찍기(2026-11-16)는 목록이 아니라 바로 하는 것 — 앞에 QR 동그라미 */
+  .ls-mode.is-act { padding-left: 6px; }
+  .ls-mode .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .list-sheet .mission-card { max-width: none; background: #fff; box-shadow: none; }
+  .list-sheet:not([data-state="peek"]) .mission-card { display: none; }
+  .ls-tools:empty { display: none; }
+  .list-sheet[data-state="peek"] .ls-tools, .list-sheet[data-state="peek"] .ls-body { display: none; }
+  .ls-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .ls-body .shop-list { overflow: visible; }
+  .ls-body .sheet-note:empty { display: none; }
+  /* 사업자 정보 한 줄(2026-11-17 카카오톡 채널 비즈니스 심사용으로 만듦, 11/18 승인) — 서비스명과 사업자 정보, 누르면 왈슨 소개(about.html).
+     11/18 목록 시트가 생기면서 예전 아래 버튼 줄이 없어져, 목록 맨 아래(시트를 올리면 보이는 자리)로 옮겼다 */
   .biz-line {
-    max-width: 420px; padding: 3px 10px; border-radius: 8px; background: var(--panel); opacity: 0.9;
+    display: block; max-width: 420px; margin: 2px auto 14px; padding: 3px 10px; border-radius: 8px;
     color: var(--ink-soft); font-size: 10.5px; line-height: 1.5; text-align: center; text-decoration: none; word-break: keep-all;
-    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.12);
   }
   .biz-line[hidden] { display: none; }
+  /* '지금 화면' 목록은 줄이 많아질 수 있어 조금 낮게 */
+  .shop-item.is-row { padding: 8px 10px; align-items: center; }
+  .shop-item.is-row .shop-thumb, .shop-item.is-row .shop-thumb img, .shop-item.is-row .shop-thumb .ic { width: 38px; height: 38px; }
+  .shop-item.is-row .meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 수호견은 얼굴이 주인공이라 2열 카드(그리드) */
+  .ls-grid { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .g-card { display: flex; flex-direction: column; gap: 3px; padding: 10px; border-radius: 16px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font-family: inherit; text-align: left; cursor: pointer; }
+  .g-card:active { transform: scale(0.98); }
+  .g-card img, .g-card .ph { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; border: 3px solid var(--panel-border); background: var(--bg-deep); margin-bottom: 3px; }
+  .g-card .ph { display: flex; align-items: center; justify-content: center; color: #d08a2e; }
+  .g-card b { font-size: 14px; font-weight: 800; }
+  .g-card span { font-size: 12px; color: var(--ink-soft); }
+  .ls-link { list-style: none; text-align: center; }
+  .ls-link a { display: inline-block; padding: 8px 12px; font-size: 13px; font-weight: 800; color: var(--accent); text-decoration: none; }
+  /* 지도 출처 표기(OpenStreetMap)는 시트에 가리지 않게 왼쪽 아래, 시트 바로 위에 둔다(--ls-h = 시트 높이, 스크립트가 맞춘다).
+     넓은 화면은 시트가 가운데 한 칸이라 왼쪽 아래 구석이 비어 있어서 그대로 둔다 */
+  @media (max-width: 699px) { .leaflet-bottom { bottom: var(--ls-h, 0px); } }
   /* 다음 미션 카드(2026-11-15 가르시아 "어디 가야 하는지 목표·미션을 알려 주자") */
   .mission-card {
     width: 100%; max-width: 420px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer;
@@ -190,14 +250,6 @@
   .mission-card .mc-t2 { font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mission-card .mc-t3 { font-size: 12px; color: var(--ink-soft); word-break: keep-all; }
   .mission-card .mc-go { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--accent); }
-  .sos-link {
-    display: flex; align-items: center; gap: 7px; font-family: inherit; cursor: pointer;
-    font-size: 13px; font-weight: 800; color: #a33a2f; background: var(--panel); border: 1px solid #e8c4bd;
-    padding: 7px 14px 7px 8px; border-radius: 999px; white-space: nowrap; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.22);
-  }
-  .sos-link .ic { width: 24px; height: 24px; border-radius: 50%; background: #c2453f; color: #fff; display: flex; align-items: center; justify-content: center; }
-  .sos-link:active { transform: scale(0.97); }
-  .sos-link[hidden] { display: none; }
   /* 지금 미션 장소 — 깃발 + 천천히 퍼지는 고리 */
   .mission-pin { position: relative; width: 44px; height: 44px; }
   .mission-pin .mp-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--accent); animation: mp-pulse 1.8s ease-out infinite; }
@@ -208,38 +260,8 @@
   .sheet-sec { list-style: none; font-size: 12px; font-weight: 800; color: var(--ink-soft); padding: 4px 2px 0; }
   .sos-acts { display: flex; gap: 6px; margin-top: 4px; }
   .sos-acts a { font-size: 12px; font-weight: 800; color: var(--accent); text-decoration: none; padding: 3px 10px; border: 1px solid var(--panel-border); border-radius: 999px; background: #fff; }
-  .shop-link {
-    display: flex; align-items: center; gap: 7px; font-family: inherit; cursor: pointer;
-    font-size: 13px; font-weight: 800; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
-    padding: 7px 16px 7px 8px; border-radius: 999px; white-space: nowrap;
-    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.22);
-  }
-  .shop-link .ic { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; }
-  .shop-link:active { transform: scale(0.97); }
-  .shop-link[hidden] { display: none; }
-  /* 앱 안 QR 찍기(2026-11-16) — 가게 카운터의 체크인 QR. 모양은 동반 가게 버튼과 같고 동그라미 색만 다르다.
-     오른쪽 여백을 조금 줄여 390px 폭 휴대폰에서 급할 때 · 동반 가게와 한 줄에 들어가게(더 좁으면 두 줄) */
-  .qr-link { gap: 5px; padding-right: 12px; }
-  .qr-link .ic { background: var(--ink); }
-  /* 수호지킴이 모아 보기(2026-11-15) — 목록 화면(guardians.html)으로 */
-  .guard-link {
-    font-size: 13px; font-weight: 800; color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
-    padding: 9px 16px; border-radius: 999px; text-decoration: none; white-space: nowrap;
-    box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.22);
-  }
-  .guard-link[hidden] { display: none; }
 
-  /* 동반 가게 목록(2026-11-15, 기획표 V3-01 중 목록·지도 + B-22·B-49·B-34) — 아래에서 올라오는 판 */
-  .shop-sheet {
-    position: fixed; left: 0; right: 0; bottom: var(--tabbar-h, 58px); z-index: 1001;
-    max-height: 62vh; display: flex; flex-direction: column; word-break: keep-all;
-    background: var(--panel); border-top: 1px solid var(--panel-border); border-radius: 20px 20px 0 0;
-    box-shadow: 0 -6px 24px rgba(var(--shadow-rgb), 0.22);
-  }
-  .shop-sheet[hidden] { display: none; }
-  .sheet-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 4px; }
-  .sheet-head b { font-size: 16px; font-weight: 800; }
-  .sheet-head .sub { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-soft); }
+  /* 목록 줄(동반 가게 목록 2026-11-15, 기획표 V3-01 중 목록·지도 + B-22·B-49·B-34 — 지금은 목록 시트 안에서 모두 이 모양) */
   .sheet-close { width: 32px; height: 32px; padding: 0; border-radius: 10px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font: 700 18px/1 Pretendard, -apple-system, sans-serif; cursor: pointer; }
   .sheet-tools { display: flex; gap: 6px; overflow-x: auto; padding: 6px 14px 10px; scrollbar-width: none; flex-shrink: 0; }
   .sheet-tools::-webkit-scrollbar { display: none; }
@@ -310,7 +332,7 @@
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
 <script src="theme.js?v=10"></script>
-<script src="site-config.js?v=8"></script>
+<script src="site-config.js?v=9"></script>
 <script src="inapp.js?v=4"></script>
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
@@ -347,28 +369,32 @@
   </button>
 </div>
 <div class="stars" id="stars" hidden aria-label="동네 스타"></div>
-<div class="bottom-stack" id="bottom-stack">
-  <button type="button" class="mission-card" id="mission-card" hidden></button>
-  <div class="bottom-links">
-    <button type="button" class="sos-link" id="sos-link" hidden></button>
-    <button type="button" class="shop-link" id="shop-link" hidden></button>
-    <button type="button" class="shop-link qr-link" id="qr-link" hidden></button>
-    <a class="guard-link" id="guard-link" href="guardians.html" hidden></a>
+<!-- 목록 시트(2026-11-18) — 지도 위에 끌어 올리는 목록. 접힘: 요약 줄 + 볼 것 버튼 + 미션 카드 / 반·펼침: 고른 것의 목록.
+     예전 아래쪽 덩어리(미션 카드·버튼 줄)와 급할 때·동반 가게 판 둘을 합쳤다. 산책 버튼(walk-fab.js)은 접혔을 때 이 시트 바로 위에 붙는다 -->
+<section class="list-sheet" id="list-sheet" data-state="peek" aria-label="지도 목록">
+  <div class="ls-grab" id="ls-grab" role="button" tabindex="0" aria-label="목록 크기 바꾸기"><span class="bar"></span></div>
+  <div class="ls-head" id="ls-head">
+    <div class="ls-top">
+      <button type="button" class="ls-summary" id="ls-summary" aria-controls="ls-body" aria-expanded="false"></button>
+      <button type="button" class="sheet-close ls-close" id="ls-close" aria-label="목록 접기">×</button>
+    </div>
+    <div class="ls-modes" id="ls-modes" role="group" aria-label="목록에서 볼 것">
+      <button type="button" class="ls-mode" id="view-link" aria-pressed="false">지금 화면</button>
+      <button type="button" class="ls-mode is-sos" id="sos-link" aria-pressed="false" hidden>급할 때</button>
+      <button type="button" class="ls-mode" id="shop-link" aria-pressed="false" hidden>동반 가게</button>
+      <button type="button" class="ls-mode" id="guard-link" aria-pressed="false" hidden>수호견</button>
+      <button type="button" class="ls-mode is-act" id="qr-link" hidden>QR 찍기</button>
+    </div>
+    <button type="button" class="mission-card" id="mission-card" hidden></button>
   </div>
-  <a class="biz-line" id="biz-line" href="about.html" hidden></a>
-</div>
+  <div class="sheet-tools ls-tools" id="ls-tools" role="group" aria-label="목록 거르기"></div>
+  <div class="ls-body" id="ls-body">
+    <ul class="shop-list" id="ls-list"></ul>
+    <p class="sheet-note" id="ls-note"></p>
+    <a class="biz-line" id="biz-line" href="about.html" hidden></a>
+  </div>
+</section>
 <script>(function (el) { if (!el || !window.WalsonBizInfo) return; WalsonBizInfo(el); if (!el.hidden) el.insertAdjacentText('beforeend', ' · 왈슨 소개 ›'); })(document.getElementById('biz-line'));</script>
-<div class="shop-sheet" id="sos-sheet" role="dialog" aria-labelledby="sos-title" hidden>
-  <div class="sheet-head"><b id="sos-title">급할 때</b><span class="sub" id="sos-sub"></span><button type="button" class="sheet-close" id="sos-close" aria-label="닫기">×</button></div>
-  <ul class="shop-list" id="sos-list"></ul>
-  <p class="sheet-note">가까운 순이에요(제휴 여부와 상관없이). 진료 시간은 바뀔 수 있으니 가기 전에 전화로 확인하세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.</p>
-</div>
-<div class="shop-sheet" id="shop-sheet" role="dialog" aria-labelledby="shop-title" hidden>
-  <div class="sheet-head"><b id="shop-title">동반 가게</b><span class="sub" id="shop-sub"></span><button type="button" class="sheet-close" id="shop-close" aria-label="닫기">×</button></div>
-  <div class="sheet-tools" id="shop-tools" role="group" aria-label="조건으로 거르기"></div>
-  <ul class="shop-list" id="shop-list"></ul>
-  <p class="sheet-note">조건은 운영자가 직접 가서 확인한 날 기준이에요. 매장마다 바뀔 수 있으니 들어가기 전에 한 번 더 물어보세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.</p>
-</div>
 
 <script src="tabbar.js?v=9" data-tab="town"></script>
 <script>
@@ -400,9 +426,15 @@
       off.textContent = '예시 끄기';
       band.appendChild(off);
       wrap.insertBefore(band, wrap.firstChild);
+      // 띠만큼 지도와 목록 시트를 올린다(--tabbar-h에는 이 띠가 안 들어 있다 — 안 올리면 시트가 띠를 덮는다)
+      document.documentElement.style.setProperty('--tabbar-h', wrap.offsetHeight + 'px');
+      map.invalidateSize();
+      relayoutSheet();
     });
   }
   WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
+  // 지도 출처 표기는 왼쪽 아래로 — 오른쪽 아래엔 산책 버튼이 붙는다(목록 시트 위로 올리는 건 CSS --ls-h)
+  if (map.attributionControl) map.attributionControl.setPosition('bottomleft');
   document.getElementById('zoom-in').addEventListener('click', function () { map.zoomIn(); });
   document.getElementById('zoom-out').addEventListener('click', function () { map.zoomOut(); });
 
@@ -428,7 +460,8 @@
   var shops = InfraPins.category('spot') ? InfraPins.all().filter(function (p) { return InfraPins.isCompanionShop(p); }) : [];
   var shopUi = {};      // 가게 id → { pin, walkEl, regEl } — 칸을 끈 것은 null
   var shopPins = {};    // 지도에 올린 가게 id → pin(마커 Lv 배지를 다시 그릴 때)
-  var sheet = document.getElementById('shop-sheet');
+  // 목록 시트 '지금 화면'에 올릴 것 — 지도에 올린 마커마다 { kind, key(레이어), marker, ... }. 그림 강아지는 누를 수 없어서 뺀다
+  var viewItems = [];
   function lvBadge(id) { var v = ShopVisits.info(id); return v.level ? 'Lv' + v.level : ''; }
   function shopDist(pin) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], [pin.lat, pin.lng]) : null; }
   function mk(tag, cls, text) {
@@ -492,27 +525,30 @@
   function refreshShops() {
     Object.keys(shopUi).forEach(paintShopExtra);
     Object.keys(shopPins).forEach(function (id) {
-      [['shop', shopMarkers[id]], ['guard', guardMarkers[id]]].forEach(function (x) {
+      [['shop', shopMarkers[id]], ['guard', guardMarkers[id]], ['cheer', cheerMarkers[id]]].forEach(function (x) {
         var marker = x[1];
         if (!marker) return;
         marker.setIcon(L.divIcon(InfraPins.markerFor(shopPins[id], { as: x[0], badge: lvBadge(id) }).icon));
         if (marker.isPopupOpen()) marker.getPopup().update();
       });
     });
-    if (!sheet.hidden) renderShopList();
     if (typeof paintMission === 'function' && missionCard) paintMission();
-    if (!sosSheet.hidden) renderSos();
+    renderSheet();   // 목록 시트(걸어서 몇 분·가까운 순·Lv가 바뀜)
   }
 
   // 마커와 팝업 모양은 infra-pins.js가 정한다: 동반 스팟(특히 사진 있는 가게 강아지)이 크고 앞에,
   // 나머지 시설은 작고 옅게. 팝업은 사진을 가운데 크게. 동반 스팟 팝업엔 걸어서 N분·방문 도장(단골 Lv) 칸을 붙인다.
-  // 아래쪽엔 미션 카드와 버튼 줄이 있어서 그만큼 비켜 연다(동네 스타 줄은 내림).
-  var POPUP_OPTS = L.extend({}, InfraPins.POPUP_OPTS, { autoPanPaddingBottomRight: [16, 150] });   // 아래쪽 미션 카드·버튼 줄만큼
+  // 아래쪽엔 목록 시트가 있어서 그만큼 비켜 연다(동네 스타 줄은 내림). POPUP_PAD는 모든 팝업이 같이 쓰는 배열이라
+  // 시트(접혔을 때) 높이가 바뀌면 [1]만 고친다(fitSheet) — 핀을 누르면 시트가 접히므로 늘 접힌 높이 기준.
+  var POPUP_PAD = [16, 190];
+  var POPUP_OPTS = L.extend({}, InfraPins.POPUP_OPTS, { autoPanPaddingBottomRight: POPUP_PAD });
+  var PAD_OPTS = { autoPanPaddingTopLeft: [16, 120], autoPanPaddingBottomRight: POPUP_PAD };   // 발도장·내 핀 팝업(크기는 기본)
   var spotMarkers = {}; // 스팟 id → 마커(가게가 아닌 시설 — 급할 때 목록에서 그 자리로 가서 연다)
   // 가게(2026-11-17 가르시아 "동반 가게와 수호견 가게는 같은 레벨"): 동반 가게 레이어엔 가게 핀(네모·컵), 수호견 가게 레이어엔 강아지 핀.
   // 둘 다인 가게(A)는 두 레이어에 다 넣고, 수호견 가게가 보이는 동안엔 가게 핀을 숨겨 한 자리에 핀 하나만 둔다(sync).
-  // 동반도 안 되고 수호견도 없는 가게(D)는 올리지 않는다 — 응원 가게로 올릴지는 결정 대기(notes/petwalk-shop-display-plan.md)
-  var shopMarkers = {}, guardMarkers = {}, bothIds = [];
+  // 동반도 안 되고 수호견도 없지만 사장님이 참여한 가게는 응원 가게 레이어(하트 핀, 11/17 가르시아 "응원 가게 만들어").
+  // 참여도 안 한 가게(D)는 올리지 않는다.
+  var shopMarkers = {}, guardMarkers = {}, cheerMarkers = {}, bothIds = [];
   InfraPins.all().forEach(function (pin) {
     if (!InfraPins.category(pin.cat)) return;
     if (pin.cat !== 'spot') {
@@ -521,10 +557,11 @@
         .bindPopup(InfraPins.popupEl(pin, null), POPUP_OPTS);
       spotMarkers[pin.id] = marker;
       addTo(pin.cat, marker);
+      viewItems.push({ kind: 'infra', key: pin.cat, pin: pin, marker: marker });
       return;
     }
-    var asShop = InfraPins.isCompanionShop(pin), asGuard = InfraPins.isGuardShop(pin);
-    if (!asShop && !asGuard) return;
+    var asShop = InfraPins.isCompanionShop(pin), asGuard = InfraPins.isGuardShop(pin), asCheer = InfraPins.isCheerShop(pin);
+    if (!asShop && !asGuard && !asCheer) return;
     shopPins[pin.id] = pin;
     // 팝업은 하나를 두 핀이 같이 쓴다(한 번에 하나만 지도에 있음)
     var popup = InfraPins.popupEl(pin, { extraEl: shopExtraEl(pin) });
@@ -533,24 +570,27 @@
       var marker = L.marker([pin.lat, pin.lng], { icon: L.divIcon(m.icon), title: pin.name || '', zIndexOffset: zOf(key, m.zIndexOffset / 20) })
         .bindPopup(popup, POPUP_OPTS);
       addTo(key, marker);
+      viewItems.push({ kind: 'shop', key: key, as: as, pin: pin, marker: marker });   // 둘 다인 가게도 지도엔 핀 하나라 목록에도 하나
       return marker;
     }
     if (asShop) shopMarkers[pin.id] = place('shop', 'spot');
     if (asGuard) guardMarkers[pin.id] = place('guard', 'guard');
+    if (asCheer) cheerMarkers[pin.id] = place('cheer', 'cheer');
     if (asShop && asGuard) bothIds.push(pin.id);
   });
   // 지금 이 가게를 나타내는 핀 — 수호견 가게 레이어가 보이면 강아지 핀, 아니면 가게 핀
   function shopMarkerOf(id) {
     var gm = guardMarkers[id], sm = shopMarkers[id];
     if (gm && (!sm || (layers.guard && map.hasLayer(layers.guard)))) return gm;
-    return sm || gm || null;
+    return sm || gm || cheerMarkers[id] || null;
   }
 
-  // 수호지킴이 모아 보기 — 있을 때만
-  var guardianCount = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); }).length;
-  if (guardianCount && !InfraPins.GUARDIAN_DEMO) {   // 예시 화면에선 목록으로 넘어가지 않는다(넘어가면 예시가 사라짐)
+  // 수호견 — 있을 때만 목록 시트에 '수호견 N' 버튼(얼굴 카드 2열). 시트 안이라 예시 화면에서도 예시가 사라지지 않는다.
+  // 지역별로 모아 보기(guardians.html)는 그 카드 아래 링크로(예시 화면에선 넘어가면 예시가 사라져서 빼 둔다)
+  var guardPins = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); });
+  if (guardPins.length) {
     var gl = document.getElementById('guard-link');
-    gl.textContent = '수호견 ' + guardianCount + '마리 모아 보기';
+    gl.textContent = '수호견 ' + guardPins.length;
     gl.hidden = false;
   }
 
@@ -658,9 +698,10 @@
       stateEl.textContent = '발도장 장소예요. 아직이에요 — 길 기록 산책 중 여기서 산책 화면을 열면 ' + dogName + ' 얼굴이 찍혀요.';
       icon = L.divIcon({ className: '', html: '<div class="stamp">' + STAMP_SVG + '</div>', iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
     }
-    var sm = L.marker(pl.center, { icon: icon, title: pl.name, zIndexOffset: isMission ? 6000 : zOf('stamp', v ? 60 : 0) }).bindPopup(wrap);
+    var sm = L.marker(pl.center, { icon: icon, title: pl.name, zIndexOffset: isMission ? 6000 : zOf('stamp', v ? 60 : 0) }).bindPopup(wrap, PAD_OPTS);
     stampMarkers[pl.id] = sm;
     addTo('stamp', sm);
+    viewItems.push({ kind: 'stamp', key: 'stamp', place: pl, visit: v, mission: isMission, marker: sm });
   });
 
   // B. 그림 강아지 — 공원마다 1~2마리. 실제 강아지가 아니라 지도 꾸밈 그림이다(누를 수 없음, 확대했을 때만)
@@ -687,7 +728,9 @@
     src.textContent = '내가 찍은 핀 · 이 휴대폰에만 있어요';
     wrap.appendChild(memo);
     wrap.appendChild(src);
-    addTo('mine', L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: zOf('mine') }).bindPopup(wrap));
+    var mm = L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: zOf('mine') }).bindPopup(wrap, PAD_OPTS);
+    addTo('mine', mm);
+    viewItems.push({ kind: 'mine', key: 'mine', memo: p.memo || '', marker: mm });
   });
 
   function sync() {
@@ -706,6 +749,7 @@
       if (!guardShown && !layers.spot.hasLayer(sm)) layers.spot.addLayer(sm);
     });
     refreshChips();
+    scheduleSheet();   // 켜고 끈 것·확대 단계가 바뀌면 요약 줄과 '지금 화면' 목록도
   }
 
   // ── 칩: 윗줄은 묶음, 아랫줄은 펼친 묶음 안의 레이어 ──
@@ -807,18 +851,11 @@
   ];
   var shopFilterOn = {};   // 이 화면에서만(저장하지 않음)
   var shopLink = document.getElementById('shop-link');
-  var bottomStack = document.getElementById('bottom-stack');
-  var sosSheet = document.getElementById('sos-sheet');
   if (shops.length) {
-    shopLink.innerHTML = '<span class="ic">' + InfraPins.iconSvg('spot', 14) + '</span>';
-    shopLink.appendChild(document.createTextNode('동반 가게 ' + shops.length + '곳'));
+    shopLink.textContent = '동반 가게 ' + shops.length;
     shopLink.hidden = false;
   }
-  var shopListSent = false;   // 통계: 동반 가게 목록을 연 것(화면을 연 동안 한 번만, 값 없음)
-  shopLink.addEventListener('click', function () {
-    openSheet(sheet); renderShopList();
-    if (!shopListSent && window.WalsonTrack) { shopListSent = true; WalsonTrack.send('shop_list_open'); }
-  });
+  var shopListSent = false;   // 통계: 동반 가게 목록을 연 것(화면을 연 동안 한 번만, 값 없음) — 목록 시트에서 '동반 가게'를 고를 때
 
   // ── QR 찍기(2026-11-16) — 가게 카운터의 체크인 QR을 앱 안에서 찍는다(qr-scan.js) ──
   // 휴대폰 카메라로 찍으면 브라우저(사파리 등)가 열려 홈 화면 앱에는 도장이 안 남을 수 있어서 앱 안에서 찍게 한다.
@@ -844,31 +881,27 @@
       });
     });
   }
-  function openSheet(el) { sheet.hidden = true; sosSheet.hidden = true; el.hidden = false; bottomStack.hidden = true; }
-  function closeSheet() { sheet.hidden = true; sosSheet.hidden = true; bottomStack.hidden = false; }
-  document.getElementById('shop-close').addEventListener('click', closeSheet);
-  document.getElementById('sos-close').addEventListener('click', closeSheet);
-  map.on('click', function () { if (!sheet.hidden || !sosSheet.hidden) closeSheet(); });
   function toneCss(tone) { return InfraPins.TONES[tone].soft; }
+  // 목록 맨 앞 '내 위치에서 가까운 순' — 위치를 아직 모를 때만(누르면 이유를 먼저 설명하고 읽는다)
+  function addNearBtn() {
+    var near = mk('button', 'near-btn', '내 위치에서 가까운 순');
+    near.type = 'button';
+    near.addEventListener('click', function () { locate().then(refreshShops, function () {}); });
+    lsTools.appendChild(near);
+  }
 
-  function renderShopList() {
-    var tools = document.getElementById('shop-tools');
-    tools.innerHTML = '';
-    if (!myPos) {
-      var near = mk('button', 'near-btn', '내 위치에서 가까운 순');
-      near.type = 'button';
-      near.addEventListener('click', function () { locate().then(refreshShops, function () {}); });
-      tools.appendChild(near);
-    }
+  // 목록 시트 '동반 가게' — 예전 동반 가게 판 그대로(조건 거르기 · 가까운 순 또는 단골·이름 순)
+  function renderShopMode() {
+    if (!myPos) addNearBtn();
     SHOP_FILTERS.forEach(function (f) {
       var c = mk('button', 'chip', f.label);
       c.type = 'button';
       c.setAttribute('aria-pressed', shopFilterOn[f.key] ? 'true' : 'false');
       c.addEventListener('click', function () {
         if (shopFilterOn[f.key]) delete shopFilterOn[f.key]; else shopFilterOn[f.key] = true;
-        renderShopList();
+        renderSheet();
       });
-      tools.appendChild(c);
+      lsTools.appendChild(c);
     });
 
     var active = SHOP_FILTERS.filter(function (f) { return shopFilterOn[f.key]; });
@@ -879,12 +912,13 @@
     rows.sort(myPos
       ? function (a, b) { return a.d - b.d; }
       : function (a, b) { return (b.v.count - a.v.count) || String(a.pin.name || '').localeCompare(String(b.pin.name || ''), 'ko'); });
-    document.getElementById('shop-sub').textContent =
-      (active.length ? shops.length + '곳 중 ' + rows.length + '곳' : shops.length + '곳') + ' · ' + (myPos ? '가까운 순' : '단골·이름 순');
-
-    var list = document.getElementById('shop-list');
-    list.innerHTML = '';
-    if (!rows.length) { list.appendChild(mk('li', 'sheet-empty', '이 조건에 맞는 가게는 아직 없어요')); return; }
+    var info = {
+      title: '동반 가게 ' + (active.length ? shops.length + '곳 중 ' + rows.length + '곳' : shops.length + '곳'),
+      sub: myPos ? '가까운 순' : '단골·이름 순',
+      note: '조건은 운영자가 직접 가서 확인한 날 기준이에요. 매장마다 바뀔 수 있으니 들어가기 전에 한 번 더 물어보세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.'
+    };
+    var list = lsList;
+    if (!rows.length) { list.appendChild(mk('li', 'sheet-empty', '이 조건에 맞는 가게는 아직 없어요')); return info; }
     rows.forEach(function (r) {
       var pin = r.pin;
       var li = mk('li');
@@ -918,18 +952,23 @@
       if (fit) { var fe = mk('span', 'fit', fit.text); fe.style.color = InfraPins.TONES[fit.tone].ink; body.appendChild(fe); }
       item.appendChild(thumb);
       item.appendChild(body);
-      item.addEventListener('click', function () { closeSheet(); goToShop(pin.id); });
+      item.addEventListener('click', function () { goToShop(pin.id); });
       li.appendChild(item);
       list.appendChild(li);
     });
+    return info;
   }
-  function goToShop(id) {
-    if (!shopMarkers[id] && !guardMarkers[id]) return;
-    filter.set(shopMarkers[id] ? 'spot' : 'guard', true);   // 동반 가게 목록에서 왔으니 동반 가게를 꺼 두었더라도 다시 켠다
-    var at = (shopMarkers[id] || guardMarkers[id]).getLatLng();
-    map.setView(at, Math.max(map.getZoom(), 16), { animate: false });
+  // 목록에서 누른 가게로: 시트를 접고, 그 가게 레이어를 꺼 두었더라도 다시 켜서 팝업을 연다.
+  // asGuard: 수호견 카드에서 왔으면 강아지 핀으로(둘 다인 가게도)
+  function goToShop(id, asGuard) {
+    var key = asGuard && guardMarkers[id] ? 'guard' : shopMarkers[id] ? 'spot' : guardMarkers[id] ? 'guard' : cheerMarkers[id] ? 'cheer' : '';
+    if (!key) return;
+    setSheet('peek');
+    filter.set(key, true);
+    var target = key === 'guard' ? guardMarkers[id] : key === 'spot' ? shopMarkers[id] : cheerMarkers[id];
+    map.setView(target.getLatLng(), Math.max(map.getZoom(), 16), { animate: false });
     sync();
-    shopMarkerOf(id).openPopup();
+    (key === 'guard' ? target : shopMarkerOf(id)).openPopup();
   }
 
   // ── 다음 미션 카드 ──
@@ -1012,24 +1051,22 @@
   var SOS_CATS = [{ key: 'vet', label: '동물병원', max: 3 }, { key: 'toilet', label: '화장실', max: 3 }];
   var sosPins = InfraPins.all().filter(function (p) { return p.cat === 'vet' || p.cat === 'toilet'; });
   var sosLink = document.getElementById('sos-link');
-  if (sosPins.length) {
-    sosLink.innerHTML = '<span class="ic">' + InfraPins.iconSvg('vet', 13) + '</span>';
-    sosLink.appendChild(document.createTextNode('급할 때'));
-    sosLink.hidden = false;
-  }
+  if (sosPins.length) sosLink.hidden = false;
   var sosLocating = false;
-  sosLink.addEventListener('click', function () {
-    openSheet(sosSheet);
-    renderSos();
-    if (!myPos) {   // 가까운 곳을 찾으려고 누른 것이라 바로 위치를 읽는다(처음이면 이유를 먼저 묻는다)
-      sosLocating = true; renderSos();
-      locate().then(function () { sosLocating = false; refreshShops(); }, function () { sosLocating = false; renderSos(); });
-    }
-  });
-  function renderSos() {
-    var list = document.getElementById('sos-list');
-    list.innerHTML = '';
-    document.getElementById('sos-sub').textContent = myPos ? '가까운 순' : (sosLocating ? '내 위치를 찾는 중…' : '위치를 모르면 이름 순');
+  // 목록 시트 '급할 때' — 고르면 위치부터 읽는다(가까운 곳을 찾으려고 누른 것이라. 처음이면 이유를 먼저 묻는다)
+  function sosLocate() {
+    if (myPos || sosLocating) return;
+    sosLocating = true; renderSheet();
+    locate().then(function () { sosLocating = false; refreshShops(); }, function () { sosLocating = false; renderSheet(); });
+  }
+  function renderSosMode() {
+    var list = lsList;
+    var res = {
+      title: '급할 때 · 병원 · 화장실',
+      sub: myPos ? '가까운 순' : (sosLocating ? '내 위치를 찾는 중…' : '위치를 모르면 이름 순'),
+      note: '가까운 순이에요(제휴 여부와 상관없이). 진료 시간은 바뀔 수 있으니 가기 전에 전화로 확인하세요. 걸어서 몇 분은 직선 거리로 어림한 값이에요.'
+    };
+    if (!myPos && !sosLocating) addNearBtn();
     SOS_CATS.forEach(function (c) {
       var rows = sosPins.filter(function (p) { return p.cat === c.key; })
         .map(function (p) { return { pin: p, d: myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], [p.lat, p.lng]) : null }; });
@@ -1069,18 +1106,20 @@
         acts.addEventListener('click', function (e) { e.stopPropagation(); });
         body.appendChild(acts);
         item.appendChild(thumb); item.appendChild(body);
-        var go = function () { closeSheet(); goToPin(pin.id); };
+        var go = function () { goToPin(pin.id); };
         item.addEventListener('click', go);
         item.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
         li.appendChild(item);
         list.appendChild(li);
       });
     });
+    return res;
   }
   // 꺼 둔 종류(화장실·병원)여도 이 핀 하나만 잠깐 보여 주고, 팝업을 닫으면 다시 숨긴다
   function goToPin(id) {
     var marker = spotMarkers[id];
     if (!marker) return;
+    setSheet('peek');
     map.setView(marker.getLatLng(), Math.max(map.getZoom(), 16), { animate: false });
     sync();
     if (!map.hasLayer(marker)) {
@@ -1091,12 +1130,324 @@
     marker.openPopup();
   }
 
+  // ── 목록 시트(2026-11-18, 지도 목록 A안 1단계 — hq notes/petwalk-map-list-view-plan.md, 시안 map-sheet-proto.html) ──
+  // 볼 것: 지금 화면 · 급할 때 · 동반 가게 · 수호견(있을 때만). QR 찍기는 목록이 아니라 바로 하는 버튼(위 qrLink).
+  // 접힘의 요약 줄과 '지금 화면' 목록은 같은 범위 — 접힌 시트 위로 보이는 지도 안에서 지금 지도에 떠 있는 핀(위 칩으로 켠 것·확대 단계대로).
+  // 시트를 올려도 범위는 접혔을 때 그대로라 요약 줄의 개수와 목록의 개수가 같다.
+  // 거리는 내 위치를 알면 내 위치에서(걸어서 몇 분), 모르면 그 범위의 가운데에서 잰다(이때는 순서에만 쓰고 몇 분은 안 보인다).
+  // 내 위치는 지금처럼 버튼을 눌렀을 때만 읽고 이 화면 메모리에만 둔다. 목록 때문에 밖으로 보내는 것은 없다(통계도 예전 shop_list_open 하나뿐).
+  var sheetEl = document.getElementById('list-sheet');
+  var lsGrab = document.getElementById('ls-grab'), lsHead = document.getElementById('ls-head');
+  var lsSummary = document.getElementById('ls-summary'), lsClose = document.getElementById('ls-close');
+  var lsTools = document.getElementById('ls-tools'), lsBody = document.getElementById('ls-body');
+  var lsList = document.getElementById('ls-list'), lsNote = document.getElementById('ls-note');
+  var mapEl = document.getElementById('map');
+  var sheetState = 'peek', sheetMode = 'view', peekH = 0, sheetReady = false, sheetTimer = null;
+  var VIEW_MAX = 60;   // '지금 화면'은 가까운 60곳까지(핀이 아주 많아지면 — 2단계에서 겹친 핀 묶음과 같이 다시 본다)
+  var MODE_BTN = { view: document.getElementById('view-link'), sos: sosLink, shop: shopLink, guard: document.getElementById('guard-link') };
+  var SHORT = { stamp: '발도장', park: '공원', bag: '봉투함', guard: '수호견', cheer: '응원 가게' };   // 요약 줄에 쓰는 짧은 이름
+  var PIN_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2z"/></svg>';
+
+  // 높이: 접힘 = 손잡이 + 머리(요약 줄·볼 것·미션 카드), 반 = 지도 높이의 55%, 펼침 = 위 칩 한 줄만 남기고
+  function availH() { return mapEl.clientHeight || Math.max(200, window.innerHeight - 58); }
+  function naturalPeek() { return lsGrab.offsetHeight + lsHead.offsetHeight; }
+  function heights() {
+    var H = availH();
+    var peek = Math.min(Math.round(H * 0.45), peekH || naturalPeek());
+    var full = Math.max(peek + 80, H - 56);
+    var half = Math.min(full, Math.max(peek + 140, Math.round(H * 0.55)));
+    return { peek: peek, half: half, full: full };
+  }
+  function fitSheet() {
+    if (sheetState === 'peek') peekH = naturalPeek();   // 접혔을 때만 잰다(펼치면 미션 카드가 숨어서 머리가 낮아짐)
+    var h = heights();
+    if (!sheetEl.classList.contains('is-dragging')) sheetEl.style.height = h[sheetState] + 'px';
+    POPUP_PAD[1] = h.peek + 16;   // 팝업은 접힌 시트 위로 열린다
+    if (!window.ResizeObserver) placeAttribution(h[sheetState]);
+  }
+  // 지도 출처 표기를 시트 바로 위로 — 펼쳤을 때(지도가 위 칩 줄만큼만 남음)는 칩 뒤로 비죽 나오지 않게 시트 밑으로 들어간다
+  function placeAttribution(h) { mapEl.style.setProperty('--ls-h', Math.round(Math.min(h, availH() - 80)) + 'px'); }
+  function relayoutSheet() {
+    if (!sheetReady) return;
+    fitSheet();
+    scheduleSheet();
+    if (window.WalsonWalkFab) WalsonWalkFab.place();   // 시트가 통째로 올라가면(예시 화면 띠) 크기는 그대로라 산책 버튼이 모른다
+  }
+  function setSheet(s) {
+    if (!sheetReady) return;
+    if (sheetState === 'peek' && s !== 'peek') lsBody.scrollTop = 0;
+    sheetState = s;
+    sheetEl.setAttribute('data-state', s);
+    lsSummary.setAttribute('aria-expanded', s === 'peek' ? 'false' : 'true');
+    renderSheet();
+    fitSheet();
+  }
+  // 손잡이·요약 줄을 누르면: 접힘 → 반('지금 화면') → 펼침 → 접힘
+  function cycleSheet() {
+    if (sheetState === 'peek') sheetMode = 'view';
+    setSheet(sheetState === 'peek' ? 'half' : sheetState === 'half' ? 'full' : 'peek');
+  }
+  function chooseMode(m) {
+    if (sheetMode === m && sheetState !== 'peek') return;
+    sheetMode = m;
+    lsBody.scrollTop = 0;
+    if (m === 'shop' && !shopListSent && window.WalsonTrack) { shopListSent = true; WalsonTrack.send('shop_list_open'); }
+    if (sheetState === 'peek') setSheet('half'); else renderSheet();
+    if (m === 'sos') sosLocate();
+  }
+  Object.keys(MODE_BTN).forEach(function (m) {
+    MODE_BTN[m].addEventListener('click', function () { chooseMode(m); });
+  });
+  lsClose.addEventListener('click', function () { setSheet('peek'); });
+
+  // 끌어서 바꾸기 — 손잡이·요약 줄에서. 조금만 움직였으면 누름(click이 처리), 놓으면 가까운 단계로
+  (function dragSheet() {
+    var startY = 0, startH = 0, active = false, moved = false, lastDragEnd = 0;
+    function down(e) {
+      if (e.button) return;   // 마우스 오른쪽 등
+      active = true; moved = false; startY = e.clientY; startH = sheetEl.getBoundingClientRect().height;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* 못 잡아도 손잡이 위에서는 끌린다 */ }
+    }
+    function move(e) {
+      if (!active) return;
+      var dy = startY - e.clientY;
+      if (!moved) {
+        if (Math.abs(dy) < 6) return;
+        moved = true;
+        sheetEl.classList.add('is-dragging');
+      }
+      var h = heights();
+      sheetEl.style.height = Math.max(h.peek - 40, Math.min(h.full, startH + dy)) + 'px';
+    }
+    function up() {
+      if (!active) return;
+      active = false;
+      if (!moved) return;
+      sheetEl.classList.remove('is-dragging');
+      lastDragEnd = Date.now();
+      var h = heights(), cur = sheetEl.getBoundingClientRect().height, best = 'peek', bd = Infinity;
+      ['peek', 'half', 'full'].forEach(function (s) { var d = Math.abs(h[s] - cur); if (d < bd) { bd = d; best = s; } });
+      if (sheetState === 'peek' && best !== 'peek') sheetMode = 'view';
+      setSheet(best);   // 같은 단계로 돌아와도 높이를 제자리로(fitSheet)
+    }
+    [lsGrab, lsSummary].forEach(function (el) {
+      el.addEventListener('pointerdown', down);
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+      el.addEventListener('click', function () {
+        if (Date.now() - lastDragEnd < 400) return;   // 끌고 놓은 바로 뒤의 click은 무시
+        cycleSheet();
+      });
+    });
+    lsGrab.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleSheet(); } });
+  })();
+
+  // ── 시트 안 그리기 ──
+  function viewBox() {   // 접힌 시트 위로 보이는 지도(Leaflet 화면 좌표)
+    var s = map.getSize();
+    return { w: s.x, h: Math.max(40, s.y - (peekH || 0)) };
+  }
+  function viewEntries() {
+    var b = viewBox(), out = [];
+    viewItems.forEach(function (e) {
+      if (!map.hasLayer(e.marker)) return;   // 꺼 둔 레이어·아직 넓게 봐서 안 뜬 핀은 빼고
+      var p = map.latLngToContainerPoint(e.marker.getLatLng());
+      if (p.x >= 0 && p.x <= b.w && p.y >= 0 && p.y <= b.h) out.push(e);
+    });
+    return out;
+  }
+  function originLatLng() {
+    if (myPos) return [myPos.lat, myPos.lng];
+    var b = viewBox(), c = map.containerPointToLatLng([b.w / 2, b.h / 2]);
+    return [c.lat, c.lng];
+  }
+  function paintPeekSummary(sum, list) {
+    if (!list.length) { sum.appendChild(mk('b', '', '이 화면엔 켠 곳이 없어요')); return; }
+    sum.appendChild(mk('b', '', '이 화면 ' + list.length + '곳'));
+    var cnt = {};
+    list.forEach(function (e) { cnt[e.key] = (cnt[e.key] || 0) + 1; });
+    // 순서는 지도 묶음의 우선순위(스팟 편집) — 칩과 같은 순서
+    var keys = Object.keys(cnt).sort(function (a, b) { return (lay.byKey[a] ? lay.byKey[a].rank : 99) - (lay.byKey[b] ? lay.byKey[b].rank : 99); });
+    keys.slice(0, 3).forEach(function (k) {
+      var l = lay.byKey[k] || { label: k, color: '#7a6a58' };
+      var c = mk('span', 'cnt');
+      var dot = mk('i');
+      dot.style.background = l.color;
+      c.appendChild(dot);
+      c.appendChild(document.createTextNode((SHORT[k] || l.label) + ' ' + cnt[k]));
+      sum.appendChild(c);
+    });
+    if (keys.length > 3) sum.appendChild(mk('span', 'cnt', '외 ' + (keys.length - 3) + '종류'));
+  }
+  function renderSheet() {
+    if (!sheetReady) return;
+    Object.keys(MODE_BTN).forEach(function (m) {
+      MODE_BTN[m].setAttribute('aria-pressed', sheetState !== 'peek' && sheetMode === m ? 'true' : 'false');
+    });
+    lsSummary.innerHTML = '';
+    var sum = mk('span', 'sum');
+    lsSummary.appendChild(sum);
+    lsSummary.appendChild(mk('span', 'more', sheetState === 'peek' ? '목록 ▲' : sheetState === 'half' ? '더 보기 ▲' : '접기 ▼'));
+    if (sheetState === 'peek') {
+      paintPeekSummary(sum, viewEntries());
+      return;
+    }
+    lsTools.innerHTML = '';
+    lsList.innerHTML = '';
+    var res = (sheetMode === 'sos' ? renderSosMode : sheetMode === 'shop' ? renderShopMode : sheetMode === 'guard' ? renderGuardMode : renderViewMode)();
+    sum.appendChild(mk('b', '', res.title));
+    if (res.sub) sum.appendChild(mk('span', 'cnt', res.sub));
+    lsNote.textContent = res.note || '';
+  }
+  // 지도를 옮기거나 칩을 바꾸면 요약 줄과 '지금 화면' 목록만 다시(다른 목록은 지도와 상관없음)
+  function scheduleSheet() {
+    if (!sheetReady) return;
+    clearTimeout(sheetTimer);
+    sheetTimer = setTimeout(function () { if (sheetState === 'peek' || sheetMode === 'view') renderSheet(); }, 80);
+  }
+
+  function iconBox(svg, color) {
+    var ic = mk('span', 'ic');
+    if (color) ic.style.background = color;
+    ic.innerHTML = svg;
+    return ic;
+  }
+  function photoBox(src) { var img = mk('img'); img.src = src; img.alt = ''; return img; }
+  // '지금 화면' 한 줄: 아이콘 · 이름 · (내 위치를 알면) 걸어서 몇 분 · 상태 한 줄
+  function entryRow(e, d) {
+    var li = mk('li');
+    var item = mk('button', 'shop-item is-row');
+    item.type = 'button';
+    var thumb = mk('span', 'shop-thumb');
+    var name = '', meta = [], layerLabel = (lay.byKey[e.key] || {}).label || '';
+    if (e.kind === 'shop') {
+      var pin = e.pin, v = ShopVisits.info(pin.id);
+      var photo = e.as === 'guard' ? (InfraPins.dogPhoto(pin) || InfraPins.shopPhoto(pin)) : (InfraPins.shopPhoto(pin) || InfraPins.dogPhoto(pin));
+      if (photo) thumb.appendChild(photoBox(photo));
+      else thumb.appendChild(e.as === 'cheer' ? iconBox(InfraPins.heartSvg(20), InfraPins.CHEER_COLOR) : iconBox(InfraPins.iconSvg('spot', 20), (lay.byKey[e.key] || {}).color));
+      if (v.level) thumb.appendChild(mk('span', 'lv', 'Lv' + v.level));
+      name = pin.name || layerLabel || '가게';
+      meta.push(layerLabel || '가게');
+      if (e.as === 'guard' && InfraPins.hasGuardian(pin)) meta.push('수호견 ' + pin.guardian.name);
+      else if (e.as === 'cheer') { var sp = InfraPins.supportInfo(pin); if (sp && sp.offer) meta.push(sp.offer); }
+      else {
+        var badges = InfraPins.petBadges(pin);
+        meta.push(badges.length ? badges.slice(0, 2).map(function (b) { return b.text; }).join(' · ') : '동반 조건 확인 전');
+      }
+      if (v.count) meta.push('방문 도장 ' + v.count + '번');
+    } else if (e.kind === 'infra') {
+      var c = InfraPins.category(e.pin.cat) || { label: '', color: '#6b5d4e' };
+      thumb.appendChild(iconBox(InfraPins.iconSvg(e.pin.cat, 20), c.color));
+      name = e.pin.name || c.label;
+      if (name !== c.label) meta.push(c.label);
+      if (e.pin.cat === 'vet') {
+        var vi = InfraPins.vetInfo(e.pin);
+        meta.push(vi.hours ? '진료 ' + vi.hours : '진료 시간 확인 전');
+        if (vi.night) meta.push('야간 진료');
+      } else if (e.pin.note) meta.push(e.pin.note);
+      if (!meta.length) meta.push(InfraPins.sourceText(e.pin));
+    } else if (e.kind === 'stamp') {
+      if (e.visit && !e.mission && myDog.photo) thumb.appendChild(photoBox(myDog.photo));
+      else thumb.appendChild(iconBox(e.mission ? FLAG_SVG : STAMP_SVG, e.mission || e.visit ? 'var(--accent)' : '#a8998a'));
+      name = e.mission ? '미션 ' + missionNow.no + ' · ' + e.place.name : e.place.name;
+      meta.push(e.mission ? '지금 미션 · 길 기록 산책으로 지나가면 발도장' :
+        e.visit ? withJosa(dogName) + ' ' + e.visit.count + '번 다녀갔어요' : '발도장 장소 · 아직이에요');
+    } else {   // 내가 찍은 핀
+      thumb.appendChild(iconBox(PIN_SVG, 'var(--accent)'));
+      name = e.memo || '메모 없는 핀';
+      meta.push('내가 찍은 핀 · 이 휴대폰에만 있어요');
+    }
+    var body = mk('span', 'body');
+    var row1 = mk('span', 'row1');
+    row1.appendChild(mk('span', 'name', name));
+    if (d != null) row1.appendChild(mk('span', 'walk', ShopVisits.walkText(d)));
+    body.appendChild(row1);
+    body.appendChild(mk('span', 'meta', meta.join(' · ')));
+    item.appendChild(thumb);
+    item.appendChild(body);
+    item.addEventListener('click', function () { goToEntry(e); });
+    li.appendChild(item);
+    return li;
+  }
+  function renderViewMode() {
+    var o = originLatLng();
+    var rows = viewEntries().map(function (e) {
+      var ll = e.marker.getLatLng();
+      return { e: e, d: ShopVisits.distanceM(o, [ll.lat, ll.lng]) };
+    }).sort(function (a, b) { return a.d - b.d; });
+    if (!myPos) addNearBtn();
+    if (!rows.length) lsList.appendChild(mk('li', 'sheet-empty', '지금 화면엔 켠 곳이 없어요. 지도를 옮기거나 위 칩을 켜 보세요.'));
+    rows.slice(0, VIEW_MAX).forEach(function (r) { lsList.appendChild(entryRow(r.e, myPos ? r.d : null)); });
+    if (rows.length > VIEW_MAX) lsList.appendChild(mk('li', 'sheet-empty', '가까운 ' + VIEW_MAX + '곳까지만 보여요 · 지도를 확대하면 좁혀져요'));
+    return {
+      title: '지금 화면 ' + rows.length + '곳',
+      sub: myPos ? '내 위치에서 가까운 순' : '화면 가운데에서 가까운 순',
+      note: '지금 지도에 보이는 곳 중 위 칩으로 켠 것만이에요. 지도를 옮기면 목록도 바뀌어요.' + (myPos ? ' 걸어서 몇 분은 직선 거리로 어림한 값이에요.' : '')
+    };
+  }
+  // 수호견: 얼굴이 주인공이라 2열 카드. 누르면 지도의 그 강아지 핀으로
+  function renderGuardMode() {
+    var grid = mk('li', 'ls-grid');
+    guardPins.forEach(function (pin) {
+      var g = pin.guardian, sig = InfraPins.SIGNALS[g.signal];
+      var card = mk('button', 'g-card');
+      card.type = 'button';
+      var photo = InfraPins.dogPhoto(pin);
+      if (photo) { var img = photoBox(photo); if (sig) img.style.borderColor = sig.color; card.appendChild(img); }
+      else { var ph = mk('span', 'ph'); ph.innerHTML = InfraPins.iconSvg('spot', 34); card.appendChild(ph); }
+      card.appendChild(mk('b', '', g.name));
+      card.appendChild(mk('span', '', (pin.name || '') + ' · ' + InfraPins.guardianKind(g).badge));
+      card.addEventListener('click', function () { goToShop(pin.id, true); });
+      grid.appendChild(card);
+    });
+    lsList.appendChild(grid);
+    if (!InfraPins.GUARDIAN_DEMO) {
+      var more = mk('li', 'ls-link');
+      var a = mk('a', '', '지역별로 모아 보기');
+      a.href = 'guardians.html';
+      more.appendChild(a);
+      lsList.appendChild(more);
+    }
+    return {
+      title: '수호견 ' + guardPins.length + '마리',
+      sub: '',
+      note: InfraPins.GUARDIAN_DEMO ? '예시 화면이에요 · 실제 지도에는 없어요' : '사장님 동의를 받은 가게의 강아지만 올라와요.'
+    };
+  }
+  // '지금 화면'에서 누르면: 시트를 접고 그 핀으로 가서 팝업(가게는 goToShop — 둘 다인 가게는 지금 보이는 핀으로)
+  function goToEntry(e) {
+    if (e.kind === 'shop') { goToShop(e.pin.id, e.as === 'guard'); return; }
+    setSheet('peek');
+    map.setView(e.marker.getLatLng(), Math.max(map.getZoom(), 16), { animate: false });
+    sync();
+    if (map.hasLayer(e.marker)) e.marker.openPopup();
+  }
+
+  // 지도를 누르거나 핀을 열면 접는다(목록이 지도를 가린 채로 두지 않게). Esc도.
+  map.on('click', function () { if (sheetState !== 'peek') setSheet('peek'); });
+  map.on('popupopen', function () { if (sheetState !== 'peek') setSheet('peek'); });
+  map.on('moveend', scheduleSheet);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetState !== 'peek') setSheet('peek'); });
+  window.addEventListener('resize', relayoutSheet);
+  sheetReady = true;
+  setSheet('peek');
+  // 처음 열 때 동네 가운데가 '시트 위로 보이는 지도'의 가운데 오게 — 시트가 지도 아래쪽을 덮어서(첫 미션 깃발이 시트에 가리지 않게).
+  // 수호견 예시 화면은 예시가 다 보이게 따로 맞춰 두었고(fitBounds), 주소로 가게를 열면(?spot=) 아래에서 그 자리로 옮긴다.
+  if (!InfraPins.GUARDIAN_DEMO) map.panBy([0, Math.round(peekH / 2)], { animate: false });
+  if (window.ResizeObserver) {
+    // 머리(요약 줄·미션 카드)가 바뀌면 접힌 높이를 다시 — 글꼴이 늦게 들어오거나 미션 카드 문구가 바뀔 때
+    new ResizeObserver(function () { if (sheetState === 'peek' && !sheetEl.classList.contains('is-dragging')) fitSheet(); }).observe(lsHead);
+    // 지도 출처 표기를 시트 바로 위로(움직이는 동안에도 따라가게)
+    new ResizeObserver(function () { placeAttribution(sheetEl.getBoundingClientRect().height); }).observe(sheetEl);
+  }
+
   // 수호지킴이 목록에서 "지도에서 보기"로 오면(town.html?spot=id) 그 스팟으로 가서 팝업을 연다
   var openId = (location.search.match(/[?&]spot=([^&]+)/) || [])[1];
   if (openId) openId = decodeURIComponent(openId);
-  if (openId && (guardMarkers[openId] || shopMarkers[openId])) {
-    filter.set(guardMarkers[openId] ? 'guard' : 'spot', true);   // 수호견 목록에서 왔으면 수호견 가게를 켠다
-    map.setView((guardMarkers[openId] || shopMarkers[openId]).getLatLng(), 17, { animate: false });
+  if (openId && (guardMarkers[openId] || shopMarkers[openId] || cheerMarkers[openId])) {
+    filter.set(guardMarkers[openId] ? 'guard' : shopMarkers[openId] ? 'spot' : 'cheer', true);   // 수호견 목록에서 왔으면 수호견 가게를 켠다
+    map.setView((guardMarkers[openId] || shopMarkers[openId] || cheerMarkers[openId]).getLatLng(), 17, { animate: false });
     sync();
     shopMarkerOf(openId).openPopup();
   }
@@ -1181,6 +1532,6 @@
     }
   })();
 </script>
-<script src="walk-fab.js?v=4"></script>
+<script src="walk-fab.js?v=5"></script>
 </body>
 </html>
