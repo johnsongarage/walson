@@ -81,10 +81,12 @@
     else if (t.level) sum.innerHTML = (lead || '이번 주 <b>' + LEVEL_NAME[t.level] + ' 도장</b>을 받았어요. ') + t.left + '일 더 걸으면 ' + t.next + '일 도장';
     else sum.innerHTML = '이번 주 ' + t.days + '일 걸었어요 · ' + t.left + '일 더 걸으면 <b>3일 도장</b>';
     box.appendChild(sum);
-    var note = document.createElement('p');
-    note.className = 'ss-note';
-    note.textContent = '시간만 잰 산책도 들어가요(5분 이상) · 월요일마다 새로 시작해요';
-    box.appendChild(note);
+    if (!opts.compact) {   // 산책 끝 화면은 글을 줄인다(2026-11-18 "텍스트가 너무 많아") — 안내는 [오늘]·주민증에서
+      var note = document.createElement('p');
+      note.className = 'ss-note';
+      note.textContent = '시간만 잰 산책도 들어가요(5분 이상) · 월요일마다 새로 시작해요';
+      box.appendChild(note);
+    }
     return box;
   }
 

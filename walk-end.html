@@ -46,11 +46,18 @@
   .got { display: flex; flex-direction: column; gap: 10px; padding: 16px; margin-bottom: 12px; border-radius: 18px;
     background: var(--panel); border: 1px solid var(--panel-border); box-shadow: 0 4px 14px rgba(var(--shadow-rgb), 0.08); }
   .got[hidden] { display: none; }
+  #got { margin-top: 18px; }
+  .got-chips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin: 0 0 14px; padding: 0; border: none; background: none; font-family: inherit; text-align: left; cursor: pointer; }
+  .got-chips[hidden] { display: none; }
+  .got-chips span { font-size: 13px; font-weight: 800; padding: 6px 11px; border-radius: 999px; background: var(--accent-tint); color: var(--accent-ink); }
+  .got-chips span.is-main { background: var(--accent); color: #fff; }
+  .got-chips span.more { background: none; color: var(--ink-soft); padding-left: 2px; }
   .got-title { font-size: 13px; font-weight: 800; color: var(--accent-ink); }
   .got-row { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; word-break: keep-all; }
   .got-row .ic { flex: none; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 11px; background: var(--accent); color: #fff; }
   .got-row .ic.is-soft { background: var(--accent-tint); color: var(--accent-ink); }
-  .got-row small { font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+  /* 2026-11-18 가르시아 "텍스트가 너무 많아, 요약해" — 줄마다 굵은 말 하나 + 작은 숫자, 안내는 회색 한 줄로 */
+  .got-row small { font-size: 13px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
   .got-next { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); font-size: 14px; font-weight: 700; word-break: keep-all; }
   .got-next svg { flex: none; color: var(--accent); }
   .got-note { margin: 0; font-size: 14px; line-height: 1.6; word-break: keep-all; }
@@ -123,6 +130,7 @@
 <script src="theme.js?v=10"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
+<script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
 </head>
@@ -135,21 +143,16 @@
     <p class="sub" id="sum-sub"></p>
   </div>
 
-  <!-- 이번 산책으로 받은 것(2026-11-16 2단계, 시안 ⑭) — 새 발도장·주민증 성장·다음 미션. 시간만 잰 산책은 왜 없는지 한 줄 -->
-  <section class="got" id="got" aria-label="이번 산책으로 받은 것" hidden>
-    <span class="got-title">이번 산책으로 받은 것</span>
-  </section>
+  <!-- 받은 것 한 줄(2026-11-18 가르시아 "순서 재점검 — 기록이 먼저" → "그래"): 보상은 칩 한 줄로만 먼저 보이고, 자세한 것은 저장 버튼 아래.
+       누르면 아래 '이번 산책으로 받은 것'으로 내려간다 -->
+  <button type="button" class="got-chips" id="got-chips" hidden aria-label="이번 산책으로 받은 것 자세히 보기"></button>
+
 
   <!-- 스친 강아지(2026-11-15 서버 가정 시험판): ?server=mock으로 켰고 스친 강아지를 켠 경우에만 보인다 -->
   <a id="met-banner" href="friends.html#met" hidden
      style="align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:14px 16px;border-radius:18px;text-decoration:none;background:var(--accent-tint);color:var(--ink);font-weight:800;font-size:15px;">
     <span id="met-text">스친 강아지 찾는 중…</span><span aria-hidden="true">→</span>
   </a>
-  <!-- 꾸준함 도장(2026-11-15): 이 산책까지 넣은 이번 주 — 시간만 잰 산책도 들어간다 -->
-  <section class="q" id="steady-end" hidden>
-    <h2>꾸준함 도장 <span>이번 주</span></h2>
-    <div id="steady-end-box"></div>
-  </section>
 
   <section class="q">
     <h2>오늘 산책, 충분했나요?</h2>
@@ -159,17 +162,6 @@
     </div>
   </section>
 
-  <section class="q">
-    <h2>킁킁 지수 <span>냄새를 얼마나 맡았나요</span></h2>
-    <div class="opts" data-field="sniff">
-      <button type="button" data-value="1" aria-pressed="false">1</button>
-      <button type="button" data-value="2" aria-pressed="false">2</button>
-      <button type="button" data-value="3" aria-pressed="false">3</button>
-      <button type="button" data-value="4" aria-pressed="false">4</button>
-      <button type="button" data-value="5" aria-pressed="false">5</button>
-    </div>
-    <div class="scale-ends"><span>거의 못 맡음</span><span>실컷 맡음</span></div>
-  </section>
 
   <!-- 응가 치웠나요?(2026-11-17 가르시아 — 예전 "응가는요?"): 응가 기록을 "치운 횟수"로 읽게 한다(똥 치우기 캠페인·나중 뱃지의 근거).
        사진 인증은 안 한다 — 한 번 누르기(자기 신고). "안 했어요"는 "안 치웠다"로 읽힐 수 있어 "안 쌌어요"로. 저장 값(poop 0·1·2)은 그대로 -->
@@ -195,6 +187,18 @@
     </a>
   </section>
 
+  <section class="q">
+    <h2>킁킁 지수 <span>냄새를 얼마나 맡았나요</span></h2>
+    <div class="opts" data-field="sniff">
+      <button type="button" data-value="1" aria-pressed="false">1</button>
+      <button type="button" data-value="2" aria-pressed="false">2</button>
+      <button type="button" data-value="3" aria-pressed="false">3</button>
+      <button type="button" data-value="4" aria-pressed="false">4</button>
+      <button type="button" data-value="5" aria-pressed="false">5</button>
+    </div>
+    <div class="scale-ends"><span>거의 못 맡음</span><span>실컷 맡음</span></div>
+  </section>
+
   <!-- 오늘의 한 장(2026-11-14): 이 휴대폰 안(IndexedDB)에만 저장. 위치 정보는 빠진다(walk-photos.js) -->
   <section class="q">
     <h2>오늘의 한 장 <span>선택</span></h2>
@@ -216,14 +220,35 @@
 
   <button type="button" class="btn-main" id="save-btn">저장하고 영수증 받기</button>
   <a class="btn-text" href="index.html">묻지 않고 넘어가기</a>
+
+  <!-- 저장 버튼 아래(11/18 순서 바꿈): 받은 것 자세히 · 다음 미션 · 안내 한 줄, 꾸준함 도장 -->
+  <!-- 이번 산책으로 받은 것(2026-11-16 2단계, 시안 ⑭) — 새 발도장·주민증 성장·다음 미션. 시간만 잰 산책은 왜 없는지 한 줄 -->
+  <section class="got" id="got" aria-label="이번 산책으로 받은 것" hidden>
+    <span class="got-title">이번 산책으로 받은 것</span>
+  </section>
+  <!-- 꾸준함 도장(2026-11-15): 이 산책까지 넣은 이번 주 — 시간만 잰 산책도 들어간다 -->
+  <section class="q" id="steady-end" hidden>
+    <h2>꾸준함 도장 <span>이번 주</span></h2>
+    <div id="steady-end-box"></div>
+  </section>
 </div>
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="steady-stamp.js?v=3"></script>
+<script src="steady-stamp.js?v=4"></script>
 <script src="walk-screen.js?v=2"></script>
 <script src="mock-server.js?v=2"></script>
+<script>
+  // 홈 화면에 두기 권하기(2026-11-18) — 산책을 마친 끝 화면에서 조금 뒤에, 두 번까지(install.js가 횟수·2주 쉼·샘플·앱 안 브라우저를 거른다).
+  // 시연(가짜 위치) 산책 끝에서는 안 권한다
+  (function () {
+    if (!window.WalsonInstall) return;
+    var ws = WalsonStore.walks(), last = ws[ws.length - 1];
+    if (!last || last.demo) return;
+    setTimeout(function () { WalsonInstall.offer(); }, 2500);
+  })();
+</script>
 <script>
   // 서버 가정 시험판 — 방금 산책을 가짜 서버로 보내고 스친 강아지 수를 띄운다(꺼져 있으면 아무것도 안 함)
   (function () {
@@ -286,6 +311,9 @@
     var ARROW = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3l6 9h-4v9h-4v-9H6z" fill="currentColor"/></svg>';
     var GOAL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.4 12.3l2.5 2.5 4.7-5.1"/></svg>';
     var RECEIPT = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9 8h6M9 12h6"/></svg>';
+    // 위 칩 한 줄(11/18) — 줄마다 짧은 이름을 같이 모은다
+    var chips = [];
+    function chip(text, main) { chips.push({ text: text, main: !!main }); }
     function row(icon, soft, text, small) {
       var d = document.createElement('div');
       d.className = 'got-row';
@@ -294,13 +322,15 @@
       t.textContent = text + ' ';
       if (small) { var sm = document.createElement('small'); sm.textContent = small; t.appendChild(sm); }
       box.appendChild(d);
+      if (hintEl) box.appendChild(hintEl);   // 안내 한 줄은 늘 맨 아래
       return d;
     }
-    function note(text, cls) {
-      var p = document.createElement('p');
-      p.className = cls;
-      p.textContent = text;
-      box.appendChild(p);
+    // 안내(발도장이 왜 없는지·화면 꺼짐)는 회색 한 줄로 모은다(11/18 "텍스트가 너무 많아, 요약해")
+    var hintEl = null;
+    function note(text) {
+      if (!hintEl) { hintEl = document.createElement('p'); hintEl.className = 'got-hint'; hintEl.textContent = text; }
+      else hintEl.textContent += ' · ' + text;
+      box.appendChild(hintEl);
     }
     // 오늘 목표·영수증 — 어떻게 걸었든(시간만 재기·다녀왔어요 포함) 매번 뜨는 두 줄
     // (2026-11-16 가르시아 "그렇게 진행해줘" — 보상 체감 재검토 제안 1·2. hq notes/petwalk-reward-feel.md)
@@ -309,55 +339,57 @@
         // 크기별 목표(소 30·중 60·대 90분, 크기를 모르면 중형) — 모자라도 혼내지 않는다
         var g = R.dayGoal(walks, walk.date), gb = R.dayGoal(walks.slice(0, -1), walk.date);
         var sizeName = { small: '소형', medium: '중형', large: '대형' }[R.dogSize()] || '';
-        if (g.reached && !gb.reached) row(GOAL, false, '오늘 목표 달성!', '· 오늘 ' + g.total + '분 / ' + sizeName + ' 목표 ' + g.target + '분');
-        else if (g.reached) row(GOAL, true, '오늘 목표는 이미 달성', '· 오늘 ' + g.total + '분');
-        else row(GOAL, true, '오늘 목표까지 ' + g.left + '분', '· 오늘 ' + g.total + '분 / ' + sizeName + ' 목표 ' + g.target + '분');
+        if (g.reached && !gb.reached) { row(GOAL, false, '오늘 목표 달성!', g.total + '/' + g.target + '분'); chip('목표 달성', true); }
+        else if (g.reached) { row(GOAL, true, '오늘 목표 달성', g.total + '분'); chip('목표 달성'); }
+        else { row(GOAL, true, '목표까지 ' + g.left + '분', g.total + '/' + g.target + '분' + (sizeName ? ' · ' + sizeName : '')); chip('목표까지 ' + g.left + '분'); }
       }
       // 영수증 — "충분했나" 답에 따라 상환 문구가 바뀐다(아래 paintReceiptLine)
       receiptSmall = row(RECEIPT, true, '영수증 No.' + ('000' + walks.length).slice(-4), ' ').querySelector('small');
     }
     var before = R.computeProgress(walks.slice(0, -1)), now = R.computeProgress(walks);
     var counted = now.walks > before.walks;   // 이번 산책이 주민증 성장 횟수에 들어갔는지(5분 이상)
-    var shortNote = (R.RECORD_MIN_MINUTES || 5) + '분이 안 돼서 주민증 성장엔 안 들어가요.';
+    var shortNote = (R.RECORD_MIN_MINUTES || 5) + '분 미만이라 주민증 성장 제외';
     // 주민증 성장(11/16 자라는 주민증) — 센 산책 하나마다 주민증이 자란다(특기·특이 사항이 생기고 승급)
     function cardRows() {
       var cardUps = R.newUnlocks(before, now).filter(function (t) { return t.indexOf('발도장') < 0; });
       var rankUp = cardUps.filter(function (t) { return t.indexOf('승급') >= 0; })[0];
       var others = cardUps.filter(function (t) { return t !== rankUp; });
       var nr = R.nextRank ? R.nextRank(now.walks) : null;
-      var nextLine = nr ? '· ' + nr.name + '까지 ' + (nr.minWalks - now.walks) + '회' : '· 산책 ' + now.walks + '회째';
-      if (rankUp) row(SEAL, false, rankUp.replace(/했어요$/, '!'), '· 주민증에 승급 도장 쾅 ' + nextLine);
-      if (others.length || !rankUp) row(CARD, true, '주민증이 자랐어요', others.length ? '· ' + others.join(' · ') : nextLine);
+      var nextLine = nr ? nr.name + '까지 ' + (nr.minWalks - now.walks) + '회' : now.walks + '회째';
+      if (rankUp) { row(SEAL, false, rankUp.replace(/했어요$/, '!'), nextLine); chip(rankUp.replace(/했어요$/, ''), true); }
+      var short = others.join(' · ').replace(/이 생겼어요/g, ' 생김').replace(/가 생겼어요/g, ' 생김');
+      if (others.length) { row(CARD, true, '주민증에 ' + short, rankUp ? '' : nextLine); chip(short); }
+      else if (!rankUp) { row(CARD, true, '주민증 성장', nextLine); chip('주민증 성장'); }
     }
     if (timeOnly && walk.noRoute) {
       // 위치를 쓰기로 했지만 위치를 거의 못 받은 산책(walk.html) — 걸은 시간만 남았다
       if (counted) cardRows();
       goalAndReceipt();
-      note('위치를 거의 받지 못해서 걸은 길이 남지 않았어요. 걸은 시간만 남겼어요 — 발도장은 없어요.' + (counted ? '' : ' ' + shortNote), 'got-note');
-      // 진짜 이유는 대개 화면 꺼짐·다른 앱(웹앱은 그동안 위치를 못 받는다) — 11/17 가르시아 "통화·유튜브 중엔 끊길 수 있음을 고지"
-      note('화면이 꺼져 있었거나 통화·유튜브 등 다른 앱을 쓰는 동안(또는 실내·높은 건물 사이)엔 위치를 못 받아요. 다음엔 앱을 켜 둔 채 걷거나, 장소에서 "여기 찍기"를 눌러 주세요.', 'got-hint');
-      box.hidden = false;
+      note('위치를 못 받아 시간만 남겼어요 · 발도장 없음' + (counted ? '' : ' · ' + shortNote), 'got-hint');
+      // 진짜 이유는 대개 화면 꺼짐·다른 앱(웹앱은 그동안 위치를 못 받는다) — 11/17 고지, 11/18 한 줄로 줄임
+      note('화면이 꺼지거나 다른 앱을 쓰면 위치가 끊겨요 · 앱을 켜 두거나 "여기 찍기"', 'got-hint');
+      showGot();
       return;
     }
     if (timeOnly) {
       if (counted) cardRows();
       goalAndReceipt();
-      note((loggedAfter ? '다녀와서 적은' : '시간만 잰') + ' 산책이라 발도장은 없어요.' + (counted ? '' : ' ' + shortNote), 'got-note');
-      if (!loggedAfter) note('다음엔 산책 나가기에서 "바꾸기"로 위치를 쓰면 발도장도 찍혀요.', 'got-hint');
-      box.hidden = false;
+      note((loggedAfter ? '다녀와서 적은' : '시간만 잰') + ' 산책이라 발도장 없음' + (counted ? '' : ' · ' + shortNote) + (loggedAfter ? '' : ' · 위치를 쓰면 발도장도 찍혀요'), 'got-hint');
+      showGot();
       return;
     }
     if (walk.rewardEligible === false) {
       // 짧은 길 기록 산책 — 5분은 넘었지만 200m가 안 됐으면 주민증만 자라고 발도장은 없다
-      if (counted) { cardRows(); note('걸은 거리가 200m가 안 돼서 발도장은 없어요.', 'got-note'); }
-      else note('5분이 안 돼서 이번 산책은 발도장·주민증 성장에 안 들어가요.', 'got-note');
+      if (counted) { cardRows(); note('200m 미만이라 발도장 없음', 'got-hint'); }
+      else note('5분 미만이라 발도장·주민증 성장 제외', 'got-hint');
       // 화면이 꺼져 있던(다른 앱) 동안 길이 끊겨 거리가 모자랐을 수 있다 — 앱을 켜 두거나 여기 찍기(11/17)
-      if (walk.gapMin > 0) note('화면이 꺼져 있던 동안은 길이 안 그려져요 — 앱을 켜 둔 채 걷거나, 장소에서 "여기 찍기"를 누르면 그 사이가 직선으로 이어져요.', 'got-hint');
+      if (walk.gapMin > 0) note('화면이 꺼진 동안은 길이 끊겨요 · 앱을 켜 두거나 "여기 찍기"', 'got-hint');
     } else {
       var all = R.missions ? R.missions(now) : [];
       var doneBefore = R.missions ? R.missions(before).filter(function (m) { return m.done; }).length : 0;
       R.PLACES.filter(function (pl) { return now.visited[pl.id] && !before.visited[pl.id]; }).forEach(function (pl, i) {
-        row(FLAG, false, pl.name + ' 발도장', all.length ? '(' + (doneBefore + i + 1) + '/' + all.length + ')' : '');
+        row(FLAG, false, pl.name + ' 발도장', all.length ? (doneBefore + i + 1) + '/' + all.length : '');
+        chip(pl.name + ' 발도장', true);
       });
       cardRows();
     }
@@ -370,22 +402,33 @@
     next.lastChild.textContent = m ? '다음 미션: ' + m.place.name + (m.place.kind === 'building' ? ' 앞까지' : '까지')
       : goal && goal !== '모든 보상을 모았어요' ? '다음 보상: ' + goal : '미션을 다 했어요';
     box.appendChild(next);
-    box.hidden = false;
+    if (hintEl) box.appendChild(hintEl);
+    showGot();
+    function showGot() {
+      box.hidden = false;
+      var el = document.getElementById('got-chips');
+      if (!chips.length) return;
+      chips.sort(function (a, b) { return b.main - a.main; }).slice(0, 4).forEach(function (c) {
+        var sp = document.createElement('span'); if (c.main) sp.className = 'is-main'; sp.textContent = c.text; el.appendChild(sp);
+      });
+      var more = document.createElement('span'); more.className = 'more'; more.textContent = '자세히 ›'; el.appendChild(more);
+      el.hidden = false;
+      el.addEventListener('click', function () { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    }
   })();
 
   // 꾸준함 도장 — 이 산책으로 이번 주 단계가 올랐는지(방금 것 빼고 센 것과 비교)
   if (window.RewardRules && RewardRules.steady && window.SteadyStamp) {
     var stBefore = RewardRules.steady(walks.slice(0, -1)), stAfter = RewardRules.steady(walks);
     var justGot = stAfter.thisWeek.level > stBefore.thisWeek.level;
-    document.getElementById('steady-end-box').appendChild(SteadyStamp.week(stAfter, { justGot: justGot }));
+    document.getElementById('steady-end-box').appendChild(SteadyStamp.week(stAfter, { justGot: justGot, compact: true }));
     document.getElementById('steady-end').hidden = false;
   }
 
   // 영수증 줄의 작은 글씨 — "충분했나" 답에 따라 영수증의 상환 도장과 같은 말로 바뀐다
   function paintReceiptLine() {
     if (!receiptSmall) return;
-    receiptSmall.textContent = answers.feel === 'short' ? '· 일부 상환 (연체 아님)'
-      : answers.feel === 'enough' ? '· 오늘 산책 빚 상환 완료' : '· 오늘 산책 빚 1회분 · 저장하면 나와요';
+    receiptSmall.textContent = answers.feel === 'short' ? '일부 상환' : answers.feel === 'enough' ? '상환 완료' : '저장하면 나와요';
   }
 
   // 답 고르기 — 같은 버튼을 다시 누르면 선택이 풀린다(전부 선택 사항)

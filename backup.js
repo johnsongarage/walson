@@ -213,12 +213,14 @@
     });
   }
   // 주소의 #walson-move=… 를 읽어 검증 → 옮겨 담기. 없으면 null
-  function hasMoveLink() { return location.hash.indexOf(MOVE_PREFIX) === 0; }
-  function receiveMove() {
-    if (!hasMoveLink()) return Promise.resolve(null);
+  // hash: 주소 대신 받은 글(2026-11-18 아이폰 홈 화면 앱 — 사파리에서 복사해 붙여넣은 '#walson-move=…'). 없으면 지금 주소
+  function hasMoveLink(hash) { return (hash || location.hash).indexOf(MOVE_PREFIX) === 0; }
+  function receiveMove(hash) {
+    hash = hash || location.hash;
+    if (!hasMoveLink(hash)) return Promise.resolve(null);
     var obj;
     try {
-      obj = JSON.parse(b64urlDecode(location.hash.slice(MOVE_PREFIX.length)));
+      obj = JSON.parse(b64urlDecode(hash.slice(MOVE_PREFIX.length)));
       if (!obj || obj.app !== 'walson' || obj.kind !== 'move' || !obj.data || !obj.sig) throw new Error('bad');
     } catch (e) { return Promise.reject(new Error('옮기기 주소가 잘려서 기록을 읽지 못했어요. 카톡 창에서 다시 눌러 주세요.')); }
     return signOf(obj).then(function (sig) {

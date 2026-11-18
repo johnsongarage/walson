@@ -138,6 +138,8 @@
   // 한 번 자동으로 켠 뒤(또는 직접 끈 뒤)에는 다시 켜지 않는다.
   var AUTO = 'petwalk_sample_auto_done';
   function shouldAutoStart() {
+    // 아이폰 홈 화면 앱을 처음 열어 사파리 기록을 가져오려는 중이면 샘플로 덮지 않는다(install.js, 2026-11-18)
+    if (window.WalsonInstall && WalsonInstall.pendingImport()) return false;
     try {
       if (isOn() || localStorage.getItem(AUTO)) return false;
       var walks = JSON.parse(localStorage.getItem('petwalk_walks') || '[]');

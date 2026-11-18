@@ -84,6 +84,7 @@
 <script src="device.js?v=1"></script>
 <script src="qr-scan.js?v=4"></script>
 <script src="theme.js?v=10"></script>
+<script src="dex-card.js?v=1"></script>
 </head>
 <body>
 
@@ -152,9 +153,6 @@
     r: { color: 'var(--red)', desc: '눈으로만 예뻐해 주세요' }
   };
   var SIZE = { s: '소형견', m: '중형견', l: '대형견' };
-  var SIZE_FROM = { small: 's', medium: 'm', large: 'l' };
-  var SIG_FROM = { green: 'g', yellow: 'y', red: 'r' };
-  var PALETTE = ['#e8b77a', '#c98a5a', '#f2d7b6', '#8a6a52', '#f0efe9', '#5a4636', '#d9a066', '#b9b2a8'];
 
   function $(id) { return document.getElementById(id); }
   function saveDex(list) { if (WalsonStore.saveDex(list)) return true; alert('저장하지 못했어요. 저장 공간을 확인해 주세요.'); return false; }
@@ -168,51 +166,11 @@
   function eul(name) { var c = name.charCodeAt(name.length - 1); return name + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? '을' : '를'); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
-  // ── 내 번호 · 내 카드 내용 ──
-  function myId() {
-    var id = WalsonStore.get(WalsonStore.KEYS.dexMe);
-    if (!id || !/^[a-z0-9]{8}$/.test(id)) {
-      id = Math.random().toString(36).slice(2, 10).padEnd(8, '0');
-      WalsonStore.set(WalsonStore.KEYS.dexMe, id);   // 저장 못 하면 이번만
-    }
-    return id;
-  }
-  function hashColor(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return PALETTE[h % PALETTE.length]; }
-  // 프로필 사진 가운데 색을 하나 뽑아 털색으로 쓴다(사진 자체는 QR에 안 넣는다)
-  function photoColor(src) {
-    return new Promise(function (resolve) {
-      if (!src) { resolve(null); return; }
-      var img = new Image();
-      img.onload = function () {
-        try {
-          var c = document.createElement('canvas'); c.width = c.height = 12;
-          var ctx = c.getContext('2d');
-          var s = Math.min(img.width, img.height) * 0.5;
-          ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 12, 12);
-          var d = ctx.getImageData(0, 0, 12, 12).data, r = 0, g = 0, b = 0, n = d.length / 4;
-          for (var i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
-          var hex = function (v) { return Math.round(v / n).toString(16).padStart(2, '0'); };
-          resolve('#' + hex(r) + hex(g) + hex(b));
-        } catch (e) { resolve(null); }
-      };
-      img.onerror = function () { resolve(null); };
-      img.src = src;
-    });
-  }
-  function myCard() {
-    var p = WalsonStore.profile();
-    if (!p || !p.name) return Promise.resolve(null);
-    var id = myId();
-    return photoColor(p.photo).then(function (c) {
-      return { v: 1, i: id, n: String(p.name).slice(0, 12), s: SIZE_FROM[p.size] || 'm', g: SIG_FROM[p.signal] || '', c: c || hashColor(id) };
-    });
-  }
+  // ── 내 번호 · 내 카드 내용 · 주소 ── dex-card.js(WalsonDexCard, 2026-11-18) — 주민증 탭 키링 뒷면 QR·NFC와 같은 주소
+  var DC = window.WalsonDexCard;
+  var myId = DC.myId, myCard = DC.myCard, cardUrl = function (card) { return DC.cardUrl(card); };
 
   // ── QR 안의 글자 ↔ 강아지 ──
-  function encode(card) {
-    var b = btoa(unescape(encodeURIComponent(JSON.stringify(card))));
-    return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
   function decode(str) {
     try {
       var b = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -227,7 +185,6 @@
       return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase() };
     } catch (e) { return null; }
   }
-  function cardUrl(card) { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'dex.html#d=' + encode(card); }
   function payloadFromText(text) {
     var m = /dex\.html#d=([A-Za-z0-9_-]+)/.exec(text || '');
     return m ? m[1] : null;

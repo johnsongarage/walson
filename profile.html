@@ -107,13 +107,14 @@
 <script src="theme.js?v=10"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
+<script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="save-image.js?v=3"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="backup.js?v=6"></script>
-<script src="sample-data.js?v=5"></script>
+<script src="backup.js?v=7"></script>
+<script src="sample-data.js?v=6"></script>
 <script src="dog-tags.js?v=1"></script>
 </head>
 <body>
@@ -148,7 +149,31 @@
       </select>
     </div>
 
-    <!-- 성향 신호등(2026-11-14, 기획표 V4-04): 주민증 카드·키링 테두리 색으로 쓴다. 지도 노출과는 잇지 않는다. -->
+    <!-- 성별·견종(2026-11-18 가르시아 "암컷/수컷", "견종은 선택으로"): 안 적어도 된다. 주민증 '이름' 옆·키링 뒷면 이름 옆에 작게.
+         이 휴대폰 프로필에만 — 통계·도감 QR에는 안 들어간다 -->
+    <div class="field">
+      <label for="f-sex">성별 (선택 · 주민증 이름 옆에 작게 들어가요)</label>
+      <select id="f-sex">
+        <option value="">안 적을래요</option>
+        <option value="female">암컷</option>
+        <option value="female-n">암컷 · 중성화</option>
+        <option value="male">수컷</option>
+        <option value="male-n">수컷 · 중성화</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-breed">견종 (선택)</label>
+      <input id="f-breed" list="breed-list" maxlength="30" placeholder="예: 말티즈, 믹스" autocomplete="off">
+      <datalist id="breed-list">
+        <option value="믹스"></option><option value="말티즈"></option><option value="푸들"></option><option value="포메라니안"></option>
+        <option value="비숑 프리제"></option><option value="치와와"></option><option value="시츄"></option><option value="요크셔테리어"></option>
+        <option value="닥스훈트"></option><option value="스피츠"></option><option value="웰시코기"></option><option value="시바견"></option>
+        <option value="진돗개"></option><option value="비글"></option><option value="슈나우저"></option><option value="프렌치 불도그"></option>
+        <option value="보더콜리"></option><option value="골든 리트리버"></option><option value="래브라도 리트리버"></option>
+      </datalist>
+    </div>
+
+    <!-- 성향(2026-11-14, 기획표 V4-04): 주민증 성향 띠·불 색으로 쓴다(테두리는 11/18부터 주민증 탭에서 고르는 카드 색). 지도 노출과는 잇지 않는다. -->
     <div class="field">
       <label for="f-signal">강아지 성향 (다른 강아지를 만났을 때)</label>
       <select id="f-signal">
@@ -220,6 +245,8 @@
   var fSize = document.getElementById('f-size');
   var fSignal = document.getElementById('f-signal');
   var fTag = document.getElementById('f-tag');
+  var fSex = document.getElementById('f-sex');
+  var fBreed = document.getElementById('f-breed');
   // 한 줄 소개 — 고른 신호등에 맞는 태그만 목록에 둔다(신호등을 바꾸면 다시 채움, 안 맞으면 기본 문구로)
   var DEFAULT_LINE = { green: '다가와도 좋아요', yellow: '천천히 인사해요', red: '눈으로만 예뻐해 주세요' };
   function paintTagSelect(keep) {
@@ -257,6 +284,8 @@
     fName.value = existing.name || '';
     if (existing.size) fSize.value = existing.size;
     if (existing.signal) fSignal.value = existing.signal;
+    if (existing.sex === 'female' || existing.sex === 'male') fSex.value = existing.sex + (existing.neutered ? '-n' : '');
+    fBreed.value = existing.breed || '';
     paintTagSelect(existing.tag || '');
     photoDataUrl = existing.photo || null;
     showPhoto(photoDataUrl);
@@ -316,6 +345,12 @@
     profile.photo = (photoDataUrl && photoDataUrl.indexOf('icons/sample-') === 0) ? null : photoDataUrl;
     if (fSignal.value) profile.signal = fSignal.value; else delete profile.signal;
     if (fTag.value && window.DogTags && DogTags.fits(fTag.value, fSignal.value)) profile.tag = fTag.value; else delete profile.tag;
+    // 성별·중성화·견종 — 안 적었으면 지운다(주민증에 안 나옴)
+    var sx = fSex.value.split('-');
+    if (sx[0] === 'female' || sx[0] === 'male') profile.sex = sx[0]; else delete profile.sex;
+    if (profile.sex && sx[1] === 'n') profile.neutered = true; else delete profile.neutered;
+    var breed = fBreed.value.replace(/\s+/g, ' ').trim().slice(0, 30);   // 긴 견종은 주민증에서 단어 단위로 줄을 나눈다
+    if (breed) profile.breed = breed; else delete profile.breed;
     if (WalsonStore.saveProfile(profile)) {
       toast.classList.add('show');
       setTimeout(function () { toast.classList.remove('show'); }, 1800);

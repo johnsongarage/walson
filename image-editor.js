@@ -18,8 +18,12 @@
 //          탭에 focus: function (st) → { x, y, w, h }(그림 픽셀)를 주면 그 탭에선 미리 보기를 그 부분으로 확대한다(예: 영수증 특이 사항 줄)
 //   stickers: [{ text, nx, ny, s, style }],  stickers: false면 [글자 붙이기] 탭을 뺀다
 //   draw: function (canvas, st) → 사진 칸 { x, y, w, h, img } 또는 null — 바탕 그림을 그린다(동기). 글자는 편집기가 위에 얹는다
-//   hint, fileName: function (st), onSave: function (st, how) — how: 'save'(저장)·'share'(공유), onClose: function (st)
-// })  →  api { state, redraw(), rebuild(), prompt({ value, max, placeholder }) → Promise<글|null>, close() }
+//   hint, fileName: function (st), onSave: function (st, how) — 그림을 내보낼 때만: how 'save'(사진첩에 저장·내려받기)·'share'(공유 창),
+//   onClose: function (st, kept) — kept: [저장]을 눌렀거나 그림을 내보냈으면 true, [×]로 버리고 나왔으면 false,
+//   storeKey: 'walson_edit_…' — 주면 [저장]한 꾸미기(모양·사진 자리·붙인 글자, storeExtra에 적은 extra 칸)를 이 휴대폰에 남겨 다음에 이어서 연다
+// })
+// 2026-11-18 가르시아 "저장하면 진짜 폰으로 다운로드를 해 버리잖아. 공유 안에 있는 기능 아니냐? 저장은 내가 수정한 걸 저장하고 편집에서 빠져나오는 것":
+//   오른쪽 위 [저장] = 고친 것을 앱에 남기고 닫기. 사진첩 저장·공유 창은 [공유]를 누르면 나오는 작은 메뉴 안에.  →  api { state, redraw(), rebuild(), prompt({ value, max, placeholder }) → Promise<글|null>, close() }
 // st = { fmt, photo: { src, zoom, x, y }, stickers: [...], extra: (부른 쪽 마음대로) }
 // WalsonEditor.drawStickers(canvas, stickers) — 저장해 둔 글자를 다른 미리 보기(예: [기록]의 작은 영수증)에 같은 모양으로 얹는다.
 (function () {
@@ -34,6 +38,7 @@
   };
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var SAVE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>';
   var SHARE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M6 12v6.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V12"/></svg>';
   function svg(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[k] || ICONS.note) + '</svg>'; }
@@ -95,6 +100,11 @@
       '.we .we-share{border:1px solid rgba(255,255,255,.26);padding:9px 13px;background:transparent;color:#fbf4ea;}',
       '.we-save svg,.we-share svg{width:17px;height:17px;flex:none;}',
       '@media (max-width:359px){.we .we-share span{display:none;}.we .we-share{padding:9px 10px;}}',
+      '.we-menu{position:absolute;right:10px;top:calc(env(safe-area-inset-top) + 56px);z-index:3;min-width:210px;background:#362c26;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.45);}',
+      '.we-menu button{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;border-radius:10px;padding:11px 12px;font-size:15px;font-weight:700;text-align:left;cursor:pointer;color:#fbf4ea;}',
+      '.we-menu button:active,.we-menu button:hover{background:rgba(255,255,255,.08);}',
+      '.we-menu svg{width:19px;height:19px;flex:none;}',
+      '.we-menu small{display:block;font-size:11.5px;font-weight:500;color:#c9b9a6;margin-top:1px;}',
       '.we-stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:#1f1915;overflow:hidden;}',
       '.we-stage canvas{position:absolute;left:0;top:0;display:block;touch-action:none;border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.45);}',
       '.we-stage.anim canvas{transition:left .22s ease,top .22s ease,width .22s ease,height .22s ease;}',
@@ -153,6 +163,8 @@
     document.head.appendChild(c);
   }
 
+  // [저장]한 꾸미기를 이 휴대폰에 — storeKey를 준 화면만(영수증은 산책마다 따로 남겨서 쓰지 않음)
+  function loadKept(key) { if (!key) return null; try { return JSON.parse(localStorage.getItem(key)) || null; } catch (e) { return null; } }
   function open(cfg) {
     addCss();
     var fmts = cfg.formats || [];
@@ -163,6 +175,17 @@
       stickers: (cfg.stickers || []).map(function (s) { return { text: s.text, nx: s.nx, ny: s.ny, s: s.s || 1, style: s.style || 'white' }; }),
       extra: cfg.extra || {}
     };
+    var kept0 = loadKept(cfg.storeKey);
+    if (kept0) {
+      if (kept0.fmt && fmts.some(function (f) { return f[0] === kept0.fmt; })) st.fmt = kept0.fmt;
+      if (kept0.photo && st.photo && P.sources && P.sources.some(function (x) { return x[0] === kept0.photo.src; })) {
+        st.photo = { src: kept0.photo.src, zoom: kept0.photo.zoom || 1, x: kept0.photo.x, y: kept0.photo.y };
+      }
+      if (Array.isArray(kept0.stickers) && cfg.stickers !== false) st.stickers = kept0.stickers;
+      (cfg.storeExtra || []).forEach(function (k) { if (kept0.extra && kept0.extra[k] !== undefined) st.extra[k] = kept0.extra[k]; });
+    }
+    function snapshot() { try { return JSON.stringify([st.fmt, st.photo, st.stickers, st.extra]); } catch (e) { return ''; } }
+    var opened = snapshot(), kept = false;
     var allowText = cfg.stickers !== false;
     var tabs = [];
     if (fmts.length > 1) tabs.push({ id: 'shape', label: '모양', icon: 'shape' });
@@ -180,8 +203,12 @@
     root.innerHTML =
       '<div class="we-top"><button type="button" class="we-x" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
         '<div class="we-title"></div>' +
-        '<button type="button" class="we-share" hidden aria-label="공유">' + SHARE_SVG + '<span>공유</span></button>' +
-        '<button type="button" class="we-save" aria-label="저장">' + SAVE_SVG + '<span>저장</span></button></div>' +
+        '<button type="button" class="we-share" aria-label="공유·사진첩에 저장" aria-haspopup="menu" aria-expanded="false">' + SHARE_SVG + '<span>공유</span></button>' +
+        '<button type="button" class="we-save" aria-label="저장하고 닫기">' + CHECK_SVG + '<span>저장</span></button></div>' +
+      '<div class="we-menu" role="menu" hidden>' +
+        '<button type="button" role="menuitem" data-out="share" hidden>' + SHARE_SVG + '<span>공유하기<small>카톡·인스타 등으로 보내기</small></span></button>' +
+        '<button type="button" role="menuitem" data-out="save">' + SAVE_SVG + '<span>사진첩에 저장<small>이 휴대폰에 그림 파일로</small></span></button>' +
+      '</div>' +
       '<div class="we-stage"><canvas role="img" aria-label="미리 보기"></canvas><div class="we-hint"></div><div class="we-zoomtag" hidden></div></div>' +
       '<div class="we-tray"></div><div class="we-tabs" role="tablist"></div>';
     var sheet = document.createElement('div');
@@ -192,8 +219,8 @@
     var cv = q('canvas'), ctx = cv.getContext('2d'), stage = q('.we-stage'), tray = q('.we-tray'), tabsEl = q('.we-tabs'), hint = q('.we-hint'), zoomTag = q('.we-zoomtag');
     var input = sheet.querySelector('input');
     q('.we-title').textContent = cfg.title || '꾸미기';
-    // 공유는 공유 창을 열 수 있는 브라우저에서만 보인다(대부분의 PC·일부 앱 안 브라우저는 숨김)
-    q('.we-share').hidden = !(window.WalsonSave && WalsonSave.canShare && WalsonSave.canShare());
+    // [공유] 메뉴의 '공유하기'는 공유 창을 열 수 있는 브라우저에서만(대부분의 PC·일부 앱 안 브라우저는 '사진첩에 저장'만)
+    q('.we-menu [data-out="share"]').hidden = !(window.WalsonSave && WalsonSave.canShare && WalsonSave.canShare());
     hint.textContent = cfg.hint || (P ? '사진은 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요');
     var prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -492,15 +519,36 @@
       window.removeEventListener('popstate', onPop);
       root.remove(); sheet.remove();
       document.body.style.overflow = prevOverflow;
-      if (cfg.onClose) cfg.onClose(st);
+      if (cfg.onClose) cfg.onClose(st, kept);
     }
     function close() { if (pushed) { pushed = false; history.back(); } else cleanup(); }   // 뒤로 가기(popstate)가 cleanup을 부른다
-    function onPop() { pushed = false; cleanup(); }
+    function onPop() {
+      // 안드로이드 뒤로 가기도 [×]처럼 — 저장 안 한 고침이 있으면 묻고, 남겠다면 편집기 그대로
+      if (!kept && snapshot() !== opened && !confirm('고친 내용을 저장하지 않고 나갈까요?')) {
+        try { history.pushState({ walsonEditor: 1 }, ''); } catch (e) { /* 못 막으면 닫힘 */ }
+        return;
+      }
+      pushed = false; cleanup();
+    }
+    // [×]·뒤로 가기: 고친 게 있는데 [저장]도 내보내기도 안 했으면 한 번 묻는다(아니요면 편집기에 그대로)
+    function askClose() {
+      if (!kept && snapshot() !== opened && !confirm('고친 내용을 저장하지 않고 나갈까요?')) return;
+      close();
+    }
+    // 고친 것 남기기 — 부른 화면은 onClose(st, true)로, storeKey가 있으면 여기서 이 휴대폰에
+    function keep() {
+      kept = true;
+      if (!cfg.storeKey) return;
+      var extra = {};
+      (cfg.storeExtra || []).forEach(function (k) { extra[k] = st.extra[k]; });
+      try { localStorage.setItem(cfg.storeKey, JSON.stringify({ fmt: st.fmt, photo: st.photo, stickers: st.stickers, extra: extra })); } catch (e) { /* 못 남겨도 이번 그림은 그대로 */ }
+    }
     // 안드로이드 뒤로 가기·브라우저 뒤로 = 편집기 닫기(앞 화면을 떠나지 않게)
     try { history.pushState({ walsonEditor: 1 }, ''); pushed = true; window.addEventListener('popstate', onPop); } catch (e) { pushed = false; }
-    q('.we-x').addEventListener('click', close);
-    // 저장(사진첩·내려받기)과 공유(카톡·인스타 등 공유 창)를 따로 — 2026-11-16 가르시아 "저장과 공유는 분리해줘"
+    q('.we-x').addEventListener('click', askClose);
+    // 사진첩 저장(내려받기)과 공유(카톡·인스타 등 공유 창) — 둘 다 [공유] 메뉴 안(11/16 "저장과 공유는 분리", 11/18 "저장은 고친 걸 남기고 빠져나오기")
     function output(how) {
+      keep();
       if (pending) finish(true);
       if (document.activeElement && root.contains(document.activeElement) && document.activeElement.blur) document.activeElement.blur();
       sel = -1; render(true);   // 고른 글자 테두리 없이
@@ -513,8 +561,19 @@
       }
       buildTray(); setTimeout(function () { schedule(); }, 300);
     }
-    q('.we-save').addEventListener('click', function () { output('save'); });
-    q('.we-share').addEventListener('click', function () { output('share'); });
+    var menu = q('.we-menu'), shareBtn = q('.we-share');
+    function toggleMenu(on) { menu.hidden = !on; shareBtn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+    shareBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleMenu(menu.hidden); });
+    Array.prototype.forEach.call(menu.querySelectorAll('[data-out]'), function (b) {
+      b.addEventListener('click', function () { toggleMenu(false); output(b.getAttribute('data-out')); });
+    });
+    root.addEventListener('click', function (e) { if (!menu.hidden && !menu.contains(e.target)) toggleMenu(false); });
+    // [저장] = 고친 것을 남기고 편집기에서 나온다(폰으로 내려받지 않음)
+    q('.we-save').addEventListener('click', function () {
+      if (pending) finish(true);
+      keep();
+      close();
+    });
 
     var api = {
       state: st,
