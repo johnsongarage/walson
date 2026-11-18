@@ -63,6 +63,15 @@
     filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
   }
   .canvas-hint { text-align: center; font-size: 11px; color: #a8977f; margin-top: 6px; }
+  /* 카드 색(2026-11-18) — 테두리만. 성향 띠·불은 성향 색 그대로 */
+  .color-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .color-row button {
+    display: flex; align-items: center; gap: 5px; padding: 5px 10px 5px 5px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 700;
+  }
+  .color-row button i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); }
+  .color-row button[aria-checked="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .color-note { text-align: center; font-size: 11px; color: var(--ink-soft); margin: 6px 0 0; word-break: keep-all; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
@@ -156,6 +165,7 @@
   }
 </style>
 <script src="store.js?v=1"></script>
+<script src="dex-card.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="theme.js?v=10"></script>
 <script src="site-config.js?v=10"></script>
@@ -187,6 +197,9 @@
       <canvas id="card-canvas" width="1600" height="1000" role="img" aria-label="강아지 주민증 앞면"></canvas>
     </div>
     <div class="canvas-hint">주민증을 누르면 뒤집혀요</div>
+    <!-- 카드 색(2026-11-18 가르시아 "모카 기본으로" — 색을 정치적으로 보는 사람이 있을 수 있어 견주가 고른다). 이 휴대폰 프로필에만 -->
+    <div class="color-row" id="color-row" role="radiogroup" aria-label="카드 색"></div>
+    <p class="color-note">테두리 색만 바뀌어요. 성향 띠는 성향 색 그대로예요. 성별·견종은 <a href="profile.html">프로필</a>에서 적어요.</p>
   </div>
 
   <div class="panel">
@@ -217,12 +230,16 @@
     <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·면·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
     <button type="button" class="btn btn-primary" id="save-btn">꾸미고 저장하기</button>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
-    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080. 앞면은 QR 대신 브랜드 문구(site-config.js brand) -->
-    <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 인쇄소용 파일 저장 · 지금 보는 면</button>
+    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형, 11/18 양면 + NFC): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080.
+         앞면은 QR 대신 브랜드 문구(site-config.js brand), 뒷면은 도감 카드 주소 QR + 연락처·예방접종·메모 손글씨 칸(id-card.js drawKeyringBack) -->
+    <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 앞면 파일 저장</button>
+    <button type="button" class="btn btn-secondary" id="keyring-back-btn">키링 뒷면 파일 저장 · QR·연락처 칸</button>
     <p class="hint">A4에 앞·뒷면이 네 쌍 실제 크기(85.6×54mm)로 나와요. 인쇄 배율은 100%(실제 크기)로. 오려서 등을 맞대고 포토카드 홀더에 넣으면 리드줄에 달 수 있어요.
     인식표(보호자 연락처·동물등록번호)는 따로 달아 주세요.<br>
-    키링 인쇄소용 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 키링 크기에선 안 찍히는 QR 대신 "WALSON" 문구가 들어가요.
-    인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로"라고 전해 주세요. 양면으로 하려면 뒷면을 보고 한 번 더 저장하세요.</p>
+    키링 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 주민증 그대로(QR 자리에 "WALSON" 문구),
+    뒷면은 우리 강아지 도감 카드가 열리는 QR과 보호자 연락처·예방접종·메모를 손으로 적는 칸이에요.
+    인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로, 뒷면은 펜으로 쓸 수 있게"라고 전해 주세요.
+    NFC를 넣으면 칩에는 뒷면 QR과 같은 주소(<a href="dex.html">도감</a> "카드 주소 보내기")를 넣어요.</p>
   </div>
 
   <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
@@ -244,7 +261,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=1"></script>
-<script src="id-card.js?v=7"></script>
+<script src="id-card.js?v=8"></script>
 <script src="image-editor.js?v=2"></script>
 <script src="steady-stamp.js?v=3"></script>
 <script src="mock-server.js?v=2"></script>
@@ -439,24 +456,38 @@
     });
   });
 
-  // ── 키링 인쇄소용 파일(2026-11-16) — 지금 보는 면을 원본 크기로. 앞면은 QR 없이 ──
-  $('keyring-file-btn').addEventListener('click', function () {
-    var c = document.createElement('canvas');
-    if (side === 'back') IC.drawBack(c, profile, progress, backOpts());
-    else IC.drawFront(c, profile, Object.assign({}, frontOpts(), { noQr: true }));
-    window.WalsonTrack && WalsonTrack.send('card_saved', { what: side === 'back' ? 'keyring_back' : 'keyring_front', format: 'card', how: 'save' });
-    var name = (profile.name || 'dog') + '-주민증-키링용-' + (side === 'back' ? '뒷면' : '앞면') + '.png';
-    // 인쇄 여유(2026-11-17 키링 = 주민증 카드형으로 결정): 카드 60×37.5mm(1600×1000) 사방에 1.5mm(40px)를 테두리 색으로 더 칠해
-    // 1680×1080으로 — 재단이 조금 밀려도 흰 테두리·투명 귀퉁이가 안 남는다. 인쇄소엔 "재단 60×37.5mm, 모서리 둥글게"
-    var sig = IC.SIGNALS[profile.signal] || IC.SIGNALS.none, BLEED = 40, out = document.createElement('canvas');
-    out.width = c.width + BLEED * 2; out.height = c.height + BLEED * 2;
-    var og = out.getContext('2d');
-    og.fillStyle = sig.color; og.fillRect(0, 0, out.width, out.height);
-    og.drawImage(c, BLEED, BLEED);
-    c = out;
+  // ── 키링 인쇄소용 파일(2026-11-16, 11/18 양면 + NFC) — 앞면은 QR 없이(브랜드 문구), 뒷면은 키링 전용(QR·손글씨 칸) ──
+  function saveFile(c, name) {
     // 저장은 저장으로(2026-11-16 저장·공유 분리) — 예전엔 휴대폰에서 공유 창만 떠서 안드로이드는 사진첩에 넣을 수 없었다
     if (window.WalsonSave.save) { WalsonSave.save(c, name); return; }
     c.toBlob(function (blob) { if (blob) window.WalsonSave.blob(blob, name); }, 'image/png');
+  }
+  $('keyring-file-btn').addEventListener('click', function () {
+    var c = document.createElement('canvas');
+    IC.drawFront(c, profile, Object.assign({}, frontOpts(), { noQr: true }));
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'keyring_front', format: 'card', how: 'save' });
+    // 인쇄 여유(2026-11-17 키링 = 주민증 카드형으로 결정): 카드 60×37.5mm(1600×1000) 사방에 1.5mm(40px)를 테두리 색(카드 색)으로 더 칠해
+    // 1680×1080으로 — 재단이 조금 밀려도 흰 테두리·투명 귀퉁이가 안 남는다. 인쇄소엔 "재단 60×37.5mm, 모서리 둥글게"
+    var BLEED = 40, out = document.createElement('canvas');
+    out.width = c.width + BLEED * 2; out.height = c.height + BLEED * 2;
+    var og = out.getContext('2d');
+    og.fillStyle = IC.cardColor(profile); og.fillRect(0, 0, out.width, out.height);
+    og.drawImage(c, BLEED, BLEED);
+    saveFile(out, (profile.name || 'dog') + '-주민증-키링용-앞면.png');
+  });
+  // 뒷면 QR = 도감 카드 주소(dex-card.js — 도감 "카드 주소 보내기"와 같은 것). 인쇄물이라 늘 왈슨 주소(id-card.js SHARE_URL과 같은 곳)로
+  $('keyring-back-btn').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    WalsonDexCard.myCard().then(function (card) {
+      btn.disabled = false;
+      if (!card) { alert('주민증 이름이 있어야 QR을 만들 수 있어요.'); return; }
+      var url = WalsonDexCard.cardUrl(card, IC.SHARE_URL.replace(/[^/]*$/, ''));
+      var c = document.createElement('canvas');
+      if (!IC.drawKeyringBack(c, profile, url, 40)) { alert('QR을 그리지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'); return; }
+      window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'keyring_back', format: 'card', how: 'save' });
+      saveFile(c, (profile.name || 'dog') + '-주민증-키링용-뒷면.png');
+    }, function () { btn.disabled = false; });
   });
 
   // ── 실물로 뽑기: A4에 앞·뒷면 네 쌍(실제 크기) ──
@@ -496,6 +527,31 @@
     })).then(function () { window.print(); });
   });
 
+  // ── 카드 색(2026-11-18) — 고르면 바로 프로필에 저장하고 다시 그린다(테두리·저장 바탕·키링 뒷면 판) ──
+  function paintColors() {
+    var row = $('color-row');
+    row.innerHTML = '';
+    // 저장된 색이 없거나 모르는 값이면 모카(기본)
+    var picked = IC.CARD_COLORS.some(function (x) { return x.id === profile.cardColor; }) ? profile.cardColor : 'mocha';
+    IC.CARD_COLORS.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'radio');
+      var col = c.color || (IC.SIGNALS[profile.signal] || IC.SIGNALS.none).color;
+      b.setAttribute('aria-checked', picked === c.id ? 'true' : 'false');
+      var dot = document.createElement('i'); dot.style.background = col;
+      b.appendChild(dot);
+      b.appendChild(document.createTextNode(c.label + (c.id === 'mocha' ? '(기본)' : '')));
+      b.addEventListener('click', function () {
+        profile.cardColor = c.id;
+        WalsonStore.saveProfile(profile);   // 저장 못 해도 이번 화면엔 반영
+        paintColors();
+        render();
+      });
+      row.appendChild(b);
+    });
+  }
+
   // ── 처음 그리기 ──
   if (!hasCard) {
     $('make-panel').hidden = false;
@@ -513,6 +569,7 @@
   }
   renderSummary();
   renderTraits();
+  if (hasCard) paintColors();
   render();
   Promise.all([IC.loadImage(profile.photo), IC.fontsReady()]).then(function (res) { photo = res[0]; render(); });
 })();

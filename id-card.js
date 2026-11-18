@@ -2,7 +2,9 @@
 // 주민증 만들기(start.html)와 [주민증] 탭(my-card.html)이 같이 쓴다. 예전엔 start.html 안에만 있었다.
 // 앞면: 예전 주민증 그대로 + 부제가 주민 등급("남양주 다산동 토박이") + 정착 주민부터 사진 귀퉁이에 빨간 승급 도장 + 승급일.
 // 뒷면: 진짜 주민등록증 뒷면의 "주소 변경" 칸 패러디 — 승급 기록 · 발도장 기록 · 특기 · 특이 사항.
-// 테두리는 신호등 색 그대로(안전 표시가 먼저 — hq notes/petwalk-keyring-plan.md와 같은 원칙). 등급 숫자는 reward-rules.js RANKS.
+// 테두리는 견주가 고른 카드 색(기본 모카 — 2026-11-18 가르시아 "모카 기본으로": 색을 정치적으로 보는 사람이 있을 수 있어 선택권).
+// 성향 띠·불은 성향 색 그대로 — 안전 표시는 남긴다(11/15 "테두리는 신호등 색" 원칙을 띠·불로 옮김). 등급 숫자는 reward-rules.js RANKS.
+// 키링 뒷면(drawKeyringBack): 도감 카드 주소 QR·NFC 안내 + 보호자 연락처·예방접종(광견병·종합)·메모 손글씨 칸(11/18 시안 2).
 // 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. QR은 qrcode-generator를 먼저 불러야 그려진다(없으면 QR 없이).
 // 고치면 쓰는 화면(start.html·my-card.html)의 ?v= 번호를 같이 올릴 것.
 (function () {
@@ -18,6 +20,32 @@
     // 신호등을 정하지 않은 가게 수호지킴이용 — 불은 켜지 않고 앱 색으로 그린다
     none:   { label: '수호견', line: '가게를 지키고 있어요', color: '#b8563a' }
   };
+  // 카드 색(2026-11-18) — 테두리·저장 바탕·키링 뒷면 QR 판. 프로필 cardColor에 id로 저장, 없으면 모카.
+  // 어느 색이든 누군가는 정당 색으로 볼 수 있어서 '중립 색 찾기' 대신 견주가 고른다. 'signal'은 성향 색 그대로(11/18 전까지의 모양)
+  var CARD_COLORS = [
+    { id: 'mocha', label: '모카', color: '#6b4f3a' },
+    { id: 'sand', label: '모래', color: '#cdb796' },
+    { id: 'ink', label: '먹색', color: '#44403c' },
+    { id: 'sky', label: '하늘', color: '#7fb0d6' },
+    { id: 'pink', label: '분홍', color: '#e9a0b4' },
+    { id: 'signal', label: '성향 색', color: null }
+  ];
+  function cardColor(profile) {
+    var id = profile && profile.cardColor;
+    for (var i = 0; i < CARD_COLORS.length; i++) {
+      if (CARD_COLORS[i].id === id) return CARD_COLORS[i].color || (SIGNALS[profile.signal] || SIGNALS.none).color;
+    }
+    return CARD_COLORS[0].color;
+  }
+  // 이름 옆에 붙는 것(2026-11-18) — 성별(암컷·수컷)·중성화·견종. 프로필에 적은 것만, 안 적었으면 빈 배열
+  function infoBits(profile) {
+    var bits = [];
+    if (profile.sex === 'female') bits.push('암컷'); else if (profile.sex === 'male') bits.push('수컷');
+    if (profile.neutered) bits.push('중성화');
+    var breed = String(profile.breed || '').trim();
+    if (breed) bits.push(breed);
+    return bits;
+  }
   var INK = '#4a3f35', SOFT = '#8a7a68', LINE = '#e6d6c1', CREAM = '#fffaf3', DIM = '#b9aa96', SEAL = '#c8423a';
   var SANS = 'Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   var BIG = '"Black Han Sans", ' + SANS;   // 도장 글자(영수증 상환 도장과 같은 글꼴)
@@ -96,11 +124,11 @@
     }
   }
 
-  // 바탕 + 신호등 색 테두리
-  function frame(ctx, sig) {
+  // 바탕 + 카드 색 테두리(견주가 고른 색 — cardColor)
+  function frame(ctx, color) {
     ctx.clearRect(0, 0, W, H);
     roundRect(ctx, 0, 0, W, H, 64);
-    ctx.fillStyle = sig.color;
+    ctx.fillStyle = color;
     ctx.fill();
     roundRect(ctx, 26, 26, W - 52, H - 52, 44);
     ctx.fillStyle = CREAM;
@@ -144,7 +172,7 @@
     var ctx = canvas.getContext('2d');
     var sig = SIGNALS[profile.signal] || SIGNALS.none;
     var rank = opts.subtitle ? null : (opts.rank || null);
-    frame(ctx, sig);
+    frame(ctx, cardColor(profile));
 
     // 머리줄 — 부제가 주민 등급으로 자란다(새내기 주민 → 정착 주민 → 토박이 → 터줏대감)
     ctx.fillStyle = INK;
@@ -203,6 +231,12 @@
     ctx.fillStyle = SOFT;
     ctx.font = font(600, 32);
     ctx.fillText('이름', tx, 362);
+    var bits = infoBits(profile);
+    if (bits.length) {   // '이름 · 암컷 · 중성화 · 말티즈' — 이름 글자 자리는 그대로 두고 그 위 작은 줄에
+      var lw = ctx.measureText('이름').width + 14, more = '·  ' + bits.join(' · ');
+      ctx.font = font(600, fitText(ctx, more, maxW - lw, 32, 600));
+      ctx.fillText(more, tx + lw, 362);
+    }
     ctx.fillStyle = INK;
     var name = profile.name || '';
     ctx.font = font(800, fitText(ctx, name, maxW, 124, 800));
@@ -303,7 +337,6 @@
     opts = opts || {};
     canvas.width = W; canvas.height = H;
     var ctx = canvas.getContext('2d');
-    var sig = SIGNALS[profile.signal] || SIGNALS.none;
     var ranks = opts.ranks || [], places = (opts.places || []).filter(function (p) { return !p.pending; });
     var slots = opts.slots || { skill: 1, passive: 3 };
     var n = (career && career.walks) || 0, km = (career && career.km) || 0;
@@ -312,7 +345,7 @@
     var moveIn = [keyFromText(profile.cardIssued), career && career.firstDate].filter(Boolean).sort()[0] || null;
     var cur = null;
     ranks.forEach(function (r) { if (n >= r.minWalks) cur = r; });
-    frame(ctx, sig);
+    frame(ctx, cardColor(profile));
 
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
@@ -406,6 +439,111 @@
     return canvas;
   }
 
+  // ── 키링 뒷면(2026-11-18 가르시아: 양면 + NFC, "뒷면은 왈슨 주민증이 열리는 QR, 연락처 적을 공간·메모, 화면 꽉 차게" → 시안 2) ──
+  // 왼쪽: 카드 색 판에 큰 QR(약 25mm, 오류 정정 M) + 폰을 대는 표시. 오른쪽: 이름(+성별·견종) · 보호자 연락처 · 광견병/종합 접종 · 메모 손글씨 칸.
+  // url: 도감 카드 주소(dex-card.js — 이름·크기·성향·털색·무작위 번호만. 위치·사진·연락처 없음). NFC 칩에도 같은 주소를 넣는다.
+  // bleed: 사방 인쇄 여유(px, 키링 파일은 40 = 1.5mm) — 바탕을 여유까지 꽉 채워 재단이 밀려도 흰 틈이 안 남게.
+  // QR 라이브러리가 없으면(인터넷이 끊겨 못 불러옴) false — 부른 쪽이 저장하지 않는다.
+  function inkOn(hex) {
+    var h = String(hex).replace('#', '');
+    var lum = (parseInt(h.substr(0, 2), 16) * 299 + parseInt(h.substr(2, 2), 16) * 587 + parseInt(h.substr(4, 2), 16) * 114) / 1000;
+    return lum > 165 ? INK : '#ffffff';   // 밝은 판엔 진갈색 글씨, 어두운 판엔 흰 글씨
+  }
+  function qrSquare(ctx, text, x, y, size) {
+    if (typeof qrcode !== 'function') return null;
+    var qr;
+    try { qr = qrcode(0, 'M'); qr.addData(text); qr.make(); } catch (e) { return null; }   // 키링은 긁히고 손때가 묻어서 M
+    roundRect(ctx, x, y, size, size, 36);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    var n = qr.getModuleCount(), quiet = 3;
+    var cell = Math.floor(size / (n + quiet * 2)), real = cell * n;
+    var ox = x + Math.round((size - real) / 2), oy = y + Math.round((size - real) / 2);
+    ctx.fillStyle = INK;
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell);
+    return { modules: n, cell: cell };
+  }
+  // 폰을 대는 표시(비접촉 물결) — NFC 포럼의 N 마크(상표)는 쓰지 않는다
+  function tapWaves(ctx, cx, cy, color) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = 'round'; ctx.lineWidth = 9;
+    [20, 38, 56].forEach(function (r) { ctx.beginPath(); ctx.arc(cx - 22, cy, r, -0.95, 0.95); ctx.stroke(); });
+    ctx.beginPath(); ctx.arc(cx - 26, cy, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  function drawKeyringBack(canvas, profile, url, bleed) {
+    var b = bleed || 0;
+    canvas.width = W + b * 2; canvas.height = H + b * 2;
+    var ctx = canvas.getContext('2d');
+    var panel = cardColor(profile), onPanel = inkOn(panel), SPLIT = 740;   // 왼쪽 QR 판 | 오른쪽 손글씨 판
+    ctx.fillStyle = CREAM; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = panel; ctx.fillRect(0, 0, b + SPLIT, canvas.height);
+    ctx.save();
+    ctx.translate(b, b);
+
+    // ── 왼쪽: QR + 폰 대기 안내 ──
+    var info = qrSquare(ctx, url, 40, 44, 660);   // 24.8mm — 한 칸 약 0.45mm(키링 60×37.5mm 기준)
+    if (!info) { ctx.restore(); return false; }
+    tapWaves(ctx, 104, 800, onPanel);
+    ctx.fillStyle = onPanel; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.font = font(800, 46);
+    ctx.fillText('카메라로 찍거나', 164, 782);
+    ctx.fillText('휴대폰을 대 보세요', 164, 842);
+    var opens = (profile.name ? profile.name + ' ' : '') + '주민증이 열려요';
+    ctx.font = font(700, fitText(ctx, opens, 640, 38, 700));
+    ctx.fillText(opens, 48, 930);
+
+    // ── 오른쪽: 이름 + 손글씨 칸(줄 사이 4~5mm — 키링 크기에서 가는 펜으로 한 줄씩) ──
+    var x0 = 800, x1 = W - 64, name = profile.name || '우리 강아지';
+    ctx.fillStyle = INK;
+    ctx.font = font(800, fitText(ctx, name, x1 - x0, 84, 800));
+    ctx.fillText(name, x0, 134);
+    var bits = infoBits(profile);
+    if (bits.length) {   // 이름 오른쪽에 작게 — 앱에 적어 둔 것(손글씨 아님). 자리가 모자라면 글자를 줄인다
+      var nx = x0 + ctx.measureText(name).width + 22, more = bits.join(' · ');
+      if (x1 - nx > 120) {
+        ctx.fillStyle = SOFT;
+        ctx.font = font(700, fitText(ctx, more, x1 - nx, 36, 700));
+        ctx.fillText(more, nx, 128);
+      }
+    }
+    ctx.fillStyle = SOFT;
+    ctx.font = font(600, fitText(ctx, '길에서 저를 만나면 연락해 주세요', x1 - x0, 36, 600));
+    ctx.fillText('길에서 저를 만나면 연락해 주세요', x0, 194);
+    ctx.strokeStyle = LINE; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x0, 238); ctx.lineTo(x1, 238); ctx.stroke();
+
+    ctx.fillStyle = SOFT; ctx.font = font(700, 40);
+    ctx.fillText('보호자 연락처', x0, 306);
+    ctx.strokeStyle = DIM; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x0, 420); ctx.lineTo(x1, 420); ctx.stroke();
+    // 예방접종 — 반려동물 동반 음식점이 접종을 확인한다(손님이 손으로 적어 내도 됨, hq notes/petwalk-pet-restaurant-rules.md).
+    // 해마다 바뀌어서 지우고 다시 쓰는 칸. 증명서를 대신하지는 않는다
+    [['광견병 접종', 540, true], ['종합 접종', 652, true], ['메모', 764, false]].forEach(function (row) {
+      ctx.fillStyle = SOFT; ctx.font = font(700, 38); ctx.textAlign = 'left';
+      ctx.fillText(row[0], x0, row[1] - 14);
+      var lw = ctx.measureText(row[0]).width + 22;
+      ctx.strokeStyle = DIM; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(x0 + lw, row[1]); ctx.lineTo(x1, row[1]); ctx.stroke();
+      if (row[2]) {   // 날짜 칸 모양(년 . 월 . 일) — 어디에 쓸지 보이게 점만 옅게
+        ctx.fillStyle = DIM; ctx.font = font(700, 34); ctx.textAlign = 'right';
+        ctx.fillText('.          .', x1 - 70, row[1] - 14);
+        ctx.textAlign = 'left';
+      }
+    });
+
+    // 아래 줄 — 브랜드 이름(site-config.js brand) · 카드 번호(앞면과 같은 번호)
+    var B = window.WALSON_CONFIG && window.WALSON_CONFIG.brand;
+    if (B && B.name) { ctx.fillStyle = INK; ctx.font = '46px ' + BIG; ctx.textAlign = 'left'; ctx.fillText(B.name, x0, 924); }
+    if (profile.cardNo) {
+      ctx.fillStyle = SOFT; ctx.textAlign = 'right';
+      ctx.font = font(600, fitText(ctx, 'No. ' + profile.cardNo, 420, 32, 600));
+      ctx.fillText('No. ' + profile.cardNo, x1, 922);
+    }
+    ctx.restore();
+    return info;
+  }
+
   // 저장 모양: 카드만(1600×1000) / 정사각형(1080×1080, 카톡·피드) / 스토리용(1080×1920).
   // 정사각형·스토리용은 파스텔 바탕 가운데에 카드를 올려서, 올렸을 때 양옆이 잘리지 않게 한다.
   function composeExport(cardCanvas, profile, format) {
@@ -417,8 +555,9 @@
     var sig = SIGNALS[profile.signal] || SIGNALS.none;
     ctx.fillStyle = '#f7ede2';
     ctx.fillRect(0, 0, OW, OH);
-    // 위아래에 신호등 색 띠를 얇게 — 어떤 신호등인지 멀리서도 보이게
-    ctx.fillStyle = sig.color;
+    // 위아래에 카드 색 띠를 얇게(2026-11-18부터 성향 색 대신 견주가 고른 카드 색 — 성향은 카드 안 띠·불이 알린다)
+    var cc = cardColor(profile);
+    ctx.fillStyle = cc;
     ctx.fillRect(0, 0, OW, 18);
     ctx.fillRect(0, OH - 18, OW, 18);
     var cw = 960, ch = 600, cx = (OW - cw) / 2, cy = Math.round((OH - ch) / 2) - (format === 'story' ? 60 : 30);
@@ -427,7 +566,7 @@
     ctx.shadowBlur = 40;
     ctx.shadowOffsetY = 14;
     roundRect(ctx, cx, cy, cw, ch, 38);
-    ctx.fillStyle = sig.color;
+    ctx.fillStyle = cc;
     ctx.fill();
     ctx.restore();
     ctx.drawImage(cardCanvas, cx, cy, cw, ch);
@@ -484,7 +623,7 @@
         g.clearRect(0, 0, cv.width, cv.height);
         // '카드만'은 카드 그림 그대로라 둥근 모서리 바깥이 투명했다 — 사진첩·카톡에서 흰색·검은색 귀퉁이(테두리)로 남아서,
         // 신호등 테두리 색으로 채워 꽉 찬 네모로 저장한다(2026-11-16 가르시아 "카드 양식일 때 이미지 테두리가 남는 거")
-        if (out === card) { g.fillStyle = (SIGNALS[o.profile.signal] || SIGNALS.none).color; g.fillRect(0, 0, cv.width, cv.height); }
+        if (out === card) { g.fillStyle = cardColor(o.profile); g.fillRect(0, 0, cv.width, cv.height); }
         g.drawImage(out, 0, 0);
         if (!front || !o.photo) return null;
         // composeExport가 카드를 놓는 자리(정사각형·스토리: 960×600 가운데) — 사진 칸을 같은 비율로 옮긴다
@@ -499,6 +638,7 @@
 
   window.WalsonIdCard = {
     W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX,
+    CARD_COLORS: CARD_COLORS, cardColor: cardColor, infoBits: infoBits, drawKeyringBack: drawKeyringBack,
     drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, openEditor: openEditor,
     loadImage: loadImage, fontsReady: fontsReady, todayText: todayText, dateText: dateText
   };
