@@ -264,7 +264,7 @@
 <script src="infra-pins.js?v=28"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="id-card.js?v=10"></script>
+<script src="id-card.js?v=11"></script>
 <script src="image-editor.js?v=4"></script>
 <script>
 (function () {
@@ -436,7 +436,8 @@
   }
   function drawCard(img) {
     var ri = rankInfo();
-    IC.drawFront(canvas, profile, { photo: img, rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null });
+    // 사진은 편집기에서 [저장]한 확대·자리 그대로(id-card.js framedPhoto, 2026-11-18)
+    IC.drawFront(canvas, profile, { photo: IC.framedPhoto ? IC.framedPhoto(img, profile) : img, rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null });
   }
   function composeExport() {
     exportCanvas = IC.composeExport(canvas, profile, exportFormat);
@@ -468,7 +469,8 @@
       profile: profile, photo: photoImage, title: guardianSpot ? guardianSpot + ' ' + guardianBadge : '강아지 주민증',
       frontOpts: function () { var ri = rankInfo(); return { rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null }; },
       drawBack: null,
-      onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt, how: how }); }
+      onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt, how: how }); },
+      onClose: function (st, kept) { if (kept && photoImage) { drawCard(photoImage); refreshPreview(); } }   // [저장]한 사진 맞춤을 미리 보기에 바로
     });
   });
 
