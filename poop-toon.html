@@ -156,6 +156,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=9"></script>
 <script src="save-image.js?v=3"></script>
+<script src="canvas-view.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
@@ -1554,7 +1555,15 @@
   }
 
   // ════════ 카드 ════════
-  var card = $('card'), cctx = card.getContext('2d');
+  // 카드는 원래 크기(1080×1350) 캔버스에 그리고, 화면 칸(#card)엔 보이는 크기만큼 곱게 줄여 옮긴다(canvas-view.js —
+  // 2026-11-18 PC에서 작은 글씨가 끊겨 보이던 것). 보내기·저장은 원래 크기(card)로
+  var cardView = $('card'), card = document.createElement('canvas');
+  card.width = CARD_W; card.height = CARD_H;
+  var cctx = card.getContext('2d');
+  function showCard() {
+    if (window.WalsonView) WalsonView.show(cardView, card);
+    else { cardView.width = CARD_W; cardView.height = CARD_H; cardView.getContext('2d').drawImage(card, 0, 0); }
+  }
   var SX = (CARD_W - STICKER) / 2, SY = 236;   // 스티커 자리
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   function title() {
@@ -1717,6 +1726,7 @@
     else if (st && st.id !== 'none') badge(ctx, st.id === 'usual' ? '평소대로 ✓' : '평소와 달랐어요', st.id === 'usual');
     ctx.font = "700 30px 'Pretendard', sans-serif"; ctx.fillStyle = '#a08f7c';
     plateText(ctx, (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일 · 왈슨 · 다산동 강아지 산책 앱', CARD_W / 2, 1306, 1000, 30, 24, '700', '#8a7a68');
+    showCard();
     cardDirty = true;
     clearTimeout(blobTimer);
     blobTimer = setTimeout(makeBlob, 250);
@@ -1792,25 +1802,25 @@
   // 얼굴 끌어서 옮기기
   (function () {
     var drag = null;
-    function toCard(e) { var r = card.getBoundingClientRect(), k = CARD_W / r.width; return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k }; }
+    function toCard(e) { var r = cardView.getBoundingClientRect(), k = CARD_W / r.width; return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k }; }
     function toWork(e) {
       var c = toCard(e);
       return { x: (c.x - sticker.ox) / sticker.scale, y: (c.y - sticker.oy) / sticker.scale };
     }
-    card.addEventListener('pointerdown', function (e) {
+    cardView.addEventListener('pointerdown', function (e) {
       if (!sticker) return;
       var p = toWork(e), R = face.base * opt.size;
       if (Math.hypot(p.x - face.x, p.y - (face.y + R * 0.5)) > R * 4.2) return;   // 얼굴 근처만
-      drag = { dx: face.x - p.x, dy: face.y - p.y }; card.setPointerCapture(e.pointerId); e.preventDefault();
+      drag = { dx: face.x - p.x, dy: face.y - p.y }; cardView.setPointerCapture(e.pointerId); e.preventDefault();
     });
-    card.addEventListener('pointermove', function (e) {
+    cardView.addEventListener('pointermove', function (e) {
       if (!drag) return;
       var p = toWork(e), lim = WORK + 2 * PAD;
       face.x = Math.max(0, Math.min(lim, p.x + drag.dx)); face.y = Math.max(0, Math.min(lim, p.y + drag.dy));
       requestRender();
     });
     function end() { drag = null; }
-    card.addEventListener('pointerup', end); card.addEventListener('pointercancel', end);
+    cardView.addEventListener('pointerup', end); cardView.addEventListener('pointercancel', end);
   })();
   var rafPending = false;
   function requestRender() { if (rafPending) return; rafPending = true; requestAnimationFrame(function () { rafPending = false; render(); }); }
