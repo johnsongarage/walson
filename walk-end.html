@@ -123,6 +123,7 @@
 <script src="theme.js?v=10"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
+<script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
 </head>
@@ -224,6 +225,16 @@
 <script src="steady-stamp.js?v=3"></script>
 <script src="walk-screen.js?v=2"></script>
 <script src="mock-server.js?v=2"></script>
+<script>
+  // 홈 화면에 두기 권하기(2026-11-18) — 산책을 마친 끝 화면에서 조금 뒤에, 두 번까지(install.js가 횟수·2주 쉼·샘플·앱 안 브라우저를 거른다).
+  // 시연(가짜 위치) 산책 끝에서는 안 권한다
+  (function () {
+    if (!window.WalsonInstall) return;
+    var ws = WalsonStore.walks(), last = ws[ws.length - 1];
+    if (!last || last.demo) return;
+    setTimeout(function () { WalsonInstall.offer(); }, 2500);
+  })();
+</script>
 <script>
   // 서버 가정 시험판 — 방금 산책을 가짜 서버로 보내고 스친 강아지 수를 띄운다(꺼져 있으면 아무것도 안 함)
   (function () {

@@ -178,6 +178,7 @@
 <script src="theme.js?v=10"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
+<script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 </head>
 <body>
@@ -279,10 +280,10 @@
 </div>
 
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=5"></script>
+<script src="sample-data.js?v=6"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="backup.js?v=6"></script>
+<script src="backup.js?v=7"></script>
 <script src="steady-stamp.js?v=3"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
@@ -507,21 +508,12 @@
     if (PetwalkSample.isOn()) setTimeout(sampleOff, 50);
   }
 
-  // ── 홈 화면에 추가(설치) — 브라우저가 설치 가능하다고 알려 줄 때만 링크를 보인다 ──
+  // ── 홈 화면에 추가(설치) — install.js(WalsonInstall)가 맡는다. 둘 수 있을 때만 링크(아이폰 사파리는 기록 옮기기 안내와 같이) ──
   var installLink = document.getElementById('install-link');
-  var deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    installLink.hidden = false;
-  });
-  installLink.addEventListener('click', function (e) {
-    e.preventDefault();
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt = null;
-    installLink.hidden = true;
-  });
+  if (window.WalsonInstall) {
+    WalsonInstall.whenReady(function () { installLink.hidden = false; }, 15000);
+    installLink.addEventListener('click', function (e) { e.preventDefault(); WalsonInstall.open(); });
+  }
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function () { /* 설치 지원이 안 될 뿐 화면은 그대로 */ });
   }
