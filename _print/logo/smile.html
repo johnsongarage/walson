@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>왈슨 웃는 얼굴 시안</title>
+<!-- 웃는 표정 시안(2026-11-18 가르시아 "웃는 표정 버전도 만들어볼래?"). 짖는 얼굴(walson-face.png) 위에 같은 세 가지 색으로
+     눈썹·아래 눈꺼풀·입만 다시 그린다. 머리·귀·털·코는 원본 그대로. 1556×1213 그대로 찍어 walson-face-smile.png로 저장(투명 바탕). -->
+<style>
+  html, body { margin: 0; background: transparent; }
+  .wrap { position: relative; width: 1556px; height: 1213px; }
+  .wrap img, .wrap svg { position: absolute; left: 0; top: 0; width: 1556px; height: 1213px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img src="walson-face.png" alt="">
+  <svg viewBox="0 0 1556 1213" xmlns="http://www.w3.org/2000/svg">
+    <g id="smile" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 1) 미간의 찡그린 털을 노랑으로 덮기 -->
+      <path fill="#f1b038" d="M 628 282 L 958 282 L 958 330 C 948 380 925 430 904 462 Q 771 414 640 460 C 622 430 615 380 628 330 Z"/>
+      <path fill="none" stroke="#361e12" stroke-width="16" d="M 642 466 Q 771 420 900 470"/>
+      <!-- 2) 웃는 눈: 눈구멍 아래쪽을 통째로 볼(노랑)로 덮고, 위로 휜 아래 눈꺼풀 선 -->
+      <path fill="#f1b038" d="M 372 472 Q 478 404 584 472 L 592 520 C 588 602 532 628 478 628 C 420 628 374 598 366 522 Z"/>
+      <path fill="none" stroke="#361e12" stroke-width="18" d="M 380 476 Q 478 414 578 476"/>
+      <path fill="#f1b038" d="M 952 488 Q 1065 420 1178 488 L 1184 532 C 1178 610 1120 636 1065 636 C 1004 636 954 608 948 532 Z"/>
+      <path fill="none" stroke="#361e12" stroke-width="18" d="M 960 492 Q 1065 428 1170 492"/>
+      <!-- 눈을 덮느라 끊긴 주둥이 선을 다시 -->
+      <path fill="none" stroke="#361e12" stroke-width="17" d="M 642 462 C 600 492 562 545 546 645"/>
+      <path fill="none" stroke="#361e12" stroke-width="17" d="M 900 466 C 944 496 984 548 1002 652"/>
+      <!-- 3) 코 아래(짖는 입과 이어진 곳)를 덮고 코끝을 둥글게 -->
+      <path fill="#f1b038" d="M 612 646 L 928 646 L 928 708 L 612 708 Z"/>
+      <path fill="#f1b038" d="M 556 676 L 620 676 L 620 712 L 556 712 Z"/>
+      <path fill="#f1b038" d="M 922 676 L 990 676 L 990 712 L 922 712 Z"/>
+      <path fill="#361e12" d="M 661 538 C 645 575 640 626 659 661 C 689 687 735 692 771 692 C 807 692 853 687 883 661 C 902 626 897 575 875 538 Z"/>
+      <!-- 4) 짖는 입을 덮기(아래 주둥이는 원래 턱선이 그대로 감싼다) -->
+      <path fill="#f1b038" d="M 548 700 C 548 900 636 1075 771 1085 C 906 1075 1008 900 1008 700 Z"/>
+      <!-- 웃는 입: 인중 → ω 윗입술 → 벌린 입 + 혀 -->
+      <path fill="none" stroke="#361e12" stroke-width="15" d="M 771 684 L 771 750"/>
+      <path fill="#361e12" d="M 606 754 Q 688 814 771 762 Q 854 814 936 754 C 928 904 854 996 771 1001 C 688 996 614 904 606 754 Z"/>
+      <path fill="none" stroke="#361e12" stroke-width="15" d="M 590 746 Q 684 808 771 750 Q 858 808 952 746"/>
+      <path fill="#f2b542" d="M 689 914 C 691 968 731 995 771 995 C 811 995 851 968 853 914 C 825 892 797 888 771 901 C 745 888 717 892 689 914 Z"/>
+      <path fill="none" stroke="#361e12" stroke-width="8" d="M 771 908 L 771 958"/>
+      <!-- 입꼬리 볼 주름 -->
+      <path fill="none" stroke="#361e12" stroke-width="12" d="M 590 746 Q 568 728 560 702"/>
+      <path fill="none" stroke="#361e12" stroke-width="12" d="M 952 746 Q 974 728 982 702"/>
+    </g>
+  </svg>
+</div>
+</body>
+</html>
