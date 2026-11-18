@@ -11,7 +11,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="site-config.js?v=8"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=26"></script>
+<script src="infra-pins.js?v=27"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
@@ -179,6 +179,10 @@
   @keyframes move-nudge { 50% { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(184, 86, 58, 0.25); } }
   .shop-case { font-size: 12px; font-weight: 700; line-height: 1.55; background: #fbeee6; color: var(--accent); border-radius: 10px; padding: 8px 10px; margin: 8px 0 10px; }
   .shop-case.is-hidden { background: #efe8de; color: #6f6253; }
+  .shop-case.is-cheer { background: #fbe3e8; color: #a33a55; }
+  .cheer-box { border: 1px dashed #e4a9b6; border-radius: 12px; padding: 10px; margin: 6px 0 12px; background: #fff7f8; }
+  .cheer-box .check { font-weight: 700; }
+  .cheer-box [hidden] { display: none; }
   .move-hint { font-size: 12px; font-weight: 700; color: var(--accent); background: #fbeee6; border-radius: 8px; padding: 7px 9px; margin: -4px 0 10px; line-height: 1.5; }
   .move-hint[hidden], .stats .move-btn[hidden] { display: none; }
   /* 좌표 수정 중: 손가락으로 잡기 쉽게 크고 진한 원, 가운데 흰 십자가 저장되는 자리 */
@@ -267,6 +271,16 @@
         <label class="check"><input type="checkbox" id="f-terrace"> 바깥 자리(테라스·야외석)에서 강아지와 함께 앉을 수 있음</label>
         <label class="check"><input type="checkbox" id="f-water"> 물그릇 있음</label>
         <p class="shop-case" id="shop-case"></p>
+        <!-- 응원 가게(2026-11-17 가르시아 "응원 가게 만들어") — 사장님이 원할 때만. 동반·수호견이 아니어도 이걸 켜면 지도에 나온다 -->
+        <div class="cheer-box">
+          <label class="check"><input type="checkbox" id="s-on"> 사장님이 지도에 올리길 원해요 (응원 가게)</label>
+          <div id="s-fields" hidden>
+            <div class="field"><label for="s-line">사장님 한마디 (선택, 예: 예전에 키우던 몽이 생각나서 응원해요)</label><input id="s-line" maxlength="40"></div>
+            <div class="field"><label for="s-offer">해 주는 것 (사실만, 선택, 예: 문 앞 물그릇 · 미션 간식)</label><input id="s-offer" maxlength="40"></div>
+            <label class="check"><input type="checkbox" id="s-sponsor"> 왈슨 협찬 (실제로 협찬할 때만 — 팝업에 "왈슨 협찬"이 나가요)</label>
+            <p class="hint" style="margin:4px 0 0;">동반도 안 되고 수호견도 없는 가게는 이걸 켜야 지도에 "응원 가게"(하트)로 나와요. 동반 가게·수호견 가게라면 팝업에 한마디·해 주는 것만 붙어요. 사장님 본인이 원할 때만 켜 주세요.</p>
+          </div>
+        </div>
         <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: 다산1동, 아울렛 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
         <h3>가게 이미지 (로고·간판 사진, 선택)</h3>
         <p class="hint">수호견이 없는 동반 가게는 지도에 이 이미지가 둥근 네모로 나오고(강아지 동그라미와 구분), 수호견이 있으면 팝업의 가게 줄에 작게 나와요. 고르면 보여 줄 부분을 고를 수 있어요.</p>
@@ -573,6 +587,8 @@
   var fArea = $('f-area');
   var fIndoor = $('f-indoor'), fLarge = $('f-large'), fTerrace = $('f-terrace'), fWater = $('f-water');
   var fKind = $('f-kind'), fRules = $('f-rules');
+  var sOn = $('s-on'), sLine = $('s-line'), sOffer = $('s-offer'), sSponsor = $('s-sponsor');   // 응원 가게(11/17)
+  function paintCheerFields() { $('s-fields').hidden = !sOn.checked; }
   function paintRules() { $('rules-box').hidden = fKind.value !== 'food'; }
   fKind.addEventListener('change', paintRules);
   var vHours = $('v-hours'), vNight = $('v-night'), vPartner = $('v-partner');
@@ -1038,6 +1054,7 @@
     if (fTerrace.checked) tmp.pet.terrace = true;
     if (fKind.value) tmp.pet.kind = fKind.value;
     if (fRules.checked) tmp.pet.rules = true;
+    if (sOn.checked) tmp.support = { sponsor: sSponsor.checked };
     // 수호견 칸이 꺼져 있으면(공개 수호견 입력 꺼 둠) 고칠 때 예전 수호견을 그대로 둔다 — 저장 때와 같은 규칙
     var keepOld = !!editingId && !(GUARDIAN_INPUT || demoOn) && spots.some(function (x) { return x.id === editingId && InfraPins.hasGuardianData(x); });
     var gOn = (GUARDIAN_INPUT || demoOn) ? !!gName.value.trim() : keepOld;
@@ -1047,12 +1064,16 @@
     if (c === 'A') t = '지도에서: 동반 가게 + 수호견 — 강아지 동그라미에 컵 표시(같이 들어갈 수 있어요). 동반 가게 목록과 수호견 모아 보기 둘 다에 나와요.';
     else if (c === 'B') t = '지도에서: 동반 가게 — ' + (pPhoto ? '가게 이미지가 둥근 네모로' : '컵 아이콘으로') + ' 나와요.' + (comp ? '' : ' 동반 조건이 확인 전이라 "확인 전" 안내가 붙어요.');
     else if (c === 'C') t = '지도에서: 수호견 가게(동반 안 됨) — 강아지 동그라미(컵 표시 없음), 팝업에 "반려견은 같이 못 들어가요". 동반 가게 목록엔 안 나와요.';
-    else t = '지도에서: 안 나와요 — 동반도 안 되고 수호견도 없는 가게예요. 저장은 되고 목록에 "지도에 안 나옴"으로 보여요(응원 가게로 올릴지는 결정 대기).';
+    else if (c === 'S') t = '지도에서: 응원 가게 — ' + (pPhoto ? '가게 이미지 네모에 하트' : '하트 동그라미') + ', 팝업에 "반려견은 같이 못 들어가요"와 사장님 한마디·해 주는 것. 동반 가게 목록엔 안 나와요.';
+    else t = '지도에서: 안 나와요 — 동반도 안 되고 수호견도 없는 가게예요. 사장님이 원하시면 아래 "응원 가게"를 켜 주세요. 저장은 되고 목록에 "지도에 안 나옴"으로 보여요.';
+    if (sOn.checked && c !== 'S') t += ' 응원 한마디·해 주는 것은 팝업에 붙어요.';
     if (c === 'A' || c === 'C') t += demoOn ? ' (예시 화면에서만)' : (InfraPins.GUARDIANS_ON ? '' : ' 단, 수호견은 아직 공개 지도에서 꺼져 있어서 지금은 ' + (c === 'C' ? '지도에 안 나와요.' : '동반 가게로만 나와요.'));
     box.textContent = t;
     box.classList.toggle('is-hidden', c === 'D' || (c === 'C' && !demoOn && !InfraPins.GUARDIANS_ON));
+    box.classList.toggle('is-cheer', c === 'S');
   }
-  [fIndoor, fTerrace, fKind, fRules].forEach(function (x) { x.addEventListener('change', paintShopCase); });
+  [fIndoor, fTerrace, fKind, fRules, sSponsor].forEach(function (x) { x.addEventListener('change', paintShopCase); });
+  sOn.addEventListener('change', function () { paintCheerFields(); paintShopCase(); });
   gName.addEventListener('input', paintShopCase);
   fCat.addEventListener('change', refreshExtras);
   fDemo.addEventListener('change', refreshExtras);
@@ -1072,6 +1093,7 @@
     setRadio('g-kind', 'home'); setRadio('g-style', 'cartoon'); gCoat = 0; $('g-pose').value = 'sit';
     ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = false; });
     fDemo.checked = false;
+    sOn.checked = false; sLine.value = ''; sOffer.value = ''; sSponsor.checked = false; paintCheerFields();
     paintGuardianForm();
     showGPhoto(null); showPPhoto(null);
     setDraft(null);
@@ -1104,6 +1126,8 @@
     // 이미 받은 동의는 체크된 채로(다시 확인하려면 풀었다가 체크)
     ['g-c1', 'g-c2', 'g-c3'].forEach(function (id) { $(id).checked = !!g.consentAt; });
     fDemo.checked = !!pin.demo;
+    var sp = InfraPins.supportInfo(pin);
+    sOn.checked = !!sp; sLine.value = sp ? sp.line : ''; sOffer.value = sp ? sp.offer : ''; sSponsor.checked = !!(sp && sp.sponsor); paintCheerFields();
     showGPhoto(g.style === 'drawn' ? null : (g.photo || null));
     gPhotoCartoon = g.style === 'cartoon';
     paintGuardianForm();
@@ -1156,6 +1180,14 @@
       if (pet.kind === 'food' && (pet.indoor === 'ok' || pet.indoor === 'carrier') && !pet.rules &&
           !confirm('음식·음료를 파는 곳인데 동반출입 기준 확인이 없어요.\n이대로 저장하면 지도에 "실내 동반" 표시는 나가지 않아요' + (pet.terrace ? '(바깥 자리 표시는 나가요)' : '') + '.\n\n저장할까요?')) return;
       if (Object.keys(pet).length) pin.pet = pet;
+      // 응원 가게 — 켠 경우에만(빈 칸은 넣지 않음)
+      if (sOn.checked) {
+        var sup = {};
+        if (sLine.value.trim()) sup.line = sLine.value.trim();
+        if (sOffer.value.trim()) sup.offer = sOffer.value.trim();
+        if (sSponsor.checked) sup.sponsor = true;
+        pin.support = sup;
+      }
       tags = tags.filter(function (t) { return !InfraPins.petTag(t); });
     }
     if (tags.length) pin.tags = tags;
@@ -1227,7 +1259,7 @@
         var meta = document.createElement('div');
         meta.className = 'meta';
         var petText = pin.cat === 'spot' ? InfraPins.petBadges(pin).map(function (b) { return b.text; }).join('·') : '';
-        meta.textContent = cat.label + (pin.cat === 'spot' && !pin.demo && InfraPins.shopCase(pin) === 'D' ? ' · 지도에 안 나옴' : '') + (pin.area ? ' · ' + pin.area : '') + (petText ? ' · ' + petText : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
+        meta.textContent = cat.label + (pin.cat === 'spot' && !pin.demo && InfraPins.shopCase(pin) === 'D' ? ' · 지도에 안 나옴' : pin.cat === 'spot' && InfraPins.shopCase(pin) === 'S' ? ' · 응원 가게' : '') + (pin.area ? ' · ' + pin.area : '') + (petText ? ' · ' + petText : '') + ' · ' + InfraPins.sourceText(pin) + (InfraPins.hasGuardianData(pin) ? ' · 수호견 ' + pin.guardian.name : '');
         info.appendChild(name); info.appendChild(meta);
         info.addEventListener('click', function () { map.setView([pin.lat, pin.lng], 17); });
         var edit = document.createElement('button');
@@ -1325,6 +1357,7 @@
         var name = document.createElement('span'); name.className = 'label';
         // 동반 가게·수호견 가게는 같은 가게 데이터에서 나뉜다(11/17) — 예시는 세지 않는다
         var used = l.key === 'guard' ? spots.filter(function (s) { return s.cat === 'spot' && !s.demo && InfraPins.hasGuardianData(s); }).length
+          : l.key === 'cheer' ? spots.filter(function (s) { return s.cat === 'spot' && !s.demo && InfraPins.shopCase(s) === 'S'; }).length
           : l.key === 'spot' ? spots.filter(function (s) { return s.cat === 'spot' && !s.demo && InfraPins.companion(s) !== 'no'; }).length
           : spots.filter(function (s) { return s.cat === l.key; }).length;
         name.textContent = info.layerLabel || info.label;

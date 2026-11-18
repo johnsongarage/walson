@@ -33,7 +33,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="infra-pins.js?v=26"></script>
+<script src="infra-pins.js?v=27"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=4"></script>
 <script src="map-deco.js?v=2"></script>
@@ -482,7 +482,7 @@
   function refreshShops() {
     Object.keys(shopUi).forEach(paintShopExtra);
     Object.keys(shopPins).forEach(function (id) {
-      [['shop', shopMarkers[id]], ['guard', guardMarkers[id]]].forEach(function (x) {
+      [['shop', shopMarkers[id]], ['guard', guardMarkers[id]], ['cheer', cheerMarkers[id]]].forEach(function (x) {
         var marker = x[1];
         if (!marker) return;
         marker.setIcon(L.divIcon(InfraPins.markerFor(shopPins[id], { as: x[0], badge: lvBadge(id) }).icon));
@@ -501,8 +501,9 @@
   var spotMarkers = {}; // 스팟 id → 마커(가게가 아닌 시설 — 급할 때 목록에서 그 자리로 가서 연다)
   // 가게(2026-11-17 가르시아 "동반 가게와 수호견 가게는 같은 레벨"): 동반 가게 레이어엔 가게 핀(네모·컵), 수호견 가게 레이어엔 강아지 핀.
   // 둘 다인 가게(A)는 두 레이어에 다 넣고, 수호견 가게가 보이는 동안엔 가게 핀을 숨겨 한 자리에 핀 하나만 둔다(sync).
-  // 동반도 안 되고 수호견도 없는 가게(D)는 올리지 않는다 — 응원 가게로 올릴지는 결정 대기(notes/petwalk-shop-display-plan.md)
-  var shopMarkers = {}, guardMarkers = {}, bothIds = [];
+  // 동반도 안 되고 수호견도 없지만 사장님이 참여한 가게는 응원 가게 레이어(하트 핀, 11/17 가르시아 "응원 가게 만들어").
+  // 참여도 안 한 가게(D)는 올리지 않는다.
+  var shopMarkers = {}, guardMarkers = {}, cheerMarkers = {}, bothIds = [];
   InfraPins.all().forEach(function (pin) {
     if (!InfraPins.category(pin.cat)) return;
     if (pin.cat !== 'spot') {
@@ -513,8 +514,8 @@
       addTo(pin.cat, marker);
       return;
     }
-    var asShop = InfraPins.isCompanionShop(pin), asGuard = InfraPins.isGuardShop(pin);
-    if (!asShop && !asGuard) return;
+    var asShop = InfraPins.isCompanionShop(pin), asGuard = InfraPins.isGuardShop(pin), asCheer = InfraPins.isCheerShop(pin);
+    if (!asShop && !asGuard && !asCheer) return;
     shopPins[pin.id] = pin;
     // 팝업은 하나를 두 핀이 같이 쓴다(한 번에 하나만 지도에 있음)
     var popup = InfraPins.popupEl(pin, { extraEl: shopExtraEl(pin) });
@@ -527,13 +528,14 @@
     }
     if (asShop) shopMarkers[pin.id] = place('shop', 'spot');
     if (asGuard) guardMarkers[pin.id] = place('guard', 'guard');
+    if (asCheer) cheerMarkers[pin.id] = place('cheer', 'cheer');
     if (asShop && asGuard) bothIds.push(pin.id);
   });
   // 지금 이 가게를 나타내는 핀 — 수호견 가게 레이어가 보이면 강아지 핀, 아니면 가게 핀
   function shopMarkerOf(id) {
     var gm = guardMarkers[id], sm = shopMarkers[id];
     if (gm && (!sm || (layers.guard && map.hasLayer(layers.guard)))) return gm;
-    return sm || gm || null;
+    return sm || gm || cheerMarkers[id] || null;
   }
 
   // 수호지킴이 모아 보기 — 있을 때만
@@ -1084,9 +1086,9 @@
   // 수호지킴이 목록에서 "지도에서 보기"로 오면(town.html?spot=id) 그 스팟으로 가서 팝업을 연다
   var openId = (location.search.match(/[?&]spot=([^&]+)/) || [])[1];
   if (openId) openId = decodeURIComponent(openId);
-  if (openId && (guardMarkers[openId] || shopMarkers[openId])) {
-    filter.set(guardMarkers[openId] ? 'guard' : 'spot', true);   // 수호견 목록에서 왔으면 수호견 가게를 켠다
-    map.setView((guardMarkers[openId] || shopMarkers[openId]).getLatLng(), 17, { animate: false });
+  if (openId && (guardMarkers[openId] || shopMarkers[openId] || cheerMarkers[openId])) {
+    filter.set(guardMarkers[openId] ? 'guard' : shopMarkers[openId] ? 'spot' : 'cheer', true);   // 수호견 목록에서 왔으면 수호견 가게를 켠다
+    map.setView((guardMarkers[openId] || shopMarkers[openId] || cheerMarkers[openId]).getLatLng(), 17, { animate: false });
     sync();
     shopMarkerOf(openId).openPopup();
   }
