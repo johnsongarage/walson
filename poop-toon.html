@@ -99,6 +99,25 @@
   details.more[open] summary { margin-bottom: 12px; }
   .field { display: grid; gap: 6px; margin: 0 0 12px; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
   .group[hidden], .field[hidden] { display: none; }
+  /* 멘트 상황 탭(11/18 가르시아 "헤더 부분을 둬서 어떤 상황별로 고를지 카테고리를 나눠줘") — 위 '무슨 응가' 고르기와 같은 모양의 머리줄.
+     탭은 보기만 바꾸고, 아래 목록에서 누른 말이 그림에 들어간다 */
+  .sit-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin: 0 0 10px; padding: 3px; border-radius: 14px; background: #efe1cf; }
+  .sit-tabs[hidden] { display: none; }
+  .sit-tabs button { min-height: 40px; padding: 0 4px; border: 0; border-radius: 11px; background: transparent; font-family: inherit; font-size: 13px;
+    font-weight: 800; line-height: 1.2; color: var(--ink-soft); cursor: pointer; word-break: keep-all; }
+  .sit-tabs button[aria-pressed="true"] { background: #fff; color: var(--accent-ink); box-shadow: 0 2px 6px rgba(var(--shadow-rgb), 0.16); }
+  .sit-note { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
+  .sit-note[hidden] { display: none; }
+  .line-sec + .line-sec { margin-top: 12px; }
+  .line-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .line-head b { font-size: 13px; font-weight: 800; color: var(--ink); }
+  .line-more { flex: none; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1.5px dashed #c9b59d; background: transparent; color: var(--ink);
+    font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .lines { display: flex; flex-wrap: wrap; gap: 6px; }
+  .lines button { max-width: 100%; min-height: 38px; padding: 7px 12px; border-radius: 14px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
+    font-family: inherit; font-size: 14px; font-weight: 700; line-height: 1.35; text-align: left; word-break: keep-all; cursor: pointer; }
+  .lines button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .lines-empty { margin: 0; font-size: 12px; color: var(--ink-soft); }
   /* 무슨 응가인가요(11/18): 우리 애 응가 / 길에서 치운 응가(야생 응가 포획 카드) */
   .mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 0 0 14px; padding: 4px; border-radius: 999px; background: #efe1cf; }
   .mode button { min-height: 40px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; font-family: inherit; font-size: 14px;
@@ -123,7 +142,7 @@
   #step-make .preview { position: sticky; top: 0; z-index: 5; width: auto; max-width: none; margin: 0 -16px 8px; padding: 6px 16px 10px;
     background: var(--bg); box-shadow: 0 10px 10px -12px rgba(var(--shadow-rgb), 0.55); }
   #step-make #card { width: auto; max-width: 100%; height: min(425px, 46vh); height: min(425px, 46svh); margin: 0 auto; }
-  #step-make:has(input[type="text"]:focus) .preview { position: static; }
+  #step-make.is-typing .preview { position: static; }   /* is-typing: 아래 스크립트가 붙였다 뗀다(칸을 떠난 뒤 조금 있다가) */
   /* 도구로 옮겨 갈 때(키보드 이동·화면 읽기 등) 붙어 있는 그림 밑으로 숨지 않게 */
   #step-make .group, #step-make .roll, #step-make details.more, #step-make #send-btn { scroll-margin-top: calc(min(425px, 46svh) + 32px); }
   /* 자리 맞추기 — 작은 폰에서도 사진·크기 막대·버튼이 한 화면에 들어오게 사진 칸을 화면 높이에 맞춘다(2026-11-18) */
@@ -210,10 +229,21 @@
     <div class="group" id="g-states"><span class="g-label">오늘 응가</span><div class="chips" id="states"></div></div>
     <!-- 길에서 치운 응가일 때만: 종류(고르면 말풍선이 그 응가 말로) -->
     <div class="group" id="g-kinds" hidden><span class="g-label">어떤 녀석이었나요</span><div class="chips" id="kinds"></div></div>
-    <!-- 멘트(11/17): 상황에 맞는 것 중에서 고르고, 누르면 다른 말로 -->
-    <div class="group"><span class="g-label">멘트</span><div class="chips">
-      <button type="button" id="say-next">말풍선 다른 말</button><button type="button" id="cap-next">한마디 다른 말</button>
-    </div></div>
+    <!-- 멘트(11/17): 상황에 맞는 것 중에서 고르고, 누르면 다른 말로.
+         11/18 가르시아 "헤더 부분을 둬서 어떤 상황별로 고를지 카테고리를 나눠줘": 위 탭으로 상황을 고르면 그 상황의 말이 아래에 다 보이고,
+         누른 말이 그림에 들어간다. 길에서 치운 응가는 위 '어떤 녀석이었나요'가 곧 상황이라 탭 대신 그 녀석 말 + 공통 말 -->
+    <div class="group" id="g-lines"><span class="g-label">멘트</span>
+      <div class="sit-tabs" id="sits" role="group" aria-label="멘트 상황"></div>
+      <p class="sit-note" id="sit-note" hidden></p>
+      <div class="line-sec">
+        <div class="line-head"><span><b>말풍선</b> · <span id="say-who">우리 애가 하는 말</span></span><button type="button" class="line-more" id="say-next">다른 말</button></div>
+        <div class="lines" id="say-lines" role="group" aria-label="말풍선 고르기"></div>
+      </div>
+      <div class="line-sec">
+        <div class="line-head"><span><b>한마디</b> · 제목 아래 들어가는 말</span><button type="button" class="line-more" id="cap-next">다른 말</button></div>
+        <div class="lines" id="cap-lines" role="group" aria-label="한마디 고르기"></div>
+      </div>
+    </div>
     <details class="more">
       <summary>더 꾸미기</summary>
       <label class="field" id="name-field">강아지 이름<input type="text" id="name" maxlength="10" placeholder="우리 애" autocomplete="off"></label>
@@ -277,25 +307,26 @@
   // 평소와 달랐어요면 걱정형만, 건강 자랑은 평소대로일 때만(앱이 건강하다고 말하지 않게), 굿모닝은 오전만, 풀밭 얘기는 풀밭 사진만,
   // 황금빛은 갈색·황토색 응가만. 원래 "아빠, 모르는 척…"은 산책한 사람이 엄마일 수도 있어 "집사야"로.
   // g: 묶음(통계엔 이 이름만 보낸다) · usual: 평소대로일 때만 · am: 오전만 · grass: 풀밭 사진만 · golden: 갈색·황토색만 · faces: 이 표정이면 먼저
+  // s: 멘트 상황 탭(11/18, 아래 SITS) — 우리 애 응가 말만. 통계 묶음(g)과는 따로라 통계 이름은 그대로다
   var CAPS = [
-    { id: 'a1', g: 'art', text: '이거 완전 루브르 박물관 재단이야.' },
-    { id: 'a2', g: 'art', golden: true, text: '오늘 작품명: 황금빛 대지의 속삭임.' },
-    { id: 'a3', g: 'art', text: '모양·굵기·색상, 삼박자가 완벽한 마스터피스.' },
-    { id: 'a4', g: 'art', text: '현대미술 작가 하나 데뷔했습니다.' },
-    { id: 'a5', g: 'art', text: '이 정도면 예술품이라 유료 전시해야 함.' },
-    { id: 'h1', g: 'health', usual: true, text: '오늘도 건강한 쾌변 완료! 내시경이 필요 없네.' },
-    { id: 'h2', g: 'health', usual: true, text: '유산균 제값 하네, 오늘도 해냈다!' },
-    { id: 'h3', g: 'health', usual: true, am: true, text: '감탄사가 절로 나오는 유기농 굿모닝.' },
-    { id: 'h4', g: 'health', usual: true, text: '오늘 장 건강 컨디션 200% 달성!' },
-    { id: 'h5', g: 'health', text: '시원하게 비워낸 자의 평온한 미소.' },
-    { id: 'e1', g: 'excuse', text: '어제 먹은 간식이 이 모양을 만들었다.' },
-    { id: 'e2', g: 'excuse', text: '내 다리보다 굵은데..? 이거 실화냐.' },
-    { id: 'e3', g: 'excuse', text: '무게로 지구 한 바퀴 돌 기세.' },
-    { id: 'e4', g: 'excuse', text: '시원하긴 한데... 치우는 내 손이 부끄럽다.' },
-    { id: 'e5', g: 'excuse', grass: true, text: '풀밭의 숨은 보물, 아니 폭탄 발견.' },
-    { id: 'w1', g: 'worry', text: '오늘은 평소와 좀 달랐어요. 지켜볼게요.' },
-    { id: 'w2', g: 'worry', text: '내일 응가도 보고 다시 알려 줄게요.' },
-    { id: 'w3', g: 'worry', text: '오늘 우리 애 컨디션, 같이 지켜봐 줘요.' },
+    { id: 'a1', g: 'art', s: 'art', text: '이거 완전 루브르 박물관 재단이야.' },
+    { id: 'a2', g: 'art', s: 'art', golden: true, text: '오늘 작품명: 황금빛 대지의 속삭임.' },
+    { id: 'a3', g: 'art', s: 'art', text: '모양·굵기·색상, 삼박자가 완벽한 마스터피스.' },
+    { id: 'a4', g: 'art', s: 'art', text: '현대미술 작가 하나 데뷔했습니다.' },
+    { id: 'a5', g: 'art', s: 'art', text: '이 정도면 예술품이라 유료 전시해야 함.' },
+    { id: 'h1', g: 'health', s: 'proud', usual: true, text: '오늘도 건강한 쾌변 완료! 내시경이 필요 없네.' },
+    { id: 'h2', g: 'health', s: 'proud', usual: true, text: '유산균 제값 하네, 오늘도 해냈다!' },
+    { id: 'h3', g: 'health', s: 'proud', usual: true, am: true, text: '감탄사가 절로 나오는 유기농 굿모닝.' },
+    { id: 'h4', g: 'health', s: 'proud', usual: true, text: '오늘 장 건강 컨디션 200% 달성!' },
+    { id: 'h5', g: 'health', s: 'proud', text: '시원하게 비워낸 자의 평온한 미소.' },
+    { id: 'e1', g: 'excuse', s: 'lol', text: '어제 먹은 간식이 이 모양을 만들었다.' },
+    { id: 'e2', g: 'excuse', s: 'lol', text: '내 다리보다 굵은데..? 이거 실화냐.' },
+    { id: 'e3', g: 'excuse', s: 'lol', text: '무게로 지구 한 바퀴 돌 기세.' },
+    { id: 'e4', g: 'excuse', s: 'lol', text: '시원하긴 한데... 치우는 내 손이 부끄럽다.' },
+    { id: 'e5', g: 'excuse', s: 'lol', grass: true, text: '풀밭의 숨은 보물, 아니 폭탄 발견.' },
+    { id: 'w1', g: 'worry', s: 'worry', text: '오늘은 평소와 좀 달랐어요. 지켜볼게요.' },
+    { id: 'w2', g: 'worry', s: 'worry', text: '내일 응가도 보고 다시 알려 줄게요.' },
+    { id: 'w3', g: 'worry', s: 'worry', text: '오늘 우리 애 컨디션, 같이 지켜봐 줘요.' },
     // 길에서 치운 응가(11/18) — c: 길에서 치운 응가일 때만, kinds: 그 종류일 때만. 남의 견주를 탓하지 않는다(가르시아 "폰 보느라 싼 줄 모르거든")
     { id: 'p1', g: 'catch', c: 1, text: '주인님 폰 보는 사이 탈출한 녀석입니다.' },
     { id: 'p2', g: 'catch', c: 1, text: '다산동 신발 밑창은 제가 지킵니다.' },
@@ -307,18 +338,18 @@
     { id: 'p8', g: 'catch', c: 1, kinds: ['hide'], text: '풀숲에 숨은 지뢰, 발견 즉시 처리.' }
   ];
   var SAYS = [
-    { id: 'f1', g: 'face', faces: ['proud'], text: '오늘도 해냈다!' },
-    { id: 'f2', g: 'face', faces: ['tongue'], text: '치우느라 수고해~' },
-    { id: 'f3', g: 'face', faces: ['wow'], text: '어머, 이게 다 나야?' },
-    { id: 'f5', g: 'face', faces: ['sleepy'], text: '아 시원하다…' },
-    { id: 'd1', g: 'dog', faces: ['proud', 'wow'], text: '내가 만들었지만 좀 멋진 듯?' },
-    { id: 'd2', g: 'dog', faces: ['tongue'], text: '이거 치우는 거 내 담당 아닌 거 알지?' },
-    { id: 'd3', g: 'dog', faces: ['sleepy'], text: '내 안의 모든 무거움을 내려놓았다.' },
-    { id: 'd4', g: 'dog', faces: ['tongue'], text: '집사야, 모르는 척 말고 비닐 꺼내.' },
-    { id: 'd5', g: 'dog', faces: ['proud'], text: '세상을 향한 나의 시원한 한 방.' },
-    { id: 'f4', g: 'worry', faces: ['worry'], text: '나 오늘 좀 이상해…' },
-    { id: 'k1', g: 'worry', faces: ['worry'], text: '오늘은 배가 좀 이상했어.' },
-    { id: 'k2', g: 'worry', faces: ['worry'], text: '살살 지켜봐 줘…' },
+    { id: 'f1', g: 'face', s: 'proud', faces: ['proud'], text: '오늘도 해냈다!' },
+    { id: 'f2', g: 'face', s: 'lol', faces: ['tongue'], text: '치우느라 수고해~' },
+    { id: 'f3', g: 'face', s: 'art', faces: ['wow'], text: '어머, 이게 다 나야?' },
+    { id: 'f5', g: 'face', s: 'proud', faces: ['sleepy'], text: '아 시원하다…' },
+    { id: 'd1', g: 'dog', s: 'art', faces: ['proud', 'wow'], text: '내가 만들었지만 좀 멋진 듯?' },
+    { id: 'd2', g: 'dog', s: 'lol', faces: ['tongue'], text: '이거 치우는 거 내 담당 아닌 거 알지?' },
+    { id: 'd3', g: 'dog', s: 'proud', faces: ['sleepy'], text: '내 안의 모든 무거움을 내려놓았다.' },
+    { id: 'd4', g: 'dog', s: 'lol', faces: ['tongue'], text: '집사야, 모르는 척 말고 비닐 꺼내.' },
+    { id: 'd5', g: 'dog', s: 'proud', faces: ['proud'], text: '세상을 향한 나의 시원한 한 방.' },
+    { id: 'f4', g: 'worry', s: 'worry', faces: ['worry'], text: '나 오늘 좀 이상해…' },
+    { id: 'k1', g: 'worry', s: 'worry', faces: ['worry'], text: '오늘은 배가 좀 이상했어.' },
+    { id: 'k2', g: 'worry', s: 'worry', faces: ['worry'], text: '살살 지켜봐 줘…' },
     // 길에서 치운 응가(11/18): 잡혀 온 녀석이 하는 말
     { id: 'q1', g: 'catch', c: 1, kinds: ['gold'], faces: ['wow'], text: '방금 탈출했는데 벌써 잡힘…' },
     { id: 'q2', g: 'catch', c: 1, kinds: ['gold'], faces: ['worry'], text: '주인님 어디 갔어…?' },
@@ -330,6 +361,13 @@
     { id: 'q8', g: 'catch', c: 1, faces: ['worry'], text: '나 버리고 간 거 아니지?' },
     { id: 'q9', g: 'catch', c: 1, faces: ['wow', 'sleepy'], text: '이렇게 잡혀가는 건가…' }
   ];
+  // 멘트 상황 탭(11/18) — 우리 애 응가일 때. 탭은 보기만 바꾸고 고르는 건 아래 목록에서
+  var SITS = [
+    { id: 'proud', label: '쾌변 자랑' },
+    { id: 'art', label: '작품 감상' },
+    { id: 'lol', label: '웃픈 현실' },
+    { id: 'worry', label: '걱정될 때' }
+  ];
   var RECENT_KEY = 'petwalk_toon_recent';   // 이 휴대폰에서 최근에 보낸 멘트 번호(같은 말이 바로 또 나오지 않게) — 밖으로 보내지 않는다
 
   // ── 상태 ──
@@ -338,7 +376,8 @@
   var tapPt = null;                        // 자리 맞추기에서 응가를 톡 누른 곳(사진 좌표) — 그 색을 기준으로 떼어 낸다
   var art = null;                          // 그림으로 바꾼 결과(작업 데이터)
   var sticker = null;                      // 지금 배경 방식으로 그린 스티커 캔버스
-  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1, eyes: 'round', mode: 'mine', kind: 'none' };
+  var opt = { face: 'proud', faceTouched: false, state: 'none', bg: 'cut', name: '', say: '', cap: '', sayId: '', capId: '', size: 1, eyes: 'round', mode: 'mine', kind: 'none',
+    sit: 'proud', sayPicked: false, capPicked: false };   // sit: 보고 있는 멘트 상황 탭 · *Picked: 목록에서 직접 고른 말(표정을 바꿔도 그대로 둔다)
   // 무슨 응가인가요: 주소에 ?mode=catch면 길에서 치운 응가로 시작(산책 끝 화면 "남의 응가도 치웠다면")
   if (/[?&]mode=catch(?:[&#]|$)/.test(location.search)) { opt.mode = 'catch'; opt.face = 'wow'; }
   var catchCounted = false;   // 지금 사진을 이미 셌는지 — 같은 사진은 다시 보내거나 꾸밈을 바꿔 저장해도 한 번만
@@ -562,7 +601,7 @@
       art.ms = Math.round(performance.now() - t0);
       opt.bg = art.cutOk ? 'cut' : 'keep';
       $('bg-note').hidden = art.cutOk;
-      opt.sayId = ''; opt.capId = ''; pickLine('say', true, true); pickLine('cap', false, true);
+      opt.sayId = ''; opt.capId = ''; pickLine('say', true, true); pickLine('cap', false, true); syncSit();
       placeFace();
       rollEyes(true);
       buildSticker();
@@ -1553,21 +1592,48 @@
     var p = art.fgPal.slice().sort(function (u, v) { return v.n - u.n; })[0].lab, h = (Math.atan2(p[2], p[1]) * 180 / Math.PI + 360) % 360;
     return p[0] >= 30 && Math.hypot(p[1], p[2]) >= 12 && h >= 35 && h <= 100;
   }
-  // 지금 상황에 맞는 멘트들
+  // 사람이 직접 고르는 목록에서도 지키는 것: 건강 자랑은 '평소대로'를 고른 뒤에만(앱이 건강하다고 말하지 않게),
+  // 굿모닝은 오전만, 풀밭 얘기는 풀밭 사진만, 황금빛은 갈색·황토색 응가만
+  function lineFits(l) {
+    if (l.usual && opt.state !== 'usual') return false;
+    if (l.am && nowHour() >= 11) return false;
+    if (l.grass && !(art && art.dbg && art.dbg.grassy)) return false;
+    if (l.golden && !isGolden()) return false;
+    return true;
+  }
+  // 지금 상황에 맞는 멘트들(저절로 고를 때·[다른 말]에서 탭에 고를 말이 없을 때)
   function linePool(kind) {
-    var isC = opt.mode === 'catch';
-    var diff = opt.state === 'diff', grass = !!(art && art.dbg && art.dbg.grassy), am = nowHour() < 11, gold = isGolden();
+    var isC = opt.mode === 'catch', diff = opt.state === 'diff';
     return (kind === 'say' ? SAYS : CAPS).filter(function (l) {
       if (!!l.c !== isC) return false;   // 우리 애 응가 말과 길에서 치운 응가 말은 섞지 않는다
       if (isC) return !l.kinds || l.kinds.indexOf(opt.kind) >= 0;
       if (diff) return l.g === 'worry';
       if (l.g === 'worry') return kind === 'say' && opt.face === 'worry';   // 걱정 표정을 고르면 말풍선도 걱정하는 말
-      if (l.usual && opt.state !== 'usual') return false;
-      if (l.am && !am) return false;
-      if (l.grass && !grass) return false;
-      if (l.golden && !gold) return false;
-      return true;
+      return lineFits(l);
     });
+  }
+  // 멘트 목록(11/18): 우리 애 응가면 보고 있는 상황 탭의 말 전부, 길에서 치운 응가면 그 녀석 말 + 공통 말
+  function lineList(kind) {
+    var isC = opt.mode === 'catch';
+    return (kind === 'say' ? SAYS : CAPS).filter(function (l) {
+      if (!!l.c !== isC) return false;
+      if (isC) return !l.kinds || l.kinds.indexOf(opt.kind) >= 0;
+      return l.s === opt.sit && lineFits(l);
+    });
+  }
+  // 탭은 지금 한마디(없으면 말풍선)의 상황에 맞춘다 — 처음 그릴 때, '오늘 응가'를 바꿔 말이 바뀌었을 때
+  function syncSit() {
+    var l = lineById(CAPS, opt.capId) || lineById(SAYS, opt.sayId);
+    if (l && l.s) opt.sit = l.s;
+  }
+  // 목록에서 직접 고른 말은 '오늘 응가'와 어긋날 때만 바꾼다(달랐어요인데 걱정하는 말이 아니거나, 평소대로인데 걱정하는 말)
+  function pickedFits(l) {
+    if (!l || !!l.c !== (opt.mode === 'catch')) return false;
+    if (l.c) return !l.kinds || l.kinds.indexOf(opt.kind) >= 0;
+    if (!lineFits(l)) return false;
+    if (opt.state === 'diff') return l.s === 'worry';
+    if (opt.state === 'usual') return l.s !== 'worry';
+    return true;
   }
   // 고르기: 지금 것·최근에 보낸 것은 빼고 무작위로. byFace면 말풍선은 지금 표정에 맞는 말을 먼저
   // byKind: 길에서 치운 응가에서 종류를 막 골랐으면 그 종류 말을 먼저
@@ -1579,13 +1645,27 @@
     if (byKind && opt.mode === 'catch') { var fk = cand.filter(function (l) { return l.kinds && l.kinds.indexOf(opt.kind) >= 0; }); if (fk.length) cand = fk; }
     if (kind === 'say' && byFace) { var fit = cand.filter(function (l) { return l.faces && l.faces.indexOf(opt.face) >= 0; }); if (fit.length) cand = fit; }
     var l = cand.length ? cand[Math.floor(Math.random() * cand.length)] : null;
-    if (kind === 'say') opt.sayId = l ? l.id : ''; else opt.capId = l ? l.id : '';
+    if (kind === 'say') { opt.sayId = l ? l.id : ''; opt.sayPicked = false; } else { opt.capId = l ? l.id : ''; opt.capPicked = false; }
   }
-  // 상태·표정이 바뀌어 지금 말이 더는 안 맞으면 다시 고른다
+  // [다른 말](11/18): 보고 있는 상황 탭 안에서 다른 말로. 그 탭에 다른 말이 없으면 지금 상황에 맞는 말 전체에서
+  function nextLine(kind) {
+    var cur = kind === 'say' ? opt.sayId : opt.capId, rec = recentIds(), list = lineList(kind);
+    var cand = list.filter(function (l) { return l.id !== cur && rec.indexOf(l.id) < 0; });
+    if (!cand.length) cand = list.filter(function (l) { return l.id !== cur; });
+    if (!cand.length) { pickLine(kind, kind === 'say'); return; }
+    var l = cand[Math.floor(Math.random() * cand.length)];
+    if (kind === 'say') { opt.sayId = l.id; opt.sayPicked = false; } else { opt.capId = l.id; opt.capPicked = false; }
+  }
+  // 목록에서 누른 말 — 직접 쓴 글은 비우고 그 말로
+  function chooseLine(kind, id) {
+    if (kind === 'say') { opt.sayId = id; opt.say = ''; $('say').value = ''; opt.sayPicked = true; }
+    else { opt.capId = id; opt.cap = ''; $('cap').value = ''; opt.capPicked = true; }
+  }
+  // 상태·표정이 바뀌어 지금 말이 더는 안 맞으면 다시 고른다(목록에서 직접 고른 말은 어긋날 때만)
   function fitLines() {
     var ids = function (k) { return linePool(k).map(function (l) { return l.id; }); };
-    if (ids('say').indexOf(opt.sayId) < 0) pickLine('say', true);
-    if (ids('cap').indexOf(opt.capId) < 0) pickLine('cap');
+    if (opt.sayPicked ? !pickedFits(lineById(SAYS, opt.sayId)) : ids('say').indexOf(opt.sayId) < 0) pickLine('say', true);
+    if (opt.capPicked ? !pickedFits(lineById(CAPS, opt.capId)) : ids('cap').indexOf(opt.capId) < 0) pickLine('cap');
   }
   // 통계에는 묶음 이름만(멘트 내용·직접 쓴 글은 보내지 않는다): 한마디/말풍선
   function lineGroup() {
@@ -1746,11 +1826,14 @@
     });
   }
   function paintControls() {
-    chipRow($('faces'), FACES, opt.face, function (it) { opt.face = it.id; opt.faceTouched = true; pickLine('say', true); paintControls(); render(); });
+    // 표정을 바꾸면 말풍선도 그 표정 말로 — 목록에서 직접 고른 말풍선이면 그대로 둔다
+    chipRow($('faces'), FACES, opt.face, function (it) { opt.face = it.id; opt.faceTouched = true; if (!opt.sayPicked) pickLine('say', true); paintControls(); render(); });
     chipRow($('states'), STATES, opt.state, function (it) {
       opt.state = it.id;
-      if (it.face && !opt.faceTouched && opt.face !== it.face) { opt.face = it.face; pickLine('say', true); }
+      var capBefore = opt.capId;
+      if (it.face && !opt.faceTouched && opt.face !== it.face) { opt.face = it.face; if (!opt.sayPicked) pickLine('say', true); }
       fitLines();
+      if (opt.capId !== capBefore) syncSit();
       paintControls(); render();
     });
     chipRow($('kinds'), KINDS, opt.kind, function (it) {
@@ -1775,11 +1858,43 @@
     });
     var sl = lineById(SAYS, opt.sayId), cl = lineById(CAPS, opt.capId);
     $('say').placeholder = sl ? sl.text : ''; $('cap').placeholder = cl ? cl.text : '';
+    paintLines();
     $('name').value = opt.name;
     document.body.setAttribute('data-face', opt.face);
     document.body.setAttribute('data-eyes', opt.eyes);
     document.body.setAttribute('data-state', opt.state);
     document.body.setAttribute('data-bg', opt.bg);
+  }
+  // 글자를 칠 때는 그림을 위에 붙이지 않는다(키보드에 칸이 가리지 않게 — 위 CSS is-typing).
+  // 칸을 떠날 땐 조금 있다가 다시 붙인다 — 바로 붙이면 그 순간 누른 버튼(멘트 '다른 말' 등) 위로 그림이 올라와 누른 게 안 눌린다(11/18)
+  (function () {
+    var mk = $('step-make'), t = null;
+    function isText(el) { return el && el.tagName === 'INPUT' && el.type === 'text'; }
+    mk.addEventListener('focusin', function (e) { if (isText(e.target)) { clearTimeout(t); mk.classList.add('is-typing'); } });
+    mk.addEventListener('focusout', function (e) { if (isText(e.target)) { clearTimeout(t); t = setTimeout(function () { mk.classList.remove('is-typing'); }, 400); } });
+  })();
+  // 멘트 상황 탭 + 목록(11/18)
+  function paintLines() {
+    var isC = opt.mode === 'catch';
+    $('sits').hidden = isC;
+    if (!isC) chipRow($('sits'), SITS, opt.sit, function (it) { opt.sit = it.id; paintLines(); });
+    $('say-who').textContent = isC ? '잡힌 녀석이 하는 말' : '우리 애가 하는 말';
+    var note = '';
+    if (isC) note = "위에서 고른 '어떤 녀석이었나요'에 맞는 말과 공통 말이에요.";
+    else if (opt.sit === 'proud' && opt.state !== 'usual') note = "건강 자랑 한마디는 위 '오늘 응가'에서 '평소대로'를 고르면 더 나와요.";
+    $('sit-note').textContent = note; $('sit-note').hidden = !note;
+    [['say', opt.say ? '' : opt.sayId], ['cap', opt.cap ? '' : opt.capId]].forEach(function (k) {
+      var box = $(k[0] + '-lines'), list = lineList(k[0]);
+      box.innerHTML = '';
+      list.forEach(function (l) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = l.text;
+        b.setAttribute('aria-pressed', l.id === k[1] ? 'true' : 'false');
+        b.setAttribute('data-id', l.id);
+        b.addEventListener('click', function () { chooseLine(k[0], l.id); paintControls(); render(); });
+        box.appendChild(b);
+      });
+      if (!list.length) { var e = document.createElement('p'); e.className = 'lines-empty'; e.textContent = '이 상황엔 고를 말이 없어요. 아래 "더 꾸미기"에서 직접 써도 돼요.'; box.appendChild(e); }
+    });
   }
   $('roll').addEventListener('click', function () { rollEyes(false); render(); });
   $('name').addEventListener('input', function () {
@@ -1789,9 +1904,11 @@
   });
   $('say').addEventListener('input', function () { opt.say = this.value.trim().slice(0, 20); requestRender(); });
   $('cap').addEventListener('input', function () { opt.cap = this.value.trim().slice(0, 26); requestRender(); });
-  // [다른 말]: 직접 쓴 글은 비우고 상황에 맞는 다른 멘트로
-  $('say-next').addEventListener('click', function () { opt.say = ''; $('say').value = ''; pickLine('say', false); paintControls(); render(); });
-  $('cap-next').addEventListener('click', function () { opt.cap = ''; $('cap').value = ''; pickLine('cap'); paintControls(); render(); });
+  // [다른 말]: 직접 쓴 글은 비우고 보고 있는 상황 탭 안에서 다른 멘트로
+  $('say-next').addEventListener('click', function () { opt.say = ''; $('say').value = ''; nextLine('say'); paintControls(); render(); });
+  $('cap-next').addEventListener('click', function () { opt.cap = ''; $('cap').value = ''; nextLine('cap'); paintControls(); render(); });
+  // 직접 쓰면 목록에서 고른 표시는 지운다(그림엔 직접 쓴 글이 들어간다)
+  $('say').addEventListener('change', paintLines); $('cap').addEventListener('change', paintLines);
   $('face-size').addEventListener('input', function () { opt.size = +this.value; requestRender(); });
   $('repick').addEventListener('click', function () {
     if (!src) return;
@@ -1950,7 +2067,8 @@
   }
   window.__toon = { stats: function () { return stickerStats(); }, state: function () { return { dbg: art && art.dbg, opt: opt, face: face, cutOk: art && art.cutOk, ms: art && art.ms, pal: art && (art.fgPal || art.allPal || []).map(function (e) { return { lab: e.lab.map(Math.round), rgb: e.rgb.map(Math.round), n: e.n }; }), box: art && art.box, st: sticker && { ox: sticker.ox, oy: sticker.oy, scale: sticker.scale, w: sticker.canvas.width, h: sticker.canvas.height }, pattern: { ready: patReady, n: PATTERN.length }, say: sayText(), cap: capText(), sayId: opt.sayId, capId: opt.capId,
       title: title(), mode: opt.mode, kind: opt.kind, catchN: catchData().n, shownN: catchShownN(), counted: catchCounted, sample: isSample }; },
-    pool: function (k) { return linePool(k).map(function (l) { return l.id; }); } };
+    pool: function (k) { return linePool(k).map(function (l) { return l.id; }); },
+    list: function (k) { return lineList(k).map(function (l) { return l.id; }); } };
 })();
 </script>
 </body>
