@@ -11,9 +11,10 @@
 //            src: 'walk', zoom: 1, x: 0.5, y: 0.4, home: { x: 0.5, y: 0.4 } },
 //   tabs: [{ id, label, icon: 'note'|'side'|'month', rows: function (st) → [{ label, chips: [{ text, value, on, cls }] } | { tip }],
 //            onPick: function (value, st, api) }                                    // 콘텐츠마다 다른 탭(칩 한두 줄)
-//          | { id, label, icon, text: { title, hint, max, empty, font, presets: [{ text, value }],   // 큰 글 칸 탭(2026-11-16):
+//          | { id, label, icon, text: { title, hint, max, empty, font, presets: [{ text, value, group }],   // 큰 글 칸 탭(2026-11-16):
 //              get: function (st) → 지금 글('' = 없음), set: function (st, 글, 고른 칩 value|null), fonts: function (글) → Promise } }],
 //            미리 보기를 줄이더라도 글 칸을 크게, 고를 글은 옆으로 밀지 않고 줄바꿈해서 한눈에. 칩은 글 칸을 채우는 본보기(고쳐 써도 됨)
+//            본보기에 group(묶음 이름)이 있으면 본보기 위에 묶음 탭을 두고 고른 묶음만 보여 준다(11/18 — 탭 순서는 본보기에 처음 나온 순서)
 //          탭에 focus: function (st) → { x, y, w, h }(그림 픽셀)를 주면 그 탭에선 미리 보기를 그 부분으로 확대한다(예: 영수증 특이 사항 줄)
 //   stickers: [{ text, nx, ny, s, style }],  stickers: false면 [글자 붙이기] 탭을 뺀다
 //   draw: function (canvas, st) → 사진 칸 { x, y, w, h, img } 또는 null — 바탕 그림을 그린다(동기). 글자는 편집기가 위에 얹는다
@@ -132,6 +133,10 @@
       '.we-grid-wrap{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-top:10px;padding:2px 0 12px;border-top:1px solid rgba(255,255,255,.08);}',
       '.we-grid-wrap .we-label{display:block;padding:10px 14px 8px;}',
       '.we-grid{display:flex;flex-wrap:wrap;gap:7px;padding:0 14px;}',
+      '.we-gtabs{display:flex;gap:3px;margin:0 14px 10px;padding:3px;border-radius:12px;background:rgba(255,255,255,.07);overflow-x:auto;scrollbar-width:none;}',
+      '.we-gtabs::-webkit-scrollbar{display:none;}',
+      '.we-gtab{flex:1 0 auto;min-height:34px;padding:0 10px;border:none;border-radius:9px;background:transparent;color:#c9b9a6;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;}',
+      '.we-gtab[aria-pressed="true"]{background:#fbf4ea;color:#2b231e;}',
       '.we-grid .we-chip{white-space:normal;text-align:left;max-width:100%;padding:8px 12px;font-size:13.5px;line-height:1.35;}',
       '@media (max-width:370px){.we-grid{gap:6px;}.we-grid .we-chip{padding:7px 11px;font-size:13px;}.we-paper textarea{font-size:17px;}}',
       '.we-tabs{flex:none;display:flex;background:#2b231e;border-top:1px solid rgba(255,255,255,.1);padding-bottom:env(safe-area-inset-bottom);}',
@@ -375,15 +380,25 @@
     }
     function buildText(X) {
       var max = X.max || 28, presets = X.presets || [];
-      var chipsHtml = presets.map(function (p, k) { return chip(p.text, false, 'p' + k); }).join('') +
-        (X.empty ? chip(X.empty, false, 'empty', 'ghost') : '');
+      // 본보기 묶음(11/18 가르시아 "그것도 나눠줘") — 처음엔 지금 글이 든 묶음, 아니면 첫 묶음
+      var groups = [], curGroup = null, now0 = String(X.get(st) || '').trim();
+      presets.forEach(function (p) { if (p.group && groups.indexOf(p.group) < 0) groups.push(p.group); });
+      presets.forEach(function (p) { if (!curGroup && p.group && p.text === now0) curGroup = p.group; });
+      if (groups.length && !curGroup) curGroup = groups[0];
+      function chipsHtml() {
+        return presets.map(function (p, k) { return groups.length && p.group !== curGroup ? '' : chip(p.text, false, 'p' + k); }).join('') +
+          (X.empty ? chip(X.empty, false, 'empty', 'ghost') : '');
+      }
+      var gtabsHtml = groups.length ? '<div class="we-gtabs" role="group" aria-label="본보기 묶음">' + groups.map(function (g) {
+        return '<button type="button" class="we-gtab" aria-pressed="' + (g === curGroup) + '" data-g="' + esc(g) + '">' + esc(g) + '</button>';
+      }).join('') + '</div>' : '';
       tray.innerHTML =
         '<div class="we-phead"><b>' + esc(X.title || '') + '</b><span>' + esc(X.hint || '') + '</span></div>' +
         '<div class="we-paper"><textarea rows="2" maxlength="' + max + '" enterkeyhint="done" autocomplete="off" spellcheck="false" aria-label="' + esc(X.title || '글') + ' 쓰기"' +
           (X.font ? ' style="font-family:' + esc(X.font) + '"' : '') + ' placeholder="' + esc(X.empty || '') + '"></textarea>' +
           '<button type="button" class="we-clear" aria-label="지우고 직접 쓰기">✕</button></div>' +
         '<div class="we-pmeta"><span class="we-pcount"></span><button type="button" class="we-chip accent we-done" hidden>완료</button></div>' +
-        '<div class="we-grid-wrap"><span class="we-label">골라서 넣기 · 넣은 뒤 고쳐 써도 돼요</span><div class="we-grid">' + chipsHtml + '</div></div>';
+        '<div class="we-grid-wrap"><span class="we-label">골라서 넣기 · 넣은 뒤 고쳐 써도 돼요</span>' + gtabsHtml + '<div class="we-grid">' + chipsHtml() + '</div></div>';
       var ta = tray.querySelector('textarea'), done = tray.querySelector('.we-done'), cnt = tray.querySelector('.we-pcount');
       ta.value = X.get(st) || '';
       function sync() {
@@ -418,12 +433,24 @@
       var clr = tray.querySelector('.we-clear');
       clr.addEventListener('mousedown', function (e) { e.preventDefault(); });   // 지울 때 자판이 닫혔다 열리지 않게
       clr.addEventListener('click', function () { ta.value = ''; apply('', null); ta.focus(); });
-      Array.prototype.forEach.call(tray.querySelectorAll('.we-grid .we-chip'), function (b) {
+      function bindChips() {
+        Array.prototype.forEach.call(tray.querySelectorAll('.we-grid .we-chip'), function (b) {
+          b.addEventListener('click', function () {
+            var v = b.getAttribute('data-v');
+            if (v === 'empty') { ta.value = ''; apply('', null); return; }
+            var p = presets[+v.slice(1)];
+            ta.value = p.text; apply(p.text, p.value);
+          });
+        });
+      }
+      bindChips();
+      // 묶음 탭 — 본보기만 바꿔 보여 준다(글 칸은 그대로)
+      Array.prototype.forEach.call(tray.querySelectorAll('.we-gtab'), function (b) {
         b.addEventListener('click', function () {
-          var v = b.getAttribute('data-v');
-          if (v === 'empty') { ta.value = ''; apply('', null); return; }
-          var p = presets[+v.slice(1)];
-          ta.value = p.text; apply(p.text, p.value);
+          curGroup = b.getAttribute('data-g');
+          Array.prototype.forEach.call(tray.querySelectorAll('.we-gtab'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+          tray.querySelector('.we-grid').innerHTML = chipsHtml();
+          bindChips(); sync();
         });
       });
       sync();
