@@ -402,7 +402,7 @@
     marker.bindPopup(wrap);
     return marker;
   }
-  // ── 여기 찍기 · 응가 찍기 ── 위치를 바로 읽어 길에 점을 넣는다(엔진). 발도장은 엔진이 알림 띠로 따로 알린다
+  // ── 여기 찍기 · 응가 찍기 ── 위치를 바로 읽어 길에 점을 넣는다(엔진). 발도장·도착은 엔진이 onStamp로 알려 화면 가운데 카드로 띄운다
   function markBtn(id, kind) {
     var btn = $(id);
     btn.addEventListener('click', function () {
@@ -462,7 +462,7 @@
       paintMission();
       if (mapToo && mapOpen) drawMap(false);
     },
-    // 바로 판정한 발도장 — 받음은 알림 띠·진동, 도착했지만 5분·200m 전이면 안내만(기준을 넘는 순간 받는다)
+    // 바로 판정한 발도장 — 받음·도착 모두 화면 가운데 카드(mission-alert.js)와 진동. 도착했지만 5분·200m 전이면 "도착" 카드만(기준을 넘는 순간 받는다)
     onStamp: function (pl, kind) {
       if (kind === 'got') { announceStamp(pl); return; }
       announceArrival(pl);
