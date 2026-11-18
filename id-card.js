@@ -264,7 +264,7 @@
     return canvas;
   }
 
-  // 키링 앞면 오른쪽 아래(QR 자리)에 'APP WALSON' + 문구를 오른쪽 맞춤으로. 왼쪽 '카드 번호' 줄과 겹치지 않게 폭을 줄여 맞춘다
+  // 키링 앞면 오른쪽 아래(QR 자리)에 브랜드 이름(site-config.js brand — 11/18부터 'WALSON') + 문구를 오른쪽 맞춤으로. 왼쪽 '카드 번호' 줄과 겹치지 않게 폭을 줄여 맞춘다
   function brandMark(ctx, threeRows) {
     var B = window.WALSON_CONFIG && window.WALSON_CONFIG.brand;
     if (!B || !B.name) return;
