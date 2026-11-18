@@ -106,6 +106,18 @@
   .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: 90%;
     padding: 12px 16px; border-radius: 14px; background: var(--ink); color: #fffaf3; font-size: 14px; font-weight: 700; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 20; }
   .toast[hidden] { display: none; }
+
+  /* 꾸미기 — 아래 도구(표정·눈매·오늘 응가·멘트)를 눌러도 그림이 늘 보이게 위에 붙여 둔다
+     (2026-11-18 가르시아 "똥 편집할 때 똥이 안 보여, 스크롤해서 내려가서"). 그림 높이는 화면의 46%까지 — 작은 폰에서도 도구 칸이 남게.
+     글자를 칠 때(더 꾸미기의 이름·말풍선·한마디)는 키보드에 칸이 가리지 않게 붙이지 않는다. */
+  #step-make .preview { position: sticky; top: 0; z-index: 5; width: auto; max-width: none; margin: 0 -16px 8px; padding: 6px 16px 10px;
+    background: var(--bg); box-shadow: 0 10px 10px -12px rgba(var(--shadow-rgb), 0.55); }
+  #step-make #card { width: auto; max-width: 100%; height: min(425px, 46vh); height: min(425px, 46svh); margin: 0 auto; }
+  #step-make:has(input[type="text"]:focus) .preview { position: static; }
+  /* 도구로 옮겨 갈 때(키보드 이동·화면 읽기 등) 붙어 있는 그림 밑으로 숨지 않게 */
+  #step-make .group, #step-make .roll, #step-make details.more, #step-make #send-btn { scroll-margin-top: calc(min(425px, 46svh) + 32px); }
+  /* 자리 맞추기 — 작은 폰에서도 사진·크기 막대·버튼이 한 화면에 들어오게 사진 칸을 화면 높이에 맞춘다(2026-11-18) */
+  .crop-box { width: min(100%, 340px, max(220px, calc(100vh - 350px))); width: min(100%, 340px, max(220px, calc(100svh - 350px))); }
 </style>
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
