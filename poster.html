@@ -60,6 +60,9 @@
   .flyer .top { display: flex; align-items: center; gap: 2mm; }
   .flyer .top img { width: 11mm; height: auto; }
   .flyer .top b { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 5.4mm; line-height: 1; white-space: nowrap; }
+  /* 한글 이름(11/18 가르시아 "전단에 한글 왈슨도") — WALSON 옆, 가는 세로줄로 나눔 */
+  .flyer .top .ko { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 5.4mm; line-height: 1; white-space: nowrap;
+    padding-left: 2mm; border-left: 0.35mm solid var(--soft); }
   .flyer .slogan { font-size: 3.1mm; font-weight: 800; margin-top: 1.6mm; letter-spacing: -0.01em; }
   .flyer h2 { font-size: 5.2mm; line-height: 1.25; margin: 2.5mm 0 1.5mm; font-weight: 900; letter-spacing: -0.02em; }
   .flyer h2 em { font-style: normal; background: var(--yellow); padding: 0 1mm; }
@@ -125,7 +128,7 @@
 <div class="sheet flyers" id="sheet-flyers" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="site-config.js?v=9"></script>
+<script src="site-config.js?v=10"></script>
 <script>
 (function () {
   // 홍보물 필수 문구 — site-config.js 한 곳에서(포스터·전단 모두)
@@ -162,7 +165,7 @@
     f.className = 'flyer';
     f.innerHTML =
       '<div class="left">' +
-        '<div class="top"><img src="icons/walson-logo.webp" alt=""><b>' + esc(BR.name) + '</b></div>' +
+        '<div class="top"><img src="icons/walson-logo.webp" alt=""><b>' + esc(BR.name) + '</b>' + (BR.nameKo ? '<span class="ko">' + esc(BR.nameKo) + '</span>' : '') + '</div>' +
         '<div class="slogan">' + esc(BR.tagline) + '</div>' +
         '<h2>30초면 우리 강아지<br><em>주민증</em> 발급</h2>' +
         '<p>강아지 성향 고르고 사진 한 장이면 끝.<br>설치·로그인 없음, 위치 안 물어봐요.</p>' +
