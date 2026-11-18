@@ -12,7 +12,7 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="infra-pins.js?v=25"></script>
+<script src="infra-pins.js?v=28"></script>
 <script src="shop-visits.js?v=4"></script>
 <style>
   /* 시안(2026-11-17, 가르시아 "A안으로 시안 그려줘") — hq notes/petwalk-map-list-view-plan.md의 A안:
@@ -104,7 +104,7 @@
   .note { font-size: 11.5px; color: var(--ink-soft); padding: 6px 14px 0; line-height: 1.5; }
 </style>
 <script src="theme.js?v=10"></script>
-<script src="site-config.js?v=9"></script>
+<script src="site-config.js?v=10"></script>
 </head>
 <body>
 <div id="map"></div>
@@ -338,10 +338,10 @@
   function gridHtml() {
     if (!GUARD.length) return '<p class="empty">아직 수호견이 없어요.</p>';
     return '<div class="grid">' + GUARD.map(function (p) {
-      var g = p.guardian, sig = InfraPins.SIGNALS[g.signal] || { color: '#ccc', label: '' };
+      var g = p.guardian, sig = InfraPins.SIGNALS[g.signal] || { color: '#ccc', line: '' };
       var photo = g.photo || p.photo || 'icons/sample-walson.jpg';
       return '<button type="button" class="card" data-g="' + esc(p.id) + '"><img src="' + esc(photo) + '" alt="" style="border-color:' + sig.color + '">' +
-        '<b>' + esc(g.name) + '</b><span>' + esc(p.name || '') + ' · ' + esc(sig.label || '') + '</span><span class="ex">예시</span></button>';
+        '<b>' + esc(g.name) + '</b><span>' + esc(p.name || '') + ' · ' + esc(sig.line || '') + '</span><span class="ex">예시</span></button>';
     }).join('') + '</div><p class="note">진짜 수호견은 사장님 동의를 받은 가게만 올라와요(공개 지도엔 가짜를 섞지 않아요).</p>';
   }
 

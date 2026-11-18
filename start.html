@@ -141,7 +141,6 @@
   .tag-opts button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 11px; border-radius: 999px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; text-align: left; line-height: 1.35; }
   .tag-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint, #f3ddd2); }
   .tag-hint { font-size: 12px; color: var(--ink-soft); margin: 6px 2px 0; }
-  .biz-line { margin: 10px 0 0; font-size: 11px; line-height: 1.6; text-align: center; opacity: 0.6; word-break: keep-all; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -153,7 +152,7 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="theme.js?v=10"></script>
-<script src="site-config.js?v=9"></script>
+<script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
@@ -173,21 +172,23 @@
   <div class="steps" aria-hidden="true"><span id="bar-1" class="is-on"></span><span id="bar-2"></span><span id="bar-3"></span></div>
 
   <!-- 1단계 -->
+  <!-- 11/18 가르시아 "신호등이라고 하면 모르니까 강아지 성향이라 해": 화면 글자만 '성향'으로. 저장 값(signal)은 그대로.
+       같은 날 "불을 굳이 이름으로 넣을 필요가 없어" — 초록불·노랑불·빨강불 이름은 빼고 설명(다가와도 좋아요 등)만, 색은 동그라미로 -->
   <section class="step" id="step-1">
-    <h1>우리 아이는<br>어떤 신호등인가요?</h1>
+    <h1>우리 아이는<br>어떤 성향인가요?</h1>
     <p class="lead">산책길에서 다른 강아지를 만났을 때를 떠올려 보세요. 나중에 바꿀 수 있어요.</p>
     <div class="signal-list">
       <button type="button" class="signal-btn" data-signal="green">
         <span class="lamp"></span>
-        <span><strong>초록불</strong><span class="desc">다가와도 좋아요</span></span>
+        <span><strong>다가와도 좋아요</strong></span>
       </button>
       <button type="button" class="signal-btn" data-signal="yellow">
         <span class="lamp"></span>
-        <span><strong>노랑불</strong><span class="desc">천천히 인사해요</span></span>
+        <span><strong>천천히 인사해요</strong></span>
       </button>
       <button type="button" class="signal-btn" data-signal="red">
         <span class="lamp"></span>
-        <span><strong>빨강불</strong><span class="desc">눈으로만 예뻐해 주세요</span></span>
+        <span><strong>눈으로만 예뻐해 주세요</strong></span>
       </button>
     </div>
   </section>
@@ -225,7 +226,7 @@
       </div>
       <button type="button" class="btn-main" id="make-btn" disabled>주민증 만들기</button>
     </div>
-    <button type="button" class="btn-text" id="back-btn">신호등 다시 고르기</button>
+    <button type="button" class="btn-text" id="back-btn">성향 다시 고르기</button>
   </section>
 
   <!-- 3단계 -->
@@ -247,9 +248,8 @@
     로그인 없이 이 기기에만 저장돼요. 위치는 묻지 않아요.
     <a href="privacy.html">어떤 정보를 어디에 두는지 보기</a>
   </p>
-  <p id="biz-line" class="biz-line" hidden></p>
+  <!-- 사업자 정보 한 줄은 뺐다(2026-11-18 가르시아 "이미 승인났으니까 소개 페이지면 충분") — 왈슨 소개·개인정보 안내 맨 아래에만 -->
 </div>
-<script>window.WalsonBizInfo && WalsonBizInfo(document.getElementById('biz-line'));</script>
 
 <canvas id="card-canvas" width="1600" height="1000" hidden></canvas>
 
@@ -260,10 +260,10 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=5"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=27"></script>
+<script src="infra-pins.js?v=28"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="id-card.js?v=5"></script>
+<script src="id-card.js?v=6"></script>
 <script src="image-editor.js?v=2"></script>
 <script>
 (function () {
@@ -341,7 +341,7 @@
       box.appendChild(b);
     });
     var def = SIGNALS[signal] ? SIGNALS[signal].line : '';
-    document.getElementById('tag-hint').textContent = chosenTag ? '카드 신호등 아래에 이 문구가 들어가요.' : '안 고르면 "' + def + '"가 들어가요.';
+    document.getElementById('tag-hint').textContent = chosenTag ? '카드 성향 띠 아래에 이 문구가 들어가요.' : '안 고르면 "' + def + '"가 들어가요.';
   }
   function refreshMakeBtn() { makeBtn.disabled = !fName.value.trim(); }
   fName.value = sampleShown ? '' : (profile.name || '');

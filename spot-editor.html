@@ -9,9 +9,9 @@
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
 <script src="store.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
-<script src="site-config.js?v=9"></script>
+<script src="site-config.js?v=10"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=27"></script>
+<script src="infra-pins.js?v=28"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="card-shared.js?v=11"></script>
 <script src="map-deco.js?v=2"></script>
@@ -306,12 +306,12 @@
         </div>
         <div class="field"><label for="g-name">강아지 이름 (브랜드 이름 넣지 않기)</label><input id="g-name" maxlength="10"></div>
         <div class="field">
-          <label for="g-signal">산책 신호등 (다른 강아지를 만났을 때)</label>
+          <label for="g-signal">강아지 성향 (다른 강아지를 만났을 때)</label>
           <select id="g-signal">
             <option value="">안 정함</option>
-            <option value="green">초록불 · 다가와도 좋아요</option>
-            <option value="yellow">노랑불 · 천천히 인사해요</option>
-            <option value="red">빨강불 · 눈으로만 예뻐해 주세요</option>
+            <option value="green">다가와도 좋아요</option>
+            <option value="yellow">천천히 인사해요</option>
+            <option value="red">눈으로만 예뻐해 주세요</option>
           </select>
         </div>
         <div class="field"><label for="g-line">한마디 (선택, 예: 간식 주면 손 줘요 — 매장 안 모습은 쓰지 않기)</label><input id="g-line" maxlength="30"></div>
@@ -407,8 +407,7 @@
       <div class="field"><label for="gt-workBadge">출근 배지 이름</label><input id="gt-workBadge" maxlength="20"></div>
       <div class="field"><label for="gt-workLine">출근 설명 줄</label><input id="gt-workLine" maxlength="60"></div>
       <div class="gt-checks">
-        <label><input type="checkbox" id="gt-showSignal"> 신호 문구 (다가와도 좋아요 등)</label>
-        <label><input type="checkbox" id="gt-showSignalLabel"> 신호등 이름도 붙이기 (초록불·노랑불·빨강불)</label>
+        <label><input type="checkbox" id="gt-showSignal"> 성향 문구 (다가와도 좋아요 등)</label>
         <label><input type="checkbox" id="gt-showLine"> 강아지 한마디</label>
         <label><input type="checkbox" id="gt-showKindLine"> 재택·출근 설명 줄</label>
         <label><input type="checkbox" id="gt-showPetChips"> 동반 조건 칩 (실내·바깥 자리·물그릇)</label>
@@ -555,18 +554,16 @@
   // ── 6. 수호견 팝업 문구(2026-11-17 가르시아 "화면에 들어가는 양식 편집") ──
   // 값은 infra-pins.js의 readGuardianText로 정리한다(빈 칸은 기본값). 고치면 초안에 두고 "모두에게 반영"으로 올린다.
   var GT_TEXT = ['homeBadge', 'homeLine', 'workBadge', 'workLine'];
-  var GT_FLAGS = ['showSignal', 'showSignalLabel', 'showLine', 'showKindLine', 'showPetChips', 'showWalk', 'showQr'];
+  var GT_FLAGS = ['showSignal', 'showLine', 'showKindLine', 'showPetChips', 'showWalk', 'showQr'];
   function renderGText() {
     GT_TEXT.forEach(function (k) { $('gt-' + k).value = gtext[k] || ''; });
     GT_FLAGS.forEach(function (k) { $('gt-' + k).checked = !!gtext[k]; });
-    $('gt-showSignalLabel').disabled = !gtext.showSignal;
   }
   function readGTextForm() {
     var raw = {};
     GT_TEXT.forEach(function (k) { raw[k] = $('gt-' + k).value; });
     GT_FLAGS.forEach(function (k) { raw[k] = $('gt-' + k).checked; });
     gtext = InfraPins.readGuardianText(raw);
-    $('gt-showSignalLabel').disabled = !gtext.showSignal;
     save();
   }
   GT_TEXT.forEach(function (k) { $('gt-' + k).addEventListener('change', readGTextForm); });

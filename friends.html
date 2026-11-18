@@ -146,7 +146,7 @@
         </div>
       </div>
       <div id="met-list"></div>
-      <p class="note">모르는 강아지는 신호등 색과 크기만 보여요. 도감 교환을 요청해서 상대가 받아 주면 이름이 보여요.
+      <p class="note">모르는 강아지는 성향 색과 크기만 보여요. 도감 교환을 요청해서 상대가 받아 주면 이름이 보여요.
       받아 주지 않아도 따로 알리지 않아요("아직 답이 없어요").</p>
     </section>
 
@@ -169,9 +169,9 @@
   var Api = window.WalsonApi;
   var S = Api.server;
   var SIGNAL = {
-    green: { color: 'var(--green)', label: '초록불', desc: '다가와도 좋아요' },
-    yellow: { color: 'var(--yellow)', label: '노랑불', desc: '천천히 인사해요' },
-    red: { color: 'var(--red)', label: '빨강불', desc: '눈으로만 예뻐해 주세요' }
+    green: { color: 'var(--green)', desc: '다가와도 좋아요' },
+    yellow: { color: 'var(--yellow)', desc: '천천히 인사해요' },
+    red: { color: 'var(--red)', desc: '눈으로만 예뻐해 주세요' }
   };
   var SIZE = { small: '소형견', medium: '중형견', large: '대형견' };
 
@@ -225,7 +225,7 @@
         return '<div class="dog">' + avatar(d, true) +
           '<div class="name">' + esc(d.name) + '</div>' +
           '<div class="meta">' + esc(d.breed) + ' · ' + SIZE[d.size] + '</div>' +
-          (sig ? '<div class="sig" style="color:' + sig.color + '">' + sig.label + ' · ' + sig.desc + '</div>' : '') +
+          (sig ? '<div class="sig" style="color:' + sig.color + '">' + sig.desc + '</div>' : '') +
           (met ? '<div class="met">' + met + '</div>' : '') +
           '</div>';
       }).join('');
@@ -264,7 +264,7 @@
           lastDay = e.date;
         }
         var d = e.dog, sig = SIGNAL[d.signal];
-        var title = d.friend ? esc(d.name) : (sig ? sig.label + ' ' : '') + SIZE[d.size];
+        var title = d.friend ? esc(d.name) : SIZE[d.size] + (sig ? ' · ' + sig.desc : '');
         var act;
         if (d.friend) act = '<span class="state ok">도감에 있어요</span>';
         else if (e.exchange === 'pending') { act = '<span class="state">답 기다리는 중</span>'; pending = true; }
