@@ -12,7 +12,7 @@
 <meta property="og:title" content="왈슨">
 <meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/town.html">
-<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=3">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=4">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="800">
 <meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
@@ -207,6 +207,12 @@
   .ls-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .ls-body .shop-list { overflow: visible; }
   .ls-body .sheet-note:empty { display: none; }
+  /* 사업자 정보 한 줄(2026-11-18 가르시아 "사업자 정보 한 줄 시트 안에 넣어줘") — 첫 화면에서 운영자가 보이게(신뢰).
+     접혔을 땐 시트 맨 아래(미션 카드 밑), 반·펼침에선 목록 맨 끝에. 글은 site-config.js WalsonBizInfo([오늘]과 같은 문구), 누르면 왈슨 소개 */
+  .biz-line { display: block; padding: 0 14px 8px; color: var(--ink-soft); font-size: 10.5px; line-height: 1.5; text-align: center; text-decoration: none; word-break: keep-all; }
+  .biz-line[hidden], .list-sheet:not([data-state="peek"]) .biz-line.is-foot { display: none; }
+  .biz-line.is-foot { flex: none; margin-top: -4px; }
+  .ls-body .biz-line { padding: 4px 14px 14px; }
   /* '지금 화면' 목록은 줄이 많아질 수 있어 조금 낮게 */
   .shop-item.is-row { padding: 8px 10px; align-items: center; }
   .shop-item.is-row .shop-thumb, .shop-item.is-row .shop-thumb img, .shop-item.is-row .shop-thumb .ic { width: 38px; height: 38px; }
@@ -384,7 +390,9 @@
   <div class="ls-body" id="ls-body">
     <ul class="shop-list" id="ls-list"></ul>
     <p class="sheet-note" id="ls-note"></p>
+    <a class="biz-line" href="about.html" hidden></a>
   </div>
+  <a class="biz-line is-foot" id="biz-foot" href="about.html" hidden></a>
 </section>
 
 <script src="tabbar.js?v=9" data-tab="town"></script>
@@ -1141,7 +1149,8 @@
 
   // 높이: 접힘 = 손잡이 + 머리(요약 줄·볼 것·미션 카드), 반 = 지도 높이의 55%, 펼침 = 위 칩 한 줄만 남기고
   function availH() { return mapEl.clientHeight || Math.max(200, window.innerHeight - 58); }
-  function naturalPeek() { return lsGrab.offsetHeight + lsHead.offsetHeight; }
+  var bizFoot = document.getElementById('biz-foot');
+  function naturalPeek() { return lsGrab.offsetHeight + lsHead.offsetHeight + bizFoot.offsetHeight; }   // 사업자 줄은 접혔을 때만 보임
   function heights() {
     var H = availH();
     var peek = Math.min(Math.round(H * 0.45), peekH || naturalPeek());
@@ -1421,6 +1430,12 @@
   map.on('moveend', scheduleSheet);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetState !== 'peek') setSheet('peek'); });
   window.addEventListener('resize', relayoutSheet);
+  // 사업자 정보 한 줄(접힘: 시트 맨 아래 / 반·펼침: 목록 맨 끝) — 글은 site-config.js 한 곳에서
+  Array.prototype.forEach.call(sheetEl.querySelectorAll('.biz-line'), function (el) {
+    if (!window.WalsonBizInfo) return;
+    WalsonBizInfo(el);
+    if (!el.hidden) el.insertAdjacentText('beforeend', ' · 왈슨 소개 ›');
+  });
   sheetReady = true;
   setSheet('peek');
   // 처음 열 때 동네 가운데가 '시트 위로 보이는 지도'의 가운데 오게 — 시트가 지도 아래쪽을 덮어서(첫 미션 깃발이 시트에 가리지 않게).
@@ -1428,7 +1443,9 @@
   if (!InfraPins.GUARDIAN_DEMO) map.panBy([0, Math.round(peekH / 2)], { animate: false });
   if (window.ResizeObserver) {
     // 머리(요약 줄·미션 카드)가 바뀌면 접힌 높이를 다시 — 글꼴이 늦게 들어오거나 미션 카드 문구가 바뀔 때
-    new ResizeObserver(function () { if (sheetState === 'peek' && !sheetEl.classList.contains('is-dragging')) fitSheet(); }).observe(lsHead);
+    var headRO = new ResizeObserver(function () { if (sheetState === 'peek' && !sheetEl.classList.contains('is-dragging')) fitSheet(); });
+    headRO.observe(lsHead);
+    headRO.observe(bizFoot);
     // 지도 출처 표기를 시트 바로 위로(움직이는 동안에도 따라가게)
     new ResizeObserver(function () { placeAttribution(sheetEl.getBoundingClientRect().height); }).observe(sheetEl);
   }

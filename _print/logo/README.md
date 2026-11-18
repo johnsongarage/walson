@@ -11,7 +11,8 @@
   - `icons/sample-walson.jpg` — 샘플 강아지(왈슨) 사진, 크림 바탕
   - 다시 만들면 화면들의 `icon-192.png?v=`·`apple-touch-icon.png?v=`와 `manifest.json` 아이콘 `?v=`를 올린다.
 - `og.html` — 카톡 미리보기 그림 `og/walson-og.png`(1600×800) 판. 홍보 그림이라 필수 두 줄(WALSON · 당신과 강아지의 유의미한 산책 — 11/18 "APP" 뺌)을
-  `site-config.js` brand에서 불러 넣는다. 저장소 맨 위에서 정적 서버를 띄우고 `/_print/logo/og.html`을 1600×800으로 찍은 뒤
+  `site-config.js` brand에서 불러 넣는다. 글씨는 강아지 테두리·귀와 같은 진갈색 `#361e12`(11/18 가르시아 "글씨를 강아지의 색깔 톤하고 맞춰줘").
+  저장소 맨 위에서 정적 서버를 띄우고 `/_print/logo/og.html`을 1600×800으로 찍은 뒤
   128색으로 줄여 저장(약 250KB). 바꾸면 화면들의 `og/walson-og.png?v=` 번호를 올린다(카톡이 예전 그림을 오래 기억함).
 
 ## 확인할 것
