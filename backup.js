@@ -184,6 +184,24 @@
       return o;
     }));
   }
+  // 사진(dataURL)을 긴 쪽 max px 이하로 줄인다. 못 줄이면 그대로
+  function shrinkPhoto(u, max) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, max / Math.max(img.width, img.height));
+        if (k >= 1) { resolve(u); return; }
+        try {
+          var c = document.createElement('canvas');
+          c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.82));
+        } catch (e) { resolve(u); }
+      };
+      img.onerror = function () { resolve(u); };
+      img.src = u;
+    });
+  }
   // 옮기기 주소 만들기 → { url, walks, photoDropped }
   function moveLink(baseUrl) {
     if (localStorage.getItem('petwalk_sample_mode') === '1') {
@@ -192,6 +210,17 @@
     var data = {};
     keys().forEach(function (k) { if (!MOVE_SKIP.test(k)) data[k] = localStorage.getItem(k); });
     if (data.petwalk_walks) data.petwalk_walks = lightWalks(data.petwalk_walks);
+    // 프로필 사진(2026-11-18부터 맞춘 사진 최대 720px + 맞추기용 원본): 원본·맞춤은 주소에 넣지 않고, 맞춘 사진은 320px로 줄여 담는다
+    // (예전 240px 사진만큼 가볍게 — 그대로 담으면 주소가 길어져 아래에서 사진이 통째로 빠지기 쉽다)
+    var prep = Promise.resolve(), p0 = null;
+    try { p0 = data.petwalk_profile && JSON.parse(data.petwalk_profile); } catch (e) { p0 = null; }
+    if (p0 && typeof p0 === 'object') {
+      delete p0.photoOrig; delete p0.photoFrame;
+      if (typeof p0.photo === 'string' && p0.photo.indexOf('data:image/') === 0 && p0.photo.length > 60000) {
+        prep = shrinkPhoto(p0.photo, 320).then(function (u) { p0.photo = u; });
+      }
+      prep = prep.then(function () { data.petwalk_profile = JSON.stringify(p0); });
+    }
     var photoDropped = false;
     function build() {
       var obj = { app: 'walson', kind: 'move', v: 1, at: new Date().toISOString(), data: data, photos: {} };
@@ -200,7 +229,7 @@
         return (baseUrl || location.href.split('#')[0]) + MOVE_PREFIX + b64urlEncode(JSON.stringify(obj));
       });
     }
-    return build().then(function (url) {
+    return prep.then(build).then(function (url) {
       if (url.length <= MOVE_MAX || !data.petwalk_profile) return url;
       try {   // 너무 길면 강아지 사진만 빼고 다시
         var p = JSON.parse(data.petwalk_profile) || {};
