@@ -162,7 +162,7 @@
     </div>
     <div class="field">
       <label for="f-breed">견종 (선택)</label>
-      <input id="f-breed" list="breed-list" maxlength="16" placeholder="예: 말티즈, 믹스" autocomplete="off">
+      <input id="f-breed" list="breed-list" maxlength="30" placeholder="예: 말티즈, 믹스" autocomplete="off">
       <datalist id="breed-list">
         <option value="믹스"></option><option value="말티즈"></option><option value="푸들"></option><option value="포메라니안"></option>
         <option value="비숑 프리제"></option><option value="치와와"></option><option value="시츄"></option><option value="요크셔테리어"></option>
@@ -348,7 +348,7 @@
     var sx = fSex.value.split('-');
     if (sx[0] === 'female' || sx[0] === 'male') profile.sex = sx[0]; else delete profile.sex;
     if (profile.sex && sx[1] === 'n') profile.neutered = true; else delete profile.neutered;
-    var breed = fBreed.value.replace(/\s+/g, ' ').trim().slice(0, 16);
+    var breed = fBreed.value.replace(/\s+/g, ' ').trim().slice(0, 30);   // 긴 견종은 주민증에서 단어 단위로 줄을 나눈다
     if (breed) profile.breed = breed; else delete profile.breed;
     if (WalsonStore.saveProfile(profile)) {
       toast.classList.add('show');

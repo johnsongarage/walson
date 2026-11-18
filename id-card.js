@@ -70,6 +70,47 @@
     } while (s > 24);
     return s;
   }
+  // 단어(띄어쓰기) 단위로 줄을 나눈다(2026-11-18 가르시아 "견종이 엄청 길 수도 있어, 단어로 끊어서").
+  // 구분점(·)은 앞 단어에 붙여 줄 머리에 오지 않게, 한 단어가 칸보다 길면(띄어쓰기 없는 긴 견종) 그 단어만 글자 단위로 자른다
+  function wrapWords(ctx, text, maxW) {
+    var words = [];
+    String(text).split(/\s+/).forEach(function (w) {
+      if (!w) return;
+      if (w === '·' && words.length) words[words.length - 1] += ' ·'; else words.push(w);
+    });
+    var lines = [], cur = '';
+    words.forEach(function (w) {
+      var t = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(t).width <= maxW) { cur = t; return; }
+      if (cur) lines.push(cur);
+      while (ctx.measureText(w).width > maxW && w.length > 1) {
+        var k = w.length - 1;
+        while (k > 1 && ctx.measureText(w.slice(0, k)).width > maxW) k--;
+        lines.push(w.slice(0, k));
+        w = w.slice(k);
+      }
+      cur = w;
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+  // maxLines 줄 안에 들어가게 — 글자를 조금씩 줄여 보고(minSize까지), 그래도 넘치면 마지막 줄 끝을 '…'로
+  function fitLines(ctx, text, maxW, size, weight, maxLines, minSize) {
+    var s = size, lines;
+    for (;;) {
+      ctx.font = font(weight, s);
+      lines = wrapWords(ctx, text, maxW);
+      if (lines.length <= maxLines || s - 2 < minSize) break;
+      s -= 2;
+    }
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      var last = lines[maxLines - 1];
+      while (last.length > 1 && ctx.measureText(last + '…').width > maxW) last = last.slice(0, -1);
+      lines[maxLines - 1] = last + '…';
+    }
+    return { size: s, lines: lines };
+  }
   function loadImage(src) {
     return new Promise(function (resolve) {
       if (!src) { resolve(null); return; }
@@ -230,12 +271,13 @@
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = SOFT;
     ctx.font = font(600, 32);
-    ctx.fillText('이름', tx, 362);
     var bits = infoBits(profile);
-    if (bits.length) {   // '이름 · 암컷 · 중성화 · 말티즈' — 이름 글자 자리는 그대로 두고 그 위 작은 줄에
-      var lw = ctx.measureText('이름').width + 14, more = '·  ' + bits.join(' · ');
-      ctx.font = font(600, fitText(ctx, more, maxW - lw, 32, 600));
-      ctx.fillText(more, tx + lw, 362);
+    if (!bits.length) ctx.fillText('이름', tx, 362);
+    else {
+      // '이름 · 암컷 · 중성화 · 말티즈' — 이름 글자 자리는 그대로 두고 그 위 작은 줄에. 길면(긴 견종) 단어 단위로 두 줄(위로 한 줄 올림)
+      var fl = fitLines(ctx, '이름 · ' + bits.join(' · '), maxW, 32, 600, 2, 26), lh = Math.round(fl.size * 1.2);
+      ctx.font = font(600, fl.size);
+      fl.lines.forEach(function (l, i) { ctx.fillText(l, tx, 362 - (fl.lines.length - 1 - i) * lh); });
     }
     ctx.fillStyle = INK;
     var name = profile.name || '';
@@ -456,7 +498,7 @@
     roundRect(ctx, x, y, size, size, 36);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    var n = qr.getModuleCount(), quiet = 3;
+    var n = qr.getModuleCount(), quiet = 2;   // 흰 네모가 여백 구실을 해서 2칸 — 같은 네모에 칸이 조금 더 굵게
     var cell = Math.floor(size / (n + quiet * 2)), real = cell * n;
     var ox = x + Math.round((size - real) / 2), oy = y + Math.round((size - real) / 2);
     ctx.fillStyle = INK;
@@ -475,51 +517,67 @@
     var b = bleed || 0;
     canvas.width = W + b * 2; canvas.height = H + b * 2;
     var ctx = canvas.getContext('2d');
-    var panel = cardColor(profile), onPanel = inkOn(panel), SPLIT = 740;   // 왼쪽 QR 판 | 오른쪽 손글씨 판
+    var panel = cardColor(profile), onPanel = inkOn(panel), SPLIT = 760;   // 왼쪽 QR 판 | 오른쪽 손글씨 판
     ctx.fillStyle = CREAM; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = panel; ctx.fillRect(0, 0, b + SPLIT, canvas.height);
     ctx.save();
     ctx.translate(b, b);
 
-    // ── 왼쪽: QR + 폰 대기 안내 ──
-    var info = qrSquare(ctx, url, 40, 44, 660);   // 24.8mm — 한 칸 약 0.45mm(키링 60×37.5mm 기준)
+    // ── 왼쪽: QR + 폰 대기 안내 — 판 가운데(11/18 가르시아 "QR이 오른쪽으로 쏠렸어, 균형 있게") ──
+    // 판 가운데를 재단 뒤(카드 0~760)와 파일(여유 포함 -40~760)의 중간에 둔다 — 잘린 뒤 양옆 50·70, 파일에선 90·70으로 어느 쪽에서 봐도 거의 가운데
+    var cx = SPLIT / 2 - 10, QS = 640;   // 24mm — 한 칸 약 0.45mm(키링 60×37.5mm 기준)
+    var info = qrSquare(ctx, url, cx - QS / 2, 50, QS);
     if (!info) { ctx.restore(); return false; }
-    tapWaves(ctx, 104, 800, onPanel);
     ctx.fillStyle = onPanel; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.font = font(800, 46);
-    ctx.fillText('카메라로 찍거나', 164, 782);
-    ctx.fillText('휴대폰을 대 보세요', 164, 842);
+    var tw = Math.max(ctx.measureText('카메라로 찍거나').width, ctx.measureText('휴대폰을 대 보세요').width);
+    var bx = cx - (67 + 26 + tw) / 2;   // 물결 표시(약 67) + 사이 + 글 — 한 덩어리를 가운데로
+    tapWaves(ctx, bx + 33, 800, onPanel);
+    ctx.fillText('카메라로 찍거나', bx + 93, 782);
+    ctx.fillText('휴대폰을 대 보세요', bx + 93, 842);
     var opens = (profile.name ? profile.name + ' ' : '') + '주민증이 열려요';
     ctx.font = font(700, fitText(ctx, opens, 640, 38, 700));
-    ctx.fillText(opens, 48, 930);
+    ctx.textAlign = 'center';
+    ctx.fillText(opens, cx, 930);
+    ctx.textAlign = 'left';
 
     // ── 오른쪽: 이름 + 손글씨 칸(줄 사이 4~5mm — 키링 크기에서 가는 펜으로 한 줄씩) ──
-    var x0 = 800, x1 = W - 64, name = profile.name || '우리 강아지';
+    var x0 = SPLIT + 60, x1 = W - 64, name = profile.name || '우리 강아지';
     ctx.fillStyle = INK;
     ctx.font = font(800, fitText(ctx, name, x1 - x0, 84, 800));
     ctx.fillText(name, x0, 134);
+    var y = 134;   // 오른쪽 머리에서 마지막으로 쓴 줄의 기준선
     var bits = infoBits(profile);
-    if (bits.length) {   // 이름 오른쪽에 작게 — 앱에 적어 둔 것(손글씨 아님). 자리가 모자라면 글자를 줄인다
-      var nx = x0 + ctx.measureText(name).width + 22, more = bits.join(' · ');
-      if (x1 - nx > 120) {
-        ctx.fillStyle = SOFT;
-        ctx.font = font(700, fitText(ctx, more, x1 - nx, 36, 700));
-        ctx.fillText(more, nx, 128);
+    if (bits.length) {
+      // 성별·견종 — 이름 오른쪽 한 줄에 들어가면 거기, 아니면(긴 견종·긴 이름) 이름 아래에 단어 단위로 세 줄까지
+      var more = bits.join(' · '), nx = x0 + ctx.measureText(name).width + 22;
+      ctx.fillStyle = SOFT; ctx.font = font(700, 36);
+      if (ctx.measureText(more).width <= x1 - nx) ctx.fillText(more, nx, 128);
+      else {
+        var fl = fitLines(ctx, more, x1 - x0, 34, 700, 3, 28);
+        ctx.font = font(700, fl.size);
+        fl.lines.forEach(function (l) { y += Math.round(fl.size * 1.3); ctx.fillText(l, x0, y); });
       }
     }
+    var sub = '길에서 저를 만나면 연락해 주세요';
     ctx.fillStyle = SOFT;
-    ctx.font = font(600, fitText(ctx, '길에서 저를 만나면 연락해 주세요', x1 - x0, 36, 600));
-    ctx.fillText('길에서 저를 만나면 연락해 주세요', x0, 194);
+    ctx.font = font(600, fitText(ctx, sub, x1 - x0, 36, 600));
+    y += 60;
+    ctx.fillText(sub, x0, y);
+    var sep = y + 44;
     ctx.strokeStyle = LINE; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(x0, 238); ctx.lineTo(x1, 238); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0, sep); ctx.lineTo(x1, sep); ctx.stroke();
+    // 손글씨 칸 자리 — 머리가 길어진 만큼 내려가고, 맨 아래 칸이 브랜드 줄(924)에 닿지 않게(840까지) 칸 사이를 조금 줄인다
+    var OFF = [68, 182, 302, 414, 526], k = Math.min(1, (840 - sep - 68) / (526 - 68));
+    function rowY(i) { return Math.round(sep + 68 + (OFF[i] - 68) * k); }
 
     ctx.fillStyle = SOFT; ctx.font = font(700, 40);
-    ctx.fillText('보호자 연락처', x0, 306);
+    ctx.fillText('보호자 연락처', x0, rowY(0));
     ctx.strokeStyle = DIM; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(x0, 420); ctx.lineTo(x1, 420); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0, rowY(1)); ctx.lineTo(x1, rowY(1)); ctx.stroke();
     // 예방접종 — 반려동물 동반 음식점이 접종을 확인한다(손님이 손으로 적어 내도 됨, hq notes/petwalk-pet-restaurant-rules.md).
     // 해마다 바뀌어서 지우고 다시 쓰는 칸. 증명서를 대신하지는 않는다
-    [['광견병 접종', 540, true], ['종합 접종', 652, true], ['메모', 764, false]].forEach(function (row) {
+    [['광견병 접종', rowY(2), true], ['종합 접종', rowY(3), true], ['메모', rowY(4), false]].forEach(function (row) {
       ctx.fillStyle = SOFT; ctx.font = font(700, 38); ctx.textAlign = 'left';
       ctx.fillText(row[0], x0, row[1] - 14);
       var lw = ctx.measureText(row[0]).width + 22;
