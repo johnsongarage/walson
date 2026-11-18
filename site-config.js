@@ -7,13 +7,14 @@ window.WALSON_CONFIG = {
   brand: { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' },
   // 운영자(사업자) 정보(2026-11-17 가르시아) — 카카오톡 채널 비즈니스 심사가 반려돼서: 홈페이지에서 서비스명(왈슨)과
   // 하단 사업자 정보가 같이 보여야 한다(카카오 '사업자-채널 연관성 확인 방법'). 사업자등록증 그대로 적는다.
-  // 쓰는 곳: 개인정보 안내(privacy.html) 맨 아래, [오늘]·주민증 만들기 화면 하단 한 줄, [동네] 목록 시트 맨 아래(아래 WalsonBizInfo).
+  // 쓰는 곳: 왈슨 소개(about.html)·개인정보 안내(privacy.html) 맨 아래(아래 WalsonBizInfo). 심사가 11/18 승인돼서
+  // [오늘]·주민증 만들기 하단 한 줄과 [동네] 시트의 줄은 뺐다(가르시아 "이미 승인났으니까 소개 페이지면 충분").
   // 주소·전화번호는 일부러 안 적는다 — 문의는 카카오톡 채널.
   // service: 사업자 정보에 적는 서비스명(가르시아 "(WALSON)으로 해 줘, APP은 굳이") — 홍보물 문구(brand)와는 따로
   business: { service: '왈슨(WALSON)', name: '존슨거라지(Johnson Garage)', owner: '강훈민', regNo: '778-17-02429' },
   // 카카오톡 채널 주소(예: 'https://pf.kakao.com/_abcd'). 비어 있으면 "새 소식 받기" 버튼이 숨는다.
   // 쓰는 곳: [오늘] 아래 링크, 주민증 완료 화면, 키링 받기 화면.
-  kakaoChannel: 'https://pf.kakao.com/_IxocNX',   // 2026-11-17 채널 '왈슨' 개설, 11/18 새벽 비즈니스 채널 승인. 1:1 채팅은 이 주소 + /chat
+  kakaoChannel: 'https://pf.kakao.com/_IxocNX',   // 2026-11-17 채널 '왈슨' 개설(비즈니스 심사 중). 1:1 채팅은 이 주소 + /chat
   // 사용 통계를 받을 Apps Script 웹 앱 주소(docs/TRACKING.md). 비어 있으면 통계를 보내지 않는다(track.js).
   trackUrl: 'https://script.google.com/macros/s/AKfycbyok_QqmfxYkBO48P7YciODmE7awhL52LzIc_x3bG-oU6T0nz9oNo-hoF4Hf76VNo7P/exec',
   // 지도 그림(타일)을 받아 오는 곳(2026-11-16 한곳에 모음). 지도 화면([산책]·[동네]·스팟 편집)이 모두 이 값을 쓴다.

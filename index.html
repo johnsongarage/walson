@@ -12,7 +12,7 @@
 <meta property="og:title" content="왈슨">
 <meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/">
-<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=3">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=5">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="800">
 <meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
@@ -166,7 +166,6 @@
   .inapp-note a { color: var(--accent); font-weight: 800; }
   .inapp-move { display: block; width: 100%; margin: 8px 0 4px; padding: 11px; border: none; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
   .inapp-move[hidden] { display: none; }
-  .biz-line { margin: 14px 0 0; font-size: 11px; line-height: 1.6; text-align: center; opacity: 0.6; word-break: keep-all; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
@@ -262,9 +261,8 @@
     <a href="about.html">왈슨 소개</a>
     <a href="#" id="install-link" hidden>홈 화면에 추가</a>
   </div>
-  <p id="biz-line" class="biz-line" hidden></p>
+  <!-- 사업자 정보 한 줄은 뺐다(2026-11-18 가르시아 "이미 승인났으니까 소개 페이지면 충분") — 왈슨 소개·개인정보 안내 맨 아래에만 -->
 </div>
-<script>window.WalsonBizInfo && WalsonBizInfo(document.getElementById('biz-line'));</script>
 
 <!-- 다녀왔어요(2026-11-16): 산책 전에 앱을 켜지 않아도 된다. 오늘 몇 분이었는지만 골라 적으면 끝 화면 → 영수증으로 이어진다 -->
 <div class="after-sheet" id="after-sheet" hidden>

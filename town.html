@@ -12,7 +12,7 @@
 <meta property="og:title" content="왈슨">
 <meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/town.html">
-<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=3">
+<meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=5">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="800">
 <meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
@@ -207,13 +207,7 @@
   .ls-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .ls-body .shop-list { overflow: visible; }
   .ls-body .sheet-note:empty { display: none; }
-  /* 사업자 정보 한 줄(2026-11-17 카카오톡 채널 비즈니스 심사용으로 만듦, 11/18 승인) — 서비스명과 사업자 정보, 누르면 왈슨 소개(about.html).
-     11/18 목록 시트가 생기면서 예전 아래 버튼 줄이 없어져, 목록 맨 아래(시트를 올리면 보이는 자리)로 옮겼다 */
-  .biz-line {
-    display: block; max-width: 420px; margin: 2px auto 14px; padding: 3px 10px; border-radius: 8px;
-    color: var(--ink-soft); font-size: 10.5px; line-height: 1.5; text-align: center; text-decoration: none; word-break: keep-all;
-  }
-  .biz-line[hidden] { display: none; }
+  /* 사업자 정보 한 줄은 넣지 않는다(11/18 같은 날 넣었다가 뺌 — 가르시아 "이미 승인났으니까 소개 페이지면 충분") */
   /* '지금 화면' 목록은 줄이 많아질 수 있어 조금 낮게 */
   .shop-item.is-row { padding: 8px 10px; align-items: center; }
   .shop-item.is-row .shop-thumb, .shop-item.is-row .shop-thumb img, .shop-item.is-row .shop-thumb .ic { width: 38px; height: 38px; }
@@ -391,10 +385,8 @@
   <div class="ls-body" id="ls-body">
     <ul class="shop-list" id="ls-list"></ul>
     <p class="sheet-note" id="ls-note"></p>
-    <a class="biz-line" id="biz-line" href="about.html" hidden></a>
   </div>
 </section>
-<script>(function (el) { if (!el || !window.WalsonBizInfo) return; WalsonBizInfo(el); if (!el.hidden) el.insertAdjacentText('beforeend', ' · 왈슨 소개 ›'); })(document.getElementById('biz-line'));</script>
 
 <script src="tabbar.js?v=9" data-tab="town"></script>
 <script>
