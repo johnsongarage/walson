@@ -65,14 +65,16 @@
     H + ' .ws-map-btn{border-color:var(--panel-border) !important;}' +
     // 큰 제목·큰 숫자만 Black Han Sans — 굵기가 하나뿐인 두꺼운 글꼴이라 20px 안팎 작은 글씨(이름 줄·카드 제목 h2)는 획이 뭉치고
     // PC 모니터에선 계단처럼 깨져 보여서(2026-11-18 가르시아 캡처 "폰트 깨지는데 맞냐" → "그래라") 그런 것은 본문 글꼴(Pretendard 굵게) 그대로
-    H + ' h1,' + H + ' .today-num,' + H + ' .stats b,' + H + ' .sum .line,' + H + ' .ws-clock span' +
+    // 같은 날 이어서("얘도 이래, 이런 폰트들 다 변경해봐"): 화면 제목(h1, 18~24px)·통계 숫자·끝 화면 요약 줄도 본문 글꼴로 — 이제 [오늘] 큰 숫자(52px)와 산책 중 시계(84~104px)만
+    H + ' .today-num,' + H + ' .ws-clock span' +
       '{font-family:' + BIG + ' !important;font-weight:400 !important;letter-spacing:0 !important;}' +
     H + ' .panel>h2,' + H + ' .card>h2{color:var(--ink) !important;}' +
     H + ' .panel>h2,' + H + ' .q>h2,' + H + ' .card>h2,' + H + ' .who-name{font-weight:800 !important;letter-spacing:-0.01em !important;}' +
     // 제목 안의 작은 설명 글씨는 본문 글꼴로 — Black Han Sans는 굵기가 하나뿐이라 굵게 하면 뭉개진다("34분"의 "분"은 같은 글꼴 보통 굵기로)
     H + ' .panel>h2 small,' + H + ' .panel>h2 span,' + H + ' .q>h2 small,' + H + ' .q>h2 span,' + H + ' .card>h2 small,' + H + ' .card>h2 span' +
       '{font-family:Pretendard, -apple-system, \'Apple SD Gothic Neo\', \'Malgun Gothic\', sans-serif;}' +
-    H + ' .today-num small,' + H + ' .ws-clock small{font-weight:400 !important;}' +
+    H + ' .today-num small,' + H + ' .ws-clock small{font-family:Pretendard, -apple-system, \'Apple SD Gothic Neo\', \'Malgun Gothic\', sans-serif !important;font-weight:700 !important;}' +
+    H + ' h1{font-weight:800 !important;letter-spacing:-0.01em !important;}' +
     // 고른 것 — 버튼 색으로
     H + ' .opts button[aria-pressed="true"],' + H + ' .format button[aria-pressed="true"],' + H + ' .theme-opt[aria-pressed="true"]' +
       '{background:var(--hl) !important;color:var(--hl-ink) !important;border-color:var(--line) !important;}' +
