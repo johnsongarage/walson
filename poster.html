@@ -12,7 +12,9 @@
      - A4 포스터 한 장 / A4에 전단 8장(잘라서 나눠 주기)
      - QR은 이 브라우저 안에서 그린다(qrcode-generator, MIT). 주소는 주민증 만들기 화면 하나뿐이고
        누가 찍었는지 세는 장치는 없다(서버 없음).
-     화면 테마(theme.js)와 상관없이 인쇄용 색으로 고정 — 로고 노랑 + 진한 갈색. */
+     화면 테마(theme.js)와 상관없이 인쇄용 색으로 고정 — 로고 노랑 + 진한 갈색.
+     11/18 가르시아 "종이 흰색에 포인트만 노란 걸로 — 편의점 가서 인쇄할 거라 노란 잉크 모자라겠네": 포스터 바탕을 흰색으로,
+     노랑은 '주민증' 밑칠과 단계 번호 동그라미에만(예전 노랑 바탕은 git 기록에 있음). */
   :root { --yellow: #F2B833; --ink: #3a2e24; --soft: #6b5d4e; --cream: #fffaf3; --line: #e6d6c1; }
   * { box-sizing: border-box; }
   html, body { margin: 0; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: #ddd; }
@@ -30,18 +32,19 @@
   .sheet[hidden] { display: none; }
 
   /* ── A4 포스터 ── */
-  .poster { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 16mm 16mm 12mm; background: var(--yellow); }
+  .poster { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 16mm 16mm 12mm; background: #fff; }
   .poster .logo { width: 70mm; height: auto; }
   .poster .brand { font-family: 'Black Han Sans', 'Pretendard', sans-serif; font-size: 17mm; line-height: 1; margin: 2mm 0 0; letter-spacing: 0.01em; }
   /* 한글 이름(11/18 가르시아 "포스터에도 한글 왈슨") — 전단과 같이 WALSON 옆, 세로줄로 나눔 */
   .poster .brand .ko { margin-left: 5mm; padding-left: 5mm; border-left: 1mm solid var(--ink); }
   .poster .tag { font-size: 6mm; font-weight: 800; margin: 2.5mm 0 8mm; letter-spacing: -0.01em; }
   .poster h1 { font-size: 13mm; line-height: 1.2; margin: 0; letter-spacing: -0.03em; font-weight: 900; }
-  .poster h1 em { font-style: normal; background: #fff; padding: 0 2mm; }
+  .poster h1 em { font-style: normal; background: var(--yellow); padding: 0 2mm; }
   .poster .lead { font-size: 5.2mm; font-weight: 700; margin: 4mm 0 8mm; }
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; width: 100%; margin-bottom: 8mm; }
-  .step { background: var(--cream); border: 0.8mm solid var(--ink); border-radius: 5mm; padding: 4mm 3mm; }
-  .step b { display: block; font-size: 8mm; font-weight: 900; line-height: 1; }
+  .step { background: #fff; border: 0.8mm solid var(--ink); border-radius: 5mm; padding: 4mm 3mm; }
+  .step b { display: flex; align-items: center; justify-content: center; width: 11mm; height: 11mm; margin: 0 auto; border-radius: 50%;
+    background: var(--yellow); font-size: 6.5mm; font-weight: 900; line-height: 1; }
   .step span { display: block; font-size: 4.4mm; font-weight: 800; margin-top: 2mm; }
   .step small { display: block; font-size: 3.4mm; color: var(--soft); margin-top: 1mm; line-height: 1.35; }
   .lamps { display: flex; justify-content: center; gap: 1.5mm; margin-top: 2mm; }
