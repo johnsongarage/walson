@@ -27,6 +27,15 @@
     if (nav && (nav.type === 'reload' || nav.type === 'back_forward')) return;
     var here = location.origin + location.pathname.replace(/[^/]*$/, '');
     if ((document.referrer || '').indexOf(here) === 0) return;
+    // 넘어가는 동안 이 화면은 그리지 않는다(11/18 가르시아 "가운데만 새로 바뀐 얼굴이 잠깐 떴다가 다시 또 화면이 바뀐다") —
+    // 예전엔 넘어가기 직전에 여기 시작 화면이 잠깐 그려지고 '이번에 봤음' 표시까지 남겨서 [동네] 쪽 시작 화면은 안 나왔다.
+    // no-splash면 splash.js가 표시를 남기지 않는다. 바탕은 앱 아이콘과 같은 크림(manifest background_color)
+    var de = document.documentElement;
+    de.classList.add('no-splash');
+    de.style.background = '#fff6e2';
+    var hide = document.createElement('style');
+    hide.textContent = 'body{visibility:hidden!important}';
+    document.head.appendChild(hide);
     location.replace('town.html' + location.search);
   } catch (e) { /* 모르면 [오늘] 그대로 */ }
 })();
@@ -168,11 +177,12 @@
   .inapp-move[hidden] { display: none; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
-<script>try { if (sessionStorage.getItem('walson_splash_shown')) document.documentElement.classList.add('no-splash'); } catch (e) {}</script>
+<!-- 홈 화면에 설치한 앱으로 열면 휴대폰이 아이콘으로 시작 화면을 이미 띄우므로 이 시작 화면은 안 띄운다(11/18 가르시아 "화면이 또 바뀐다") -->
+<script>try { if (sessionStorage.getItem('walson_splash_shown') || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true) document.documentElement.classList.add('no-splash'); else document.documentElement.style.background = '#fff6e2'; } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="splash.css?v=1">
+<link rel="stylesheet" href="splash.css?v=2">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
 <script src="theme.js?v=11"></script>
@@ -190,7 +200,7 @@
   </div>
   <div class="splash-by">제작자 johnsongarage</div>
 </div>
-<script src="splash.js?v=1"></script>
+<script src="splash.js?v=4"></script>
 
 <div class="wrap">
   <a class="who" href="profile.html" title="프로필 고치기">
