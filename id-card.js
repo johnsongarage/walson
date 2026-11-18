@@ -21,6 +21,7 @@
     none:   { label: '수호견', line: '가게를 지키고 있어요', color: '#b8563a' }
   };
   // 카드 색(2026-11-18) — 테두리·저장 바탕·키링 뒷면 QR 판. 프로필 cardColor에 id로 저장, 없으면 모카.
+  // 같은 날 밤 가르시아 "색상 고를 수 있게 바를 줘" — 색 막대(card-color.js)로 고른 색은 '#rrggbb' 그대로 저장한다.
   // 어느 색이든 누군가는 정당 색으로 볼 수 있어서 '중립 색 찾기' 대신 견주가 고른다. 'signal'은 성향 색 그대로(11/18 전까지의 모양)
   var CARD_COLORS = [
     { id: 'mocha', label: '모카', color: '#6b4f3a' },
@@ -32,6 +33,7 @@
   ];
   function cardColor(profile) {
     var id = profile && profile.cardColor;
+    if (typeof id === 'string' && /^#[0-9a-f]{6}$/i.test(id)) return id;   // 색 막대로 직접 고른 색
     for (var i = 0; i < CARD_COLORS.length; i++) {
       if (CARD_COLORS[i].id === id) return CARD_COLORS[i].color || (SIGNALS[profile.signal] || SIGNALS.none).color;
     }
@@ -272,10 +274,10 @@
     ctx.fillStyle = SOFT;
     ctx.font = font(600, 32);
     var bits = infoBits(profile);
-    if (!bits.length) ctx.fillText('이름', tx, 362);
-    else {
-      // '이름 · 암컷 · 중성화 · 말티즈' — 이름 글자 자리는 그대로 두고 그 위 작은 줄에. 길면(긴 견종) 단어 단위로 두 줄(위로 한 줄 올림)
-      var fl = fitLines(ctx, '이름 · ' + bits.join(' · '), maxW, 32, 600, 2, 26), lh = Math.round(fl.size * 1.2);
+    // 이름 위 작은 '이름' 글자는 뺐다(2026-11-18 가르시아 "이름 위에 이름 작게 나오는 부분은 지워 줘").
+    // 성별·중성화·견종을 적었으면 그것만 그 자리에('암컷 · 중성화 · 말티즈'). 길면(긴 견종) 단어 단위로 두 줄(위로 한 줄 올림)
+    if (bits.length) {
+      var fl = fitLines(ctx, bits.join(' · '), maxW, 32, 600, 2, 26), lh = Math.round(fl.size * 1.2);
       ctx.font = font(600, fl.size);
       fl.lines.forEach(function (l, i) { ctx.fillText(l, tx, 362 - (fl.lines.length - 1 - i) * lh); });
     }
