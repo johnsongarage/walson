@@ -200,8 +200,20 @@
   /* QR 찍기(2026-11-16)는 목록이 아니라 바로 하는 것 — 앞에 QR 동그라미 */
   .ls-mode.is-act { padding-left: 6px; }
   .ls-mode .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; }
+  /* 미션(2026-11-18 가르시아 "첫 화면에 미션 정보가 바로 나와. 그냥 지도에 어떤 게 있는지부터 둘러볼 수 있게"):
+     첫 화면(접힌 시트)에는 미션 카드를 두지 않고 [미션 n/N] 버튼 하나만 — 누르면 목록 시트에서 지금 미션 카드 + 미션 목록 */
+  .ls-mode.is-mission .mf { display: flex; color: var(--accent); }
+  .ls-mode.is-mission .mf svg { width: 15px; height: 15px; }
+  .ls-mode.is-mission.is-here { border-color: #3f7d4a; color: #2f6b3a; }
+  .ls-mode.is-mission.is-here .mf { color: #3f7d4a; }
+  .ls-mode.is-mission[aria-pressed="true"] .mf { color: #fff; }
   .list-sheet .mission-card { max-width: none; background: #fff; box-shadow: none; }
-  .list-sheet:not([data-state="peek"]) .mission-card { display: none; }
+  .ls-mission-now { list-style: none; margin-bottom: 4px; }
+  .shop-item.is-row.is-done .name { color: var(--ink-soft); }
+  .shop-item.is-row .ic.is-check { background: #3f7d4a; }
+  .ls-act { list-style: none; text-align: center; margin-top: 6px; }
+  .ls-act a { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 16px; border-radius: 999px;
+    background: var(--hl, var(--accent)); color: var(--hl-ink, #fff); font-size: 14px; font-weight: 800; text-decoration: none; }
   .ls-tools:empty { display: none; }
   .list-sheet[data-state="peek"] .ls-tools, .list-sheet[data-state="peek"] .ls-body { display: none; }
   .ls-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
@@ -331,6 +343,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
+<script src="mission-alert.js?v=1"></script>
 </head>
 <body>
 <div id="splash" role="img" aria-label="왈슨, 다산동 강아지 산책 앱. 제작 johnsongarage">
@@ -375,12 +388,12 @@
     </div>
     <div class="ls-modes" id="ls-modes" role="group" aria-label="목록에서 볼 것">
       <button type="button" class="ls-mode" id="view-link" aria-pressed="false">지금 화면</button>
+      <button type="button" class="ls-mode is-mission" id="mission-link" aria-pressed="false" hidden></button>
       <button type="button" class="ls-mode is-sos" id="sos-link" aria-pressed="false" hidden>급할 때</button>
       <button type="button" class="ls-mode" id="shop-link" aria-pressed="false" hidden>동반 가게</button>
       <button type="button" class="ls-mode" id="guard-link" aria-pressed="false" hidden>수호견</button>
       <button type="button" class="ls-mode is-act" id="qr-link" hidden>QR 찍기</button>
     </div>
-    <button type="button" class="mission-card" id="mission-card" hidden></button>
   </div>
   <div class="sheet-tools ls-tools" id="ls-tools" role="group" aria-label="목록 거르기"></div>
   <div class="ls-body" id="ls-body">
@@ -774,7 +787,7 @@
     chip.innerHTML = dotHtml(layer);
     chip.appendChild(span('', layer.label));
     chip.appendChild(span('count', layerCount(layer)));
-    chip.addEventListener('click', function () { filter.toggle(layer.key); sync(); });
+    chip.addEventListener('click', function () { map.closePopup(); filter.toggle(layer.key); sync(); });
     painters.push(function () {
       if (!chip.isConnected) return false;
       chip.setAttribute('aria-pressed', filter.isOff(layer.key) ? 'false' : 'true');
@@ -816,6 +829,7 @@
     chip.appendChild(count);
     chip.appendChild(span('caret', '▼'));
     chip.addEventListener('click', function () {
+      map.closePopup();
       openGroup = openGroup === g.id ? null : g.id;
       renderSub();
       refreshChips();
@@ -832,6 +846,8 @@
   function refreshChips() {
     painters = painters.filter(function (paint) { return paint(); });   // 화면에서 빠진 칩은 정리
   }
+  // 펼친 "갈 곳" 줄도 지도를 누르거나 끌면 접는다(11/18 "다른 액션을 취하면 내려가게")
+  map.on('click dragstart', function () { if (openGroup) { openGroup = null; renderSub(); refreshChips(); } });
   map.on('zoomend', sync);
   sync();
 
@@ -965,8 +981,15 @@
   }
 
   // ── 다음 미션 카드 ──
-  // 지금 미션(순서대로 안 간 첫 곳)을 아래에 한 줄로. 위치를 알면 걸어서 몇 분, 너무 멀면(25분 넘게) 가까운 다른 미션도 같이.
-  var missionCard = document.getElementById('mission-card');
+  // 지금 미션(순서대로 안 간 첫 곳)을 카드 한 장으로. 위치를 알면 걸어서 몇 분, 너무 멀면(25분 넘게) 가까운 다른 미션도 같이.
+  // 11/18 가르시아 "첫 화면에 미션 정보가 바로 나와. 그냥 지도에 어떤 게 있는지부터 둘러볼 수 있게":
+  // 카드는 첫 화면(접힌 시트)에서 빼고 목록 시트의 [미션 n/N]을 눌렀을 때 맨 위에 보인다. 지도의 깃발·동그라미는 그대로.
+  var missionCard = document.createElement('button');
+  missionCard.type = 'button';
+  missionCard.className = 'mission-card';
+  missionCard.id = 'mission-card';
+  missionCard.hidden = true;
+  var missionLink = document.getElementById('mission-link');
   var missionHere = false;
   // 길 기록 산책이 진행 중인지(walk.html이 저장해 둔 petwalk_active_route — 2026-11-16 이어 하기)
   function activeRouteOn() {
@@ -974,7 +997,56 @@
     return !!(a && typeof a.startedAt === 'number');
   }
   function placeDist(pl) { return myPos ? ShopVisits.distanceM([myPos.lat, myPos.lng], pl.center) : null; }
+  function missionDone() { return missionAll.filter(function (m) { return m.done; }).length; }
   function paintMission() {
+    missionHere = false;
+    paintMissionCard();
+    paintMissionLink();
+    maybeAlertArrival();
+  }
+  // 목록 시트의 [미션 n/N] 버튼 — 지금 미션 장소에 있으면 초록
+  function paintMissionLink() {
+    if (!missionAll.length || InfraPins.GUARDIAN_DEMO) { missionLink.hidden = true; return; }
+    missionLink.innerHTML = '<span class="mf">' + FLAG_SVG + '</span>';
+    missionLink.appendChild(document.createTextNode('미션 ' + missionDone() + '/' + missionAll.length));
+    missionLink.classList.toggle('is-here', missionHere);
+    missionLink.title = missionHere ? '지금 미션 장소에 있어요' : '';
+    missionLink.hidden = false;
+  }
+  // 미션 장소에 왔으면 화면 가운데로 한 번 알린다(11/18 가르시아 "가야 할 구역을 갔을 때 알림 형식으로 … 가운데 화면을 띄운다던가").
+  // 같은 장소는 하루 한 번(이 휴대폰에만 적어 둔다). 기준은 missionHere와 같다 — 정확한 위치(오차 100m 이하)로 동그라미 안.
+  // 이 화면은 위치를 계속 따라가지 않는다(열 때 한 번·[내 위치]를 누를 때). 걸으면서 알림은 길 기록 산책 화면(walk.html)이 한다.
+  var ARRIVE_KEY = 'petwalk_arrive_alert';
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function maybeAlertArrival() {
+    if (!missionHere || !missionNow || !window.WalsonMissionAlert) return;
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem(ARRIVE_KEY)) || {}; } catch (e) { seen = {}; }
+    if (seen[missionNow.place.id] === todayKey()) return;
+    var keep = {};   // 오늘 것만 남긴다(지난 날짜는 지움)
+    Object.keys(seen).forEach(function (k) { if (seen[k] === todayKey()) keep[k] = seen[k]; });
+    keep[missionNow.place.id] = todayKey();
+    try { localStorage.setItem(ARRIVE_KEY, JSON.stringify(keep)); } catch (e) { /* 이번만 */ }
+    var routeOn = activeRouteOn();
+    map.closePopup();
+    if (sheetReady && sheetState !== 'peek') setSheet('peek');
+    WalsonMissionAlert.show({
+      icon: 'flag',
+      badge: '미션 ' + missionNow.no + ' · 발도장 ' + missionDone() + '/' + missionAll.length,
+      title: '미션 장소에 왔어요!',
+      place: missionNow.place.name,
+      lines: routeOn
+        ? ['길 기록 산책 중이에요.', '산책 화면을 열면 바로 발도장이 찍혀요.']
+        : ['발도장은 길 기록 산책 중에 찍혀요.', '지금 시작하면 5분·200m를 걸은 뒤 찍혀요.'],
+      primary: { label: routeOn ? '산책 화면 열기' : '길 기록 시작', href: routeOn ? 'walk.html' : 'walk.html?start=1' },
+      secondary: { label: '닫기' }
+    });
+    if (window.WalsonDevice) WalsonDevice.vibrate([90, 60, 90], { onlyAfterTap: true });
+  }
+  function paintMissionCard() {
     // 수호견 예시 화면은 사장님께 보여 드리는 화면이라 미션 카드를 띄우지 않는다(가게 팝업이 카드에 가리지 않게)
     if (!missionAll.length || InfraPins.GUARDIAN_DEMO) { missionCard.hidden = true; return; }
     var done = missionAll.filter(function (m) { return m.done; }).length;
@@ -1137,11 +1209,11 @@
   var mapEl = document.getElementById('map');
   var sheetState = 'peek', sheetMode = 'view', peekH = 0, sheetReady = false, sheetTimer = null;
   var VIEW_MAX = 60;   // '지금 화면'은 가까운 60곳까지(핀이 아주 많아지면 — 2단계에서 겹친 핀 묶음과 같이 다시 본다)
-  var MODE_BTN = { view: document.getElementById('view-link'), sos: sosLink, shop: shopLink, guard: document.getElementById('guard-link') };
+  var MODE_BTN = { view: document.getElementById('view-link'), mission: missionLink, sos: sosLink, shop: shopLink, guard: document.getElementById('guard-link') };
   var SHORT = { stamp: '발도장', park: '공원', bag: '봉투함', guard: '수호견', cheer: '응원 가게' };   // 요약 줄에 쓰는 짧은 이름
   var PIN_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2z"/></svg>';
 
-  // 높이: 접힘 = 손잡이 + 머리(요약 줄·볼 것·미션 카드), 반 = 지도 높이의 55%, 펼침 = 위 칩 한 줄만 남기고
+  // 높이: 접힘 = 손잡이 + 머리(요약 줄·볼 것 — 미션 카드는 11/18부터 [미션] 목록 안), 반 = 지도 높이의 55%, 펼침 = 위 칩 한 줄만 남기고
   function availH() { return mapEl.clientHeight || Math.max(200, window.innerHeight - 58); }
   function naturalPeek() { return lsGrab.offsetHeight + lsHead.offsetHeight; }
   function heights() {
@@ -1168,6 +1240,7 @@
   }
   function setSheet(s) {
     if (!sheetReady) return;
+    if (s !== 'peek') map.closePopup();   // 목록을 펼치면 지도 위 핀 팝업은 내린다(11/18 "다른 액션을 취하면 내려가게")
     if (sheetState === 'peek' && s !== 'peek') lsBody.scrollTop = 0;
     sheetState = s;
     sheetEl.setAttribute('data-state', s);
@@ -1288,7 +1361,8 @@
     }
     lsTools.innerHTML = '';
     lsList.innerHTML = '';
-    var res = (sheetMode === 'sos' ? renderSosMode : sheetMode === 'shop' ? renderShopMode : sheetMode === 'guard' ? renderGuardMode : renderViewMode)();
+    var res = (sheetMode === 'sos' ? renderSosMode : sheetMode === 'shop' ? renderShopMode : sheetMode === 'guard' ? renderGuardMode :
+      sheetMode === 'mission' ? renderMissionMode : renderViewMode)();
     sum.appendChild(mk('b', '', res.title));
     if (res.sub) sum.appendChild(mk('span', 'cnt', res.sub));
     lsNote.textContent = res.note || '';
@@ -1408,6 +1482,59 @@
       note: InfraPins.GUARDIAN_DEMO ? '예시 화면이에요 · 실제 지도에는 없어요' : '사장님 동의를 받은 가게의 강아지만 올라와요.'
     };
   }
+  // 미션 목록(11/18): 맨 위에 지금 미션 카드(걸어서 몇 분 · 지금 여기면 바로 산책 화면으로), 아래에 미션 전부를 순서대로.
+  // 줄을 누르면 시트를 접고 그 장소의 깃발·동그라미로 가서 팝업. 아래 버튼은 길 기록 산책 시작(진행 중이면 산책 화면으로).
+  var CHECK_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function renderMissionMode() {
+    var cardOn = !missionCard.hidden;
+    if (cardOn) { var top = mk('li', 'ls-mission-now'); top.appendChild(missionCard); lsList.appendChild(top); }
+    missionAll.forEach(function (m) {
+      var isNow = !!(missionNow && m.place.id === missionNow.place.id);
+      if (isNow && cardOn) return;   // 지금 미션은 위 카드로 보여서 줄은 빼고 나머지만
+      var li = mk('li');
+      var item = mk('button', 'shop-item is-row' + (m.done ? ' is-done' : ''));
+      item.type = 'button';
+      var thumb = mk('span', 'shop-thumb');
+      var ic = iconBox(m.done ? CHECK_SVG : FLAG_SVG, m.done ? '' : isNow ? 'var(--accent)' : '#a8998a');
+      if (m.done) ic.classList.add('is-check');
+      thumb.appendChild(ic);
+      var body = mk('span', 'body');
+      var row1 = mk('span', 'row1');
+      row1.appendChild(mk('span', 'name', '미션 ' + m.no + ' · ' + m.place.name));
+      var d = !m.done ? placeDist(m.place) : null;
+      if (d != null) row1.appendChild(mk('span', 'walk', ShopVisits.walkText(d)));
+      body.appendChild(row1);
+      body.appendChild(mk('span', 'meta', m.done ? '발도장 받았어요' :
+        isNow ? (missionHere ? '지금 여기 있어요' : '지금 미션 · ' + missionTarget(m)) : '다음 차례 · ' + missionTarget(m)));
+      item.appendChild(thumb);
+      item.appendChild(body);
+      item.addEventListener('click', function () { goToMission(m); });
+      li.appendChild(item);
+      lsList.appendChild(li);
+    });
+    if (missionNow) {
+      var routeOn = activeRouteOn();
+      var act = mk('li', 'ls-act');
+      var a = mk('a', '', routeOn ? '산책 화면 열기' : '길 기록 산책 시작');
+      a.href = routeOn ? 'walk.html' : 'walk.html?start=1';
+      act.appendChild(a);
+      lsList.appendChild(act);
+    }
+    return {
+      title: '미션 ' + missionDone() + '/' + missionAll.length,
+      sub: missionNow ? '순서대로 · 지금 미션 ' + missionNow.no : '다 했어요',
+      note: '길 기록 산책 중에 미션 장소의 동그라미 안에 들어가면 발도장이 찍히고 화면 가운데로 알려 드려요. ' +
+        '앱을 화면에 켜 둔 동안만 알 수 있어요. 휴대폰 위치가 "대략적인 위치"로 되어 있으면 도착을 알 수 없어요.'
+    };
+  }
+  function goToMission(m) {
+    setSheet('peek');
+    filter.set('stamp', true);   // 우리 개 발도장을 꺼 두었더라도 다시 켠다
+    map.setView(m.place.center, Math.max(map.getZoom(), 16), { animate: false });
+    sync();
+    var marker = stampMarkers[m.place.id];
+    if (marker && map.hasLayer(marker)) marker.openPopup();
+  }
   // '지금 화면'에서 누르면: 시트를 접고 그 핀으로 가서 팝업(가게는 goToShop — 둘 다인 가게는 지금 보이는 핀으로)
   function goToEntry(e) {
     if (e.kind === 'shop') { goToShop(e.pin.id, e.as === 'guard'); return; }
@@ -1420,6 +1547,11 @@
   // 지도를 누르거나 핀을 열면 접는다(목록이 지도를 가린 채로 두지 않게). Esc도.
   map.on('click', function () { if (sheetState !== 'peek') setSheet('peek'); });
   map.on('popupopen', function () { if (sheetState !== 'peek') setSheet('peek'); });
+  // 다른 행동을 하면 지도 위에 떠 있던 것을 내린다(11/18 가르시아 "지도 위에 팝업되었던 정보들은 내가 다른 액션을 취하면 내려가게"):
+  // 지도를 손으로 끌면 핀 팝업을 닫고 펼친 목록도 접는다. 확대·축소(버튼·두 손가락·[내 위치])도 팝업을 닫는다.
+  // 목록을 펼치면(setSheet), 위 칩을 누르면 닫는다. 팝업을 열 때 Leaflet이 지도를 살짝 미는 것은 끌기·확대가 아니라 그대로 둔다.
+  map.on('dragstart', function () { map.closePopup(); if (sheetState !== 'peek') setSheet('peek'); });
+  map.on('zoomstart', function () { map.closePopup(); });
   map.on('moveend', scheduleSheet);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetState !== 'peek') setSheet('peek'); });
   window.addEventListener('resize', relayoutSheet);
@@ -1493,7 +1625,7 @@
       refreshShops();
     }, function () {});
   }
-  locateBtn.addEventListener('click', function () { locateAndCenter(false); });
+  locateBtn.addEventListener('click', function () { map.closePopup(); locateAndCenter(false); });
   // 시연 모드: 출발점 핀을 끌어 옮긴다(demo-geo.js) — 옮기면 내 위치·미션 카드·걸어서 몇 분이 그 자리 기준으로
   if (window.PetwalkDemoGeo && PetwalkDemoGeo.on) PetwalkDemoGeo.attachStartMarker(map, { onMove: function () { locate(true).then(refreshShops, function () {}); } });
   // 탭을 열자마자 내 위치(2026-11-15 가르시아 "누르면 바로 체크가 안 된다") — 예전에 이유를 설명하고 허용받은 기기에서만.

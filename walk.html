@@ -82,6 +82,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
+<script src="mission-alert.js?v=1"></script>
 <script src="walk-screen.js?v=2"></script>
 <script src="walk-engine.js?v=4"></script>
 </head>
@@ -235,14 +236,38 @@
     card.hidden = false;
   }
 
-  // 바로 판정으로 받은 발도장(엔진 onStamp 'got')을 알린다 — 알림 띠 + 진동
+  // 바로 판정으로 받은 발도장(엔진 onStamp 'got')을 알린다 — 화면 가운데 카드 + 진동
+  // (11/18 가르시아 "가야 할 구역을 갔을 때 알림 형식으로 … 미션이 진행이 된 거니, 가운데 화면을 띄운다던가" — 예전엔 위쪽 알림 띠)
   function announceStamp(pl) {
     var R = window.RewardRules;
     var p = E.missionProgress(), all = R.missions(p);
     var done = all.filter(function (m) { return m.done; }).length, next = R.currentMission(p);
-    showWalkNotice(pl.name + ' 발도장 받았어요 (' + done + '/' + all.length + ')' + (next ? ' · 다음 미션: ' + next.place.name : ' · 미션을 다 했어요'), 'stamp');
+    var text = pl.name + ' 발도장 받았어요 (' + done + '/' + all.length + ')' + (next ? ' · 다음 미션: ' + next.place.name : ' · 미션을 다 했어요');
+    if (window.WalsonMissionAlert) {
+      WalsonMissionAlert.show({
+        icon: 'paw',
+        badge: '발도장 ' + done + '/' + all.length,
+        title: '발도장 받았어요!',
+        place: pl.name,
+        lines: [next ? '다음 미션: ' + next.place.name : '미션을 다 했어요. 수고했어요!'],
+        primary: { label: '확인' }
+      });
+    } else showWalkNotice(text, 'stamp');
     // 진동은 이 화면을 한 번이라도 누른 뒤에만 된다(브라우저 규칙) — 주머니에서 막 꺼내 연 화면은 조용히 넘어간다. 진동 없는 기기(아이폰 등)도 조용히
     WalsonDevice.vibrate([90, 60, 90], { onlyAfterTap: true });
+  }
+  // 도착했지만 아직 5분·200m 전(엔진 onStamp 'pending') — 이것도 가운데 카드로(기준을 넘는 순간 'got'으로 한 번 더 알린다)
+  function announceArrival(pl) {
+    var text = pl.name + ' 도착! ' + E.RULES.minRewardMinutes + '분·' + Math.round(E.RULES.minRewardKm * 1000) + 'm 넘게 걸으면 발도장이 찍혀요.';
+    if (!window.WalsonMissionAlert) { showWalkNotice(text, 'info'); return; }
+    WalsonMissionAlert.show({
+      icon: 'flag',
+      title: '미션 장소 도착!',
+      place: pl.name,
+      lines: ['산책을 ' + E.RULES.minRewardMinutes + '분·' + Math.round(E.RULES.minRewardKm * 1000) + 'm 넘게 걸으면', '그 순간 발도장이 찍혀요.'],
+      primary: { label: '확인' }
+    });
+    WalsonDevice.vibrate([60], { onlyAfterTap: true });
   }
 
   // ── 화면 켜 두기 ── 잡고 푸는 일은 device.js(keepAwake), 언제 잡을지(켠 사람 · 산책 중 · 다시 보일 때)는 여기서
@@ -440,7 +465,7 @@
     // 바로 판정한 발도장 — 받음은 알림 띠·진동, 도착했지만 5분·200m 전이면 안내만(기준을 넘는 순간 받는다)
     onStamp: function (pl, kind) {
       if (kind === 'got') { announceStamp(pl); return; }
-      showWalkNotice(pl.name + ' 도착! ' + E.RULES.minRewardMinutes + '분·' + Math.round(E.RULES.minRewardKm * 1000) + 'm 넘게 걸으면 발도장이 찍혀요.', 'info');
+      announceArrival(pl);
     },
     // 엔진이 보여 달라는 안내(끊겼다 다시 이어서 기록 · 이어 하기)
     onNotice: function (text, kind) { showWalkNotice(text, kind); }
