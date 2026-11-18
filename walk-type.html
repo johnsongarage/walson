@@ -86,7 +86,7 @@
 <script src="inapp.js?v=4"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
-<script src="image-editor.js?v=3"></script>
+<script src="image-editor.js?v=4"></script>
 </head>
 <body>
 
@@ -330,6 +330,7 @@
         var g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(out, 0, 0);
         return R.photo ? { x: L.x, y: L.y, w: L.w, h: L.h, img: R.photo } : null;
       },
+      storeKey: 'walson_edit_walk_type',   // [저장]한 꾸미기를 다음에 이어서
       fileName: function () { return 'walson-walk-type.png'; },
       onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_type', how: how }); }
     });

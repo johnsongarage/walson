@@ -689,6 +689,7 @@
         if (st.fmt === 'square' || st.fmt === 'story') { k = 960 / W; ox = (out.width - 960) / 2; oy = Math.round((out.height - 600) / 2) - (st.fmt === 'story' ? 60 : 30); }
         return { x: ox + PHOTO_BOX.x * k, y: oy + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k, img: o.photo };
       },
+      storeKey: 'walson_edit_id_card',   // [저장]한 꾸미기(모양·사진 칸 자리·글자)를 다음에 이어서(주민증에 든 원래 사진은 그대로)
       fileName: function (st) { return (o.profile.name || 'dog') + '-주민증' + (st.extra.side === 'back' && o.drawBack ? '-뒷면' : '') + (st.fmt === 'card' ? '' : '-' + st.fmt) + '.png'; },
       onSave: o.onSave, onClose: o.onClose
     });

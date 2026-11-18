@@ -212,6 +212,7 @@
           draw(e.r, img, logo, profile, st.fmt, cv, { zoom: st.photo.zoom, x: st.photo.x, y: st.photo.y, layout: L });
           return { x: L.x, y: L.y, w: L.w, h: L.h, img: img };
         },
+        storeKey: 'walson_edit_month_report',   // [저장]한 꾸미기(모양·사진 자리·글자)를 다음에 이어서
         fileName: function (st) { return 'walson-' + st.extra.y + '-' + pad2(st.extra.m + 1) + '-' + st.fmt + '.png'; },
         onSave: function (st, how) { if (window.WalsonTrack) WalsonTrack.send('card_saved', { what: 'month_report', format: st.fmt, how: how }); }
       });

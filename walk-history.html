@@ -272,9 +272,9 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="month-report.js?v=5"></script>
+<script src="month-report.js?v=6"></script>
 <script src="walk-receipt.js?v=8"></script>
-<script src="image-editor.js?v=3"></script>
+<script src="image-editor.js?v=4"></script>
 <script>
 (function () {
   // 산책 기록(walk.html·go.html·[오늘] "다녀왔어요"가 저장)·주민증은 store.js(WalsonStore)로 읽고 쓴다
@@ -611,7 +611,7 @@
         },
         fileName: function (st) { return 'walson-receipt-' + w.date + '-' + pad4(i + 1) + (st.fmt === 'feed' ? '-feed' : '') + '.png'; },
         onSave: function (st, how) { keep(st); window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'walk_receipt', format: st.fmt, how: how }); },
-        onClose: function (st) { keep(st); render(); }
+        onClose: function (st, kept) { if (kept) keep(st); render(); }   // [×]로 버리고 나오면 남기지 않는다(11/18 — [저장]이 고친 걸 남기기)
       });
       // 편집기에서 고른 것을 이 산책에 남긴다(닫아도 남는다)
       function keep(st) {
