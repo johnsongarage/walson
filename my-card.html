@@ -65,6 +65,24 @@
   .canvas-hint { text-align: center; font-size: 11px; color: #a8977f; margin-top: 6px; }
   /* 카드 색(2026-11-18) — 테두리만. 성향 띠·불은 성향 색 그대로. 고르는 칩·색 막대 모양은 card-color.js */
   .color-note { text-align: center; font-size: 11px; color: var(--ink-soft); margin: 6px 0 0; word-break: keep-all; }
+  /* 카드 아래 — 꾸미고 저장하기, 그 아래 테두리 색 한 줄(누르면 펼침). 2026-11-18 밤 화면 정리 */
+  #card-area > #save-btn { margin-top: 14px; }
+  .color-toggle { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 10px; padding: 11px 14px; border-radius: 14px;
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+  .ct-dot { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); }
+  .ct-label { font-weight: 700; color: var(--ink-soft); }
+  .ct-name { flex: 1; min-width: 0; font-weight: 800; }
+  .ct-more { flex-shrink: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--accent); }
+  .ct-more::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-top: -4px; }
+  .color-toggle[aria-expanded="true"] .ct-more::after { transform: rotate(-135deg); margin-top: 3px; }
+  .color-panel .cc { margin-top: 10px; }
+  /* 실물로 뽑기 · 키링 파일(맨 아래 접는 칸) */
+  details.tools > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    font-size: 14px; font-weight: 800; color: var(--ink); }
+  details.tools > summary::-webkit-details-marker { display: none; }
+  details.tools > summary::after { content: ''; flex-shrink: 0; width: 8px; height: 8px; border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft);
+    transform: rotate(45deg); margin: -4px 4px 0 0; }
+  details.tools[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
@@ -191,10 +209,22 @@
       <canvas id="card-canvas" width="1600" height="1000" role="img" aria-label="강아지 주민증 앞면"></canvas>
     </div>
     <div class="canvas-hint">주민증을 누르면 뒤집혀요</div>
-    <!-- 카드 색(2026-11-18 가르시아 "모카 기본으로" — 색을 정치적으로 보는 사람이 있을 수 있어 견주가 고른다). 이 휴대폰 프로필에만 -->
-    <!-- 같은 날 밤 "색상 고를 수 있게 바를 줘" — 이름 붙은 색 + 색 막대(card-color.js, 주민증 만들기와 같은 것) -->
-    <div id="color-row"></div>
-    <p class="color-note">테두리 색만 바뀌어요. 성향 띠는 성향 색 그대로예요. 성별·견종은 <a href="profile.html">프로필</a>에서 적어요.</p>
+    <!-- 화면 정리(2026-11-18 밤 가르시아 "주민증 밑에 여러 개 더 있고 편집 화면은 밑에 있어, UI 좀 정리해 줘"):
+         카드 바로 아래에 꾸미고 저장하기(편집기), 테두리 색은 한 줄로 접어 두고 누르면 펼친다. 인쇄·키링 파일은 맨 아래 접는 칸 -->
+    <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·면·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
+    <button type="button" class="btn btn-primary" id="save-btn">꾸미고 저장하기</button>
+    <!-- 카드 색(2026-11-18 가르시아 "모카 기본으로" — 색을 정치적으로 보는 사람이 있을 수 있어 견주가 고른다). 이 휴대폰 프로필에만.
+         같은 날 밤 "색상 고를 수 있게 바를 줘" — 이름 붙은 색 + 색 막대(card-color.js, 주민증 만들기와 같은 것) -->
+    <button type="button" class="color-toggle" id="color-toggle" aria-expanded="false" aria-controls="color-panel">
+      <i class="ct-dot" id="ct-dot" aria-hidden="true"></i>
+      <span class="ct-label">테두리 색</span>
+      <b class="ct-name" id="ct-name">모카</b>
+      <span class="ct-more" id="ct-more">바꾸기</span>
+    </button>
+    <div class="color-panel" id="color-panel" hidden>
+      <div id="color-row"></div>
+      <p class="color-note">테두리 색만 바뀌어요. 성향 띠는 성향 색 그대로예요. 성별·견종은 <a href="profile.html">프로필</a>에서 적어요.</p>
+    </div>
   </div>
 
   <div class="panel">
@@ -221,9 +251,15 @@
     <p class="hint" style="margin-top:10px;">한 주(월~일)에 산책한 날 3·5·7일마다 도장. 시간만 잰 산책도 들어가요(5분 이상).</p>
   </div>
 
-  <div class="panel" id="save-panel" hidden>
-    <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·면·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
-    <button type="button" class="btn btn-primary" id="save-btn">꾸미고 저장하기</button>
+  <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
+  <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden>키링 받기</a>
+  <!-- 강아지 도감(2026-11-15): QR 교환, 서버 없음 — 늘 보인다 -->
+  <a class="btn btn-secondary" href="dex.html">강아지 도감 · QR 교환</a>
+  <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
+  <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden>스친 강아지 (서버 가정 시험판)</a>
+  <!-- 실물로 뽑기·키링 파일 — 자주 안 쓰고 설명이 길어서 맨 아래에 접어 둔다(2026-11-18 밤 화면 정리) -->
+  <details class="panel tools" id="save-panel" hidden>
+    <summary>실물로 뽑기 · 키링 파일</summary>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
     <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형, 11/18 양면 + NFC): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080.
          앞면은 QR 대신 브랜드 문구(site-config.js brand), 뒷면은 도감 카드 주소 QR + 연락처·예방접종·메모 손글씨 칸(id-card.js drawKeyringBack) -->
@@ -235,14 +271,8 @@
     뒷면은 우리 강아지 도감 카드가 열리는 QR과 보호자 연락처·예방접종·메모를 손으로 적는 칸이에요.
     인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로, 뒷면은 펜으로 쓸 수 있게"라고 전해 주세요.
     NFC를 넣으면 칩에는 뒷면 QR과 같은 주소(<a href="dex.html">도감</a> "카드 주소 보내기")를 넣어요.</p>
-  </div>
+  </details>
 
-  <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
-  <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden>키링 받기</a>
-  <!-- 강아지 도감(2026-11-15): QR 교환, 서버 없음 — 늘 보인다 -->
-  <a class="btn btn-secondary" href="dex.html">강아지 도감 · QR 교환</a>
-  <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
-  <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden>스친 강아지 (서버 가정 시험판)</a>
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
   5분 이상 산책은 어떻게 기록했든 주민 등급에 들어가요. 발도장은 길 기록 산책에서만 찍혀요.</p>
 </div>
@@ -525,6 +555,21 @@
   });
 
   // ── 카드 색(2026-11-18) — 고르면 바로 프로필에 저장하고 다시 그린다(테두리·저장 바탕·키링 뒷면 판) ──
+  // 테두리 색 한 줄(접힌 줄) — 지금 색 점과 이름
+  function paintColorToggle() {
+    var cur = profile.cardColor, c = null;
+    IC.CARD_COLORS.forEach(function (x) { if (x.id === cur) c = x; });
+    var picked = /^#[0-9a-f]{6}$/i.test(cur || '');   // 색 막대로 고른 색
+    var isDefault = c ? c.id === 'mocha' : !picked;   // 고른 적 없거나 모카
+    $('ct-dot').style.background = IC.cardColor(profile);
+    $('ct-name').textContent = (c ? c.label : picked ? '직접 고른 색' : '모카') + (isDefault ? '(기본)' : '');
+  }
+  $('color-toggle').addEventListener('click', function () {
+    var open = $('color-panel').hidden;
+    $('color-panel').hidden = !open;
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    $('ct-more').textContent = open ? '접기' : '바꾸기';
+  });
   var ccPicker = null;
   function paintColors() {
     if (!window.WalsonCardColor) return;
@@ -535,8 +580,10 @@
         profile.cardColor = value;
         if (done) WalsonStore.saveProfile(profile);   // 저장 못 해도 이번 화면엔 반영
         render();
+        paintColorToggle();
       }
     });
+    paintColorToggle();
   }
 
   // ── 처음 그리기 ──
