@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>왈슨 뱃지 한 개(58mm 핀버튼)</title>
+<!-- 뱃지 한 개를 그리는 판(2026-11-18 가르시아 "뱃지 시안 다시 그려줘, 내가 만들었던 버전에서" — 예전 로고로 만든 뱃지가 멀리서 안 알아보여서
+     새 로고(짖는 얼굴)로). 11/16에 고른 방식 그대로: 58mm 핀버튼, 바탕 + 그림·글자 한 색, 테두리 원 선 없음, 글자 있음·없음.
+     크기: 재단 지름 70mm(감싸는 부분 포함) = 이 판 1654px(600dpi), 보이는 면 58mm, 글자는 지름 52mm 안.
+     주소 뒤 값: bg(바탕색) ink(그림·글자 색) text=1(WALSON·왈슨) cream=1(눈 흰자·이빨 크림 — 세 색 판) guides=1(확인용 선) mask(그림 판 바꾸기, 비교용).
+     render.js가 이 판을 찍어 out/에 PNG·PDF를 만든다. -->
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Black+Han+Sans&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; }
+  .b { position: relative; width: 1654px; height: 1654px; overflow: hidden; background: var(--bg); }
+  .layer { position: absolute; left: 50%; transform: translateX(-50%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+  .ink { background: var(--ink); }
+  .cream { background: #feeab6; }
+  .en { position: absolute; left: 0; right: 0; top: 268px; text-align: center; color: var(--ink);
+    font-family: 'Archivo Black', sans-serif; font-size: 118px; line-height: 1; letter-spacing: 0.06em; padding-left: 0.06em; }
+  .ko { position: absolute; left: 0; right: 0; top: 1128px; text-align: center; color: var(--ink);
+    font-family: 'Black Han Sans', sans-serif; font-size: 190px; line-height: 1; }
+  .g { position: absolute; border-radius: 50%; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="b" id="b"></div>
+<script>
+  var q = new URLSearchParams(location.search);
+  var b = document.getElementById('b');
+  b.style.setProperty('--bg', q.get('bg') || '#f2b733');
+  b.style.setProperty('--ink', q.get('ink') || '#361e12');
+  var text = q.get('text') === '1', cream = q.get('cream') === '1';
+  var mask = q.get('mask') || 'face-ink.png';
+  var ratio = Number(q.get('ratio') || (1213 / 1556));          // 그림 세로/가로
+  // 그림 크기·자리: 글자 있으면 WALSON과 왈슨 사이, 없으면 크게(보이는 면 58mm 안)
+  var w = text ? 900 : 1150, h = Math.round(w * ratio), y = text ? 400 : Math.round(827 - h / 2);   // 'top'은 브라우저 예약 이름이라 y
+  function layer(cls, url) {
+    var d = document.createElement('div');
+    d.className = 'layer ' + cls;
+    d.style.cssText += 'top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;-webkit-mask-image:url(' + url + ');mask-image:url(' + url + ');';
+    b.appendChild(d);
+  }
+  if (cream) layer('cream', 'face-cream.png');
+  layer('ink', mask);
+  if (text) {
+    var en = document.createElement('div'); en.className = 'en'; en.textContent = 'WALSON'; b.appendChild(en);
+    var ko = document.createElement('div'); ko.className = 'ko'; ko.textContent = '왈슨'; b.appendChild(ko);
+  }
+  if (q.get('guides') === '1') {
+    // 확인용: 재단 70mm(실선) · 보이는 면 58mm(점선) · 글자 안전 52mm(점)
+    [[827, '3px solid rgba(0,0,0,.35)'], [685, '4px dashed rgba(0,0,0,.45)'], [614, '3px dotted rgba(0,0,0,.4)']].forEach(function (c) {
+      var g = document.createElement('div'); g.className = 'g';
+      g.style.cssText = 'left:' + (827 - c[0]) + 'px;top:' + (827 - c[0]) + 'px;width:' + (2 * c[0]) + 'px;height:' + (2 * c[0]) + 'px;border:' + c[1] + ';box-sizing:border-box;';
+      b.appendChild(g);
+    });
+  }
+</script>
+</body>
+</html>
