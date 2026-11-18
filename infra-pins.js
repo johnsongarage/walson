@@ -366,9 +366,9 @@
   // 동반 스팟에 guardian: { name, signal, photo, line } 으로 붙는다. photo는 spots/photos/의 파일 경로.
   // 가게 주인이 알려 주고 올려도 된다고 한 것만 운영자가 넣는다.
   var SIGNALS = {
-    green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
-    yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
-    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
+    green:  { line: '다가와도 좋아요', color: '#3f9b5b' },
+    yellow: { line: '천천히 인사해요', color: '#dfa21f' },
+    red:    { line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
   };
   // ── 수호견 v2(2026-11-15) ──
   // 켜고 끄는 스위치는 이것 하나. false면 데이터에 수호견이 있어도 지도·목록·카드 어디에도 안 보인다.
@@ -382,7 +382,7 @@
   var GUARDIAN_TEXT_DEFAULT = {
     homeBadge: '재택 명예 수호견', homeLine: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견',
     workBadge: '출근 수호견', workLine: '가게에서 손님을 맞는 사장님네 강아지예요',
-    showSignal: true, showSignalLabel: false, showLine: true, showKindLine: true, showPetChips: true,
+    showSignal: true, showLine: true, showKindLine: true, showPetChips: true,
     // 11/17 가르시아 "보이면 걸어서 몇 분 정도는 해 주자": 걸어서 몇 분과 QR 단골 안내를 따로 켜고 끈다
     showWalk: true, showQr: true
   };
@@ -604,7 +604,7 @@
       if (g.photo) wrap.appendChild(photoFrame(g.photo, g.name, guardianKind(g).badge));
       else wrap.appendChild(el('div', 'align-self:flex-start;background:#fbeee6;color:#b8563a;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;', guardianKind(g).badge));
       wrap.appendChild(el('div', 'font-size:20px;font-weight:800;letter-spacing:-0.01em;', g.name));
-      if (sig && GT.showSignal) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:' + sig.color + ';', (GT.showSignalLabel ? sig.label + ' · ' : '') + sig.line));
+      if (sig && GT.showSignal) wrap.appendChild(el('div', 'font-size:12px;font-weight:700;color:' + sig.color + ';', sig.line));
       if (g.line && GT.showLine) wrap.appendChild(el('div', 'font-size:13px;', '“' + g.line + '”'));
       if (GT.showKindLine) wrap.appendChild(el('div', 'font-size:11px;color:#6b5d4e;', guardianKind(g).line));
       wrap.appendChild(el('div', 'border-top:1px dashed #e3d3be;margin:3px 0 1px;'));

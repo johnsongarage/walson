@@ -12,9 +12,9 @@
   var SHARE_URL = 'https://johnsongarage.co.kr/walson/start.html';
   var SHARE_URL_TEXT = 'johnsongarage.co.kr/walson';
   var SIGNALS = {
-    green:  { label: '초록불', line: '다가와도 좋아요', color: '#3f9b5b' },
-    yellow: { label: '노랑불', line: '천천히 인사해요', color: '#dfa21f' },
-    red:    { label: '빨강불', line: '눈으로만 예뻐해 주세요', color: '#d2493f' },
+    green:  { line: '다가와도 좋아요', color: '#3f9b5b' },
+    yellow: { line: '천천히 인사해요', color: '#dfa21f' },
+    red:    { line: '눈으로만 예뻐해 주세요', color: '#d2493f' },
     // 신호등을 정하지 않은 가게 수호지킴이용 — 불은 켜지 않고 앱 색으로 그린다
     none:   { label: '수호견', line: '가게를 지키고 있어요', color: '#b8563a' }
   };

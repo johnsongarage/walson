@@ -147,9 +147,9 @@
   // 도감(petwalk_dex)·내 번호(petwalk_dex_me)·주민증은 store.js(WalsonStore)로 읽고 쓴다
   // 상대 QR 찍기(카메라)는 qr-scan.js(WalsonQR), 공유 창은 device.js(WalsonDevice)
   var SIGNAL = {
-    g: { color: 'var(--green)', label: '초록불', desc: '다가와도 좋아요' },
-    y: { color: 'var(--yellow)', label: '노랑불', desc: '천천히 인사해요' },
-    r: { color: 'var(--red)', label: '빨강불', desc: '눈으로만 예뻐해 주세요' }
+    g: { color: 'var(--green)', desc: '다가와도 좋아요' },
+    y: { color: 'var(--yellow)', desc: '천천히 인사해요' },
+    r: { color: 'var(--red)', desc: '눈으로만 예뻐해 주세요' }
   };
   var SIZE = { s: '소형견', m: '중형견', l: '대형견' };
   var SIZE_FROM = { small: 's', medium: 'm', large: 'l' };
@@ -246,7 +246,7 @@
     box.innerHTML = '';
     box.appendChild(avatar(dog, true));
     box.appendChild(el('h2', '', title || dog.n));
-    var meta = SIZE[dog.s] + (SIGNAL[dog.g] ? ' · ' + SIGNAL[dog.g].label + ' · ' + SIGNAL[dog.g].desc : '');
+    var meta = SIZE[dog.s] + (SIGNAL[dog.g] ? ' · ' + SIGNAL[dog.g].desc : '');
     var m = el('p', 'sub', meta); m.style.marginBottom = '8px';
     if (SIGNAL[dog.g]) m.style.color = SIGNAL[dog.g].color;
     box.appendChild(m);
@@ -262,7 +262,7 @@
       b.appendChild(avatar(d));
       b.appendChild(el('div', 'name', d.n));
       b.appendChild(el('div', 'meta', SIZE[d.s]));
-      if (SIGNAL[d.g]) { var s = el('div', 'sig', SIGNAL[d.g].label); s.style.color = SIGNAL[d.g].color; b.appendChild(s); }
+      if (SIGNAL[d.g]) { var s = el('div', 'sig', SIGNAL[d.g].desc); s.style.color = SIGNAL[d.g].color; b.appendChild(s); }
       b.appendChild(el('div', 'met', (d.days > 1 ? d.days + '번 만남 · ' : '') + dayLabel(d.last)));
       b.addEventListener('click', function () { openInfo(d.i); });
       grid.appendChild(b);

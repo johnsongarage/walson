@@ -57,7 +57,7 @@
 <script src="inapp.js?v=4"></script>
 <script src="track.js?v=8"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=27"></script>
+<script src="infra-pins.js?v=28"></script>
 </head>
 <body>
 
@@ -104,7 +104,7 @@
       body.appendChild(el('div', 'badge', InfraPins.guardianKind(g).badge));
       body.appendChild(el('div', 'name', g.name));
       // 신호등 이름(초록불 등)은 스팟 편집 6번 칸 설정을 따른다(11/17 "초록불 글씨 빼")
-      if (sig) { var st = el('div', 'sigtxt', (InfraPins.guardianText.showSignalLabel ? sig.label + ' · ' : '') + sig.line); st.style.color = sig.color; body.appendChild(st); }
+      if (sig) { var st = el('div', 'sigtxt', sig.line); st.style.color = sig.color; body.appendChild(st); }
       body.appendChild(el('div', 'shop', p.name || ''));
       // 수호견 가게는 동반 가게와 따로라(11/17) 같이 들어갈 수 있는지를 같이 보여 준다
       var comp = InfraPins.companion(p);
