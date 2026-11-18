@@ -21,6 +21,7 @@
 //   hint, fileName: function (st), onSave: function (st, how) — 그림을 내보낼 때만: how 'save'(사진첩에 저장·내려받기)·'share'(공유 창),
 //   onClose: function (st, kept) — kept: [저장]을 눌렀거나 그림을 내보냈으면 true, [×]로 버리고 나왔으면 false,
 //   storeKey: 'walson_edit_…' — 주면 [저장]한 꾸미기(모양·사진 자리·붙인 글자, storeExtra에 적은 extra 칸)를 이 휴대폰에 남겨 다음에 이어서 연다
+//   noExport: true — [공유](사진첩 저장·공유 창)를 숨긴다. 프로필 사진 맞추기처럼 그림을 내보내는 화면이 아닐 때(2026-11-18)
 // })
 // 2026-11-18 가르시아 "저장하면 진짜 폰으로 다운로드를 해 버리잖아. 공유 안에 있는 기능 아니냐? 저장은 내가 수정한 걸 저장하고 편집에서 빠져나오는 것":
 //   오른쪽 위 [저장] = 고친 것을 앱에 남기고 닫기. 사진첩 저장·공유 창은 [공유]를 누르면 나오는 작은 메뉴 안에.  →  api { state, redraw(), rebuild(), prompt({ value, max, placeholder }) → Promise<글|null>, close() }
@@ -87,7 +88,7 @@
     if (cssAdded) return; cssAdded = true;
     var c = document.createElement('style');
     c.textContent = [
-      '.we{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;z-index:5000;display:flex;flex-direction:column;background:#2b231e;color:#fbf4ea;font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}',
+      '.we{position:fixed;left:0;right:0;top:0;height:100vh;height:100dvh;z-index:5000;display:flex;flex-direction:column;background:#2b231e;color:#fbf4ea;font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}',
       '.we *{box-sizing:border-box;}',
       '.we button{font:inherit;color:inherit;}',
       '.we [hidden]{display:none!important;}',
@@ -221,6 +222,7 @@
     q('.we-title').textContent = cfg.title || '꾸미기';
     // [공유] 메뉴의 '공유하기'는 공유 창을 열 수 있는 브라우저에서만(대부분의 PC·일부 앱 안 브라우저는 '사진첩에 저장'만)
     q('.we-menu [data-out="share"]').hidden = !(window.WalsonSave && WalsonSave.canShare && WalsonSave.canShare());
+    if (cfg.noExport) q('.we-share').style.display = 'none';   // 내보낼 그림이 아닌 편집(프로필 사진 맞추기)
     hint.textContent = cfg.hint || (P ? '사진은 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요');
     var prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

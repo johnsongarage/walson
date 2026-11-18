@@ -41,9 +41,10 @@
     padding: 24px 20px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.1);
   }
 
-  .photo-picker { display: flex; justify-content: center; margin-bottom: 22px; }
+  /* 프로필 사진(2026-11-18 가르시아 "프로필 사진도 크기를 키워, 줌인·아웃·위치 변경되게") — 동그라미를 크게, 아래에 [사진 바꾸기]·[크기·위치 맞추기] */
+  .photo-picker { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 22px; }
   .photo-btn {
-    position: relative; width: 108px; height: 108px; border-radius: 50%;
+    position: relative; width: 160px; height: 160px; border-radius: 50%;
     background: var(--accent-tint); border: 2px dashed var(--panel-border);
     display: flex; align-items: center; justify-content: center; cursor: pointer;
     overflow: hidden; padding: 0;
@@ -51,11 +52,15 @@
   .photo-btn img { width: 100%; height: 100%; object-fit: cover; display: none; }
   .photo-btn .placeholder { font-size: 30px; color: var(--accent); }
   .photo-btn .edit-badge {
-    position: absolute; bottom: 2px; right: 2px; width: 30px; height: 30px; border-radius: 50%;
+    position: absolute; bottom: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%;
     background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
     font-size: 13px; border: 2px solid var(--panel);
   }
   #photo-input { display: none; }
+  .photo-acts { display: flex; gap: 8px; }
+  .photo-act { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
+    font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+  .photo-note { margin: 0; max-width: 300px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); text-align: center; word-break: keep-all; }
 
   .field { margin-bottom: 16px; }
   .field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
@@ -113,7 +118,8 @@
 <script src="save-image.js?v=3"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="backup.js?v=7"></script>
+<script src="backup.js?v=8"></script>
+<script src="image-editor.js?v=5"></script>
 <script src="sample-data.js?v=6"></script>
 <script src="dog-tags.js?v=1"></script>
 </head>
@@ -127,12 +133,17 @@
 
   <div class="card">
     <div class="photo-picker">
-      <button type="button" class="photo-btn" id="photo-btn">
+      <button type="button" class="photo-btn" id="photo-btn" aria-label="사진 고르기">
         <img id="photo-preview" alt="">
         <span class="placeholder" id="photo-placeholder" style="font-size:14px;font-weight:900;">사진</span>
         <span class="edit-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></span>
       </button>
       <input type="file" id="photo-input" accept="image/*">
+      <div class="photo-acts">
+        <button type="button" class="photo-act" id="photo-pick">사진 바꾸기</button>
+        <button type="button" class="photo-act" id="photo-fit" hidden>크기·위치 맞추기</button>
+      </div>
+      <p class="photo-note" id="photo-note" hidden></p>
     </div>
 
     <div class="field">
@@ -263,7 +274,20 @@
   var saveBtn = document.getElementById('save-btn');
   var toast = document.getElementById('toast');
 
-  var photoDataUrl = null;
+  // 프로필 사진: photo = 맞춘 정사각형(최대 720px — 프로필 동그라미·[오늘]·주민증이 이걸 씀), photoOrig = 맞추기 원본(최대 1280px — 다시 맞출 때
+  // 줄이기도 되게), photoFrame = 맞춤 {zoom, x, y, sig}. sig는 맞춘 사진의 서명 — 다른 화면(처음 만들기·불러오기)이 사진만 바꿔 놓으면
+  // 원본과 짝이 안 맞으니 그땐 원본을 쓰지 않는다. 2026-11-18 전에는 240px 한 장만 저장했다.
+  var photoDataUrl = null, photoOrig = null, photoFrame = null;
+  var CROP = 720, ORIG_MAX = 1280;
+  var fitBtn = document.getElementById('photo-fit'), pickBtn = document.getElementById('photo-pick'), photoNote = document.getElementById('photo-note');
+  function isSample(u) { return !!u && u.indexOf('icons/sample-') === 0; }
+  function note(t) { photoNote.textContent = t || ''; photoNote.hidden = !t; }
+  function sigOf(s) {   // id-card.js의 photoSig와 같은 셈(글 길이 + djb2)
+    if (!s || typeof s !== 'string') return '';
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return s.length + ':' + (h >>> 0).toString(36);
+  }
 
   // 주민증(petwalk_profile — index.html이 견종 크기 기본값으로 같이 읽어감). store.js(WalsonStore)로 읽고 쓴다. 없으면 null
   function loadProfile() { return WalsonStore.profile(); }
@@ -278,6 +302,11 @@
     photoPreview.style.display = 'block';
     photoPlaceholder.style.display = 'none';
   }
+  function paintFit() {
+    var real = !!photoDataUrl && !isSample(photoDataUrl);
+    fitBtn.hidden = !real || !window.WalsonEditor;
+    pickBtn.textContent = real ? '사진 바꾸기' : '사진 고르기';
+  }
 
   var existing = loadProfile();
   if (existing) {
@@ -288,14 +317,80 @@
     fBreed.value = existing.breed || '';
     paintTagSelect(existing.tag || '');
     photoDataUrl = existing.photo || null;
+    var fr = existing.photoFrame;
+    if (photoDataUrl && existing.photoOrig && fr && fr.sig === sigOf(photoDataUrl)) { photoOrig = existing.photoOrig; photoFrame = fr; }
     showPhoto(photoDataUrl);
   }
+  paintFit();
 
   photoBtn.addEventListener('click', function () { photoInput.click(); });
+  pickBtn.addEventListener('click', function () { photoInput.click(); });
+  fitBtn.addEventListener('click', function () { openFit(null); });
 
-  // 원본 사진을 그대로 localStorage에 넣으면 용량이 금방 커지니(localStorage는 보통
-  // 5~10MB 한도), 캔버스로 축소해서 저장한다 — 프로필 원형 썸네일 정도로만 쓰이므로
-  // 240px면 충분히 선명함.
+  function loadImg(src) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { reject(new Error('사진을 읽지 못했어요')); };
+      img.src = src;
+    });
+  }
+  // 원본에서 맞춤대로 정사각형을 잘라 프로필 사진으로(주민증 편집기와 같은 셈: 꽉 채운 뒤 zoom배, 남는 만큼 x·y로 옮김).
+  // 크기는 최대 720px — 원본이 작거나 많이 키웠으면 그만큼만(늘려 봐야 선명해지지 않고 용량만 커진다)
+  function makeCrop(img, f) {
+    var z = Math.max(1, f.zoom || 1);
+    var C = Math.max(240, Math.min(CROP, Math.round(Math.min(img.width, img.height) / z)));
+    var c = document.createElement('canvas'); c.width = C; c.height = C;
+    var s = Math.max(C / img.width, C / img.height) * z, iw = img.width * s, ih = img.height * s;
+    c.getContext('2d').drawImage(img, -(iw - C) * f.x, -(ih - C) * f.y, iw, ih);
+    return c.toDataURL('image/jpeg', 0.86);
+  }
+  // 맞춘 사진을 동그라미에 넣는다(이 휴대폰에 남기는 건 [프로필 저장]에서)
+  function apply(orig, img, f, msg) {
+    var u = makeCrop(img, f);
+    photoOrig = orig; photoDataUrl = u;
+    photoFrame = { zoom: f.zoom, x: f.x, y: f.y, sig: sigOf(u) };
+    showPhoto(u); paintFit(); note(msg);
+  }
+  // 크기·위치 맞추기 — 주민증과 같은 한 화면 편집기(image-editor.js): 끌어서 옮기고, 두 손가락·막대로 키우고 줄인다.
+  // fresh: 방금 고른 사진(원본) — 여기서 [저장]해야 바뀌고, [×]면 고르기 전 사진 그대로(카톡 프로필 사진 바꾸기처럼)
+  function openFit(fresh) {
+    var src = fresh || photoOrig || photoDataUrl;
+    if (!src || isSample(src)) return;
+    var done = fresh ? '사진을 바꿨어요. 아래 [프로필 저장]을 눌러야 저장돼요.' : '사진을 맞췄어요. 아래 [프로필 저장]을 눌러야 저장돼요.';
+    loadImg(src).then(function (img) {
+      var f = (!fresh && photoFrame) || { zoom: 1, x: 0.5, y: 0.5 };
+      if (!window.WalsonEditor) { if (fresh) apply(src, img, f, done); return; }   // 편집기를 못 불렀으면 가운데로
+      if (!fresh && !photoOrig && Math.min(img.width, img.height) < 480) note('예전에 고른 사진은 작게 저장돼 있어서 키우면 흐릴 수 있어요. 사진을 다시 고르면 선명해져요.');
+      var S = 1080;
+      WalsonEditor.open({
+        title: '프로필 사진 맞추기',
+        photo: { sources: [['orig', fresh ? '고른 사진' : '이 사진']], src: 'orig', zoom: f.zoom, x: f.x, y: f.y, home: { x: 0.5, y: 0.5 } },
+        stickers: false, noExport: true,
+        hint: '끌어서 옮기고, 두 손가락으로 키우고 줄여요 · 동그라미 안이 프로필로 보여요',
+        draw: function (cv, st) {
+          if (cv.width !== S) { cv.width = S; cv.height = S; }
+          var g = cv.getContext('2d');
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.fillStyle = '#2b2420'; g.fillRect(0, 0, S, S);
+          var k = Math.max(S / img.width, S / img.height) * st.photo.zoom, iw = img.width * k, ih = img.height * k;
+          g.drawImage(img, -(iw - S) * st.photo.x, -(ih - S) * st.photo.y, iw, ih);
+          // 프로필 동그라미 밖은 어둡게(주민증 사진 칸에는 네모 전체가 들어간다)
+          g.fillStyle = 'rgba(0,0,0,0.45)';
+          g.beginPath(); g.rect(0, 0, S, S); g.arc(S / 2, S / 2, S / 2 - 8, 0, Math.PI * 2, true); g.fill();
+          g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 5;
+          g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 8, 0, Math.PI * 2); g.stroke();
+          return { x: 0, y: 0, w: S, h: S, img: img };
+        },
+        onClose: function (st, kept) {
+          if (kept) apply(src, img, st.photo, done);   // [×]는 고친 것을 버린다(방금 고른 사진이면 그 사진도)
+        }
+      });
+    }).catch(function (err) { alert(err.message); });
+  }
+
+  // 원본 사진을 그대로 localStorage에 넣으면 용량이 금방 커지니(localStorage는 보통 5~10MB 한도), 캔버스로 줄여서 저장한다.
+  // 2026-11-18부터 원본은 최대 1280px(다시 맞추기용), 프로필에 쓰는 사진은 맞춘 정사각형 720px(주민증에서 키워도 덜 흐리게).
   function resizeImageFile(file, maxDim) {
     return new Promise(function (resolve, reject) {
       var reader = new FileReader();
@@ -320,12 +415,11 @@
   photoInput.addEventListener('change', function () {
     var file = photoInput.files[0];
     if (!file) return;
-    resizeImageFile(file, 240).then(function (dataUrl) {
-      photoDataUrl = dataUrl;
-      showPhoto(photoDataUrl);
-    }).catch(function (err) {
+    // 원본(최대 1280px)을 남겨 두고 바로 크기·위치 맞추기를 연다
+    resizeImageFile(file, ORIG_MAX).then(function (dataUrl) { openFit(dataUrl); }, function (err) {
       alert('사진을 불러오지 못했습니다: ' + err.message);
     });
+    photoInput.value = '';   // 같은 사진을 다시 골라도 열리게
   });
 
   saveBtn.addEventListener('click', function () {
@@ -342,7 +436,9 @@
     profile.name = fName.value.trim();
     profile.size = fSize.value;
     // 샘플 강아지(왈슨) 그림이 그대로 남아 있으면 내 강아지 사진으로 저장하지 않는다
-    profile.photo = (photoDataUrl && photoDataUrl.indexOf('icons/sample-') === 0) ? null : photoDataUrl;
+    profile.photo = isSample(photoDataUrl) ? null : photoDataUrl;
+    if (profile.photo && photoOrig && photoFrame && !isSample(photoOrig)) { profile.photoOrig = photoOrig; profile.photoFrame = photoFrame; }
+    else { delete profile.photoOrig; delete profile.photoFrame; }
     if (fSignal.value) profile.signal = fSignal.value; else delete profile.signal;
     if (fTag.value && window.DogTags && DogTags.fits(fTag.value, fSignal.value)) profile.tag = fTag.value; else delete profile.tag;
     // 성별·중성화·견종 — 안 적었으면 지운다(주민증에 안 나옴)
@@ -351,7 +447,14 @@
     if (profile.sex && sx[1] === 'n') profile.neutered = true; else delete profile.neutered;
     var breed = fBreed.value.replace(/\s+/g, ' ').trim().slice(0, 30);   // 긴 견종은 주민증에서 단어 단위로 줄을 나눈다
     if (breed) profile.breed = breed; else delete profile.breed;
-    if (WalsonStore.saveProfile(profile)) {
+    var ok = WalsonStore.saveProfile(profile);
+    if (!ok && profile.photoOrig) {
+      // 저장 공간이 모자라면 맞추기용 원본은 빼고 맞춘 사진만 남긴다
+      delete profile.photoOrig; delete profile.photoFrame;
+      ok = WalsonStore.saveProfile(profile);
+      if (ok) { photoOrig = null; photoFrame = null; note('저장 공간이 모자라 맞추기용 원본은 빼고 저장했어요. 다음에 맞출 땐 지금 사진보다 넓게는 못 잡아요.'); }
+    } else if (ok) note('');
+    if (ok) {
       toast.classList.add('show');
       setTimeout(function () { toast.classList.remove('show'); }, 1800);
     } else {

@@ -265,7 +265,7 @@
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="id-card.js?v=11"></script>
-<script src="image-editor.js?v=4"></script>
+<script src="image-editor.js?v=5"></script>
 <script>
 (function () {
   // ── 운영자가 정하면 채우는 값(비어 있으면 화면에 안 보인다) ──
@@ -383,7 +383,7 @@
   photoInput.addEventListener('change', function () {
     var file = photoInput.files[0];
     if (!file) return;
-    resizeImageFile(file, 480).then(function (dataUrl) {
+    resizeImageFile(file, 960).then(function (dataUrl) {   // 2026-11-18 480 → 960px: 주민증·프로필에서 키워도 덜 흐리게
       photoDataUrl = dataUrl;
       showPhoto(dataUrl);
     }).catch(function (err) {
@@ -410,6 +410,7 @@
     var p = loadProfile();
     p.name = name;
     p.signal = signal;
+    if (photoDataUrl && photoDataUrl !== p.photo) { delete p.photoOrig; delete p.photoFrame; }   // 사진을 바꾸면 프로필 화면의 맞추기 원본은 짝이 안 맞는다
     p.photo = photoDataUrl || p.photo || null;
     if (chosenSize) p.size = chosenSize;
     if (chosenTag && window.DogTags && DogTags.fits(chosenTag, signal)) p.tag = chosenTag; else delete p.tag;
