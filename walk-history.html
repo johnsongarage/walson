@@ -274,7 +274,7 @@
 <script src="reward-rules.js?v=11"></script>
 <script src="month-report.js?v=5"></script>
 <script src="walk-receipt.js?v=8"></script>
-<script src="image-editor.js?v=2"></script>
+<script src="image-editor.js?v=3"></script>
 <script>
 (function () {
   // 산책 기록(walk.html·go.html·[오늘] "다녀왔어요"가 저장)·주민증은 store.js(WalsonStore)로 읽고 쓴다
@@ -284,28 +284,30 @@
   var PAGE = 30;                          // 영수증철을 한 번에 몇 장씩 보여 줄지
 
   // 특이 사항 — 가르시아가 쓴 관찰(card-shared.js 스킬·특성)과 산책 유형(walk-type.html)을 영수증 말투로 줄인 것.
-  // 관찰은 그대로 두고 말투만 바꿨다(게임식 수치·확률 표기는 뺌). 꾸미기의 [특이 사항] 탭에 옆으로 이어 보여 준다.
+  // 관찰은 그대로 두고 말투만 바꿨다(게임식 수치·확률 표기는 뺌). 꾸미기의 [특이 사항] 탭에 본보기로 보여 준다.
+  // g: 상황 묶음(11/18 가르시아 "그것도 나눠줘") — 꾸미기에서 묶음 탭(킁킁·간식·걷기·만남·응가·특징)으로 나눠 보여 준다.
+  //    탭 순서는 이 목록 순서. 기본 문구(defaultNote)·저장값은 id로 찾으니 순서를 바꿔도 된다
   var NOTES = [
-    { id: 'pole',    text: '전봇대마다 냄새 정독함' },            // 산책 유형 · 킁킁 탐정형
-    { id: 'grass',   text: '풀숲 앞에서 3분 정차 (냄새 조사)' },   // 스킬 · 3초 멈칫 냄새 탐정
-    { id: 'shop',    text: '간식집 앞 정차 (보호자 설득까지)' },    // 스킬 · 수제간식점 앞 얼음 놀이
-    { id: 'hug',     text: '5분 만에 안아 달라고 함' },           // 특성 · 산책 5분 후 안아라 신호
-    { id: 'ears',    text: "'산책'은 듣고 '기다려'는 못 들음" },    // 특성 · 선택적 귓등 듣기
-    { id: 'hello',   text: '만나는 개마다 인사함' },              // 산책 유형 · 동네 이장님형
-    { id: 'home',    text: '나오자마자 집에 가자고 함' },          // 산책 유형 · 집돌이 귀가형
-    { id: 'pull',    text: '목줄 당기며 직진함' },                // 산책 유형 · 직진 마라토너형
-    { id: 'treat',   text: '한 블록마다 간식 요구' },              // 산책 유형 · 간식 협상가형
-    { id: 'bench',   text: '벤치에서 바람 냄새 감상' },            // 산책 유형 · 감성 산책러형
-    { id: 'eye',     text: '응가하며 보호자와 눈 맞춤' },           // 스킬 · 천사표 얼굴로 배변 포즈
-    { id: 'bike',    text: '배달 오토바이 경보 발령' },             // 스킬 · 배달 오토바이 레이더
-    { id: 'rain',    text: '현관 앞 빗물 보고 안아 달라 함' },       // 특성 · 비 오면 발에 물 묻히기 싫음
-    { id: 'other',   text: '남의 개 간식을 더 오래 쳐다봄' },        // 특성 · 남의 떡이 더 커 보임
-    { id: 'cloth',   text: '새 옷 입고 1초 정지' },                // 특성 · 새 옷 착용 시 1초 멘붕
-    { id: 'outside', text: '밖에서만 순둥이 (집에선 왕)' },         // 특성 · 외부인 한정 순둥이
-    { id: 'paw',     text: '발바닥 옥수수 칩 냄새 진동' },          // 특성 · 발바닥 고소함 MAX
+    { id: 'pole',    g: '킁킁', text: '전봇대마다 냄새 정독함' },            // 산책 유형 · 킁킁 탐정형
+    { id: 'grass',   g: '킁킁', text: '풀숲 앞에서 3분 정차 (냄새 조사)' },   // 스킬 · 3초 멈칫 냄새 탐정
+    { id: 'bench',   g: '킁킁', text: '벤치에서 바람 냄새 감상' },            // 산책 유형 · 감성 산책러형
+    { id: 'shop',    g: '간식', text: '간식집 앞 정차 (보호자 설득까지)' },    // 스킬 · 수제간식점 앞 얼음 놀이
+    { id: 'treat',   g: '간식', text: '한 블록마다 간식 요구' },              // 산책 유형 · 간식 협상가형
+    { id: 'other',   g: '간식', text: '남의 개 간식을 더 오래 쳐다봄' },        // 특성 · 남의 떡이 더 커 보임
+    { id: 'pull',    g: '걷기', text: '목줄 당기며 직진함' },                // 산책 유형 · 직진 마라토너형
+    { id: 'home',    g: '걷기', text: '나오자마자 집에 가자고 함' },          // 산책 유형 · 집돌이 귀가형
+    { id: 'hug',     g: '걷기', text: '5분 만에 안아 달라고 함' },           // 특성 · 산책 5분 후 안아라 신호
+    { id: 'rain',    g: '걷기', text: '현관 앞 빗물 보고 안아 달라 함' },       // 특성 · 비 오면 발에 물 묻히기 싫음
+    { id: 'hello',   g: '만남', text: '만나는 개마다 인사함' },              // 산책 유형 · 동네 이장님형
+    { id: 'bike',    g: '만남', text: '배달 오토바이 경보 발령' },             // 스킬 · 배달 오토바이 레이더
+    { id: 'outside', g: '만남', text: '밖에서만 순둥이 (집에선 왕)' },         // 특성 · 외부인 한정 순둥이
+    { id: 'eye',     g: '응가', text: '응가하며 보호자와 눈 맞춤' },           // 스킬 · 천사표 얼굴로 배변 포즈
     // 응가 날 문구(2026-11-17 가르시아 "그렇게 진행해줘" — 다른 기획팀장 검토 C안). 행동 드립만 — 변 상태(색·모양) 드립은 안 쓴다
-    { id: 'bag',     text: '비닐봉투 값 제대로 뽑음' },
-    { id: 'kick',    text: '볼일 뒤 뒷발 차기 세리머니' }
+    { id: 'bag',     g: '응가', text: '비닐봉투 값 제대로 뽑음' },
+    { id: 'kick',    g: '응가', text: '볼일 뒤 뒷발 차기 세리머니' },
+    { id: 'ears',    g: '특징', text: "'산책'은 듣고 '기다려'는 못 들음" },    // 특성 · 선택적 귓등 듣기
+    { id: 'cloth',   g: '특징', text: '새 옷 입고 1초 정지' },                // 특성 · 새 옷 착용 시 1초 멘붕
+    { id: 'paw',     g: '특징', text: '발바닥 옥수수 칩 냄새 진동' }          // 특성 · 발바닥 고소함 MAX
   ];
 
   function $(id) { return document.getElementById(id); }
@@ -581,7 +583,7 @@
         text: {
           title: '특이 사항', hint: '영수증에 이대로 찍혀요', max: 28,
           empty: '없음 (평화로운 산책)', font: '"Nanum Gothic Coding", ui-monospace, monospace',
-          presets: NOTES.map(function (n) { return { text: n.text, value: n.id }; }),
+          presets: NOTES.map(function (n) { return { text: n.text, value: n.id, group: n.g }; }),
           get: function (st) { return noteFrom(st.extra, i); },
           set: function (st, t, id) {
             if (id) { st.extra.note = id; st.extra.custom = undefined; }
