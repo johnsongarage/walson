@@ -6,7 +6,8 @@
 <!-- 뱃지 한 개를 그리는 판(2026-11-18 가르시아 "뱃지 시안 다시 그려줘, 내가 만들었던 버전에서" — 예전 로고로 만든 뱃지가 멀리서 안 알아보여서
      새 로고(짖는 얼굴)로). 11/16에 고른 방식 그대로: 58mm 핀버튼, 바탕 + 그림·글자 한 색, 테두리 원 선 없음, 글자 있음·없음.
      크기: 재단 지름 70mm(감싸는 부분 포함) = 이 판 1654px(600dpi), 보이는 면 58mm, 글자는 지름 52mm 안.
-     주소 뒤 값: bg(바탕색) ink(그림·글자 색) text=1(WALSON·왈슨) cream=1(눈 흰자·이빨 크림 — 세 색 판) guides=1(확인용 선) mask(그림 판 바꾸기, 비교용).
+     주소 뒤 값: bg(바탕색) ink(그림·글자 색) text=1(WALSON·왈슨) cream=1(눈 흰자·이빨 크림 — 세 색 판) guides=1(확인용 선) mask(그림 판 바꾸기, 비교용)
+     fill(그림만 있는 판의 그림 가로 px — 가득 차게) dy(그림을 아래로 px).
      render.js가 이 판을 찍어 out/에 PNG·PDF를 만든다. -->
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Black+Han+Sans&display=block" rel="stylesheet">
 <style>
@@ -34,7 +35,9 @@
   var mask = q.get('mask') || 'face-ink.png';
   var ratio = Number(q.get('ratio') || (1213 / 1556));          // 그림 세로/가로
   // 그림 크기·자리: 글자 있으면 WALSON과 왈슨 사이, 없으면 크게(보이는 면 58mm 안)
-  var w = text ? 900 : 1150, h = Math.round(w * ratio), y = text ? 400 : Math.round(827 - h / 2);   // 'top'은 브라우저 예약 이름이라 y
+  // 그림만 있는 판은 뱃지에 가득 차게(11/18 가르시아 "뱃지 안에 이미지가 가득 차도록") — fill(그림 가로 px)·dy(아래로 px)로 조절
+  var fill = Number(q.get('fill') || 0), dy = Number(q.get('dy') || 0);
+  var w = text ? 900 : (fill || 1150), h = Math.round(w * ratio), y = text ? 400 : Math.round(827 - h / 2 + dy);   // 'top'은 브라우저 예약 이름이라 y
   function layer(cls, url) {
     var d = document.createElement('div');
     d.className = 'layer ' + cls;

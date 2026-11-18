@@ -6,14 +6,15 @@ const path = require('path');
 const OUT = path.join(__dirname, 'out');
 fs.mkdirSync(OUT, { recursive: true });
 const BASE = 'http://127.0.0.1:5181/_print/badge/badge.html';
-// 11/16 가르시아가 고른 두 가지 색 방식 그대로 — 노랑(노랑+갈색)·핑크(핑크+검정), 글자 있음·없음. 세 색 판(눈 흰자 크림)은 고를 거리로 하나 더
+// 11/16 가르시아가 고른 두 가지 색 방식 그대로 — 노랑(노랑+갈색)·핑크(핑크+검정), 글자 있음·없음. 세 색 판(눈 흰자 크림)은 고를 거리로 더.
+// 그림만 있는 판은 가득 차게(11/18 가르시아) — 그림 가로 1600px(67.7mm, 귀 끝은 가장자리에서 잘림), 글자 있는 판은 그대로
 const SET = [
   ['yellow-text', { bg: '#f2b733', ink: '#361e12', text: 1 }],
-  ['yellow', { bg: '#f2b733', ink: '#361e12' }],
+  ['yellow', { bg: '#f2b733', ink: '#361e12', fill: 1600, dy: 40 }],
   ['pink-text', { bg: '#ff9ab8', ink: '#161616', text: 1 }],
-  ['pink', { bg: '#ff9ab8', ink: '#161616' }],
+  ['pink', { bg: '#ff9ab8', ink: '#161616', fill: 1600, dy: 40 }],
   ['yellow-cream-text', { bg: '#f2b733', ink: '#361e12', text: 1, cream: 1 }],
-  ['yellow-cream', { bg: '#f2b733', ink: '#361e12', cream: 1 }]
+  ['yellow-cream', { bg: '#f2b733', ink: '#361e12', cream: 1, fill: 1600, dy: 40 }]
 ].concat(JSON.parse(process.env.EXTRA || '[]'));
 (async () => {
   const launch = {};
