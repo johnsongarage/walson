@@ -15,7 +15,11 @@ const SET = [
   ['pink-text', { bg: '#ff9ab8', ink: '#161616', text: 1 }],
   ['pink', { bg: '#ff9ab8', ink: '#161616', fill: 1290 }],
   ['yellow-cream-text', { bg: '#f2b733', ink: '#361e12', text: 1, cream: 1 }],
-  ['yellow-cream', { bg: '#f2b733', ink: '#361e12', cream: 1, fill: 1290 }]
+  ['yellow-cream', { bg: '#f2b733', ink: '#361e12', cream: 1, fill: 1290 }],
+  // 글자가 위아래 가장자리를 따라 둥글게 감싸는 판(11/18 가르시아 "그 버전도 있잖아") — 위 WALSON, 아래 왈슨, 그림은 그 안에서 조금 크게
+  ['yellow-ring', { bg: '#f2b733', ink: '#361e12', ring: 1 }],
+  ['pink-ring', { bg: '#ff9ab8', ink: '#161616', ring: 1 }],
+  ['yellow-cream-ring', { bg: '#f2b733', ink: '#361e12', cream: 1, ring: 1 }]
 ].concat(JSON.parse(process.env.EXTRA || '[]'));
 (async () => {
   const launch = {};
