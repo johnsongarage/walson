@@ -20,6 +20,7 @@
      공원에서 만든 주민증이 산책 기록으로 자란다(11/17부터 어떻게 기록했든 5분 이상) — 부제(주민 등급: 새내기 주민 → 정착 주민 → 토박이 → 터줏대감)·승급 도장·
      뒷면(승급 기록·발도장 기록·특기·특이 사항). 그림은 id-card.js, 숫자는 reward-rules.js(RANKS·SLOT_RULES·PLACES).
      예전 세로 보상 카드(reward-card-soft.js)와 "스킬 다시 뽑기"는 지웠다 — 특기·특이 사항은 목록에서 고른다(문구는 card-shared.js 그대로).
+     11/18 가르시아 칭호 5묶음 27개(card-shared.js TITLES)를 두 목록 뒤에 같이 붙이고, 목록 위에 묶음 탭을 둬서 묶음별로 고른다.
      "실물로 뽑기"(11/16 가르시아 "③ 추천대로"): A4에 실제 크기(85.6×54mm) 앞·뒷면 네 쌍 — 오려서 등을 맞대 포토카드 홀더에.
      포토프린터를 사기 전에 공원에서 반응을 보는 0원 시험용(hq notes/petwalk-growing-id-card.md). 인쇄는 이 기기에서만 — 어디로도 안 보낸다. */
   :root {
@@ -107,6 +108,15 @@
     padding: 10px 12px; font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1.45; cursor: pointer; word-break: keep-all;
   }
   .pick-list button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); }
+  .pick-list button small { display: block; margin-top: 3px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  /* 묶음 탭(11/18) — 목록이 길어져서 묶음(생존·간식, 광기·기선제압 …)별로 나눠 본다 */
+  .pick-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .pick-tabs button {
+    min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink-soft);
+    font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; word-break: keep-all;
+  }
+  .pick-tabs button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .pick-note { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
 
   .format {
     display: flex; gap: 4px; padding: 4px; margin: 0 auto; width: max-content;
@@ -181,7 +191,7 @@
 
   <div class="panel">
     <div class="stats">
-      <div><b id="stat-walks">0회</b><span>길 기록 산책</span></div>
+      <div><b id="stat-walks">0회</b><span>산책(5분 이상)</span></div>
       <div><b id="stat-km">0.0</b><span>km</span></div>
       <div><b id="stat-rank">새내기</b><span>주민 등급</span></div>
     </div>
@@ -196,7 +206,7 @@
   <!-- 특기·특이 사항 — 산책 1회·3회에 생긴다. 처음 하나는 깜짝 선물로 정해 주고, 바꾸기는 목록에서 고른다(예전 "다시 뽑기") -->
   <div class="panel" id="traits"></div>
 
-  <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다 — 주민 등급(길 기록 산책)과는 따로 -->
+  <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다(5분 이상 — 11/17부터 주민 등급과 같은 기준) -->
   <div class="panel" id="steady-card">
     <div class="next-label" style="margin-bottom:10px;"><span>꾸준함 도장판</span><small id="steady-count"></small></div>
     <div id="steady-board"></div>
@@ -230,11 +240,11 @@
 
 <!-- 앞면 "나도 만들기" QR(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다. 못 받아오면 QR 없이. -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="card-shared.js?v=11"></script>
+<script src="card-shared.js?v=12"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=1"></script>
-<script src="id-card.js?v=5"></script>
+<script src="id-card.js?v=6"></script>
 <script src="image-editor.js?v=2"></script>
 <script src="steady-stamp.js?v=3"></script>
 <script src="mock-server.js?v=2"></script>
@@ -256,12 +266,27 @@
   var hasCard = !!profile.name;
   var progress = RR.computeProgress(walks);
   var rank = RR.rankFor(progress.walks), next = RR.nextRank(progress.walks);
-  var skills = CS.SKILLS || [], passives = CS.PASSIVES || [];
-  // 특기·특이 사항 — 예전 자라는 카드와 같은 저장값(petwalk_reward_card, 목록 번호)이라 전에 받은 것이 그대로 이어진다
-  var pick = WalsonStore.rewardCard();
-  if (!pick || !skills[pick.skill] || !passives[pick.passive]) {
-    pick = { skill: Math.floor(Math.random() * skills.length), passive: Math.floor(Math.random() * passives.length) };
+  // 특기·특이 사항 목록 = 원래 문구 + 칭호 27개(11/18, card-shared.js TITLES — 두 칸 어디에든 고를 수 있게 둘 다 뒤에 붙인다)
+  var baseSkills = CS.SKILLS || [], basePassives = CS.PASSIVES || [], titles = CS.TITLES || [];
+  var skills = baseSkills.concat(titles), passives = basePassives.concat(titles);
+  // 특기·특이 사항 — 예전 자라는 카드와 같은 저장값(petwalk_reward_card, 목록 번호)이라 전에 받은 것이 그대로 이어진다.
+  // 11/18부터 고른 문구 글자(skillT·passiveT)도 같이 저장 — 나중에 목록이 바뀌어도 글자로 다시 찾는다
+  function findPick(list, idx, t) {
+    if (t) for (var i = 0; i < list.length; i++) if (list[i].title === t) return i;
+    return typeof idx === 'number' && list[idx] ? idx : -1;
+  }
+  function savePick() {
+    pick.skillT = skills[pick.skill].title; pick.passiveT = passives[pick.passive].title;
     WalsonStore.saveRewardCard(pick);   // 저장 실패해도 화면은 그대로
+  }
+  var pick = WalsonStore.rewardCard() || {};
+  pick.skill = findPick(skills, pick.skill, pick.skillT);
+  pick.passive = findPick(passives, pick.passive, pick.passiveT);
+  if (pick.skill < 0 || pick.passive < 0) {
+    // 처음 하나는 원래 문구에서 깜짝 선물로 — 조건이 붙은 칭호는 직접 고를 때만
+    if (pick.skill < 0) pick.skill = Math.floor(Math.random() * baseSkills.length);
+    if (pick.passive < 0) pick.passive = Math.floor(Math.random() * basePassives.length);
+    savePick();
   }
   var steadyInfo = RR.steady ? RR.steady(walks) : null;
   var photo = null, side = 'front';
@@ -302,6 +327,10 @@
 
   // ── 특기·특이 사항 ──
   var openList = null;   // 펼친 목록('skill'|'passive')
+  var openCat = {};      // 펼친 목록에서 보고 있는 묶음(목록 종류 → 묶음 이름). 처음엔 지금 고른 것의 묶음
+  function catOf(it) { return (it && it.category) || '기본'; }
+  function catLabel(c) { return c.replace(/ 계열$/, '').replace(/ & /g, '·'); }   // 탭엔 짧게: '생존 & 간식 계열' → '생존·간식'
+  function isTitleCat(c) { return titles.some(function (t) { return t.category === c; }); }
   function renderTraits() {
     var box = $('traits');
     box.innerHTML = '';
@@ -332,16 +361,50 @@
         wrap.appendChild(desc);
       }
       if (open && openList === kind) {
+        // 묶음 탭(11/18) — 탭을 누르면 그 묶음 문구만 아래에 보인다
+        var cats = [];
+        list.forEach(function (it) { var c = catOf(it); if (cats.indexOf(c) < 0) cats.push(c); });
+        var cur = openCat[kind] || catOf(item);
+        if (cats.indexOf(cur) < 0) cur = cats[0];
+        var tabs = document.createElement('div');
+        tabs.className = 'pick-tabs';
+        tabs.setAttribute('role', 'group');
+        tabs.setAttribute('aria-label', label + ' 묶음');
+        cats.forEach(function (c) {
+          var tb = document.createElement('button');
+          tb.type = 'button';
+          tb.textContent = catLabel(c);
+          tb.setAttribute('aria-pressed', c === cur ? 'true' : 'false');
+          tb.addEventListener('click', function () { openCat[kind] = c; renderTraits(); });
+          tabs.appendChild(tb);
+        });
+        wrap.appendChild(tabs);
+        // 칭호는 이름만으론 뜻을 모르니 조건을 같이 보여 주고, 앱이 확인해 준 게 아니라고 밝힌다
+        var titleCat = isTitleCat(cur);
+        if (titleCat) {
+          var pn = document.createElement('p');
+          pn.className = 'pick-note';
+          pn.textContent = '칭호 아래 조건은 재미로 붙인 설명이에요. 앱이 산책 기록으로 확인해서 주는 건 아니에요.';
+          wrap.appendChild(pn);
+        }
         var pl = document.createElement('div');
         pl.className = 'pick-list';
         list.forEach(function (it, i) {
+          if (catOf(it) !== cur) return;
           var b = document.createElement('button');
           b.type = 'button';
-          b.textContent = it.title;
+          var bt = document.createElement('span');
+          bt.textContent = it.title;
+          b.appendChild(bt);
+          if (titleCat && it.desc) {
+            var sm = document.createElement('small');
+            sm.textContent = it.desc;
+            b.appendChild(sm);
+          }
           b.setAttribute('aria-pressed', i === pick[kind] ? 'true' : 'false');
           b.addEventListener('click', function () {
             pick[kind] = i;
-            WalsonStore.saveRewardCard(pick);   // 저장 실패해도 화면은 그대로
+            savePick();
             openList = null;
             renderTraits();
             if (side === 'back') render();
