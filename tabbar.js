@@ -2,7 +2,7 @@
 // 11/16 [카드] → [주민증](가르시아 "자라는 카드를 주민증에 합쳐" — my-card.html이 자라는 주민증). 키는 그대로 'card'.
 // 11/15 [영수증] 탭을 넣었다가 11/16 [기록]에 합침(가르시아 "서비스 줄이기 4번" — 영수증철이 곧 산책 기록). receipt.html은 [기록]으로 넘겨 준다.
 // '산책'은 탭이 아니라 모드라서 산책 화면(walk.html)에는 이 탭을 붙이지 않는다.
-// 쓰는 법: 화면 맨 아래에 <script src="tabbar.js?v=9" data-tab="today|history|card|town"></script>
+// 쓰는 법: 화면 맨 아래에 <script src="tabbar.js?v=10" data-tab="today|history|card|town"></script>
 // 탭 높이만큼 body 아래 여백을 넣고, 높이를 CSS 변수 --tabbar-h로 알려 준다(지도 화면이 그만큼 비켜 앉게).
 // 화면 테마는 11/16부터 차분 하나뿐(뉴브루탈 모양은 지움).
 // 고치면 쓰는 화면(index·walk-history·my-card·town·guardians)의 ?v= 번호를 같이 올릴 것.
@@ -34,12 +34,13 @@
     '.tabbar{position:relative;display:flex;justify-content:center;' +
       'height:calc(58px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);' +
       'background:var(--panel,#fffaf3);border-top:1.5px solid var(--panel-border,#e6d6c1);}' +
-    '.tabbar a{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
+    '.tabbar a{position:relative;isolation:isolate;flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;' +
       'text-decoration:none;color:var(--ink-soft,#8a7a68);font:600 11px Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;' +
       '-webkit-tap-highlight-color:transparent;}' +
-    '.tabbar a[aria-current="page"]{color:var(--ink,#b8563a);font-weight:800;}' +
-    // 지금 탭(2026-11-17 테마 ②): 아이콘 뒤에 버튼 색 알약 — 색 테마(theme.js)를 따른다
-    '.tabbar a[aria-current="page"] svg{background:var(--hl,transparent);border-radius:999px;padding:2px 14px;box-sizing:content-box;}' +
+    '.tabbar a[aria-current="page"]{color:var(--hl-ink,var(--ink,#2c2018));font-weight:800;}' +
+    // 지금 탭: 아이콘·글자를 함께 감싸는 모서리 둥근 네모를 버튼 색으로 채운다 — 색 테마(theme.js)를 따른다.
+    // (2026-11-17 테마 ②는 아이콘 뒤 알약이었음 → 11/18 가르시아 "타원형인데 탭 전체를 모서리 둥근 사각형으로 채워 봐")
+    '.tabbar a[aria-current="page"]::before{content:"";position:absolute;inset:5px 6px;border-radius:14px;background:var(--hl,#f2b52f);z-index:-1;}' +
     '.tabbar a:active{transform:scale(0.96);}';
   style.textContent = common + softCss;
   document.head.appendChild(style);

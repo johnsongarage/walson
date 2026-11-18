@@ -649,9 +649,51 @@
     g.drawImage(img, -(iw - c.width) * qx, -(ih - c.height) * qy, iw, ih);
     return c;
   }
+
+  // ── 주민증 사진 맞춤(2026-11-18 가르시아 "사진을 줌인된 상태로 저장하면 그렇게 보여야 하는데") ──
+  // 편집기에서 [저장]하거나 내보내면 사진 칸 안의 확대·자리를 이 휴대폰에 남기고, [주민증] 탭·만들기 화면·키링 파일·실물 인쇄도
+  // 같은 맞춤으로 그린다(전에는 편집기 안에서만 맞춤이 쓰이고 카드는 원래 사진 그대로였다). 맞춤은 그 사진에만 —
+  // 사진을 바꾸면(서명이 다르면) 쓰지 않고 원래대로(가운데 꽉 차게) 그린다.
+  var FRAME_KEY = 'walson_id_photo_frame', EDIT_KEY = 'walson_edit_id_card';
+  function photoSig(p) {
+    if (!p || typeof p !== 'string') return '';
+    var h = 5381;
+    for (var i = 0; i < p.length; i++) h = ((h << 5) + h + p.charCodeAt(i)) | 0;
+    return p.length + ':' + (h >>> 0).toString(36);
+  }
+  function readJSON(k) { try { return JSON.parse(localStorage.getItem(k)) || null; } catch (e) { return null; } }
+  function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 못 남겨도 이번 그림은 그대로 */ } }
+  function unit(v, d) { v = Number(v); return isFinite(v) ? Math.max(0, Math.min(1, v)) : d; }
+  function savedFrame(profile) {
+    var sig = photoSig(profile && profile.photo), f = readJSON(FRAME_KEY);
+    if (!sig) return null;
+    if (!f) {
+      // 이 고침 전에 [저장]해 둔 맞춤(편집기가 남긴 값)은 지금 사진의 것으로 보고 한 번 옮겨 온다
+      var k = readJSON(EDIT_KEY);
+      if (!k || !k.photo || !(Number(k.photo.zoom) >= 1)) return null;
+      f = { zoom: Number(k.photo.zoom), x: k.photo.x, y: k.photo.y, sig: sig };
+      writeJSON(FRAME_KEY, f);
+    }
+    if (f.sig !== sig || !(Number(f.zoom) >= 1)) return null;
+    return { zoom: Math.min(4, Number(f.zoom)), x: unit(f.x, 0.5), y: unit(f.y, 0.5) };
+  }
+  function saveFrame(profile, ph) {
+    var sig = photoSig(profile && profile.photo);
+    if (!sig || !ph) return;
+    writeJSON(FRAME_KEY, { zoom: Number(ph.zoom) || 1, x: unit(ph.x, 0.5), y: unit(ph.y, 0.5), sig: sig });
+  }
+  // 카드에 넣을 사진 — 남긴 맞춤이 있으면 그 확대·자리로 자른 그림, 없으면 원래 사진
+  function framedPhoto(img, profile) {
+    var f = img ? savedFrame(profile) : null;
+    return f ? cropPhoto(img, f.zoom, f.x, f.y) : img;
+  }
+
   function openEditor(o) {
     if (!window.WalsonEditor) return null;
     var card = document.createElement('canvas'), tabs = [];
+    // 편집기는 카드와 같은 맞춤에서 시작 — 사진이 바뀌어 맞춤을 안 쓰면, 편집기가 기억한 예전 확대·자리도 지운다
+    var frame = o.photo ? savedFrame(o.profile) : null;
+    if (o.photo && !frame) { var k0 = readJSON(EDIT_KEY); if (k0 && k0.photo) { delete k0.photo; writeJSON(EDIT_KEY, k0); } }
     if (o.drawBack) tabs.push({
       id: 'side', label: '면', icon: 'side', first: true,
       rows: function (st) {
@@ -664,7 +706,8 @@
       title: o.title || '강아지 주민증',
       formats: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: o.fmt || 'card',
       tabs: tabs, tab: o.side === 'back' ? 'side' : undefined,
-      photo: o.photo ? { sources: [['profile', '주민증 사진']], src: 'profile', zoom: 1, x: 0.5, y: 0.5, home: { x: 0.5, y: 0.5 }, noBand: '뒷면엔 사진이 없어요.' } : null,
+      photo: o.photo ? { sources: [['profile', '주민증 사진']], src: 'profile', zoom: frame ? frame.zoom : 1, x: frame ? frame.x : 0.5, y: frame ? frame.y : 0.5,
+        home: { x: 0.5, y: 0.5 }, noBand: '뒷면엔 사진이 없어요.' } : null,
       extra: { side: o.side === 'back' ? 'back' : 'front' },
       hint: o.photo ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요',
       draw: function (cv, st) {
@@ -691,14 +734,19 @@
       },
       storeKey: 'walson_edit_id_card',   // [저장]한 꾸미기(모양·사진 칸 자리·글자)를 다음에 이어서(주민증에 든 원래 사진은 그대로)
       fileName: function (st) { return (o.profile.name || 'dog') + '-주민증' + (st.extra.side === 'back' && o.drawBack ? '-뒷면' : '') + (st.fmt === 'card' ? '' : '-' + st.fmt) + '.png'; },
-      onSave: o.onSave, onClose: o.onClose
+      onSave: o.onSave,
+      // [저장]했거나 내보냈으면(kept) 사진 맞춤을 카드 쪽에도 남긴다 — 부른 화면은 onClose에서 카드를 다시 그린다
+      onClose: function (st, kept) {
+        if (kept && o.photo && st.photo) saveFrame(o.profile, st.photo);
+        if (o.onClose) o.onClose(st, kept);
+      }
     });
   }
 
   window.WalsonIdCard = {
     W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX,
     CARD_COLORS: CARD_COLORS, cardColor: cardColor, infoBits: infoBits, drawKeyringBack: drawKeyringBack,
-    drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, openEditor: openEditor,
+    drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, openEditor: openEditor, framedPhoto: framedPhoto,
     loadImage: loadImage, fontsReady: fontsReady, todayText: todayText, dateText: dateText
   };
 })();

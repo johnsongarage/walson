@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>왈슨 뱃지 한 개(58mm 핀버튼)</title>
+<!-- 뱃지 한 개를 그리는 판(2026-11-18 가르시아 "뱃지 시안 다시 그려줘, 내가 만들었던 버전에서" — 예전 로고로 만든 뱃지가 멀리서 안 알아보여서
+     새 로고(짖는 얼굴)로). 11/16에 고른 방식 그대로: 58mm 핀버튼, 바탕 + 그림·글자 한 색, 테두리 원 선 없음, 글자 있음·없음.
+     크기: 재단 지름 70mm(감싸는 부분 포함) = 이 판 1654px(600dpi), 보이는 면 58mm, 글자는 지름 52mm 안.
+     주소 뒤 값: bg(바탕색) ink(그림·글자 색) text=1(WALSON·왈슨) cream=1(눈 흰자·이빨 크림 — 세 색 판) guides=1(확인용 선) mask(그림 판 바꾸기, 비교용)
+     fill(그림만 있는 판의 그림 가로 px — 가득 차게) dy(그림을 아래로 px).
+     ring=1(글자가 위아래 가장자리를 따라 둥글게 감싸는 판 — 위 WALSON, 아래 왈슨. 11/18 가르시아 "글자가 위아래 동그랗게 테두리처럼 감싸는 버전").
+     render.js가 이 판을 찍어 out/에 PNG·PDF를 만든다. -->
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Black+Han+Sans&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; }
+  .b { position: relative; width: 1654px; height: 1654px; overflow: hidden; background: var(--bg); }
+  .layer { position: absolute; left: 50%; transform: translateX(-50%); -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+  .ink { background: var(--ink); }
+  .cream { background: #feeab6; }
+  .en { position: absolute; left: 0; right: 0; top: 268px; text-align: center; color: var(--ink);
+    font-family: 'Archivo Black', sans-serif; font-size: 118px; line-height: 1; letter-spacing: 0.06em; padding-left: 0.06em; }
+  .ko { position: absolute; left: 0; right: 0; top: 1128px; text-align: center; color: var(--ink);
+    font-family: 'Black Han Sans', sans-serif; font-size: 190px; line-height: 1; }
+  .g { position: absolute; border-radius: 50%; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="b" id="b"></div>
+<script>
+  var q = new URLSearchParams(location.search);
+  var b = document.getElementById('b');
+  b.style.setProperty('--bg', q.get('bg') || '#f2b733');
+  b.style.setProperty('--ink', q.get('ink') || '#361e12');
+  var text = q.get('text') === '1', cream = q.get('cream') === '1';
+  var mask = q.get('mask') || 'face-ink.png';
+  var ratio = Number(q.get('ratio') || (1213 / 1556));          // 그림 세로/가로
+  // 그림 크기·자리: 글자 있으면 WALSON과 왈슨 사이, 없으면 크게(보이는 면 58mm 안)
+  // 그림만 있는 판은 뱃지에 가득 차게(11/18 가르시아 "뱃지 안에 이미지가 가득 차도록") — fill(그림 가로 px)·dy(아래로 px)로 조절
+  var fill = Number(q.get('fill') || 0), dy = Number(q.get('dy') || 0);
+  var ring = q.get('ring') === '1';
+  if (ring) { text = false; if (!fill) fill = 1100; if (!q.get('dy')) dy = -12; }   // 둥근 글자 판: 글자는 가장자리 띠에, 그림은 그 안에서 조금 크게
+  var w = text ? 900 : (fill || 1150), h = Math.round(w * ratio), y = text ? 400 : Math.round(827 - h / 2 + dy);   // 'top'은 브라우저 예약 이름이라 y
+  function layer(cls, url) {
+    var d = document.createElement('div');
+    d.className = 'layer ' + cls;
+    d.style.cssText += 'top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;-webkit-mask-image:url(' + url + ');mask-image:url(' + url + ');';
+    b.appendChild(d);
+  }
+  if (cream) layer('cream', 'face-cream.png');
+  layer('ink', mask);
+  if (text) {
+    var en = document.createElement('div'); en.className = 'en'; en.textContent = 'WALSON'; b.appendChild(en);
+    var ko = document.createElement('div'); ko.className = 'ko'; ko.textContent = '왈슨'; b.appendChild(ko);
+  }
+  if (ring) {
+    // 위: 왼쪽 → 위 → 오른쪽 원호(글자 윗부분이 바깥), 아래: 왼쪽 → 아래 → 오른쪽 원호(글자 윗부분이 가운데 쪽) — 둘 다 똑바로 읽힌다
+    var NS = 'http://www.w3.org/2000/svg', C = 827, RT = Number(q.get('rt') || 515), RB = Number(q.get('rb') || 588);
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 1654 1654'); svg.setAttribute('width', '1654'); svg.setAttribute('height', '1654');
+    svg.style.cssText = 'position:absolute;left:0;top:0;';
+    svg.innerHTML =
+      '<defs><path id="arcT" d="M ' + (C - RT) + ' ' + C + ' A ' + RT + ' ' + RT + ' 0 0 1 ' + (C + RT) + ' ' + C + '"/>' +
+      '<path id="arcB" d="M ' + (C - RB) + ' ' + C + ' A ' + RB + ' ' + RB + ' 0 0 0 ' + (C + RB) + ' ' + C + '"/></defs>' +
+      '<text font-family="Archivo Black" font-size="132" letter-spacing="22" fill="var(--ink)"><textPath href="#arcT" startOffset="50%" text-anchor="middle">WALSON</textPath></text>' +
+      '<text font-family="Black Han Sans" font-size="162" letter-spacing="34" fill="var(--ink)"><textPath href="#arcB" startOffset="50%" text-anchor="middle">왈슨</textPath></text>';
+    b.appendChild(svg);
+  }
+  if (q.get('guides') === '1') {
+    // 확인용: 재단 70mm(실선) · 보이는 면 58mm(점선) · 글자 안전 52mm(점)
+    [[827, '3px solid rgba(0,0,0,.35)'], [685, '4px dashed rgba(0,0,0,.45)'], [614, '3px dotted rgba(0,0,0,.4)']].forEach(function (c) {
+      var g = document.createElement('div'); g.className = 'g';
+      g.style.cssText = 'left:' + (827 - c[0]) + 'px;top:' + (827 - c[0]) + 'px;width:' + (2 * c[0]) + 'px;height:' + (2 * c[0]) + 'px;border:' + c[1] + ';box-sizing:border-box;';
+      b.appendChild(g);
+    });
+  }
+</script>
+</body>
+</html>

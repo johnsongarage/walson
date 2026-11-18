@@ -12,7 +12,7 @@
     activeRoute: 'petwalk_active_route',  // 길 기록 중인 산책 {v:1,startedAt,samples:[[lat,lng,t,s]],liveKm,visited,gapMs,savedAt} — 위치(원래 궤적, 가장 민감)
     activeWalk: 'petwalk_active_walk',    // 시간만 재는 중인 산책 {startedAt}
     lastWalk: 'petwalk_last_walk',        // 마지막 산책 요약 {distanceKm,totalDistanceKm,durationMin} — 지금 읽는 곳 없음
-    profile: 'petwalk_profile',           // 주민증 {name,size,signal,photo,cardNo,cardIssued,tag}
+    profile: 'petwalk_profile',           // 주민증 {name,size,signal,photo,cardNo,cardIssued,tag, photoOrig·photoFrame(프로필 사진 원본·맞춤 2026-11-18)}
     rewardCard: 'petwalk_reward_card',    // 주민증 특기·특이 사항 {skill,passive}
     keyring: 'petwalk_keyring',           // 키링 받음 {givenAt}
     visits: 'petwalk_visits',             // 가게 방문 도장 [{s:스팟번호,d:날짜}] — 위치(장소+날짜, QR로 찍음)
