@@ -116,7 +116,8 @@
     club: 'DASAN WALK CLUB', title: 'WALKING PASS', side: 'WALSON MATE', footer: '재미로 만든 굿즈',
     cream: CREAM, ink: INK,
     showSticker: true, showSide: true, showRank: true, showQr: true, showTitleTape: true, showBandTape: true, showHole: true,
-    photoMode: 'auto', zoom: 1, qx: 0.5, qy: 0.5
+    photoMode: 'auto', zoom: 1, qx: 0.5, qy: 0.5,
+    frameWidth: 30, frameRadius: 64, frameStyle: 'solid'   // 테두리 두께·모서리 둥글기·모양(solid 단색 / tape 경고 테이프 / double 두 줄 / dots 물방울)
   };
   function designFor(signal, design) {
     var v = VARIANTS[signal] || VARIANTS.red, d = {};
@@ -139,8 +140,28 @@
     ctx.textBaseline = 'alphabetic';
 
     // 아크릴 테두리 + 바탕 판
-    rr(ctx, 0, 0, W, H, 64); ctx.fillStyle = v.frame; ctx.fill();
-    rr(ctx, 30, 30, W - 60, H - 60, 40); ctx.fillStyle = v.cream; ctx.fill();
+    // 테두리(2026-11-19 "테두리를 편집하는 디자인 에디터") — 두께·둥글기·모양
+    var fw = Math.max(10, Math.min(70, Number(v.frameWidth) || 30)), fr = Math.max(0, Math.min(160, Number(v.frameRadius)));
+    if (!isFinite(fr)) fr = 64;
+    var ir = Math.max(8, fr - fw * 0.8);
+    rr(ctx, 0, 0, W, H, fr); ctx.fillStyle = v.frame; ctx.fill();
+    if (v.frameStyle === 'tape') {
+      ctx.save(); rr(ctx, 0, 0, W, H, fr); ctx.clip();
+      tape(ctx, 0, 0, W, H, [v.tapeA === v.frame ? INK : v.tapeA, v.frame], 34);
+      ctx.restore();
+    } else if (v.frameStyle === 'dots') {
+      ctx.save(); rr(ctx, 0, 0, W, H, fr); ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      var gap = Math.max(18, fw * 0.9), dr = Math.max(3, fw * 0.16);
+      for (var yy = gap / 2; yy < H; yy += gap) for (var xx = ((yy / gap) % 2 ? gap : gap / 2); xx < W; xx += gap) { ctx.beginPath(); ctx.arc(xx, yy, dr, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+    rr(ctx, fw, fw, W - fw * 2, H - fw * 2, ir); ctx.fillStyle = v.cream; ctx.fill();
+    if (v.frameStyle === 'double') {
+      ctx.lineWidth = Math.max(3, fw * 0.14); ctx.strokeStyle = v.frame;
+      var gin = fw + Math.max(8, fw * 0.35);
+      rr(ctx, gin, gin, W - gin * 2, H - gin * 2, Math.max(6, ir - 8)); ctx.stroke();
+    }
     if (v.showHole) {   // 고리 구멍 자리
       ctx.beginPath(); ctx.arc(W / 2, 78, 24, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fill();
       ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.stroke();
@@ -175,7 +196,7 @@
         var sc = Math.min(maxW / tb.w, maxH / tb.h) * zoom, dw = tb.w * sc, dh = tb.h * sc;
         var dx = mid - dw / 2 + (qx - 0.5) * -400, dy = bottom - dh + (qy - 0.5) * -400;
         ctx.save();
-        ctx.beginPath(); ctx.rect(30, 470, W - 60, bottom - 470 + 4); ctx.clip();   // 제목·이름 칸을 넘지 않게
+        ctx.beginPath(); ctx.rect(fw, 470, W - fw * 2, bottom - 470 + 4); ctx.clip();   // 제목·이름 칸을 넘지 않게
         ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 26; ctx.shadowOffsetY = 12;
         ctx.drawImage(img, tb.x, tb.y, tb.w, tb.h, dx, dy, dw, dh);
         ctx.restore();
@@ -236,10 +257,10 @@
 
     // 아래 띠 — 성향 문구 + QR
     var by = 1250, bh2 = 236;
-    ctx.fillStyle = v.band; ctx.fillRect(30, by, W - 60, bh2);
+    ctx.fillStyle = v.band; ctx.fillRect(fw, by, W - fw * 2, bh2);
     if (v.showBandTape) {
-      tape(ctx, 30, by, W - 60, 26, [v.bandTapeA, v.bandTapeB], 22);
-      tape(ctx, 30, by + bh2 - 26, W - 60, 26, [v.bandTapeA, v.bandTapeB], 22);
+      tape(ctx, fw, by, W - fw * 2, 26, [v.bandTapeA, v.bandTapeB], 22);
+      tape(ctx, fw, by + bh2 - 26, W - fw * 2, 26, [v.bandTapeA, v.bandTapeB], 22);
     }
     var qs = 168, qrx = R - qs + 10, qry = by + (bh2 - qs) / 2;
     if (v.showQr) drawQr(ctx, data.qr, qrx, qry, qs);
@@ -266,9 +287,17 @@
     // 맨 아래 — 브랜드 두 줄(홍보물 규칙: site-config.js brand — 여기선 못 고친다)
     var B = (window.WALSON_CONFIG && window.WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
     ctx.fillStyle = ink; ctx.textAlign = 'center';
-    ctx.font = font(400, 34, BIG); ctx.fillText(B.name || 'WALSON', W / 2, 1522);
-    ctx.font = font(700, 24); ctx.globalAlpha = 0.75;
-    ctx.fillText((B.tagline || '') + (v.footer ? '  ·  ' + v.footer : ''), W / 2, 1556);
+    var foot = (B.tagline || '') + (v.footer ? '  ·  ' + v.footer : '');
+    if (fw <= 40 && v.frameStyle !== 'double') {
+      ctx.font = font(400, 34, BIG); ctx.fillText(B.name || 'WALSON', W / 2, 1522);
+      ctx.font = font(700, 24); ctx.globalAlpha = 0.75;
+      ctx.fillText(foot, W / 2, 1556);
+    } else {
+      // 테두리가 두꺼우면 한 줄로(띠 아래 ~ 테두리 안쪽 사이 가운데)
+      var line = (B.name || 'WALSON') + '  ·  ' + foot, fy = (by + bh2 + H - fw) / 2 + 9;
+      ctx.font = font(800, fit(ctx, line, W - fw * 2 - 60, 26, 800));
+      ctx.fillText(line, W / 2, fy);
+    }
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
     return canvas;
   }
