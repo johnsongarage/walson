@@ -275,7 +275,7 @@
   var CARD_W = 1080, CARD_H = 1350;
   var STICKER = 900;       // 카드 위 스티커 크기(px)
   var INK = '#2b1d14';
-  var NAME_KEY = 'petwalk_toon_name';   // 주민증이 없는 사람이 적은 강아지 이름(이 휴대폰에만)
+  var NAME_KEY = 'petwalk_toon_name';   // 워킹패스가 없는 사람이 적은 강아지 이름(이 휴대폰에만)
 
   var FACES = [
     { id: 'proud', label: '뿌듯', say: '오늘도 해냈다!' },
@@ -390,7 +390,7 @@
 
   // 이름: 주민증 이름 → 전에 적은 이름
   try {
-    var prof = WalsonStore.profile() || {};   // 주민증(store.js)
+    var prof = WalsonStore.profile() || {};   // 워킹패스(store.js)
     opt.name = String(prof.name || localStorage.getItem(NAME_KEY) || '').slice(0, 10);
   } catch (e) { opt.name = ''; }
 

@@ -168,7 +168,7 @@
   }
   function openImport() {
     var b = sheet('<h3>사파리에서 쓰던 기록 가져오기</h3>' +
-      '<p>사파리 왈슨에서 <b>기록 복사하기</b>를 눌렀다면, 아래 버튼으로 붙여 넣어요. 주민증·산책 기록이 이어져요.</p>' +
+      '<p>사파리 왈슨에서 <b>기록 복사하기</b>를 눌렀다면, 아래 버튼으로 붙여 넣어요. 워킹패스·산책 기록이 이어져요.</p>' +
       '<button type="button" class="wi-btn" data-paste>붙여넣어 가져오기</button>' +
       '<p class="wi-ok" data-ok></p>' +
       '<button type="button" class="wi-btn sub" data-new>처음 써요 · 새로 시작</button>');

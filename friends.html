@@ -101,7 +101,7 @@
 
 <div class="wrap">
   <div class="topbar">
-    <a href="my-card.html" title="주민증으로 돌아가기">←</a>
+    <a href="my-card.html" title="워킹패스로 돌아가기">←</a>
     <h1>강아지 도감</h1>
     <span class="mock-badge">서버 가정 시험판</span>
   </div>
@@ -109,7 +109,7 @@
   여기서 해 본 것은 어디로도 나가지 않아요.</p>
 
   <div id="off" hidden>
-    <div class="empty">시험판이 꺼져 있어요.<br>켜면 [주민증] 탭과 산책 끝 화면에 도감 입구가 생겨요.</div>
+    <div class="empty">시험판이 꺼져 있어요.<br>켜면 [워킹패스] 탭과 산책 끝 화면에 도감 입구가 생겨요.</div>
     <a class="btn btn-main" href="friends.html?server=mock">시험판 켜기</a>
   </div>
 
@@ -125,7 +125,7 @@
       <div class="count"><b id="dex-count">0</b><span>마리와 서로 도감을 교환했어요</span></div>
       <div class="grid" id="dex-grid"></div>
       <button type="button" class="btn btn-sub" id="qr-btn">공원에서 QR 교환해 보기 (시험)</button>
-      <p class="note">실제로는 공원에서 서로의 주민증 QR을 찍으면 그 자리에서 둘 다 도감에 들어가요.
+      <p class="note">실제로는 공원에서 서로의 워킹패스 QR을 찍으면 그 자리에서 둘 다 도감에 들어가요.
       시험판에는 상대 폰이 없어서 아직 안 만난 가짜 강아지 하나를 찍은 걸로 쳐요.</p>
     </section>
 
@@ -334,7 +334,7 @@
   }
 
   // 들어올 때: 내 강아지 올리기 → 안 보낸 산책 보내기 → 그리기
-  S.register(WalsonStore.profile())   // 주민증(store.js)
+  S.register(WalsonStore.profile())   // 워킹패스(store.js)
     .then(function () { return Api.syncWalks(); })
     .then(function (r) { if (r && r.found) toast('새로 스친 강아지 ' + r.found + '마리'); })
     .then(refresh);

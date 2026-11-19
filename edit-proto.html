@@ -88,7 +88,7 @@
   </header>
   <div class="ed-proto" id="proto" role="group" aria-label="시안: 다른 콘텐츠로 바꿔 보기">
     <button type="button" data-t="receipt" aria-pressed="true">산책 영수증</button>
-    <button type="button" data-t="card" aria-pressed="false">주민증</button>
+    <button type="button" data-t="card" aria-pressed="false">워킹패스</button>
   </div>
   <main class="ed-stage" id="stage">
     <canvas id="cv" width="1080" height="1920" role="img" aria-label="미리 보기"></canvas>
@@ -139,7 +139,7 @@
   var TPL = {
     receipt: { title: '산책 영수증', tabs: ['shape', 'photo', 'note', 'text'], fmts: [['story', '스토리 9:16'], ['feed', '피드 4:5']], fmt: 'story',
       sources: [['walk', '산책 사진'], ['logo', '왈슨 그림']], hint: '사진은 끌어서 옮기고, 두 손가락으로 키워요' },
-    card: { title: '강아지 주민증', tabs: ['shape', 'photo', 'text'], fmts: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: 'square',
+    card: { title: '강아지 워킹패스', tabs: ['shape', 'photo', 'text'], fmts: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: 'square',
       sources: [['walk', '프로필 사진']], hint: '사진 칸을 끌어서 옮기고, 두 손가락으로 키워요' }
   };
   var TAB_NAME = { shape: '모양', photo: '사진', note: '특이 사항', text: '글자 붙이기' };

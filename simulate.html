@@ -61,8 +61,8 @@
       <div><label for="days">기간(지난 며칠)</label><input id="days" type="number" min="3" max="90" value="30"></div>
       <div><label for="preset">시나리오</label>
         <select id="preset">
-          <option value="normal">보통 — 절반이 주민증, 주 2~3회 산책</option>
-          <option value="eager">열심 — 대부분 주민증, 거의 매일</option>
+          <option value="normal">보통 — 절반이 워킹패스, 주 2~3회 산책</option>
+          <option value="eager">열심 — 대부분 워킹패스, 거의 매일</option>
           <option value="churn">이탈 많음 — 첫 주에 많이 떠남</option>
         </select></div>
       <div><label for="conc">동시에 보내기</label><input id="conc" type="number" min="1" max="10" value="4"></div>
@@ -234,7 +234,7 @@
       var got = {};
       sectionRows(j.out, '유입별').forEach(function (r) { got[r[0]] = r; });
       var exp = expected(lastRun);
-      var html = '<div class="table-scroll"><table><tr><th>유입 코드</th><th>줄</th><th>기기</th><th>주민증</th><th>산책</th><th>7일↑</th><th>재방문</th><th>결과</th></tr>';
+      var html = '<div class="table-scroll"><table><tr><th>유입 코드</th><th>줄</th><th>기기</th><th>워킹패스</th><th>산책</th><th>7일↑</th><th>재방문</th><th>결과</th></tr>';
       var allOk = true;
       Object.keys(exp).sort().forEach(function (code) {
         var e = exp[code], g = got[code] || [];

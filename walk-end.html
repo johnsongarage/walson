@@ -269,7 +269,7 @@
 </script>
 <script>
 (function () {
-  var walks = WalsonStore.walks();   // 산책 기록·주민증은 store.js(WalsonStore)로 읽고 쓴다
+  var walks = WalsonStore.walks();   // 산책 기록·워킹패스는 store.js(WalsonStore)로 읽고 쓴다
   var walk = walks.length ? walks[walks.length - 1] : null;
   if (!walk) { location.replace('index.html'); return; }
 
@@ -347,8 +347,8 @@
       receiptSmall = row(RECEIPT, true, '영수증 No.' + ('000' + walks.length).slice(-4), ' ').querySelector('small');
     }
     var before = R.computeProgress(walks.slice(0, -1)), now = R.computeProgress(walks);
-    var counted = now.walks > before.walks;   // 이번 산책이 주민증 성장 횟수에 들어갔는지(5분 이상)
-    var shortNote = (R.RECORD_MIN_MINUTES || 5) + '분 미만이라 주민증 성장 제외';
+    var counted = now.walks > before.walks;   // 이번 산책이 워킹패스 성장 횟수에 들어갔는지(5분 이상)
+    var shortNote = (R.RECORD_MIN_MINUTES || 5) + '분 미만이라 워킹패스 성장 제외';
     // 주민증 성장(11/16 자라는 주민증) — 센 산책 하나마다 주민증이 자란다(특기·특이 사항이 생기고 승급)
     function cardRows() {
       var cardUps = R.newUnlocks(before, now).filter(function (t) { return t.indexOf('발도장') < 0; });
@@ -358,8 +358,8 @@
       var nextLine = nr ? nr.name + '까지 ' + (nr.minWalks - now.walks) + '회' : now.walks + '회째';
       if (rankUp) { row(SEAL, false, rankUp.replace(/했어요$/, '!'), nextLine); chip(rankUp.replace(/했어요$/, ''), true); }
       var short = others.join(' · ').replace(/이 생겼어요/g, ' 생김').replace(/가 생겼어요/g, ' 생김');
-      if (others.length) { row(CARD, true, '주민증에 ' + short, rankUp ? '' : nextLine); chip(short); }
-      else if (!rankUp) { row(CARD, true, '주민증 성장', nextLine); chip('주민증 성장'); }
+      if (others.length) { row(CARD, true, '워킹패스에 ' + short, rankUp ? '' : nextLine); chip(short); }
+      else if (!rankUp) { row(CARD, true, '워킹패스 성장', nextLine); chip('워킹패스 성장'); }
     }
     if (timeOnly && walk.noRoute) {
       // 위치를 쓰기로 했지만 위치를 거의 못 받은 산책(walk.html) — 걸은 시간만 남았다
@@ -381,7 +381,7 @@
     if (walk.rewardEligible === false) {
       // 짧은 길 기록 산책 — 5분은 넘었지만 200m가 안 됐으면 주민증만 자라고 발도장은 없다
       if (counted) { cardRows(); note('200m 미만이라 발도장 없음', 'got-hint'); }
-      else note('5분 미만이라 발도장·주민증 성장 제외', 'got-hint');
+      else note('5분 미만이라 발도장·워킹패스 성장 제외', 'got-hint');
       // 화면이 꺼져 있던(다른 앱) 동안 길이 끊겨 거리가 모자랐을 수 있다 — 앱을 켜 두거나 여기 찍기(11/17)
       if (walk.gapMin > 0) note('화면이 꺼진 동안은 길이 끊겨요 · 앱을 켜 두거나 "여기 찍기"', 'got-hint');
     } else {

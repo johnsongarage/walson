@@ -48,4 +48,4 @@ window.PETWALK_DEMO_GUARDIANS = [
   {"id":"field-1794901995144","cat":"spot","name":"왈슨커피","lat":37.61278,"lng":127.1517,"source":"demo","demo":true,"pet":{"indoor":"carrier","large":"small","terrace":true,"water":true,"kind":"food","rules":true},"tags":["주차가능"],"guardian":{"name":"케리","kind":"home","style":"photo","signal":"yellow","line":"간식주면 바로 배 뒤집어요","photo":"spots/photos/field-1794901995144-g-ef7e06e367.jpg"}}
 ];
 // 수호견 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).
-window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 수호견","homeLine":"사장님 댁 반려견· 가게엔 출근 안 하는 재택 명예수호견","workBadge":"출근 수호견","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","showSignal":true,"showSignalLabel":false,"showLine":true,"showKindLine":true,"showPetChips":true,"showTownExtra":false};
+window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 지킴이","homeLine":"사장님 댁 반려견· 가게엔 출근 안 하는 재택 명예 지킴이","workBadge":"출근 지킴이","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","showSignal":true,"showSignalLabel":false,"showLine":true,"showKindLine":true,"showPetChips":true,"showTownExtra":false};

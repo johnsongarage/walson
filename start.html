@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>강아지 주민증 만들기</title>
+<title>강아지 워킹패스 만들기</title>
 <!-- 카톡·SNS 링크 미리보기(2026-11-16, 시안 1-B). 이미지를 바꾸면 ?v= 번호를 올릴 것 — 카톡이 예전 이미지를 오래 기억한다 -->
 <meta name="description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="왈슨">
 <meta property="og:locale" content="ko_KR">
-<meta property="og:title" content="왈슨 · 강아지 주민증 만들기">
+<meta property="og:title" content="왈슨 · 강아지 워킹패스 만들기">
 <meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/start.html">
 <meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=5">
@@ -231,20 +231,20 @@
         <div class="tag-opts" id="tag-opts"></div>
         <p class="tag-hint" id="tag-hint"></p>
       </div>
-      <button type="button" class="btn-main" id="make-btn" disabled>주민증 만들기</button>
+      <button type="button" class="btn-main" id="make-btn" disabled>워킹패스 만들기</button>
     </div>
     <button type="button" class="btn-text" id="back-btn">성향 다시 고르기</button>
   </section>
 
   <!-- 3단계 -->
   <section class="step" id="step-3" hidden>
-    <h1 id="done-title">주민증이 나왔어요</h1>
+    <h1 id="done-title">워킹패스가 나왔어요</h1>
     <p class="lead">저장해서 가족이나 친구에게 자랑해 보세요.</p>
-    <img class="card-img" id="card-img" alt="강아지 주민증 카드">
+    <img class="card-img" id="card-img" alt="강아지 워킹패스 카드">
     <div class="cc-box" id="cc-box">
       <p class="cc-title">테두리 색을 골라 보세요</p>
       <div id="cc-mount"></div>
-      <p class="cc-note">테두리만 바뀌고 성향 띠는 성향 색 그대로예요. 나중에 [주민증] 탭에서도 바꿀 수 있어요.</p>
+      <p class="cc-note">테두리만 바뀌고 성향 띠는 성향 색 그대로예요. 나중에 [워킹패스] 탭에서도 바꿀 수 있어요.</p>
     </div>
     <!-- 저장 모양(2026-11-14 피드백): 가로 카드만 저장하면 인스타 스토리·카톡 프로필에서 양옆이 잘린다 -->
     <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
@@ -309,8 +309,8 @@
   var sampleShown = !!(window.PetwalkSample && PetwalkSample.isOn());
   var photoDataUrl = sampleShown ? null : (profile.photo || null);
   var photoImage = null;
-  var guardianSpot = null; // 가게 수호견 카드를 보는 중이면 그 가게 이름
-  var guardianBadge = '수호견'; // 재택 명예 수호견 / 출근 수호견
+  var guardianSpot = null; // 가게 지킴이 카드를 보는 중이면 그 가게 이름
+  var guardianBadge = '지킴이'; // 재택 명예 지킴이 / 출근 지킴이
 
   var steps = [1, 2, 3].map(function (n) { return document.getElementById('step-' + n); });
   var bars = [1, 2, 3].map(function (n) { return document.getElementById('bar-' + n); });
@@ -395,7 +395,7 @@
   photoInput.addEventListener('change', function () {
     var file = photoInput.files[0];
     if (!file) return;
-    resizeImageFile(file, 960).then(function (dataUrl) {   // 2026-11-18 480 → 960px: 주민증·프로필에서 키워도 덜 흐리게
+    resizeImageFile(file, 960).then(function (dataUrl) {   // 2026-11-18 480 → 960px: 워킹패스·프로필에서 키워도 덜 흐리게
       photoDataUrl = dataUrl;
       showPhoto(dataUrl);
     }).catch(function (err) {
@@ -434,7 +434,7 @@
       alert('저장에 실패했습니다(사진 용량이 너무 클 수 있어요). 카드는 그대로 만들어 드릴게요.');
     }
     profile = p;
-    if (isNewCard) window.WalsonTrack && WalsonTrack.send('card_made', { signal: signal, size: chosenSize || 'unknown' });   // 통계: 처음 만든 주민증만(가입 대신), 크기는 고른 경우만
+    if (isNewCard) window.WalsonTrack && WalsonTrack.send('card_made', { signal: signal, size: chosenSize || 'unknown' });   // 통계: 처음 만든 워킹패스만(가입 대신), 크기는 고른 경우만
     renderCard().then(function () { showStep(3); });
   });
 
@@ -497,14 +497,14 @@
       mountColors();
       document.getElementById('done-title').textContent = guardianSpot
         ? guardianSpot + ' ' + guardianBadge + ' ' + profile.name
-        : profile.name + '의 주민증이 나왔어요';
+        : profile.name + '의 워킹패스가 나왔어요';
     });
   }
 
   // 꾸미고 저장하기(한 화면 편집기): 휴대폰은 공유 시트(사진 앱에 저장 가능), PC는 파일로 내려받기 — save-image.js
   document.getElementById('save-btn').addEventListener('click', function () {
     IC.openEditor({
-      profile: profile, photo: photoImage, title: guardianSpot ? guardianSpot + ' ' + guardianBadge : '강아지 주민증',
+      profile: profile, photo: photoImage, title: guardianSpot ? guardianSpot + ' ' + guardianBadge : '강아지 워킹패스',
       frontOpts: function () { var ri = rankInfo(); return { rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null }; },
       drawBack: null,
       onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt, how: how }); },

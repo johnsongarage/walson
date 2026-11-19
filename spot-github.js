@@ -116,9 +116,9 @@
       (mapGroups ? '// 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.\n' +
         'window.PETWALK_MAP_GROUPS = [\n' + mapGroups.map(function (g) { return '  ' + JSON.stringify(g); }).join(',\n') +
         (mapGroups.length ? '\n' : '') + '];\n' : '') +
-      '// 예시 수호견 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.\n' +
+      '// 예시 지킴이 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.\n' +
       'window.PETWALK_DEMO_GUARDIANS = [\n' + demo.map(function (d) { return '  ' + JSON.stringify(d); }).join(',\n') + (demo.length ? '\n' : '') + '];\n' +
-      (guardianText ? '// 수호견 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).\n' +
+      (guardianText ? '// 지킴이 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).\n' +
         'window.PETWALK_GUARDIAN_TEXT = ' + JSON.stringify(guardianText) + ';\n' : '');
   }
 

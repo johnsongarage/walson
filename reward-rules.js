@@ -18,10 +18,12 @@
   // 주민증 부제가 "남양주 다산동 ○○"로 바뀌고, 정착 주민부터 사진 귀퉁이에 승급 도장이 찍힌다(id-card.js).
   // FRAME_TIERS는 예전 카드 그림용으로 남겨 둔다(옛 화면이 캐시에 남아 있어도 깨지지 않게).
   var RANKS = [
-    { level: 0, name: '새내기 주민', short: '새내기', to: '새내기 주민으로', be: '새내기 주민이 돼요', minWalks: 0 },
-    { level: 1, name: '정착 주민',   short: '정착',   to: '정착 주민으로',   be: '정착 주민이 돼요',   minWalks: 5 },
-    { level: 2, name: '토박이',      short: '토박이', to: '토박이로',        be: '토박이가 돼요',      minWalks: 15 },
-    { level: 3, name: '터줏대감',    short: '터줏대감', to: '터줏대감으로',  be: '터줏대감이 돼요',    minWalks: 30 }
+    // 2026-11-19 이름 바꿈(가르시아 용어 정리, 2030 여성 견주 타깃): 새내기 주민 → 산책 입문자, 정착 주민 → 산책 러버,
+    // 토박이 → 프로 산책러, 터줏대감 → 핑크 앰배서더. 숫자(0·5·15·30)는 그대로. seal = 카드 도장에 찍는 짧은 글자(원 안에 들어가게)
+    { level: 0, name: '산책 입문자',   short: '입문자',   seal: '입문',     to: '산책 입문자로',   be: '산책 입문자가 돼요',   minWalks: 0 },
+    { level: 1, name: '산책 러버',     short: '러버',     seal: '산책러버', to: '산책 러버로',     be: '산책 러버가 돼요',     minWalks: 5 },
+    { level: 2, name: '프로 산책러',   short: '프로',     seal: '프로',     to: '프로 산책러로',   be: '프로 산책러가 돼요',   minWalks: 15 },
+    { level: 3, name: '핑크 앰배서더', short: '앰배서더', seal: '앰배서더', to: '핑크 앰배서더로', be: '핑크 앰배서더가 돼요', minWalks: 30 }
   ];
 
   // 공원 두 곳은 OSM 공원 중심 좌표(2026-09-25 확인). 공원 경계를 못 받아와서 반경은 넉넉히 잡음 —
@@ -126,8 +128,8 @@
   // 말은 주민증 말(2026-11-16) — 예전 "스킬 칸·특성 칸·○ 테두리" 대신 특기·특이 사항·승급
   function nextGoalText(p) {
     var goals = [];
-    if (p.walks < SLOT_RULES.skill) goals.push({ left: SLOT_RULES.skill - p.walks, what: '주민증에 특기가 생겨요' });
-    if (p.walks < SLOT_RULES.passive) goals.push({ left: SLOT_RULES.passive - p.walks, what: '주민증에 특이 사항이 생겨요' });
+    if (p.walks < SLOT_RULES.skill) goals.push({ left: SLOT_RULES.skill - p.walks, what: '워킹패스에 특기가 생겨요' });
+    if (p.walks < SLOT_RULES.passive) goals.push({ left: SLOT_RULES.passive - p.walks, what: '워킹패스에 특이 사항이 생겨요' });
     var nr = nextRank(p.walks);
     if (nr) goals.push({ left: nr.minWalks - p.walks, what: nr.be });
     goals.sort(function (a, b) { return a.left - b.left; });

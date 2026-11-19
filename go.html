@@ -177,7 +177,7 @@
       <span class="ws-who" id="who">산책 중</span>
       <div class="ws-clock"><span id="clock">0</span><small>분</small></div>
       <span class="ws-since" id="since"></span>
-      <p class="ws-note">오늘 목표·이번 주 기록·꾸준함 도장에 들어가요. 발도장·미션·주민증 성장은 위치를 쓸 때만이에요.</p>
+      <p class="ws-note">오늘 목표·이번 주 기록·꾸준함 도장에 들어가요. 발도장·미션·워킹패스 성장은 위치를 쓸 때만이에요.</p>
       <p class="fallback" id="fallback-note" hidden>위치를 쓸 수 없어서 시간만 재고 있어요(출발 시각은 그대로). 휴대폰 설정에서 이 앱(또는 브라우저)의 위치를 허용한 뒤, 산책 나가기 화면의 "바꾸기"로 다시 켤 수 있어요.</p>
     </div>
     <div class="ws-notice" id="walk-notice" role="status" hidden><span class="ws-notice-icon" aria-hidden="true"></span><span class="ws-notice-text"></span></div>
@@ -272,7 +272,7 @@
     document.getElementById('mode-name').textContent = on ? '길도 기록해요 · 위치 사용' : '시간만 재요 · 위치 안 씀';
     document.getElementById('mode-note').textContent = on
       ? '발도장·미션이 그 자리에서 찍혀요. 앱을 켜 둔 채 걸어 주세요 — 통화·유튜브 중엔 기록이 끊길 수 있어요.'
-      : '주민증 성장·오늘 목표·꾸준함 도장엔 들어가요. 발도장·미션은 위치를 쓸 때만 찍혀요.';
+      : '워킹패스 성장·오늘 목표·꾸준함 도장엔 들어가요. 발도장·미션은 위치를 쓸 때만 찍혀요.';
     var box = document.getElementById('gps-mission');
     box.hidden = !(on && box.getAttribute('data-ready'));
   }

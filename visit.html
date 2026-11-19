@@ -76,7 +76,7 @@
     <p class="sub">QR이 오래됐거나 잘못 찍혔을 수 있어요. 가게에 알려 주세요.</p>
   </div>
 
-  <a class="btn-main" id="cta-card" href="start.html" hidden>30초 만에 우리 강아지 주민증 만들기</a>
+  <a class="btn-main" id="cta-card" href="start.html" hidden>30초 만에 우리 강아지 워킹패스 만들기</a>
   <a class="btn-sub" href="town.html">동네 지도 보기</a>
   <a class="btn-sub" href="index.html">왈슨 처음 화면</a>
   <p class="fine">방문 도장은 이 휴대폰에만 남고, 위치는 읽지 않아요. 몇 명이 다녀갔는지는 익명 사용 통계로만 셉니다.
@@ -106,10 +106,10 @@
   // 단골 Lv(2026-11-15) — [동네] 지도의 가게 팝업·목록과 같은 셈(shop-visits.js): 처음 1번 Lv1, 5번마다 Lv↑
   $('count').textContent = ShopVisits.countText(r);
 
-  var profile = WalsonStore.profile() || {};   // 주민증(store.js)
+  var profile = WalsonStore.profile() || {};   // 워킹패스(store.js)
   var sampleOn = false;
   try { sampleOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sampleOn = false; }
-  if (!profile.cardNo || sampleOn) $('cta-card').hidden = false;   // 처음 온 손님은 주민증 만들기로
+  if (!profile.cardNo || sampleOn) $('cta-card').hidden = false;   // 처음 온 손님은 워킹패스 만들기로
   // 홈 화면 앱이 아닌 곳(휴대폰 카메라 → 사파리·크롬)에서 열렸고 이 브라우저엔 주민증이 없으면 —
   // 앱을 따로 쓰는 사람일 수 있다(저장 공간이 따로라 도장이 앱에 안 보임). 앱 안에서 다시 찍게 알려 준다(2026-11-16)
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;

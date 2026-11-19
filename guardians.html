@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>우리 동네 수호견</title>
+<title>우리 동네 지킴이</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
 <meta name="theme-color" content="#fffdfd">
@@ -65,12 +65,12 @@
 <div class="wrap">
   <div class="topbar">
     <a href="town.html" title="동네 지도로 돌아가기">←</a>
-    <h1>우리 동네 수호견</h1>
+    <h1>우리 동네 지킴이</h1>
   </div>
   <p class="subtitle">단골 가게를 지키는 강아지들이에요. 만나면 강아지 성향(색)을 보고 인사해 주세요.</p>
   <div id="areas"></div>
-  <div class="empty" id="empty" hidden>아직 등록된 수호견이 없어요.</div>
-  <p class="note">가게 주인이 올려도 된다고 한 강아지만 보여요. 가게에 늘 있는 건 아니에요.<br>수호견은 가게·브랜드의 공식 캐릭터가 아니고, 왈슨은 가게·브랜드와 제휴 관계가 아니에요.</p>
+  <div class="empty" id="empty" hidden>아직 등록된 지킴이가 없어요.</div>
+  <p class="note">가게 주인이 올려도 된다고 한 강아지만 보여요. 가게에 늘 있는 건 아니에요.<br>지킴이는 가게·브랜드의 공식 캐릭터가 아니고, 왈슨은 가게·브랜드와 제휴 관계가 아니에요.</p>
 </div>
 
 <script>
@@ -117,7 +117,7 @@
       if (g.line) body.appendChild(el('div', 'line', '“' + g.line + '”'));
       var acts = el('div', 'acts');
       var a1 = el('a', 'map', '지도에서'); a1.href = 'town.html?spot=' + encodeURIComponent(p.id);
-      var a2 = el('a', 'idcard', '주민증'); a2.href = 'start.html?guardian=' + encodeURIComponent(p.id);
+      var a2 = el('a', 'idcard', '워킹패스'); a2.href = 'start.html?guardian=' + encodeURIComponent(p.id);
       acts.appendChild(a1); acts.appendChild(a2);
       body.appendChild(acts);
       card.appendChild(body);

@@ -17,11 +17,11 @@
 
   // 색 다섯 가지 — 글씨는 바탕·카드 위에서 대비 4.5:1 이상, 버튼 글씨(hlInk)는 버튼 색(hl) 위에서 6:1 이상
   var PALETTES = {
-    jelly: { label: '젤리 핑크', desc: '크림 화이트 · 젤리 핑크',
+    jelly: { label: '젤리 화이트', desc: '크림 화이트 · 젤리 핑크',
       bg: '#fffdfd', panel: '#ffffff', panelBorder: '#f0d6e2', ink: '#121215', inkSoft: '#6b6b70',
       accent: '#c2185b', accentTint: '#ffe4ef', hl: '#ff5c9d', hlInk: '#121215', line: '#121215', shadowRgb: '18, 18, 21' },
     // 블랙 — line은 진한 테두리 대신 거의 안 보이는 선(버튼은 테두리·그림자 대신 핑크 글로우, 아래 BLACK 규칙)
-    black: { label: '블랙 핑크', desc: '딥 차콜 · 네온 핑크', dark: true,
+    black: { label: '젤리 블랙', desc: '딥 차콜 · 네온 핑크', dark: true,
       bg: '#121215', panel: '#1e1e24', panelBorder: '#2e2e38', ink: '#fffdfd', inkSoft: '#a3a3ad',
       accent: '#ff4d94', accentTint: '#3a1f2c', hl: '#ff4d94', hlInk: '#121215', line: '#3a3a46', shadowRgb: '0, 0, 0' },
     yellow: { label: '왈슨 노랑', desc: '노랑 · 진갈색',

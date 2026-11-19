@@ -125,7 +125,7 @@
     <div class="modes" id="modes" role="group" aria-label="무엇을 볼까"></div>
     <button type="button" class="mission" id="mission">
       <span class="ic">1</span>
-      <span><b>미션 1 · 다산 중앙공원 한 바퀴</b><small>3곳 모으면 우리 개 주민증 키링(공원 현장 선착순 10마리) · 시안 문구</small></span>
+      <span><b>미션 1 · 다산 중앙공원 한 바퀴</b><small>3곳 모으면 우리 개 워킹패스 키링(공원 현장 선착순 10마리) · 시안 문구</small></span>
     </button>
   </div>
   <p class="modes-note" id="modes-note"></p>
@@ -262,7 +262,7 @@
     { id: 'view', label: '지금 화면', note: '시트 위로 보이는 지도 안, 위 칩으로 켠 것만 · 화면 가운데에서 가까운 순' },
     { id: 'sos', label: '급할 때', cls: 'sos', note: '병원·화장실을 가까운 순으로(제휴와 상관없이)' },
     { id: 'shop', label: '동반 가게', note: '같이 들어갈 수 있는 곳(동반 안 됨은 안 보여요)' },
-    { id: 'guard', label: '수호견', note: '얼굴이 주인공이라 카드로 — 지금은 예시만 있어요' }
+    { id: 'guard', label: '지킴이', note: '얼굴이 주인공이라 카드로 — 지금은 예시만 있어요' }
   ];
   function paintModes() {
     $('modes').innerHTML = MODES.map(function (m) {
@@ -336,13 +336,13 @@
   // ── 수호견 그리드(예시) ──
   var GUARD = (window.PETWALK_DEMO_GUARDIANS || []).filter(function (p) { return p && p.guardian && p.guardian.name; });
   function gridHtml() {
-    if (!GUARD.length) return '<p class="empty">아직 수호견이 없어요.</p>';
+    if (!GUARD.length) return '<p class="empty">아직 지킴이가 없어요.</p>';
     return '<div class="grid">' + GUARD.map(function (p) {
       var g = p.guardian, sig = InfraPins.SIGNALS[g.signal] || { color: '#ccc', line: '' };
       var photo = g.photo || p.photo || 'icons/sample-walson.jpg';
       return '<button type="button" class="card" data-g="' + esc(p.id) + '"><img src="' + esc(photo) + '" alt="" style="border-color:' + sig.color + '">' +
         '<b>' + esc(g.name) + '</b><span>' + esc(p.name || '') + ' · ' + esc(sig.line || '') + '</span><span class="ex">예시</span></button>';
-    }).join('') + '</div><p class="note">진짜 수호견은 사장님 동의를 받은 가게만 올라와요(공개 지도엔 가짜를 섞지 않아요).</p>';
+    }).join('') + '</div><p class="note">진짜 지킴이는 사장님 동의를 받은 가게만 올라와요(공개 지도엔 가짜를 섞지 않아요).</p>';
   }
 
   // ── 요약 줄 + 목록 그리기 ──
@@ -379,7 +379,7 @@
         setTimeout(function () {
           map.setView([p.lat, p.lng], 17, { animate: false });
           map.panBy([0, sheetH() / 2], { animate: false });
-          L.popup(InfraPins.POPUP_OPTS).setLatLng([p.lat, p.lng]).setContent('<b>' + esc(p.guardian.name) + '</b> · ' + esc(p.name || '') + '<br><small>예시 수호견 — 실제 지도엔 없어요</small>').openOn(map);
+          L.popup(InfraPins.POPUP_OPTS).setLatLng([p.lat, p.lng]).setContent('<b>' + esc(p.guardian.name) + '</b> · ' + esc(p.name || '') + '<br><small>예시 지킴이 — 실제 지도엔 없어요</small>').openOn(map);
         }, 250);
       });
     });

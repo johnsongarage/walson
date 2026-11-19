@@ -132,7 +132,7 @@
     { key: 'mine', label: '내 핀', color: '#b8563a', system: true },
     { key: 'deco', label: '그림 강아지', color: '#e9c46a', system: true },
     // 수호견 가게(2026-11-17): 동반 가게와 같은 레벨. 가게 중 수호견이 있는 곳 — 핀은 강아지 동그라미
-    { key: 'guard', label: '수호견 가게', color: '#d08a2e', system: true, fromShops: true },
+    { key: 'guard', label: '지킴이 가게', color: '#d08a2e', system: true, fromShops: true },
     // 응원 가게(2026-11-17): 같은 레벨의 세 번째. 동반도 수호견도 아니지만 사장님이 원해서 참여한 가게 — 핀은 하트
     { key: 'cheer', label: '응원 가게', color: '#d2667a', system: true, fromShops: true }
   ];
@@ -380,8 +380,8 @@
   // 확인 안 된 것을 확인된 것처럼, 가게 공식 캐릭터처럼 보이지 않게(11/15).
   // 예시 안내 문구는 11/17 가르시아 "안 들어가게"·"칸 제거"로 없앴다 — 예시 화면임은 town.html 아래 띠가 알린다.
   var GUARDIAN_TEXT_DEFAULT = {
-    homeBadge: '재택 명예 수호견', homeLine: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 수호견',
-    workBadge: '출근 수호견', workLine: '가게에서 손님을 맞는 사장님네 강아지예요',
+    homeBadge: '재택 명예 지킴이', homeLine: '사장님 댁 반려견이에요 · 가게엔 출근 안 하는 재택 명예 지킴이',
+    workBadge: '출근 지킴이', workLine: '가게에서 손님을 맞는 사장님네 강아지예요',
     showSignal: true, showLine: true, showKindLine: true, showPetChips: true,
     // 11/17 가르시아 "보이면 걸어서 몇 분 정도는 해 주자": 걸어서 몇 분과 QR 단골 안내를 따로 켜고 끈다
     showWalk: true, showQr: true
@@ -686,7 +686,7 @@
     var links = el('div', 'display:flex;flex-wrap:wrap;gap:12px;margin-top:2px;');
     var linkCss = 'font-size:12px;font-weight:700;color:#b8563a;text-decoration:none;';
     if (g) {
-      var card = el('a', linkCss, '주민증 보기');
+      var card = el('a', linkCss, '워킹패스 보기');
       card.href = 'start.html?guardian=' + encodeURIComponent(pin.id) + (pin.source === 'demo' ? demoQuery() : '');
       links.appendChild(card);
     }

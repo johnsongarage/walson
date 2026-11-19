@@ -18,7 +18,7 @@
     yellow: { line: '천천히 인사해요', color: '#dfa21f' },
     red:    { line: '눈으로만 예뻐해 주세요', color: '#d2493f' },
     // 신호등을 정하지 않은 가게 수호지킴이용 — 불은 켜지 않고 앱 색으로 그린다
-    none:   { label: '수호견', line: '가게를 지키고 있어요', color: '#b8563a' }
+    none:   { label: '지킴이', line: '가게를 지키고 있어요', color: '#b8563a' }
   };
   // 카드 색(2026-11-18) — 테두리·저장 바탕·키링 뒷면 QR 판. 프로필 cardColor에 id로 저장, 없으면 모카.
   // 같은 날 밤 가르시아 "색상 고를 수 있게 바를 줘" — 색 막대(card-color.js)로 고른 색은 '#rrggbb' 그대로 저장한다.
@@ -127,7 +127,7 @@
     if (!(document.fonts && document.fonts.load)) return Promise.resolve();
     return Promise.all([
       document.fonts.load('800 76px Pretendard'), document.fonts.load('700 36px Pretendard'), document.fonts.load('600 34px Pretendard'),
-      document.fonts.load('60px "Black Han Sans"', '새내기정착주민토박이터줏대감확인전입')
+      document.fonts.load('60px "Black Han Sans"', '입문산책러버프로앰배서더확인시작강아지워킹패스')
     ]).catch(function () {});
   }
   function todayText() {
@@ -222,8 +222,8 @@
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     ctx.font = font(800, 76);
-    ctx.fillText('강아지 주민증', 96, 168);   // 2026-11-16 "댕댕이" → "강아지"(가르시아: 못 알아듣는 사람이 있을 것)
-    var subtitle = opts.subtitle || ('남양주 다산동 ' + (rank ? rank.name : '산책 주민'));
+    ctx.fillText('강아지 워킹패스', 96, 168);   // 2026-11-16 "댕댕이" → "강아지"(가르시아: 못 알아듣는 사람이 있을 것)
+    var subtitle = opts.subtitle || ('남양주 다산동 ' + (rank ? rank.name : '산책 메이트'));
     ctx.fillStyle = SOFT;
     ctx.font = font(600, fitText(ctx, subtitle, 900, 34, 600));
     ctx.fillText(subtitle, 100, 222);
@@ -266,7 +266,7 @@
       ctx.textAlign = 'left';
     }
     // 승급 도장 — 정착 주민부터, 사진 오른쪽 아래 귀퉁이에 걸쳐서(진짜 신분증의 직인 자리)
-    if (rank && rank.level >= 1) seal(ctx, px + pw - 34, py + ph - 72, 90, rank.name, -0.21);
+    if (rank && rank.level >= 1) seal(ctx, px + pw - 34, py + ph - 72, 90, rank.seal || rank.name, -0.21);
 
     // 오른쪽 정보
     var tx = 620, maxW = W - 96 - tx;
@@ -402,7 +402,7 @@
     ctx.font = font(600, fitText(ctx, sub, 1000, 34, 600));
     ctx.fillText(sub, 100, 214);
     // 오른쪽 위 — 지금 등급 도장(정착 주민부터)
-    if (cur && cur.level >= 1) seal(ctx, W - 170, 150, 72, cur.name, -0.18);
+    if (cur && cur.level >= 1) seal(ctx, W - 170, 150, 72, cur.seal || cur.name, -0.18);
 
     ctx.strokeStyle = LINE;
     ctx.lineWidth = 3;
@@ -424,7 +424,7 @@
       ctx.fillStyle = reached ? INK : DIM;
       ctx.font = font(700, 36);
       ctx.fillText(r.name, colL + 236, y);
-      if (reached) seal(ctx, 722, y - 12, 32, r.minWalks === 0 ? '전입' : '확인', -0.2);
+      if (reached) seal(ctx, 722, y - 12, 32, r.minWalks === 0 ? '시작' : '확인', -0.2);
       else {
         ctx.fillStyle = DIM;
         ctx.font = font(600, 28);
@@ -537,7 +537,7 @@
     tapWaves(ctx, bx + 33, 800, onPanel);
     ctx.fillText('카메라로 찍거나', bx + 93, 782);
     ctx.fillText('휴대폰을 대 보세요', bx + 93, 842);
-    var opens = (profile.name ? profile.name + ' ' : '') + '주민증이 열려요';
+    var opens = (profile.name ? profile.name + ' ' : '') + '워킹패스가 열려요';
     ctx.font = font(700, fitText(ctx, opens, 640, 38, 700));
     ctx.textAlign = 'center';
     ctx.fillText(opens, cx, 930);
@@ -724,10 +724,10 @@
       onHue: function (h, done, st) { if (CC) { o.profile.cardColor = CC.hueHex(h); st.extra.cardColor = o.profile.cardColor; } }
     });
     return WalsonEditor.open({
-      title: o.title || '강아지 주민증',
+      title: o.title || '강아지 워킹패스',
       formats: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: o.fmt || 'card',
       tabs: tabs, tab: o.side === 'back' ? 'side' : undefined,
-      photo: o.photo ? { sources: [['profile', '주민증 사진']], src: 'profile', zoom: frame ? frame.zoom : 1, x: frame ? frame.x : 0.5, y: frame ? frame.y : 0.5,
+      photo: o.photo ? { sources: [['profile', '워킹패스 사진']], src: 'profile', zoom: frame ? frame.zoom : 1, x: frame ? frame.x : 0.5, y: frame ? frame.y : 0.5,
         home: { x: 0.5, y: 0.5 }, noBand: '뒷면엔 사진이 없어요.' } : null,
       extra: { side: o.side === 'back' ? 'back' : 'front' },
       hint: o.photo ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키워요' : '글자 붙이기로 한마디 얹어 보세요',
@@ -754,7 +754,7 @@
         return { x: ox + PHOTO_BOX.x * k, y: oy + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k, img: o.photo };
       },
       storeKey: 'walson_edit_id_card',   // [저장]한 꾸미기(모양·사진 칸 자리·글자)를 다음에 이어서(주민증에 든 원래 사진은 그대로)
-      fileName: function (st) { return (o.profile.name || 'dog') + '-주민증' + (st.extra.side === 'back' && o.drawBack ? '-뒷면' : '') + (st.fmt === 'card' ? '' : '-' + st.fmt) + '.png'; },
+      fileName: function (st) { return (o.profile.name || 'dog') + '-워킹패스' + (st.extra.side === 'back' && o.drawBack ? '-뒷면' : '') + (st.fmt === 'card' ? '' : '-' + st.fmt) + '.png'; },
       onSave: o.onSave,
       // [저장]했거나 내보냈으면(kept) 사진 맞춤을 카드 쪽에도 남긴다 — 부른 화면은 onClose에서 카드를 다시 그린다
       onClose: function (st, kept) {
