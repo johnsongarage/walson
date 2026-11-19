@@ -3,6 +3,7 @@
 // 원칙: 화면 높이에 딱 맞춘다(스크롤 없음) · 미리 보기가 남은 자리 전부(9:16도 한눈에) · 사진은 미리 보기에서 끌고 두 손가락으로 키운다 ·
 //       아래 탭은 하나씩만 얇게 · 저장은 늘 오른쪽 위 · 글을 쓸 땐 자판 바로 위 입력 칸(미리 보기는 그 위에 그대로).
 // 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다(저장·공유는 save-image.js — 사용자가 고른 앱으로).
+// 미리 보기는 canvas-view.js(WalsonView)가 있으면 보이는 크기만큼 곱게 줄여 보여 준다(2026-11-18) — 편집기를 쓰는 화면은 canvas-view.js도 같이 불러올 것.
 //
 // WalsonEditor.open({
 //   title: '산책 영수증',
@@ -217,7 +218,9 @@
     sheet.innerHTML = '<div class="we-sheet-in"><input type="text" autocomplete="off" enterkeyhint="done"><button type="button" class="we-chip accent">완료</button></div><p class="we-count"></p>';
     document.body.appendChild(root); document.body.appendChild(sheet);
     var q = function (s) { return root.querySelector(s); };
-    var cv = q('canvas'), ctx = cv.getContext('2d'), stage = q('.we-stage'), tray = q('.we-tray'), tabsEl = q('.we-tabs'), hint = q('.we-hint'), zoomTag = q('.we-zoomtag');
+    // 그림은 원래 크기 캔버스(cv — 저장·공유도 이것)에 그리고, 미리 보기 칸(vw)엔 보이는 크기만큼 곱게 줄여 옮긴다
+    // (canvas-view.js — 2026-11-18 PC에서 크게 줄인 미리 보기의 작은 글씨가 끊겨 보이던 것). 손가락·마우스는 vw에서 받아 cv 좌표로 바꾼다
+    var vw = q('canvas'), cv = document.createElement('canvas'), ctx = cv.getContext('2d'), stage = q('.we-stage'), tray = q('.we-tray'), tabsEl = q('.we-tabs'), hint = q('.we-hint'), zoomTag = q('.we-zoomtag');
     var input = sheet.querySelector('input');
     q('.we-title').textContent = cfg.title || '꾸미기';
     // [공유] 메뉴의 '공유하기'는 공유 창을 열 수 있는 브라우저에서만(대부분의 PC·일부 앱 안 브라우저는 '사진첩에 저장'만)
@@ -256,8 +259,11 @@
         left = (sw - Math.floor(cv.width * k)) / 2; top = (sh - Math.floor(cv.height * k)) / 2;
         zoomTag.hidden = true;
       }
-      cv.style.width = Math.floor(cv.width * k) + 'px'; cv.style.height = Math.floor(cv.height * k) + 'px';
-      cv.style.left = Math.round(left) + 'px'; cv.style.top = Math.round(top) + 'px';
+      var vwW = Math.floor(cv.width * k), vwH = Math.floor(cv.height * k);
+      vw.style.width = vwW + 'px'; vw.style.height = vwH + 'px';
+      vw.style.left = Math.round(left) + 'px'; vw.style.top = Math.round(top) + 'px';
+      if (window.WalsonView) WalsonView.paint(vw, cv, vwW, vwH);
+      else { if (vw.width !== cv.width || vw.height !== cv.height) { vw.width = cv.width; vw.height = cv.height; } var vg = vw.getContext('2d'); vg.clearRect(0, 0, vw.width, vw.height); vg.drawImage(cv, 0, 0); }
       if (!fitted) { fitted = true; requestAnimationFrame(function () { requestAnimationFrame(function () { stage.classList.add('anim'); }); }); }
     }
     var fitted = false;
@@ -277,15 +283,15 @@
 
     // ── 손으로 바로 고치기 ──
     var ptrs = {}, gesture = null, lastTap = 0;
-    function toCanvas(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
+    function toCanvas(e) { var r = vw.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
     function hitSticker(p) { var m = cv.width * 0.02; for (var i = boxes.length - 1; i >= 0; i--) { var b = boxes[i]; if (b && p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m) return i; } return -1; }
     function movable() { return P && band && band.img && (P.fixed || []).indexOf(st.photo.src) < 0; }
     function inBand(p) { return movable() && p.x >= band.x && p.x <= band.x + band.w && p.y >= band.y && p.y <= band.y + band.h; }
     function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
     function hideHint() { hint.classList.add('gone'); }
     function home() { var h = (P && P.home) || {}; st.photo.zoom = 1; st.photo.x = h.x != null ? h.x : 0.5; st.photo.y = h.y != null ? h.y : 0.4; }
-    cv.addEventListener('pointerdown', function (e) {
-      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    vw.addEventListener('pointerdown', function (e) {
+      try { vw.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
       ptrs[e.pointerId] = toCanvas(e);
       var ids = Object.keys(ptrs);
       if (ids.length === 1) {
@@ -299,7 +305,7 @@
       }
       hideHint();
     });
-    cv.addEventListener('pointermove', function (e) {
+    vw.addEventListener('pointermove', function (e) {
       if (!ptrs[e.pointerId] || !gesture) return;
       var p = toCanvas(e); ptrs[e.pointerId] = p;
       var ids = Object.keys(ptrs);
@@ -331,9 +337,9 @@
       if (tap && gesture.kind === 'photo') { if (Date.now() - lastTap < 320) { home(); syncZoom(); schedule(); } lastTap = Date.now(); }   // 두 번 톡 = 처음대로
       gesture = null;
     }
-    cv.addEventListener('pointerup', endPtr);
-    cv.addEventListener('pointercancel', endPtr);
-    cv.addEventListener('wheel', function (e) { if (!movable()) return; e.preventDefault(); st.photo.zoom = clamp(st.photo.zoom * (e.deltaY < 0 ? 1.08 : 0.93), 1, 4); syncZoom(); schedule(); }, { passive: false });
+    vw.addEventListener('pointerup', endPtr);
+    vw.addEventListener('pointercancel', endPtr);
+    vw.addEventListener('wheel', function (e) { if (!movable()) return; e.preventDefault(); st.photo.zoom = clamp(st.photo.zoom * (e.deltaY < 0 ? 1.08 : 0.93), 1, 4); syncZoom(); schedule(); }, { passive: false });
 
     // ── 탭과 도구 칸 ──
     function openTab(k) { tab = k; buildTabs(); buildTray(); fit(); }

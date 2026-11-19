@@ -184,6 +184,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
+<script src="canvas-view.js?v=1"></script>
 </head>
 <body>
 
@@ -288,7 +289,7 @@
 <script src="dog-tags.js?v=1"></script>
 <script src="id-card.js?v=12"></script>
 <script src="card-color.js?v=1"></script>
-<script src="image-editor.js?v=5"></script>
+<script src="image-editor.js?v=6"></script>
 <script src="steady-stamp.js?v=4"></script>
 <script src="mock-server.js?v=2"></script>
 <script>
@@ -300,7 +301,9 @@
 <script>
 (function () {
   var IC = window.WalsonIdCard, RR = window.RewardRules, CS = window.CardShared || {};
-  var canvas = document.getElementById('card-canvas');
+  // 주민증은 원래 크기(1600×1000) 캔버스에 그리고, 화면 칸(#card-canvas)엔 보이는 크기만큼 곱게 줄여 옮긴다(canvas-view.js —
+  // 2026-11-18 PC에서 작은 글씨가 끊겨 보이던 것). 저장·인쇄는 따로 그린다
+  var view = document.getElementById('card-canvas'), canvas = document.createElement('canvas');
   // 산책 기록·주민증·특기와 특이 사항은 store.js(WalsonStore)로 읽고 쓴다
   function $(id) { return document.getElementById(id); }
 
@@ -344,7 +347,9 @@
     if (!hasCard) return;
     if (side === 'front') IC.drawFront(canvas, profile, frontOpts());
     else IC.drawBack(canvas, profile, progress, backOpts());
-    canvas.setAttribute('aria-label', '강아지 주민증 ' + (side === 'front' ? '앞면' : '뒷면'));
+    if (window.WalsonView) WalsonView.show(view, canvas);
+    else { view.width = canvas.width; view.height = canvas.height; view.getContext('2d').drawImage(canvas, 0, 0); }
+    view.setAttribute('aria-label', '강아지 주민증 ' + (side === 'front' ? '앞면' : '뒷면'));
   }
 
   // ── 진행도 ──
@@ -470,7 +475,7 @@
   }
   $('side-front').addEventListener('click', function () { setSide('front'); });
   $('side-back').addEventListener('click', function () { setSide('back'); });
-  canvas.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
+  view.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
 
   // ── 꾸미고 저장하기(한 화면 편집기 — 오른쪽 위 [저장]은 사진첩·내려받기, [공유]는 공유 창) ──
   $('save-btn').addEventListener('click', function () {

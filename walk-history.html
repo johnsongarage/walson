@@ -207,6 +207,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
+<script src="canvas-view.js?v=1"></script>
 </head>
 <body>
 
@@ -275,7 +276,7 @@
 <script src="reward-rules.js?v=11"></script>
 <script src="month-report.js?v=6"></script>
 <script src="walk-receipt.js?v=8"></script>
-<script src="image-editor.js?v=5"></script>
+<script src="image-editor.js?v=6"></script>
 <script>
 (function () {
   // 산책 기록(walk.html·go.html·[오늘] "다녀왔어요"가 저장)·주민증은 store.js(WalsonStore)로 읽고 쓴다
@@ -525,7 +526,9 @@
   }
 
   // ── 고른 산책 · 그리기 ──
-  var canvas = $('rc');
+  // 영수증은 원래 크기(1080px) 캔버스에 그리고, 화면 칸(#rc)엔 보이는 크기만큼 곱게 줄여 옮긴다(canvas-view.js —
+  // 2026-11-18 PC에서 작은 글씨가 끊겨 보이던 것). 저장·공유는 편집기가 따로 그린다
+  var view = $('rc'), canvas = document.createElement('canvas');
   var state = { i: walks.length - 1, fmt: 'story', shown: PAGE };
   try { if (localStorage.getItem(FMT_KEY) === 'feed') state.fmt = 'feed'; } catch (e) { /* 기본은 스토리 */ }
   var m = /[?&]no=(\d+)/.exec(location.search);   // walk-history.html?no=12 — 12번째 산책 영수증
@@ -552,6 +555,8 @@
         photoX: (c.px != null ? c.px : 50) / 100, photoZoom: c.zoom || 1
       });
       if (window.WalsonEditor && c.stickers && c.stickers.length) WalsonEditor.drawStickers(canvas, c.stickers);
+      if (window.WalsonView) WalsonView.show(view, canvas);
+      else { view.width = canvas.width; view.height = canvas.height; view.getContext('2d').drawImage(canvas, 0, 0); }
     });
   }
 
