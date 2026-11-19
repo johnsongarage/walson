@@ -6,36 +6,43 @@
 // 지도 화면·산책 중 화면·인쇄물·운영자 도구에는 무늬를 깔지 않는다. 주민증·영수증처럼 그려서 저장하는 그림은 여기서 안 바뀐다.
 // 다른 화면이 쓰던 window.WalsonTheme(name·isBrutal)은 그대로 둔다(name은 늘 'soft', isBrutal은 늘 false).
 // 2026-11-19 가르시아(2030 여성 견주 타깃, "크림 화이트 + 젤리핑크 + 소프트 라일락 포인트"): 젤리 핑크를 새 기본 색으로.
-// 딸기우유(분홍·자두색)는 젤리 핑크로 바꿨다 — 딸기우유를 골라 둔 기기는 젤리 핑크로 옮긴다. 노랑을 직접 골라 둔 기기는 노랑 그대로.
 // 라일락은 바탕 치와와 무늬에만(icons/dog-pattern-jelly.svg) — 리뉴얼 기획에서 라일락은 '선발대·제보' 표시 몫이라 버튼·글씨엔 안 쓴다.
 // 젤리 핑크는 크림 화이트 위에서 2.9:1이라 글씨로 쓰지 않는다 — 면(버튼·고른 것)으로만, 그 위 글씨는 딥 차콜(6.5:1), 핑크 글씨는 진한 핑크(5.8:1).
+// 같은 날 가르시아 "블랙과 핑크도 테마로 추가해주고 기존 테마는 고를 수 있게 살려놔": 블랙 핑크(딥 차콜 #121215 + 네온 핑크 #ff4d94 + 핑크 글로우)를
+// 더하고, 아침에 젤리 핑크로 바꿨던 딸기우유를 다시 고를 수 있게 살렸다. 블랙은 어두운 색이라 화면마다 박힌 밝은 색(#fff 등)을 theme-black.css가
+// 블랙일 때만 덮어쓴다(_dev/theme-black.py로 다시 만듦) — 화면 <style>에 색을 새로 박으면 그 스크립트를 다시 돌리고 블랙으로 확인한다.
 (function () {
   var KEY = 'walson_palette';
   try { localStorage.removeItem('walson_theme'); } catch (e) { /* 예전 테마 값(11/15) — 저장소를 못 써도 상관없음 */ }
 
-  // 색 세 가지 — 글씨는 바탕·카드 위에서 대비 4.5:1 이상, 버튼 글씨(hlInk)는 버튼 색(hl) 위에서 6.5:1 이상
+  // 색 다섯 가지 — 글씨는 바탕·카드 위에서 대비 4.5:1 이상, 버튼 글씨(hlInk)는 버튼 색(hl) 위에서 6:1 이상
   var PALETTES = {
     jelly: { label: '젤리 핑크', desc: '크림 화이트 · 젤리 핑크',
       bg: '#fffdfd', panel: '#ffffff', panelBorder: '#f0d6e2', ink: '#121215', inkSoft: '#6b6b70',
       accent: '#c2185b', accentTint: '#ffe4ef', hl: '#ff5c9d', hlInk: '#121215', line: '#121215', shadowRgb: '18, 18, 21' },
+    // 블랙 — line은 진한 테두리 대신 거의 안 보이는 선(버튼은 테두리·그림자 대신 핑크 글로우, 아래 BLACK 규칙)
+    black: { label: '블랙 핑크', desc: '딥 차콜 · 네온 핑크', dark: true,
+      bg: '#121215', panel: '#1e1e24', panelBorder: '#2e2e38', ink: '#fffdfd', inkSoft: '#a3a3ad',
+      accent: '#ff4d94', accentTint: '#3a1f2c', hl: '#ff4d94', hlInk: '#121215', line: '#3a3a46', shadowRgb: '0, 0, 0' },
     yellow: { label: '왈슨 노랑', desc: '노랑 · 진갈색',
       bg: '#f4ead3', panel: '#fffdf7', panelBorder: '#e3d3b4', ink: '#2c2018', inkSoft: '#6b5a46',
       accent: '#8a4a1c', accentTint: '#fbe3a4', hl: '#f2b52f', hlInk: '#2c2018', line: '#2c2018', shadowRgb: '60, 40, 20' },
     sea: { label: '바다', desc: '하늘색 · 남색',
       bg: '#e8eef3', panel: '#fcfdfe', panelBorder: '#cad8e3', ink: '#13233a', inkSoft: '#52657a',
-      accent: '#1d5fb5', accentTint: '#d3e5fa', hl: '#6db3f8', hlInk: '#0d1f36', line: '#13233a', shadowRgb: '19, 35, 58' }
+      accent: '#1d5fb5', accentTint: '#d3e5fa', hl: '#6db3f8', hlInk: '#0d1f36', line: '#13233a', shadowRgb: '19, 35, 58' },
+    pink: { label: '딸기우유', desc: '분홍 · 자두색',
+      bg: '#f8e9ec', panel: '#fffbfc', panelBorder: '#ecd2d8', ink: '#2e1c22', inkSoft: '#75585f',
+      accent: '#b02f5b', accentTint: '#fcd7e2', hl: '#ff9ab8', hlInk: '#2e1c22', line: '#2e1c22', shadowRgb: '46, 28, 34' }
   };
   var DEFAULT = 'jelly';
   var key = DEFAULT;
-  try {
-    var saved = localStorage.getItem(KEY);
-    if (saved === 'pink') { saved = 'jelly'; localStorage.setItem(KEY, saved); }   // 딸기우유 → 젤리 핑크(11/19)
-    if (PALETTES[saved]) key = saved;
-  } catch (e) { /* 기본 색 */ }
+  try { var saved = localStorage.getItem(KEY); if (PALETTES[saved]) key = saved; } catch (e) { /* 기본 색 */ }
 
   var root = document.documentElement;
   root.setAttribute('data-theme', 'soft');      // 예전 표시(다른 코드가 읽음)
   root.setAttribute('data-palette', key);
+  // 어두운 색이면 브라우저 기본 부품(고르기 칸·스크롤바·날짜 칸)도 어둡게
+  root.style.colorScheme = PALETTES[key].dark ? 'dark' : 'light';
   // 스크롤바 자리를 늘 비워 둔다 — 내용이 길어져 스크롤바가 생겨도 가운데 정렬·하단 탭이 옆으로 밀리지 않게(2026-11-15)
   root.style.scrollbarGutter = 'stable';
 
@@ -45,6 +52,8 @@
     'checkin-qr.html': 1, 'visit-kit.html': 1, 'partner-proposal.html': 1, 'simulate.html': 1, 'edit-proto.html': 1,
     'map-sheet-proto.html': 1 };
   if (!NO_PATTERN[page]) root.classList.add('has-pattern');
+  // 화면 이름 — theme-black.css가 화면마다 덮어쓸 때 다른 화면의 같은 이름 칸을 건드리지 않게
+  root.setAttribute('data-page', page.replace(/\.html$/, ''));
 
   function vars(p) {
     return '--bg:' + p.bg + ';--panel:' + p.panel + ';--panel-border:' + p.panelBorder + ';--ink:' + p.ink + ';--ink-soft:' + p.inkSoft +
@@ -99,6 +108,21 @@
     H + ' .bar>i{background:var(--hl) !important;box-shadow:inset 0 0 0 1.5px var(--line);}' +
     H + ' .places span.got{border-color:var(--line) !important;background:var(--accent-tint) !important;color:var(--ink) !important;}';
 
+  // 블랙 핑크 — 주 버튼은 진한 테두리·떨어진 그림자 대신 핑크 글로우(한 화면에 주 버튼과 지금 탭 정도만 빛나게).
+  // 진한 칸 위 핑크 글씨였던 것(오늘 목표 달성·끝내기 대기·고른 탭)은 블랙에선 핑크 칸 위 검은 글씨로 뒤집는다(대비 6:1).
+  var B = 'html[data-palette="black"]', GLOW = '0 0 18px rgba(255, 77, 148, 0.55)';
+  css +=
+    B + ' .btn-main,' + B + ' .btn-primary,' + B + ' .btn-save,' + B + ' .report-btn,' + B + ' .ws-end' +
+      '{border-color:var(--hl) !important;box-shadow:' + GLOW + ' !important;}' +
+    B + ' .btn-main:active,' + B + ' .btn-primary:active,' + B + ' .btn-save:active,' + B + ' .report-btn:active' +
+      '{box-shadow:0 0 8px rgba(255, 77, 148, 0.45) !important;}' +
+    B + ' .ws-end.is-armed{background:var(--ink) !important;color:var(--bg) !important;border-color:var(--ink) !important;box-shadow:none !important;}' +
+    B + ' .ws-tip{background:rgba(255, 255, 255, 0.06) !important;}' +
+    B + ' .today-goal.is-done,' + B + ' .side-toggle button.active{background:var(--hl) !important;color:var(--hl-ink) !important;}' +
+    B + ' .opts button[aria-pressed="true"],' + B + ' .format button[aria-pressed="true"],' + B + ' .theme-opt[aria-pressed="true"]' +
+      '{border-color:var(--hl) !important;box-shadow:0 0 12px rgba(255, 77, 148, 0.35) !important;}' +
+    B + ' .tabbar a[aria-current="page"]::before{box-shadow:0 0 14px rgba(255, 77, 148, 0.5);}';
+
   var st = document.createElement('style');
   st.id = 'walson-theme';
   st.textContent = css;
@@ -130,6 +154,7 @@
       if (!PALETTES[k]) return;
       try { localStorage.setItem(KEY, k); } catch (e) { /* 저장 못 해도 지금 화면엔 반영 */ }
       root.setAttribute('data-palette', k);
+      root.style.colorScheme = PALETTES[k].dark ? 'dark' : 'light';
       paintMeta(k);
       this.palette = k;
     }

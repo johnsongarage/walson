@@ -1,0 +1,233 @@
+/* 블랙 핑크 테마(theme.js "black")일 때만 — 화면마다 박힌 밝은 색을 어둡게 덮어쓴다.
+   위쪽은 _dev/theme-black.py가 만든다(손대지 말고 다시 만들기). 손으로 고칠 것은 맨 아래 표시 밑에. */
+
+/* dex.html */
+html[data-palette="black"][data-page="dex"] { --red: #d86058; }
+html[data-palette="black"][data-page="dex"] .dog.slot { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="dex"] .qr { background: var(--panel) !important; }
+html[data-palette="black"][data-page="dex"] .toast { background: #2e2e38 !important; }
+
+/* friends.html */
+html[data-palette="black"][data-page="friends"] { --red: #d86058; }
+html[data-palette="black"][data-page="friends"] .mock-badge { background: #2e2e38 !important; }
+html[data-palette="black"][data-page="friends"] .toggle { background: #26262e !important; }
+html[data-palette="black"][data-page="friends"] .toggle::after { background: var(--panel) !important; }
+html[data-palette="black"][data-page="friends"] .avatar { color: var(--ink) !important; }
+html[data-palette="black"][data-page="friends"] .avatar.anon { background: #26262e !important; color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="friends"] .dog.slot { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="friends"] .log pre { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="friends"] .toast { background: #2e2e38 !important; }
+
+/* go.html */
+html[data-palette="black"][data-page="go"] .mode-line button { background: var(--panel) !important; }
+
+/* guardians.html */
+html[data-palette="black"][data-page="guardians"] .dog .acts a.idcard { background: var(--panel) !important; }
+
+/* index.html */
+html[data-palette="black"][data-page="index"] { --sig-red: #d86058; }
+html[data-palette="black"][data-page="index"] .btn-sub { background: var(--panel) !important; }
+html[data-palette="black"][data-page="index"] .after-opts button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="index"] .inapp-note { background: #26262e !important; border: 1px solid var(--panel-border) !important; }
+
+/* keyring.html */
+html[data-palette="black"][data-page="keyring"] { --ok: #4d985a; }
+html[data-palette="black"][data-page="keyring"] .preview-band { background: #2e2e38 !important; }
+html[data-palette="black"][data-page="keyring"] .ticket .imported { color: #b9783a !important; background: #26262e !important; }
+
+/* location-guide.html */
+html[data-palette="black"][data-page="location-guide"] { --good: #3a9753; --good-tint: var(--panel); --warn: #b9790f; --warn-tint: #26262e; --bad: #d6665a; --bad-tint: #38231e; }
+html[data-palette="black"][data-page="location-guide"] .mock { color: var(--ink) !important; }
+html[data-palette="black"][data-page="location-guide"] .mock.is-ios { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .mock.is-and { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-bar small { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-grp { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-head { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-row.is-hit { background: #26262e !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-ic { background: #2a2a2c !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-t small { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-sk { background: #29292e !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-chev { border-right: 2px solid var(--panel-border) !important; border-top: 2px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-sw::after { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-info { border: 1.8px solid #4a4a56 !important; color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-app { color: var(--ink) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-appic { background: #272a30 !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-app.is-target .mk-appic { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-pop { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .mk-dialog { background: var(--panel) !important; }
+html[data-palette="black"][data-page="location-guide"] .dock { background: rgba(255, 255, 255, 0.12) !important; }
+
+/* map-sheet-proto.html */
+html[data-palette="black"][data-page="map-sheet-proto"] { --bg-deep: #16161b; --sos: #ce6a66; }
+html[data-palette="black"][data-page="map-sheet-proto"] .proto-band { background: #2e2e38 !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .proto-band button[aria-pressed="true"] { color: var(--ink) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .side button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .grab .bar { background: #26262e !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .mode { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .mode.sos { border-color: var(--panel-border) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .mission { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .tools input { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .tools .t { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .tools .t[aria-pressed="true"] { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .row { border-top: 1px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .row:active { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .row .st .ok { color: #34995b !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .row .st .warn { color: #b27c08 !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .card { background: var(--panel) !important; }
+html[data-palette="black"][data-page="map-sheet-proto"] .card img { border: 3px solid var(--panel-border) !important; background: var(--panel) !important; }
+
+/* my-card.html */
+html[data-palette="black"][data-page="my-card"] .canvas-hint { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="my-card"] .bar { background: #26262e !important; }
+html[data-palette="black"][data-page="my-card"] .places span { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="my-card"] .places span.got { background: #26262e !important; }
+html[data-palette="black"][data-page="my-card"] .trait-head button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="my-card"] .trait-title.is-locked { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="my-card"] .pick-list button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="my-card"] .pick-tabs button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="my-card"] .format { background: var(--panel) !important; }
+@media print { html[data-palette="black"][data-page="my-card"], html[data-palette="black"][data-page="my-card"] body { background: var(--panel) !important; } }
+@media print { html[data-palette="black"][data-page="my-card"] #print-sheet { color: var(--ink) !important; } }
+@media print { html[data-palette="black"][data-page="my-card"] #print-sheet .ps-note { color: var(--ink) !important; } }
+
+/* poop-toon.html */
+html[data-palette="black"][data-page="poop-toon"] .crop-box { background: #2e2e38 !important; }
+html[data-palette="black"][data-page="poop-toon"] .busy { background: rgba(255, 255, 255, 0.12) !important; }
+html[data-palette="black"][data-page="poop-toon"] .chips button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="poop-toon"] .sit-tabs button[aria-pressed="true"] { background: var(--panel) !important; }
+html[data-palette="black"][data-page="poop-toon"] .lines button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="poop-toon"] .mode button[aria-pressed="true"] { background: var(--panel) !important; }
+html[data-palette="black"][data-page="poop-toon"] .field input[type="text"] { background: var(--panel) !important; }
+
+/* privacy.html */
+html[data-palette="black"][data-page="privacy"] .consent-btns button { background: var(--panel) !important; }
+
+/* profile.html */
+html[data-palette="black"][data-page="profile"] .photo-act { background: var(--panel) !important; }
+html[data-palette="black"][data-page="profile"] .field input, html[data-palette="black"][data-page="profile"] .field select { background: var(--panel) !important; }
+html[data-palette="black"][data-page="profile"] .theme-opt { background: var(--panel) !important; }
+
+/* start.html */
+html[data-palette="black"][data-page="start"] { --sig-red: #d86058; }
+html[data-palette="black"][data-page="start"] .field input { background: var(--panel) !important; }
+html[data-palette="black"][data-page="start"] .size-opts button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="start"] .tag-opts button { background: var(--panel) !important; }
+
+/* town.html */
+html[data-palette="black"][data-page="town"] { --bg-deep: #16161b; --locate: #538dcb; }
+html[data-palette="black"][data-page="town"] .acc-note { color: #508ece !important; background: rgba(255, 255, 255, 0.12) !important; }
+html[data-palette="black"][data-page="town"] .ls-warn { background: var(--panel) !important; border: 1.5px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="town"] .side button { background: linear-gradient(180deg, var(--panel) 0%, var(--panel) 100%) !important; }
+html[data-palette="black"][data-page="town"] .ls-grab .bar { background: #26262e !important; }
+html[data-palette="black"][data-page="town"] .ls-mode { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .ls-mode.is-sos { color: #d0685d !important; border-color: var(--panel-border) !important; }
+html[data-palette="black"][data-page="town"] .ls-mode.is-mission.is-here { color: #459d55 !important; }
+html[data-palette="black"][data-page="town"] .ls-mode.is-mission.is-here .mf { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="town"] .list-sheet .mission-card { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .g-card { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .mission-card.is-here .mc-t1, html[data-palette="black"][data-page="town"] .mission-card.is-here .mc-go { color: var(--ink-soft) !important; }
+html[data-palette="black"][data-page="town"] .mission-card.is-here .mc-go { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .mission-pin .mp-flag { border: 2px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="town"] .sos-acts a { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .sheet-close { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .near-btn { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .shop-item { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .shop-item .lv { border: 2px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="town"] .walk-btn { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .reg { background: var(--panel) !important; }
+html[data-palette="black"][data-page="town"] .my-dot { border: 3px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="town"] .my-pin { border: 2px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="town"] .stamp { background: rgba(255, 255, 255, 0.12) !important; }
+html[data-palette="black"][data-page="town"] .dog-face { background: var(--panel) !important; }
+
+/* visit.html */
+html[data-palette="black"][data-page="visit"] { --ok: #4d985a; }
+html[data-palette="black"][data-page="visit"] .stamp { color: #d86058 !important; }
+
+/* walk-end.html */
+html[data-palette="black"][data-page="walk-end"] .opts button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-end"] .photo { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-end"] .photo-pick { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-end"] .photo-actions button { background: var(--panel) !important; }
+
+/* walk-history.html */
+html[data-palette="black"][data-page="walk-history"] { --ok: #63955e; --stamp: #db5d53; }
+html[data-palette="black"][data-page="walk-history"] .format { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-history"] .chips button { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-history"] .custom { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-history"] .walk-card { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-history"] .walk-card[aria-current="true"] .thumb { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-history"] .poop-cal .head button { background: var(--panel) !important; }
+
+/* walk.html */
+html[data-palette="black"][data-page="walk"] { --locate: #408adb; }
+html[data-palette="black"][data-page="walk"] .map-view { background: #26262e !important; }
+html[data-palette="black"][data-page="walk"] .wm-start { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk"] .wm-me { border: 3px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="walk"] .wm-flag { border: 3px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="walk"] .pin-marker { border: 2px solid var(--panel-border) !important; }
+html[data-palette="black"][data-page="walk"] .pin-delete-btn { color: #d76659 !important; }
+
+/* walk-screen.css */
+html[data-palette="black"] .ws-chip.is-dark .ws-dot { background: #38251e !important; }
+html[data-palette="black"] .ws-tip { background: #26262e !important; }
+html[data-palette="black"] .ws-mission.is-here .ws-mdir { color: #459d55 !important; }
+html[data-palette="black"] .ws-notice.is-stamp { background: var(--panel) !important; border-color: var(--panel-border) !important; color: #459d55 !important; }
+html[data-palette="black"] .ws-notice.is-stamp .ws-notice-icon { color: #459d55 !important; }
+html[data-palette="black"] .ws-notice.is-warn { background: #26262e !important; border-color: var(--panel-border) !important; }
+
+/* pet-signs.css */
+html[data-palette="black"] .sheet { --sign-red: #d66a65; --sign-brown: #b9783a; background: var(--panel) !important; color: var(--ink) !important; }
+html[data-palette="black"] .prow { border-bottom: 0.3mm solid var(--panel-border) !important; }
+html[data-palette="black"] .prow svg { color: var(--ink) !important; }
+html[data-palette="black"] .prow .t { color: var(--ink) !important; }
+html[data-palette="black"] .prow .t b { color: var(--ink) !important; }
+html[data-palette="black"] .pbox { background: var(--panel) !important; color: var(--ink) !important; }
+html[data-palette="black"] .pbox b { color: var(--ink) !important; }
+html[data-palette="black"] .pfoot { color: var(--ink) !important; }
+html[data-palette="black"] .plaw { color: var(--ink-soft) !important; }
+html[data-palette="black"] .label svg { color: var(--ink) !important; }
+html[data-palette="black"] .label .lt b { color: var(--ink) !important; }
+html[data-palette="black"] .label .lt span { color: var(--ink-soft) !important; }
+html[data-palette="black"] .sqcut { background: var(--panel) !important; }
+html[data-palette="black"] .sqs { color: var(--ink) !important; --sign-red: #d66a65; }
+html[data-palette="black"] .sqt { border-right: 0.3mm solid var(--panel-border) !important; border-bottom: 0.3mm solid var(--panel-border) !important; }
+html[data-palette="black"] .sqt svg { color: var(--ink) !important; }
+html[data-palette="black"] .sqt .tx { color: var(--ink) !important; }
+html[data-palette="black"] .sqt .tx b { color: var(--ink) !important; }
+html[data-palette="black"] .sqbox { background: var(--panel) !important; color: var(--ink) !important; }
+html[data-palette="black"] .sqbox b { color: var(--ink) !important; }
+html[data-palette="black"] .sqfoot .shop { color: var(--ink) !important; }
+html[data-palette="black"] .sqfoot .law { color: var(--ink-soft) !important; }
+
+/* ===== 손으로 고친 것 — 아래는 다시 만들어도 그대로 남는다 ===== */
+/* 지도 — 밝은 지도 그림(OpenStreetMap)을 뒤집어 어두운 지도로. 핀·경로(그림 위 칸)는 그대로 */
+html[data-palette="black"] .leaflet-container { background: #16161b !important; }
+html[data-palette="black"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6); }
+html[data-palette="black"] .leaflet-control-attribution { background: rgba(18, 18, 21, 0.75) !important; color: var(--ink-soft) !important; }
+html[data-palette="black"] .leaflet-control-attribution a { color: var(--ink-soft) !important; }
+html[data-palette="black"] .leaflet-bar a, html[data-palette="black"] .leaflet-bar a:hover { background: var(--panel) !important; color: var(--ink) !important; border-color: var(--panel-border) !important; }
+html[data-palette="black"] .leaflet-popup-content-wrapper, html[data-palette="black"] .leaflet-popup-tip { background: var(--panel) !important; color: var(--ink) !important; }
+
+/* 스크립트가 넣는 칸 — 산책 버튼 창(walk-fab.js), 홈 화면 추가 안내(install.js), 카톡 안내(inapp.js), QR 찍기(qr-scan.js) */
+html[data-palette="black"] .wf-fab { box-shadow: 0 0 18px rgba(255, 77, 148, 0.55) !important; border-color: var(--hl) !important; }
+html[data-palette="black"] .wf-choice:not(.is-main), html[data-palette="black"] .wf-opts button:not([aria-pressed="true"]) { background: #26262e !important; }
+html[data-palette="black"] .wi-btn.sub, html[data-palette="black"] #inapp-stay, html[data-palette="black"] .wqr-close { background: #26262e !important; }
+html[data-palette="black"] .wi-ok { color: #6fbf7d; }
+html[data-palette="black"] .wi-ok[style*="163, 58, 47"] { color: #ff7a6e !important; }
+html[data-palette="black"] .wqr-hint { color: var(--ink-soft) !important; }
+
+/* 지도 핀 팝업 — infra-pins.js가 글씨·칸 색을 직접 넣는다(style 속성). 블랙에선 그 색을 찾아 바꾼다 */
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(74, 63, 53)"] { color: var(--ink) !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="color: rgb(107, 93, 78)"] { color: var(--ink-soft) !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(138, 90, 0)"] { color: #e0a33a !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(163, 58, 85)"] { color: #ff7aa0 !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(184, 86, 58)"]:not([style*="255, 250, 243"]) { color: #f08a6c !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(239, 224, 205)"],
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(241, 231, 218)"],
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(243, 221, 210)"],
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(251, 238, 230)"] { background: #26262e !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(251, 227, 232)"] { background: #3a1f2c !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(201, 184, 164)"] { color: #5a5a66 !important; }
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(227, 211, 190)"],
+html[data-palette="black"] .leaflet-popup-content [style*="rgb(230, 214, 193)"] { border-color: #3a3a46 !important; }
