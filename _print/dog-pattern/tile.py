@@ -1,4 +1,5 @@
 # P1 치와와 무늬(가르시아 11/17 고름)를 색 세 가지로 — 좌표를 정수로 줄여 파일을 가볍게
+# 11/19 딸기우유(pink) → 젤리 핑크(jelly): 무늬만 소프트 라일락(#b6a2f2 30%)
 import json, re, sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 meta = {i['name']: i for n in json.load(open(os.path.join(HERE, 'icons/meta.json'))).values() for i in n}
@@ -24,4 +25,4 @@ OUT = os.path.join(HERE, 'out')
 os.makedirs(OUT, exist_ok=True)
 tile('#3b2a1d', '0.08', os.path.join(OUT, 'dog-pattern-yellow.svg'))
 tile('#13233a', '0.07', os.path.join(OUT, 'dog-pattern-sea.svg'))
-tile('#2e1c22', '0.07', os.path.join(OUT, 'dog-pattern-pink.svg'))
+tile('#b6a2f2', '0.3', os.path.join(OUT, 'dog-pattern-jelly.svg'))

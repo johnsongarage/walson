@@ -5,25 +5,33 @@
 // 다시 생기지 않는다 — 색은 CSS 변수만 바뀐다. 각 화면이 <head>에서 페이지 스타일 뒤에 동기로 불러 덮어쓴다(html[data-palette]로 더 세게).
 // 지도 화면·산책 중 화면·인쇄물·운영자 도구에는 무늬를 깔지 않는다. 주민증·영수증처럼 그려서 저장하는 그림은 여기서 안 바뀐다.
 // 다른 화면이 쓰던 window.WalsonTheme(name·isBrutal)은 그대로 둔다(name은 늘 'soft', isBrutal은 늘 false).
+// 2026-11-19 가르시아(2030 여성 견주 타깃, "크림 화이트 + 젤리핑크 + 소프트 라일락 포인트"): 젤리 핑크를 새 기본 색으로.
+// 딸기우유(분홍·자두색)는 젤리 핑크로 바꿨다 — 딸기우유를 골라 둔 기기는 젤리 핑크로 옮긴다. 노랑을 직접 골라 둔 기기는 노랑 그대로.
+// 라일락은 바탕 치와와 무늬에만(icons/dog-pattern-jelly.svg) — 리뉴얼 기획에서 라일락은 '선발대·제보' 표시 몫이라 버튼·글씨엔 안 쓴다.
+// 젤리 핑크는 크림 화이트 위에서 2.9:1이라 글씨로 쓰지 않는다 — 면(버튼·고른 것)으로만, 그 위 글씨는 딥 차콜(6.5:1), 핑크 글씨는 진한 핑크(5.8:1).
 (function () {
   var KEY = 'walson_palette';
   try { localStorage.removeItem('walson_theme'); } catch (e) { /* 예전 테마 값(11/15) — 저장소를 못 써도 상관없음 */ }
 
-  // 색 세 가지 — 글씨는 바탕·카드 위에서 대비 4.5:1 이상, 버튼 글씨(hlInk)는 버튼 색(hl) 위에서 7:1 안팎
+  // 색 세 가지 — 글씨는 바탕·카드 위에서 대비 4.5:1 이상, 버튼 글씨(hlInk)는 버튼 색(hl) 위에서 6.5:1 이상
   var PALETTES = {
+    jelly: { label: '젤리 핑크', desc: '크림 화이트 · 젤리 핑크',
+      bg: '#fffdfd', panel: '#ffffff', panelBorder: '#f0d6e2', ink: '#121215', inkSoft: '#6b6b70',
+      accent: '#c2185b', accentTint: '#ffe4ef', hl: '#ff5c9d', hlInk: '#121215', line: '#121215', shadowRgb: '18, 18, 21' },
     yellow: { label: '왈슨 노랑', desc: '노랑 · 진갈색',
       bg: '#f4ead3', panel: '#fffdf7', panelBorder: '#e3d3b4', ink: '#2c2018', inkSoft: '#6b5a46',
       accent: '#8a4a1c', accentTint: '#fbe3a4', hl: '#f2b52f', hlInk: '#2c2018', line: '#2c2018', shadowRgb: '60, 40, 20' },
     sea: { label: '바다', desc: '하늘색 · 남색',
       bg: '#e8eef3', panel: '#fcfdfe', panelBorder: '#cad8e3', ink: '#13233a', inkSoft: '#52657a',
-      accent: '#1d5fb5', accentTint: '#d3e5fa', hl: '#6db3f8', hlInk: '#0d1f36', line: '#13233a', shadowRgb: '19, 35, 58' },
-    pink: { label: '딸기우유', desc: '분홍 · 자두색',
-      bg: '#f8e9ec', panel: '#fffbfc', panelBorder: '#ecd2d8', ink: '#2e1c22', inkSoft: '#75585f',
-      accent: '#b02f5b', accentTint: '#fcd7e2', hl: '#ff9ab8', hlInk: '#2e1c22', line: '#2e1c22', shadowRgb: '46, 28, 34' }
+      accent: '#1d5fb5', accentTint: '#d3e5fa', hl: '#6db3f8', hlInk: '#0d1f36', line: '#13233a', shadowRgb: '19, 35, 58' }
   };
-  var DEFAULT = 'yellow';
+  var DEFAULT = 'jelly';
   var key = DEFAULT;
-  try { var saved = localStorage.getItem(KEY); if (PALETTES[saved]) key = saved; } catch (e) { /* 기본 색 */ }
+  try {
+    var saved = localStorage.getItem(KEY);
+    if (saved === 'pink') { saved = 'jelly'; localStorage.setItem(KEY, saved); }   // 딸기우유 → 젤리 핑크(11/19)
+    if (PALETTES[saved]) key = saved;
+  } catch (e) { /* 기본 색 */ }
 
   var root = document.documentElement;
   root.setAttribute('data-theme', 'soft');      // 예전 표시(다른 코드가 읽음)
