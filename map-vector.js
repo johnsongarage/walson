@@ -17,13 +17,14 @@
       waterway: '#2c4f75', boundary: '#4a4a58',
       text: '#ececf0', textRoad: '#ffe08a', textWater: '#8fb4e0', textPark: '#9cc9a8', halo: '#121215'
     },
-    // 젤리(밝은 화면) — 크림 바탕, 공원 연두, 물 하늘, 길 흰색, 큰길 연핑크
+    // 젤리(밝은 화면) — 예전 그림 지도의 파스텔 톤(town.html 필터 saturate·hue-rotate로 만들던 색)을 되살림(11/19 "파스텔톤이 잘 안 살아서 아쉽네"):
+    // 공원 연보라·분홍, 큰길 하늘색, 중간 길 라벤더, 건물 연회색 보라. 물은 알아보게 연하늘(예전 필터는 베이지로 바뀌었음)
     day: {
-      background: '#fffdfd', land: '#fbf7f8', park: '#e6f3dc', wood: '#dcedd2', water: '#d6e6ff',
-      building: '#f1e7ec', buildingLine: '#e6d6de',
-      roadMajor: '#ffd1e3', roadMid: '#ffe4ef', roadMinor: '#ffffff', path: '#c9b9c2', casing: '#e9d3de', rail: '#c8c0c6',
-      waterway: '#a9c8f5', boundary: '#d9c9d2',
-      text: '#3a3a40', textRoad: '#5a5a62', textWater: '#4a72b0', textPark: '#4f7d50', halo: '#ffffff'
+      background: '#f7f5f8', land: '#f5f3f6', park: '#f3e4f3', wood: '#ecd3e4', water: '#dfe9f5',
+      building: '#e4e2ea', buildingLine: '#cfcdd8',
+      roadMajor: '#a9c4d8', roadMid: '#ece2f3', roadMinor: '#ffffff', path: '#9fb6df', casing: '#d6d3dc', rail: '#c8c6cf',
+      waterway: '#b9cfe9', boundary: '#d9d2de',
+      text: '#3f3f46', textRoad: '#5d5d66', textWater: '#5b7fae', textPark: '#9a5c8a', halo: '#ffffff'
     }
   };
 
@@ -31,11 +32,24 @@
 
   function paint(l, k, v) { l.paint = l.paint || {}; l.paint[k] = v; }
 
+  // 지도에 원래 들어 있는 가게 이름·정류장(poi)·건물 번호(housenumber)는 숨긴다 — 왈슨 핀만 보이게(11/19 "지도 위에 보여줄 게 너무 많아").
+  // 다시 보이게 하려면 여기서 빼면 된다.
+  var HIDE_SOURCE_LAYERS = ['poi', 'housenumber', 'aerodrome_label'];
+
+  function hide(l) { l.layout = l.layout || {}; l.layout.visibility = 'none'; }
+
   function recolor(style, c) {
     style.layers.forEach(function (l) {
       var id = l.id, sl = l['source-layer'] || '';
+      if (HIDE_SOURCE_LAYERS.indexOf(sl) >= 0) { hide(l); return; }
+      // 3D 건물(입체로 솟은 건물) → 납작한 2D 건물로(11/19 "지도가 3D인데 2D로")
+      if (l.type === 'fill-extrusion') {
+        l.type = 'fill';
+        l.paint = { 'fill-color': c.building, 'fill-outline-color': c.buildingLine };
+        return;
+      }
       if (l.type === 'background') { paint(l, 'background-color', c.background); return; }
-      if (l.type === 'hillshade') { l.layout = l.layout || {}; l.layout.visibility = 'none'; return; }
+      if (l.type === 'hillshade') { hide(l); return; }
       if (l.type === 'fill' || l.type === 'fill-extrusion') {
         var key = l.type === 'fill' ? 'fill-color' : 'fill-extrusion-color';
         if (sl === 'water') paint(l, key, c.water);
