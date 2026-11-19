@@ -28,6 +28,23 @@
   .pass button { margin-top: 8px; font: inherit; font-weight: 800; padding: 9px 16px; border-radius: 999px; border: 0;
     background: var(--hl, #ff5c9d); color: var(--hl-ink, #121215); cursor: pointer; }
   .pass .cap { font-weight: 800; margin: 6px 0 0; }
+  .pass canvas { cursor: grab; touch-action: none; border-radius: 22px; outline: 4px solid transparent; outline-offset: 4px; }
+  .pass.on canvas { outline-color: var(--hl, #ff5c9d); }
+  details.ed { margin-top: 12px; background: var(--panel, #fff); border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 10px 14px; }
+  details.ed summary { font-weight: 800; cursor: pointer; padding: 4px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+  .colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+  .colors label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink, #121215); font-weight: 600; margin: 0; }
+  .colors input[type=color] { width: 40px; height: 32px; padding: 0; border-radius: 8px; flex: none; }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
+  .checks label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink, #121215); font-weight: 600; margin: 0; }
+  .checks input { width: auto; }
+  .seg { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .seg button, .tools button { font: inherit; font-weight: 800; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--panel-border, #f0d6e2);
+    background: var(--bg, #fffdfd); color: var(--ink, #121215); cursor: pointer; }
+  .seg button[aria-pressed=true] { background: var(--ink, #121215); color: var(--bg, #fffdfd); }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  input[type=range] { padding: 0; }
 </style>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
 <script src="site-config.js?v=10"></script>
@@ -35,35 +52,100 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="pass-vertical.js?v=1"></script>
+<script src="pass-vertical.js?v=2"></script>
 </head>
 <body>
 <main>
   <h1>세로 워킹패스 시안 (키링·굿즈 앞면)</h1>
-  <p class="lead">사진만 바꿔 끼우면 성향 셋 모양으로 한 번에 그려요. 배경을 지운 PNG(누끼)를 넣으면 강아지만 크게, 보통 사진은 둥근 칸에 들어가요.
+  <p class="lead">사진만 바꿔 끼우면 성향 셋 모양으로 한 번에 그려요. 아래 디자인 편집에서 글자·색·켜고 끄기를 바꿀 수 있어요. 배경을 지운 PNG(누끼)를 넣으면 강아지만 크게, 보통 사진은 둥근 칸에 들어가요.
     사진은 이 화면 안에서만 쓰고 어디에도 저장하거나 보내지 않아요.</p>
   <div class="form">
     <div class="photo-row">
       <label for="f-photo">사진</label>
       <input type="file" id="f-photo" accept="image/*">
-      <div class="hint">누끼 따는 법: 아이폰은 사진을 길게 눌러 '배경에서 피사체 들어올리기' → 공유 → 이미지 저장. 갤럭시는 사진 편집에서 피사체를 길게 눌러 '이미지로 저장'.</div>
+      <div class="hint">누끼 따는 법: 아이폰은 사진을 길게 눌러 '배경에서 피사체 들어올리기' → 공유 → 이미지 저장. 갤럭시는 사진 편집에서 피사체를 길게 눌러 '이미지로 저장'.
+        아래 그림 위에서 사진을 끌면 자리가 옮겨져요.</div>
     </div>
     <div><label for="f-name">이름</label><input id="f-name" value="왈슨"></div>
     <div><label for="f-en">영문 이름 (선택)</label><input id="f-en" value="WALSON"></div>
     <div><label for="f-breed">한 줄 (견종 등)</label><input id="f-breed" value="치와와 · 암컷"></div>
     <div><label for="f-level">등급</label><select id="f-level"></select></div>
-    <div><label for="f-club">맨 위 클럽 이름</label><input id="f-club" value="DASAN WALK CLUB"></div>
   </div>
+
+  <details class="ed" open>
+    <summary>디자인 편집 · 셋 모두 같이</summary>
+    <div class="grid">
+      <div><label for="d-club">맨 위 작은 제목</label><input id="d-club" data-k="club"></div>
+      <div><label for="d-title">큰 제목</label><input id="d-title" data-k="title"></div>
+      <div><label for="d-side">왼쪽 세로 글자</label><input id="d-side" data-k="side"></div>
+      <div><label for="d-footer">맨 아래 덧말</label><input id="d-footer" data-k="footer"></div>
+      <div><label for="d-mode">사진 모양</label><select id="d-mode" data-k="photoMode"><option value="auto">자동(누끼면 강아지만)</option><option value="cutout">강아지만(누끼)</option><option value="box">네모 칸</option></select></div>
+      <div><label for="d-zoom">사진 크기</label><input type="range" id="d-zoom" data-k="zoom" data-num="1" min="1" max="3" step="0.05"></div>
+    </div>
+    <div class="colors">
+      <label><input type="color" data-k="cream"> 바탕</label>
+      <label><input type="color" data-k="ink"> 글자·줄</label>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" data-k="showSticker"> 스티커</label>
+      <label><input type="checkbox" data-k="showRank"> 등급(Lv)</label>
+      <label><input type="checkbox" data-k="showSide"> 세로 글자</label>
+      <label><input type="checkbox" data-k="showQr"> QR</label>
+      <label><input type="checkbox" data-k="showTitleTape"> 제목 테이프</label>
+      <label><input type="checkbox" data-k="showBandTape"> 띠 테이프</label>
+      <label><input type="checkbox" data-k="showHole"> 고리 구멍</label>
+    </div>
+    <p class="hint">맨 아래 'WALSON · 당신과 강아지의 유의미한 산책'은 홍보물 규칙이라 여기서 못 바꿔요(site-config.js).</p>
+  </details>
+
+  <details class="ed" open>
+    <summary>디자인 편집 · 성향별</summary>
+    <div class="seg" id="sig-seg"></div>
+    <div class="grid">
+      <div><label for="v-main">띠 큰 글자</label><input id="v-main" data-v="main"></div>
+      <div><label for="v-sub">띠 작은 글자</label><input id="v-sub" data-v="sub"></div>
+      <div><label for="v-st1">스티커 윗줄</label><input id="v-st1" data-v="sticker1"></div>
+      <div><label for="v-st2">스티커 아랫줄</label><input id="v-st2" data-v="sticker2"></div>
+    </div>
+    <div class="colors">
+      <label><input type="color" data-v="frame"> 테두리</label>
+      <label><input type="color" data-v="band"> 띠</label>
+      <label><input type="color" data-v="bandInk"> 띠 글자</label>
+      <label><input type="color" data-v="tapeA"> 제목 테이프 1</label>
+      <label><input type="color" data-v="tapeB"> 제목 테이프 2</label>
+      <label><input type="color" data-v="bandTapeA"> 띠 테이프 1</label>
+      <label><input type="color" data-v="bandTapeB"> 띠 테이프 2</label>
+      <label><input type="color" data-v="stickerBg"> 스티커</label>
+      <label><input type="color" data-v="stickerInk"> 스티커 글자</label>
+    </div>
+    <div class="checks"><label><input type="checkbox" data-v="icon"> 경고 세모</label></div>
+    <div class="tools">
+      <button type="button" id="copy-all">이 성향 디자인을 셋 모두에</button>
+      <button type="button" id="reset">처음 디자인으로</button>
+      <button type="button" id="export">디자인 값 복사</button>
+    </div>
+    <p class="hint">고친 디자인은 이 브라우저에만 남아요. '디자인 값 복사'로 보내 주시면 앱 기본 디자인으로 넣을게요.</p>
+  </details>
+
   <div class="passes" id="passes"></div>
 </main>
 <script>
 (function () {
   var V = window.WalsonPassV, RR = window.RewardRules;
   var $ = function (id) { return document.getElementById(id); };
-  var photo = null;
+  var photo = null, cur = 'red';
   var KINDS = [['red', '빨강 · 만지지 마세요'], ['yellow', '노랑 · 천천히 인사해요'], ['green', '초록 · 다가와도 좋아요']];
+  var KEY = 'walson_pass_v_design';   // 고친 디자인(이 브라우저에만)
   var ranks = (RR && RR.RANKS) || [{ level: 0, name: '산책 입문자' }];
   ranks.forEach(function (r) { var o = document.createElement('option'); o.value = r.level; o.textContent = 'Lv.' + (r.level + 1) + ' ' + r.name; $('f-level').appendChild(o); });
+
+  // 디자인 = { common: {...}, red: {...}, yellow: {...}, green: {...} } — 기본값과 다른 칸만이 아니라 고친 칸을 그대로 둔다
+  var design;
+  try { design = JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { design = null; }
+  if (!design || !design.common) design = { common: {}, red: {}, yellow: {}, green: {} };
+  function saveDesign() { try { localStorage.setItem(KEY, JSON.stringify(design)); } catch (e) { /* 못 남겨도 화면은 그대로 */ } }
+  function full(sig) { var d = {}; Object.keys(design.common).forEach(function (k) { d[k] = design.common[k]; }); Object.keys(design[sig] || {}).forEach(function (k) { d[k] = design[sig][k]; }); return V.designFor(sig, d); }
+  function hex(c) { return /^#[0-9a-f]{6}$/i.test(c) ? c : '#000000'; }
 
   // 내 워킹패스가 있으면 그 이름·사진·등급으로 시작
   var prof = (window.WalsonStore && WalsonStore.profile()) || null;
@@ -71,9 +153,55 @@
   if (prof && prof.breed) $('f-breed').value = prof.breed;
   if (prof && RR && RR.computeProgress) $('f-level').value = RR.rankFor(RR.computeProgress(WalsonStore.walks()).walks).level;
 
+  // 편집 칸 채우기(공통은 빨강 기준 값으로 보여 준다 — 공통 칸은 셋이 같다)
+  function fillForm() {
+    var c = full(cur);
+    document.querySelectorAll('[data-k]').forEach(function (el) {
+      var k = el.getAttribute('data-k'), val = c[k];
+      if (el.type === 'checkbox') el.checked = !!val; else if (el.type === 'color') el.value = hex(val); else el.value = val == null ? '' : val;
+    });
+    document.querySelectorAll('[data-v]').forEach(function (el) {
+      var k = el.getAttribute('data-v'), val = c[k];
+      if (el.type === 'checkbox') el.checked = !!val; else if (el.type === 'color') el.value = hex(val); else el.value = val == null ? '' : val;
+    });
+    Array.prototype.forEach.call($('sig-seg').children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.sig === cur)); });
+    document.querySelectorAll('.pass').forEach(function (p) { p.classList.toggle('on', p.dataset.sig === cur); });
+  }
+  function readEl(el) { return el.type === 'checkbox' ? el.checked : (el.dataset.num ? Number(el.value) : el.value); }
+  document.querySelectorAll('[data-k]').forEach(function (el) {
+    el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', function () {
+      design.common[el.getAttribute('data-k')] = readEl(el); saveDesign(); render();
+    });
+  });
+  document.querySelectorAll('[data-v]').forEach(function (el) {
+    el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', function () {
+      design[cur][el.getAttribute('data-v')] = readEl(el); saveDesign(); render();
+    });
+  });
+  KINDS.forEach(function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.dataset.sig = k[0]; b.textContent = k[1].split(' · ')[0];
+    b.addEventListener('click', function () { cur = k[0]; fillForm(); });
+    $('sig-seg').appendChild(b);
+  });
+  $('copy-all').addEventListener('click', function () {
+    var src = design[cur];
+    KINDS.forEach(function (k) { if (k[0] !== cur) design[k[0]] = JSON.parse(JSON.stringify(src)); });
+    saveDesign(); render();
+  });
+  $('reset').addEventListener('click', function () {
+    if (!confirm('고친 디자인을 모두 지우고 처음 디자인으로 돌릴까요?')) return;
+    design = { common: {}, red: {}, yellow: {}, green: {} }; saveDesign(); fillForm(); render();
+  });
+  $('export').addEventListener('click', function () {
+    var txt = JSON.stringify(design, null, 1);
+    var done = function () { alert('디자인 값을 복사했어요. 채팅에 붙여 넣어 주세요.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { prompt('아래 값을 복사해 주세요', txt); });
+    else prompt('아래 값을 복사해 주세요', txt);
+  });
+
   var canvases = {};
   KINDS.forEach(function (k) {
-    var box = document.createElement('div'); box.className = 'pass';
+    var box = document.createElement('div'); box.className = 'pass'; box.dataset.sig = k[0];
     var c = document.createElement('canvas'); canvases[k[0]] = c;
     var cap = document.createElement('p'); cap.className = 'cap'; cap.textContent = k[1];
     var b = document.createElement('button'); b.type = 'button'; b.textContent = '그림 내려받기';
@@ -82,6 +210,27 @@
       a.download = ($('f-name').value || 'dog') + '-워킹패스-세로-' + k[0] + '.png';
       a.href = c.toDataURL('image/png'); a.click();
     });
+    // 그림을 누르면 그 성향 편집, 사진 위를 끌면 사진 자리 옮기기(셋 같이)
+    var drag = null;
+    c.addEventListener('pointerdown', function (e) {
+      if (cur !== k[0]) { cur = k[0]; fillForm(); }
+      var pb = c._photoBox; if (!pb || !photo) return;
+      var r = c.getBoundingClientRect(), sc = c.width / r.width;
+      var x = (e.clientX - r.left) * sc, y = (e.clientY - r.top) * sc;
+      if (x < pb.x || x > pb.x + pb.w || y < pb.y || y > pb.y + pb.h) return;
+      var f = full(k[0]);
+      drag = { x: e.clientX, y: e.clientY, qx: Number(f.qx), qy: Number(f.qy), sc: sc, pb: pb };
+      c.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    c.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dx = (e.clientX - drag.x) * drag.sc, dy = (e.clientY - drag.y) * drag.sc;
+      var span = drag.pb.mode === 'cutout' ? 400 : drag.pb.w;
+      design.common.qx = Math.max(0, Math.min(1, drag.qx - dx / span));
+      design.common.qy = Math.max(0, Math.min(1, drag.qy - dy / (drag.pb.mode === 'cutout' ? 400 : drag.pb.h)));
+      render();
+    });
+    c.addEventListener('pointerup', function () { if (drag) { drag = null; saveDesign(); } });
     box.appendChild(c); box.appendChild(cap); box.appendChild(b);
     $('passes').appendChild(box);
   });
@@ -89,10 +238,11 @@
   function render() {
     var lv = Number($('f-level').value) || 0, r = ranks.filter(function (x) { return x.level === lv; })[0] || ranks[0];
     KINDS.forEach(function (k) {
+      var d = {}; Object.keys(design.common).forEach(function (x) { d[x] = design.common[x]; }); Object.keys(design[k[0]] || {}).forEach(function (x) { d[x] = design[k[0]][x]; });
       V.draw(canvases[k[0]], {
         signal: k[0], photo: photo, name: $('f-name').value.trim(), nameEn: $('f-en').value.trim(), breed: $('f-breed').value.trim(),
         level: lv + 1, rankName: r.name, place: '남양주 다산동', cardNo: (prof && prof.cardNo) || 'DASAN-0001',
-        club: $('f-club').value.trim() || 'DASAN WALK CLUB', qr: 'https://johnsongarage.co.kr/walson/start.html'
+        qr: 'https://johnsongarage.co.kr/walson/start.html', design: d
       });
     });
   }
@@ -106,10 +256,11 @@
     var f = this.files && this.files[0];
     if (!f) return;
     var rd = new FileReader();
-    rd.onload = function () { load(rd.result); };
+    rd.onload = function () { design.common.qx = 0.5; design.common.qy = 0.5; design.common.zoom = 1; fillForm(); load(rd.result); };
     rd.readAsDataURL(f);
   });
-  ['f-name', 'f-en', 'f-breed', 'f-level', 'f-club'].forEach(function (id) { $(id).addEventListener('input', render); });
+  ['f-name', 'f-en', 'f-breed', 'f-level'].forEach(function (id) { $(id).addEventListener('input', render); });
+  fillForm();
   var start = function () { load((prof && prof.photo) || 'icons/sample-walson.jpg'); };
   if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('40px "Black Han Sans"', 'WALKING PASS 왈슨'), document.fonts.load('800 40px Pretendard', '만지지')]).then(start, start);
   else start();
