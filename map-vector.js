@@ -18,11 +18,11 @@
       text: '#ececf0', textRoad: '#ffe08a', textWater: '#8fb4e0', textPark: '#9cc9a8', halo: '#121215'
     },
     // 젤리(밝은 화면) — 예전 그림 지도의 파스텔 톤(town.html 필터 saturate·hue-rotate로 만들던 색)을 되살림(11/19 "파스텔톤이 잘 안 살아서 아쉽네"):
-    // 공원 연보라·분홍, 큰길 하늘색, 중간 길 라벤더, 건물 연회색 보라. 물은 알아보게 연하늘(예전 필터는 베이지로 바뀌었음)
+    // 공원 연보라·분홍, 큰길 연분홍(하늘색은 강처럼 보여서 뺌), 중간 길 라벤더, 건물 연회색 보라. 물은 알아보게 연하늘(예전 필터는 베이지로 바뀌었음)
     day: {
       background: '#f7f5f8', land: '#f5f3f6', park: '#f3e4f3', wood: '#ecd3e4', water: '#dfe9f5',
       building: '#e4e2ea', buildingLine: '#cfcdd8',
-      roadMajor: '#a9c4d8', roadMid: '#ece2f3', roadMinor: '#ffffff', path: '#9fb6df', casing: '#d6d3dc', rail: '#c8c6cf',
+      roadMajor: '#f6cbdd', roadMid: '#ece2f3', roadMinor: '#ffffff', path: '#9fb6df', casing: '#d6d3dc', rail: '#c8c6cf',
       waterway: '#b9cfe9', boundary: '#d9d2de',
       text: '#3f3f46', textRoad: '#5d5d66', textWater: '#5b7fae', textPark: '#9a5c8a', halo: '#ffffff'
     }
@@ -42,6 +42,10 @@
     style.layers.forEach(function (l) {
       var id = l.id, sl = l['source-layer'] || '';
       if (HIDE_SOURCE_LAYERS.indexOf(sl) >= 0) { hide(l); return; }
+      // 동네 이름은 '다산동' 같은 큰 이름만 — 'OO통'(행정 통)·작은 마을 이름은 빼기
+      if (sl === 'place' && Array.isArray(l.filter) && l.filter[0] === 'match' && Array.isArray(l.filter[2]) && l.filter[3] === false) {
+        ['neighbourhood', 'hamlet', 'isolated_dwelling'].forEach(function (k) { if (l.filter[2].indexOf(k) < 0) l.filter[2].push(k); });
+      }
       // 3D 건물(입체로 솟은 건물) → 납작한 2D 건물로(11/19 "지도가 3D인데 2D로")
       if (l.type === 'fill-extrusion') {
         l.type = 'fill';
