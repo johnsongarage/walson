@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세로 워킹패스 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  /* 세로형 워킹패스(키링·굿즈 앞면) 시안 페이지(2026-11-19 가르시아 "저기에 맞는 틀 시안 만들어 볼래? 사진만 갈아끼우게").
+     사진 하나를 넣으면 성향 셋(빨강·노랑·초록) 모양으로 동시에 그려 비교한다. 그림은 pass-vertical.js.
+     이 화면은 아무것도 저장하지 않는다(사진도 이 브라우저 안에서만 그림). 정해지면 꾸미고 저장하기의 '키링' 모양으로 옮긴다. */
+  body { margin: 0; font-family: Pretendard, sans-serif; background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  main { max-width: 1100px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 22px; margin: 6px 0 4px; }
+  .lead { color: var(--ink-soft, #6b6b70); font-size: 14px; margin: 0 0 14px; line-height: 1.5; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--panel, #fff);
+    border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; }
+  label { font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); display: block; margin-bottom: 4px; }
+  input, select { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  .photo-row { grid-column: 1 / -1; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6b6b70); margin-top: 4px; line-height: 1.5; }
+  .passes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 18px; }
+  .pass { text-align: center; }
+  .pass canvas { width: 100%; max-width: 330px; height: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.18)); }
+  .pass button { margin-top: 8px; font: inherit; font-weight: 800; padding: 9px 16px; border-radius: 999px; border: 0;
+    background: var(--hl, #ff5c9d); color: var(--hl-ink, #121215); cursor: pointer; }
+  .pass .cap { font-weight: 800; margin: 6px 0 0; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="store.js?v=1"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=11"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="pass-vertical.js?v=1"></script>
+</head>
+<body>
+<main>
+  <h1>세로 워킹패스 시안 (키링·굿즈 앞면)</h1>
+  <p class="lead">사진만 바꿔 끼우면 성향 셋 모양으로 한 번에 그려요. 배경을 지운 PNG(누끼)를 넣으면 강아지만 크게, 보통 사진은 둥근 칸에 들어가요.
+    사진은 이 화면 안에서만 쓰고 어디에도 저장하거나 보내지 않아요.</p>
+  <div class="form">
+    <div class="photo-row">
+      <label for="f-photo">사진</label>
+      <input type="file" id="f-photo" accept="image/*">
+      <div class="hint">누끼 따는 법: 아이폰은 사진을 길게 눌러 '배경에서 피사체 들어올리기' → 공유 → 이미지 저장. 갤럭시는 사진 편집에서 피사체를 길게 눌러 '이미지로 저장'.</div>
+    </div>
+    <div><label for="f-name">이름</label><input id="f-name" value="왈슨"></div>
+    <div><label for="f-en">영문 이름 (선택)</label><input id="f-en" value="WALSON"></div>
+    <div><label for="f-breed">한 줄 (견종 등)</label><input id="f-breed" value="치와와 · 암컷"></div>
+    <div><label for="f-level">등급</label><select id="f-level"></select></div>
+    <div><label for="f-club">맨 위 클럽 이름</label><input id="f-club" value="DASAN WALK CLUB"></div>
+  </div>
+  <div class="passes" id="passes"></div>
+</main>
+<script>
+(function () {
+  var V = window.WalsonPassV, RR = window.RewardRules;
+  var $ = function (id) { return document.getElementById(id); };
+  var photo = null;
+  var KINDS = [['red', '빨강 · 만지지 마세요'], ['yellow', '노랑 · 천천히 인사해요'], ['green', '초록 · 다가와도 좋아요']];
+  var ranks = (RR && RR.RANKS) || [{ level: 0, name: '산책 입문자' }];
+  ranks.forEach(function (r) { var o = document.createElement('option'); o.value = r.level; o.textContent = 'Lv.' + (r.level + 1) + ' ' + r.name; $('f-level').appendChild(o); });
+
+  // 내 워킹패스가 있으면 그 이름·사진·등급으로 시작
+  var prof = (window.WalsonStore && WalsonStore.profile()) || null;
+  if (prof && prof.name) $('f-name').value = prof.name;
+  if (prof && prof.breed) $('f-breed').value = prof.breed;
+  if (prof && RR && RR.computeProgress) $('f-level').value = RR.rankFor(RR.computeProgress(WalsonStore.walks()).walks).level;
+
+  var canvases = {};
+  KINDS.forEach(function (k) {
+    var box = document.createElement('div'); box.className = 'pass';
+    var c = document.createElement('canvas'); canvases[k[0]] = c;
+    var cap = document.createElement('p'); cap.className = 'cap'; cap.textContent = k[1];
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = '그림 내려받기';
+    b.addEventListener('click', function () {
+      var a = document.createElement('a');
+      a.download = ($('f-name').value || 'dog') + '-워킹패스-세로-' + k[0] + '.png';
+      a.href = c.toDataURL('image/png'); a.click();
+    });
+    box.appendChild(c); box.appendChild(cap); box.appendChild(b);
+    $('passes').appendChild(box);
+  });
+
+  function render() {
+    var lv = Number($('f-level').value) || 0, r = ranks.filter(function (x) { return x.level === lv; })[0] || ranks[0];
+    KINDS.forEach(function (k) {
+      V.draw(canvases[k[0]], {
+        signal: k[0], photo: photo, name: $('f-name').value.trim(), nameEn: $('f-en').value.trim(), breed: $('f-breed').value.trim(),
+        level: lv + 1, rankName: r.name, place: '남양주 다산동', cardNo: (prof && prof.cardNo) || 'DASAN-0001',
+        club: $('f-club').value.trim() || 'DASAN WALK CLUB', qr: 'https://johnsongarage.co.kr/walson/start.html'
+      });
+    });
+  }
+  function load(src) {
+    var img = new Image();
+    img.onload = function () { photo = img; render(); };
+    img.onerror = render;
+    img.src = src;
+  }
+  $('f-photo').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () { load(rd.result); };
+    rd.readAsDataURL(f);
+  });
+  ['f-name', 'f-en', 'f-breed', 'f-level', 'f-club'].forEach(function (id) { $(id).addEventListener('input', render); });
+  var start = function () { load((prof && prof.photo) || 'icons/sample-walson.jpg'); };
+  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('40px "Black Han Sans"', 'WALKING PASS 왈슨'), document.fonts.load('800 40px Pretendard', '만지지')]).then(start, start);
+  else start();
+})();
+</script>
+</body>
+</html>
