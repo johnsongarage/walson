@@ -142,6 +142,23 @@
   }
   paintMeta(key);
 
+  // 블랙 핑크 밤 지도(11/19 가르시아 "야간에는 길 주변이 노란 색이나 형광색이어야겠는데 너무 어두워"):
+  // 지도 그림(OpenStreetMap)에서 길(흰·노랑·주황 — 빨강 값이 땅보다 밝음)만 노랗게 살리고 땅·물·건물은 검게 — theme-black.css가 이 필터를 쓴다.
+  // CSS filter의 url()은 같은 문서 안의 SVG만 가리킬 수 있어서 화면마다 숨은 SVG 하나를 넣는다(블랙이 아니면 안 쓰임).
+  function addNightFilter() {
+    if (document.getElementById('walson-night-svg')) return;
+    var d = document.createElement('div');
+    d.id = 'walson-night-svg';
+    d.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+    d.innerHTML = '<svg width="0" height="0" aria-hidden="true"><filter id="walson-night" color-interpolation-filters="sRGB">' +
+      '<feColorMatrix type="matrix" values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0"/>' +
+      '<feComponentTransfer><feFuncR type="linear" slope="40" intercept="-38"/><feFuncG type="linear" slope="40" intercept="-38"/><feFuncB type="linear" slope="40" intercept="-38"/></feComponentTransfer>' +
+      '<feComponentTransfer><feFuncR type="linear" slope="0.93" intercept="0.07"/><feFuncG type="linear" slope="0.8" intercept="0.07"/><feFuncB type="linear" slope="0.05" intercept="0.085"/></feComponentTransfer>' +
+      '</filter></svg>';
+    document.body.appendChild(d);
+  }
+  if (document.body) addNightFilter(); else document.addEventListener('DOMContentLoaded', addNightFilter);
+
   window.WalsonTheme = {
     name: 'soft',
     isBrutal: false,
