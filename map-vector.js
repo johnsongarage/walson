@@ -43,6 +43,8 @@
     style.layers.forEach(function (l) {
       var id = l.id, sl = l['source-layer'] || '';
       if (HIDE_SOURCE_LAYERS.indexOf(sl) >= 0) { hide(l); return; }
+      // 도로 번호(14·46 같은 노선 번호 방패) — 줌아웃하면 번호만 잔뜩 보여서 숨긴다(11/19 "도로의 번호는 안 보이게")
+      if (l.type === 'symbol' && (/shield/.test(id) || /"ref"|\{ref\}/.test(JSON.stringify((l.layout || {})['text-field'] || '')))) { hide(l); return; }
       // 동네 이름은 '다산동' 같은 큰 이름만 — 'OO통'(행정 통)·작은 마을 이름은 빼기
       if (sl === 'place' && Array.isArray(l.filter) && l.filter[0] === 'match' && Array.isArray(l.filter[2]) && l.filter[3] === false) {
         ['neighbourhood', 'hamlet', 'isolated_dwelling'].forEach(function (k) { if (l.filter[2].indexOf(k) < 0) l.filter[2].push(k); });
