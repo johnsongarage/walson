@@ -32,6 +32,10 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
+<link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=4.7.1">
+<script src="vendor/maplibre/maplibre-gl.js?v=4.7.1"></script>
+<script src="vendor/maplibre/leaflet-maplibre-gl.js?v=0.1.4"></script>
+<script src="map-vector.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="infra-pins.js?v=28"></script>
@@ -58,6 +62,8 @@
   .leaflet-container { font-family: inherit; }
   /* OSM 기본 지도를 앱의 파스텔 톤으로 눌러 준다 — walk.html과 같은 값 */
   .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
+  /* 벡터 지도(map-vector.js)일 땐 색을 지도 쪽에서 정하니 그림 필터(위·theme-black.css 뒤집기)를 끈다 */
+  html.walson-vector-map .leaflet-tile-pane { filter: none !important; }
 
   .title-chip {
     position: fixed; top: 14px; left: 14px; z-index: 1000;
@@ -445,7 +451,8 @@
       relayoutSheet();
     });
   }
-  WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
+  // 시험: [동네] 지도만 벡터 지도(길·건물·글자 색을 따로 정함, map-vector.js). 못 받으면 원래 그림 지도로.
+  WalsonVectorTiles(map, WalsonMapTiles);
   // 지도 출처 표기는 왼쪽 아래로 — 오른쪽 아래엔 산책 버튼이 붙는다(목록 시트 위로 올리는 건 CSS --ls-h)
   if (map.attributionControl) map.attributionControl.setPosition('bottomleft');
   document.getElementById('zoom-in').addEventListener('click', function () { map.zoomIn(); });
