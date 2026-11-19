@@ -605,40 +605,179 @@
   }
 
   // 저장 모양: 카드만(1600×1000) / 정사각형(1080×1080, 카톡·피드) / 스토리용(1080×1920).
-  // 정사각형·스토리용은 파스텔 바탕 가운데에 카드를 올려서, 올렸을 때 양옆이 잘리지 않게 한다.
-  function composeExport(cardCanvas, profile, format) {
+  // 2026-11-19 가르시아 "첫 번째 것 외엔 배치만 달라 — 옵션에 맞게 사진 내용 채우는 걸 다양하게":
+  //   정사각형 = 사진이 주인공(강아지 사진 크게 + 이름·성향·등급·산책 기록 한 줄) — 피드·카톡 프로필용
+  //   스토리   = 산책 경력 한 장(카드 + 산책 횟수·거리·등급 칸 + 다음 등급까지 막대 + 모은 발도장 + 특기) — 인스타 스토리용
+  // 사진이 없거나 뒷면이면 정사각형은 예전처럼 카드를 가운데에. 가게 지킴이 카드(stats 없음)는 기록 칸을 빼고 그린다.
+  // x.stats: { walks, km, rank, next, left, places:[{name, got}], skill } | null,  x.photo: 사진(그림), x.zoom·qx·qy: 사진 맞춤
+  // 돌려주는 캔버스의 _photoBox = 편집기에서 사진을 끌 칸(없으면 null)
+  var EX_BG = '#f9f1ec', EX_PINK = '#e5568a', EX_PANEL = '#fffaf6';
+  function brandLine() {
+    var B = (window.WALSON_CONFIG && window.WALSON_CONFIG.brand) || {};
+    return (B.name || 'WALSON') + (B.tagline ? ' · ' + B.tagline : '');
+  }
+  // 사진을 칸에 꽉 차게(넘치는 쪽은 잘라서) — zoom·qx·qy는 편집기 사진 맞춤
+  function coverImage(ctx, img, x, y, w, h, zoom, qx, qy) {
+    var s = Math.max(w / img.width, h / img.height) * Math.max(1, zoom || 1), iw = img.width * s, ih = img.height * s;
+    ctx.drawImage(img, x - (iw - w) * (qx == null ? 0.5 : qx), y - (ih - h) * (qy == null ? 0.5 : qy), iw, ih);
+  }
+  function exportBase(ctx, OW, OH, cc) {
+    ctx.fillStyle = EX_BG; ctx.fillRect(0, 0, OW, OH);
+    ctx.fillStyle = cc; ctx.fillRect(0, 0, OW, 18); ctx.fillRect(0, OH - 18, OW, 18);
+  }
+  function exportFooter(ctx, OW, OH) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = SOFT;
+    ctx.font = font(700, 28);
+    ctx.fillText(brandLine(), OW / 2, OH - 92);
+    ctx.font = font(600, 26);
+    ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, OW / 2, OH - 52);
+    ctx.textAlign = 'left';
+  }
+  function pill(ctx, x, y, text, bg, fg, size) {
+    ctx.font = font(800, size);
+    var w = ctx.measureText(text).width + size * 1.4, h = size * 1.9;
+    roundRect(ctx, x, y, w, h, h / 2); ctx.fillStyle = bg; ctx.fill();
+    ctx.fillStyle = fg; ctx.textBaseline = 'middle'; ctx.fillText(text, x + size * 0.7, y + h / 2 + 1); ctx.textBaseline = 'alphabetic';
+    return w;
+  }
+  function placeCard(ctx, cardCanvas, cc, cx, cy, cw, ch) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(74, 63, 53, 0.25)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
+    roundRect(ctx, cx, cy, cw, ch, 38); ctx.fillStyle = cc; ctx.fill();
+    ctx.restore();
+    ctx.drawImage(cardCanvas, cx, cy, cw, ch);
+  }
+  function statLine(st) {
+    if (!st) return '';
+    return (st.rank ? st.rank.name + ' · ' : '') + '산책 ' + st.walks + '회 · ' + (st.km || 0).toFixed(1) + 'km';
+  }
+  function composeExport(cardCanvas, profile, format, x) {
     if (format !== 'square' && format !== 'story') return cardCanvas;
+    x = x || {};
     var OW = 1080, OH = format === 'story' ? 1920 : 1080;
     var out = document.createElement('canvas');
     out.width = OW; out.height = OH;
     var ctx = out.getContext('2d');
-    var sig = SIGNALS[profile.signal] || SIGNALS.none;
-    ctx.fillStyle = '#f7ede2';
-    ctx.fillRect(0, 0, OW, OH);
-    // 위아래에 카드 색 띠를 얇게(2026-11-18부터 성향 색 대신 견주가 고른 카드 색 — 성향은 카드 안 띠·불이 알린다)
-    var cc = cardColor(profile);
-    ctx.fillStyle = cc;
-    ctx.fillRect(0, 0, OW, 18);
-    ctx.fillRect(0, OH - 18, OW, 18);
-    var cw = 960, ch = 600, cx = (OW - cw) / 2, cy = Math.round((OH - ch) / 2) - (format === 'story' ? 60 : 30);
-    ctx.save();
-    ctx.shadowColor = 'rgba(74, 63, 53, 0.25)';
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 14;
-    roundRect(ctx, cx, cy, cw, ch, 38);
-    ctx.fillStyle = cc;
-    ctx.fill();
-    ctx.restore();
-    ctx.drawImage(cardCanvas, cx, cy, cw, ch);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = INK;
-    ctx.font = font(800, 44);
-    ctx.fillText((profile.name || '') + ' · ' + ((window.DogTags && DogTags.lineFor(profile)) || sig.line), OW / 2, cy + ch + 96);
-    ctx.fillStyle = SOFT;
-    ctx.font = font(600, 30);
-    ctx.fillText('나도 만들기  ' + SHARE_URL_TEXT, OW / 2, cy + ch + 150);
-    ctx.textAlign = 'left';
+    var sig = SIGNALS[profile.signal] || SIGNALS.none, cc = cardColor(profile), st = x.stats || null;
+    var sigLine = (window.DogTags && DogTags.lineFor(profile)) || sig.line;
+    exportBase(ctx, OW, OH, cc);
+    out._photoBox = null;
+    var k = 960 / W;
+
+    if (format === 'square' && x.photo && !x.back) {
+      // 사진이 주인공
+      var px = 60, py = 60, pw = 960, ph = 660;
+      ctx.save();
+      roundRect(ctx, px, py, pw, ph, 44); ctx.clip();
+      ctx.fillStyle = '#eee3d8'; ctx.fillRect(px, py, pw, ph);
+      coverImage(ctx, x.photo, px, py, pw, ph, x.zoom, x.qx, x.qy);
+      // 아래쪽 살짝 어둡게 — 성향 띠 글자가 사진 위에서도 읽히게
+      var g = ctx.createLinearGradient(0, py + ph - 200, 0, py + ph);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.35)');
+      ctx.fillStyle = g; ctx.fillRect(px, py + ph - 200, pw, 200);
+      ctx.restore();
+      ctx.lineWidth = 10; ctx.strokeStyle = cc; roundRect(ctx, px, py, pw, ph, 44); ctx.stroke();
+      pill(ctx, px + 36, py + ph - 100, sigLine, sig.color, '#ffffff', 34);
+      out._photoBox = { x: px, y: py, w: pw, h: ph };
+      // 이름 + 등급 도장
+      ctx.textAlign = 'left'; ctx.fillStyle = INK;
+      ctx.font = font(800, fitText(ctx, profile.name || '우리 강아지', 640, 84, 800));
+      ctx.fillText(profile.name || '우리 강아지', 72, 842);
+      ctx.fillStyle = SOFT;
+      ctx.font = font(600, fitText(ctx, statLine(st) || '강아지 워킹패스', 700, 34, 600));
+      ctx.fillText(statLine(st) || '강아지 워킹패스', 76, 900);
+      if (st && st.rank && st.rank.level >= 1) seal(ctx, OW - 150, 860, 78, st.rank.seal || st.rank.name, -0.16);
+      exportFooter(ctx, OW, OH);
+      return out;
+    }
+
+    if (format === 'square') {
+      // 사진이 없거나 뒷면 — 카드를 가운데에(예전 모양) + 기록 한 줄
+      var cy0 = Math.round((OH - 600) / 2) - 70;
+      placeCard(ctx, cardCanvas, cc, 60, cy0, 960, 600);
+      ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.font = font(800, 44);
+      ctx.fillText((profile.name || '') + ' · ' + sigLine, OW / 2, cy0 + 600 + 92);
+      if (st) { ctx.fillStyle = SOFT; ctx.font = font(600, 32); ctx.fillText(statLine(st), OW / 2, cy0 + 600 + 146); }
+      if (x.photo && !x.back) out._photoBox = { x: 60 + PHOTO_BOX.x * k, y: cy0 + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k };
+      exportFooter(ctx, OW, OH);
+      return out;
+    }
+
+    // 스토리 — 산책 경력 한 장
+    ctx.textAlign = 'left'; ctx.fillStyle = INK;
+    var head = (profile.name ? profile.name + '의 ' : '') + '워킹패스';
+    ctx.font = font(800, fitText(ctx, head, 900, 60, 800));
+    ctx.fillText(head, 64, 140);
+    ctx.fillStyle = SOFT; ctx.font = font(600, 32);
+    ctx.fillText(st ? '남양주 다산동에서 산책 중' : sigLine, 66, 192);
+    var cy = 236;
+    placeCard(ctx, cardCanvas, cc, 60, cy, 960, 600);
+    if (x.photo && !x.back) out._photoBox = { x: 60 + PHOTO_BOX.x * k, y: cy + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k };
+    var y = cy + 600 + 70;
+    if (st) {
+      // 숫자 칸 셋: 산책 · 거리 · 등급
+      var boxes = [['산책', st.walks + '회'], ['거리', (st.km || 0).toFixed(1) + 'km'], ['등급', st.rank ? st.rank.short || st.rank.name : '-']];
+      var bw = 300, gap = 30, bh = 190;
+      boxes.forEach(function (b, i) {
+        var bx = 60 + i * (bw + gap);
+        roundRect(ctx, bx, y, bw, bh, 32); ctx.fillStyle = EX_PANEL; ctx.fill();
+        ctx.lineWidth = 3; ctx.strokeStyle = LINE; ctx.stroke();
+        ctx.textAlign = 'center';
+        ctx.fillStyle = SOFT; ctx.font = font(700, 30); ctx.fillText(b[0], bx + bw / 2, y + 62);
+        ctx.fillStyle = INK; ctx.font = font(800, fitText(ctx, b[1], bw - 40, 64, 800)); ctx.fillText(b[1], bx + bw / 2, y + 146);
+      });
+      ctx.textAlign = 'left';
+      y += bh + 76;
+      // 다음 등급까지
+      ctx.fillStyle = INK; ctx.font = font(800, 36);
+      var cur = st.rank ? st.rank.minWalks : 0, nx = st.next;
+      ctx.fillText(nx ? nx.name + '까지 산책 ' + (nx.minWalks - st.walks) + '회' : (st.rank ? st.rank.name + ' 달성!' : ''), 64, y);
+      y += 30;
+      var ratio = nx ? Math.max(0, Math.min(1, (st.walks - cur) / Math.max(1, nx.minWalks - cur))) : 1;
+      roundRect(ctx, 60, y, 960, 34, 17); ctx.fillStyle = '#efe2d6'; ctx.fill();
+      if (ratio > 0) { roundRect(ctx, 60, y, Math.max(34, 960 * ratio), 34, 17); ctx.fillStyle = EX_PINK; ctx.fill(); }
+      y += 34 + 86;
+      // 모은 발도장
+      var places = st.places || [];
+      if (places.length) {
+        var got = places.filter(function (p) { return p.got; }).length;
+        ctx.fillStyle = INK; ctx.font = font(800, 36);
+        ctx.fillText('모은 발도장 ' + got + ' / ' + places.length, 64, y);
+        y += 28;
+        var px2 = 60, rowH = 74;
+        places.forEach(function (p) {
+          ctx.font = font(800, 28);
+          var w = ctx.measureText(p.name).width + 28 * 1.4;
+          if (px2 + w > 1020) { px2 = 60; y += rowH; }
+          pill(ctx, px2, y, p.name, p.got ? EX_PINK : '#ece1d6', p.got ? '#ffffff' : DIM, 28);
+          px2 += w + 16;
+        });
+        y += rowH + 60;
+      }
+      // 특기
+      if (st.skill && y < OH - 260) {
+        ctx.fillStyle = SOFT; ctx.font = font(700, 30); ctx.fillText('특기', 64, y);
+        ctx.fillStyle = INK; ctx.font = font(800, fitText(ctx, st.skill, 960, 38, 800)); ctx.fillText(st.skill, 64, y + 54);
+      }
+    } else {
+      ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.font = font(800, 44);
+      ctx.fillText((profile.name || '') + ' · ' + sigLine, OW / 2, y + 40);
+      ctx.textAlign = 'left';
+    }
+    exportFooter(ctx, OW, OH);
     return out;
+  }
+
+  // 저장 그림에 넣을 산책 기록(이 휴대폰 기록) — 가게 지킴이 카드처럼 내 기록이 아닌 카드는 openEditor({ stats: null })
+  function myStats() {
+    var RR = window.RewardRules, S = window.WalsonStore;
+    if (!RR || !S || !RR.computeProgress) return null;
+    var p = RR.computeProgress(S.walks() || []);
+    return {
+      walks: p.walks, km: p.km, rank: RR.rankFor(p.walks), next: RR.nextRank(p.walks),
+      places: (RR.PLACES || []).filter(function (pl) { return !pl.pending; }).map(function (pl) { return { name: pl.name, got: !!p.visited[pl.id] }; })
+    };
   }
 
   // ── 꾸미고 저장하기(2026-11-16 한 화면 편집기, image-editor.js) — [주민증] 탭과 만들기 3단계가 같이 쓴다 ──
@@ -738,7 +877,9 @@
           fo.photo = o.photo ? cropPhoto(o.photo, st.photo.zoom, st.photo.x, st.photo.y) : null;
           drawFront(card, o.profile, fo);
         } else o.drawBack(card);
-        var out = composeExport(card, o.profile, st.fmt), g = cv.getContext('2d');
+        var stats = o.stats === null ? null : (typeof o.stats === 'function' ? o.stats() : myStats());
+        var out = composeExport(card, o.profile, st.fmt, { stats: stats, back: !front, photo: o.photo, zoom: st.photo && st.photo.zoom, qx: st.photo && st.photo.x, qy: st.photo && st.photo.y }),
+          g = cv.getContext('2d');
         if (cv.width !== out.width) cv.width = out.width;
         if (cv.height !== out.height) cv.height = out.height;
         g.setTransform(1, 0, 0, 1, 0, 0);
@@ -748,10 +889,10 @@
         if (out === card) { g.fillStyle = cardColor(o.profile); g.fillRect(0, 0, cv.width, cv.height); }
         g.drawImage(out, 0, 0);
         if (!front || !o.photo) return null;
-        // composeExport가 카드를 놓는 자리(정사각형·스토리: 960×600 가운데) — 사진 칸을 같은 비율로 옮긴다
-        var k = 1, ox = 0, oy = 0;
-        if (st.fmt === 'square' || st.fmt === 'story') { k = 960 / W; ox = (out.width - 960) / 2; oy = Math.round((out.height - 600) / 2) - (st.fmt === 'story' ? 60 : 30); }
-        return { x: ox + PHOTO_BOX.x * k, y: oy + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k, img: o.photo };
+        if (out === card) return { x: PHOTO_BOX.x, y: PHOTO_BOX.y, w: PHOTO_BOX.w, h: PHOTO_BOX.h, img: o.photo };
+        // 정사각형·스토리: composeExport가 알려 준 사진 칸(정사각형은 큰 사진, 스토리는 카드 안 사진 칸)
+        var pb = out._photoBox;
+        return pb ? { x: pb.x, y: pb.y, w: pb.w, h: pb.h, img: o.photo } : null;
       },
       storeKey: 'walson_edit_id_card',   // [저장]한 꾸미기(모양·사진 칸 자리·글자)를 다음에 이어서(주민증에 든 원래 사진은 그대로)
       fileName: function (st) { return (o.profile.name || 'dog') + '-워킹패스' + (st.extra.side === 'back' && o.drawBack ? '-뒷면' : '') + (st.fmt === 'card' ? '' : '-' + st.fmt) + '.png'; },
@@ -772,7 +913,7 @@
   window.WalsonIdCard = {
     W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX,
     CARD_COLORS: CARD_COLORS, cardColor: cardColor, infoBits: infoBits, drawKeyringBack: drawKeyringBack,
-    drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, openEditor: openEditor, framedPhoto: framedPhoto,
+    drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, myStats: myStats, openEditor: openEditor, framedPhoto: framedPhoto,
     loadImage: loadImage, fontsReady: fontsReady, todayText: todayText, dateText: dateText
   };
 })();

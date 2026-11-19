@@ -275,7 +275,7 @@
 <script src="infra-pins.js?v=28"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="id-card.js?v=13"></script>
+<script src="id-card.js?v=14"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script>
@@ -507,6 +507,7 @@
       profile: profile, photo: photoImage, title: guardianSpot ? guardianSpot + ' ' + guardianBadge : '강아지 워킹패스',
       frontOpts: function () { var ri = rankInfo(); return { rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null }; },
       drawBack: null,
+      stats: guardianSpot ? null : undefined,   // 가게 지킴이 카드엔 내 산책 기록을 넣지 않는다
       onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt, how: how }); },
       // [저장]한 사진 맞춤·편집기 [테두리]에서 고른 색을 미리 보기와 아래 색 고르기에 바로([×]면 id-card.js가 색을 되돌려 둔다)
       onClose: function () { drawCard(photoImage); refreshPreview(); if (ccPicker) ccPicker.refresh(); }

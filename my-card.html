@@ -269,7 +269,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=1"></script>
-<script src="id-card.js?v=13"></script>
+<script src="id-card.js?v=14"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="steady-stamp.js?v=4"></script>
@@ -465,6 +465,8 @@
       profile: profile, photo: photo, side: side,
       frontOpts: function () { var o = frontOpts(); delete o.photo; return o; },
       drawBack: function (c) { IC.drawBack(c, profile, progress, backOpts()); },
+      // 정사각형·스토리 그림에 넣을 산책 기록 + 특기(2026-11-19)
+      stats: function () { var s = IC.myStats ? IC.myStats() : null, sk = skills[pick.skill]; if (s && sk) s.skill = typeof sk === 'string' ? sk : (sk.title || sk.text || ''); return s; },
       onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: st.extra.side === 'back' ? 'id_card_back' : 'id_card', format: st.fmt, how: how }); },
       onClose: function (st) { if (st.extra.side !== side) setSide(st.extra.side); else render(); }   // [저장]한 사진 맞춤을 카드에 바로
     });
