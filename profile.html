@@ -208,8 +208,9 @@
   <!-- 화면 색(2026-11-17 가르시아 "색 테마는 고를 수 있게 3가지"): 색은 theme.js가 들고 있고 여기선 고르기만. 이 기기에만 저장 -->
   <div class="card theme-card" id="palette">
     <h2>화면 색</h2>
-    <p class="sub">바탕의 치와와 무늬와 버튼 색이 바뀌어요. 주민증·영수증 그림은 그대로예요.</p>
+    <p class="sub">누르면 바로 바뀌고 이 휴대폰에 저장돼요(따로 저장 버튼 없음). 주민증·영수증 그림은 그대로예요.</p>
     <div class="theme-opts pal-opts" id="pal-opts"></div>
+    <p class="pal-done" id="pal-done" aria-live="polite" style="margin:10px 2px 0;font-size:13px;font-weight:800;color:var(--accent);min-height:1.2em;"></p>
   </div>
 
   <!-- 산책할 때 위치(2026-11-16 1단계): 산책 나가기는 "산책 시작" 하나 — 위치를 쓸지는 처음 산책 때 묻고 여기서도 바꾼다(go.html과 같은 값) -->
@@ -559,6 +560,11 @@
     if (!b) return;
     T.setPalette(b.getAttribute('data-pal'));
     paint();
+    // 저장 버튼이 없으니 바뀌었다는 걸 한 줄로 알려 준다(11/19 가르시아 "적용 저장 버튼 없네")
+    var done = document.getElementById('pal-done');
+    var nm = T.palettes[T.palette].label, last = nm.charCodeAt(nm.length - 1) - 0xAC00;
+    var ro = (last >= 0 && last < 11172 && last % 28 !== 0 && last % 28 !== 8) ? '으로' : '로';   // 받침 있으면 '으로'(ㄹ 받침은 '로')
+    if (done) done.textContent = '✓ ' + nm + ro + ' 바꿨어요 · 저장됐어요';
   });
   paint();
 })();
