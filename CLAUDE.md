@@ -16,6 +16,7 @@ UI만 먼저 만들고 데이터는 로컬(localStorage)에 임시로 둔다.
 - 지도: Leaflet + OpenStreetMap 타일 (CDN `<script>` 태그, 가입/API 키 불필요). 원래 Mapbox GL JS를
   검토했으나 무료 티어도 카드 등록이 필요해 배제함(2026-09-02 결정, [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
   참고) — 실제 서비스 단계에서 상업적 트래픽 정책이나 세밀한 커스텀 스타일이 필요해지면 재검토.
+- 2026-11-19 가르시아 "배포": [동네] 지도(town.html)는 벡터 지도 — Leaflet은 그대로 두고 바탕만 MapLibre GL + OpenFreeMap(가입·키 없음, `map-vector.js`, `vendor/maplibre/`). 길·건물·공원·물·글자 색은 `map-vector.js`의 `COLORS`(밤=블랙 핑크, 낮=그 밖)에서. 데이터를 못 받으면 원래 그림 지도로. [산책] 등 다른 지도는 아직 그림 지도.
 - PWA: `manifest.json` + 서비스워커로 "홈 화면에 추가" 정도까지만 우선 지원. 오프라인 캐싱 등은
   필요해지면 그때 추가.
 - GPS 추적은 `navigator.geolocation.watchPosition` 기반. 브라우저 권한 요청 UX(왜 위치가
