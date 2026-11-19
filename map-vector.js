@@ -9,13 +9,14 @@
 
   // 화면 색별 지도 색. 바꾸고 싶으면 여기 값만 고친다.
   var COLORS = {
-    // 블랙 핑크 밤 지도 — 바탕은 어둡게, 건물·공원·물은 구분되게, 큰길은 노랑, 골목은 밝은 회색, 글자는 흰색
+    // 젤리 블랙 밤 지도 — 낮처럼 파스텔 톤으로(11/19 "밤도 마찬가지로"): 어두운 바탕 위에 공원 짙은 보라, 물 짙은 남색,
+    // 큰길 연분홍, 중간 길 라벤더, 골목 회보라. 길은 밝게 남겨서 밤에도 위치를 알아보게(11/19 "밤에도 위치는 알아볼 수 있어야")
     night: {
-      background: '#16161b', land: '#1b1b21', park: '#1d2a22', wood: '#1f2d24', water: '#1b2b40',
-      building: '#2f2f3a', buildingLine: '#3d3d4a',
-      roadMajor: '#ffcf40', roadMid: '#e8c766', roadMinor: '#9b9ba8', path: '#7c7c8a', casing: '#0e0e12', rail: '#55556a',
-      waterway: '#2c4f75', boundary: '#4a4a58',
-      text: '#ececf0', textRoad: '#ffe08a', textWater: '#8fb4e0', textPark: '#9cc9a8', halo: '#121215'
+      background: '#16151b', land: '#1b1a21', park: '#2a2231', wood: '#2f2538', water: '#1c2a3e',
+      building: '#2c2a35', buildingLine: '#3a3746',
+      roadMajor: '#f0b3cf', roadMid: '#c5b6e2', roadMinor: '#7b7789', path: '#8296bb', casing: '#0f0e13', rail: '#5a566a',
+      waterway: '#3a5b84', boundary: '#4a4658',
+      text: '#eeeaf2', textRoad: '#f6cfe0', textWater: '#9dbbe3', textPark: '#d3b3dd', halo: '#121116'
     },
     // 젤리(밝은 화면) — 예전 그림 지도의 파스텔 톤(town.html 필터 saturate·hue-rotate로 만들던 색)을 되살림(11/19 "파스텔톤이 잘 안 살아서 아쉽네"):
     // 공원 연보라·분홍, 큰길 연분홍(하늘색은 강처럼 보여서 뺌), 중간 길 라벤더, 건물 연회색 보라. 물은 알아보게 연하늘(예전 필터는 베이지로 바뀌었음)
