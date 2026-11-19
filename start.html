@@ -275,9 +275,9 @@
 <script src="infra-pins.js?v=28"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="id-card.js?v=12"></script>
-<script src="card-color.js?v=1"></script>
-<script src="image-editor.js?v=6"></script>
+<script src="id-card.js?v=13"></script>
+<script src="card-color.js?v=2"></script>
+<script src="image-editor.js?v=7"></script>
 <script>
 (function () {
   // ── 운영자가 정하면 채우는 값(비어 있으면 화면에 안 보인다) ──
@@ -508,7 +508,8 @@
       frontOpts: function () { var ri = rankInfo(); return { rank: ri.rank, since: ri.since, subtitle: guardianSpot ? guardianSpot + ' ' + guardianBadge : null }; },
       drawBack: null,
       onSave: function (st, how) { window.WalsonTrack && WalsonTrack.send('card_saved', { what: guardianSpot ? 'guardian_card' : 'id_card', format: st.fmt, how: how }); },
-      onClose: function (st, kept) { if (kept && photoImage) { drawCard(photoImage); refreshPreview(); } }   // [저장]한 사진 맞춤을 미리 보기에 바로
+      // [저장]한 사진 맞춤·편집기 [테두리]에서 고른 색을 미리 보기와 아래 색 고르기에 바로([×]면 id-card.js가 색을 되돌려 둔다)
+      onClose: function () { drawCard(photoImage); refreshPreview(); if (ccPicker) ccPicker.refresh(); }
     });
   });
 

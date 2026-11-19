@@ -176,5 +176,5 @@
     return { refresh: paint, current: current };
   }
 
-  window.WalsonCardColor = { mount: mount, hueHex: hueHex, hexHue: hexHue };
+  window.WalsonCardColor = { mount: mount, hueHex: hueHex, hexHue: hexHue, TRACK: TRACK };   // TRACK: 편집기 색 막대도 같은 무지개(id-card.js)
 })();

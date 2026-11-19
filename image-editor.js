@@ -10,8 +10,11 @@
 //   formats: [['story', '스토리 9:16'], ['feed', '피드 4:5']], fmt: 'story',        // 둘 이상이면 [모양] 탭
 //   photo: { sources: [['walk', '산책 사진'], ['logo', '왈슨 그림']], fixed: ['logo'],  // 있으면 [사진] 탭 + 미리 보기에서 끌기
 //            src: 'walk', zoom: 1, x: 0.5, y: 0.4, home: { x: 0.5, y: 0.4 } },
-//   tabs: [{ id, label, icon: 'note'|'side'|'month', rows: function (st) → [{ label, chips: [{ text, value, on, cls }] } | { tip }],
-//            onPick: function (value, st, api) }                                    // 콘텐츠마다 다른 탭(칩 한두 줄)
+//   tabs: [{ id, label, icon: 'note'|'side'|'month'|'color', rows: function (st) → [{ label, chips: [{ text, value, on, cls, swatch }] } | { tip }
+//                                                                     | { label, hue: { value, on, track, color } }],
+//            onPick: function (value, st, api), onHue: function (hue, done, st, api) }   // 콘텐츠마다 다른 탭(칩 한두 줄)
+//            칩의 swatch(CSS 색)는 글 앞에 색 점. hue 줄은 색 막대(0~359) — 누르거나 끄는 동안 onHue(h, false), 손을 떼면 onHue(h, true)
+//            (2026-11-19 주민증 테두리 색: track = 막대 무지개 CSS, color(h) = 그 자리 색)
 //          | { id, label, icon, text: { title, hint, max, empty, font, presets: [{ text, value, group }],   // 큰 글 칸 탭(2026-11-16):
 //              get: function (st) → 지금 글('' = 없음), set: function (st, 글, 고른 칩 value|null), fonts: function (글) → Promise } }],
 //            미리 보기를 줄이더라도 글 칸을 크게, 고를 글은 옆으로 밀지 않고 줄바꿈해서 한눈에. 칩은 글 칸을 채우는 본보기(고쳐 써도 됨)
@@ -36,7 +39,8 @@
     note: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
     text: '<path d="M5 6V4h14v2M12 4v16M9 20h6"/>',
     side: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M19 9v9a2 2 0 0 1-2 2H8"/>',
-    month: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
+    month: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    color: '<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>'
   };
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
@@ -124,6 +128,12 @@
       '.we-chip.ghost{background:transparent;}',
       '.we-chip:disabled{opacity:.35;cursor:default;}',
       '.we-chip .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:1px solid rgba(255,255,255,.35);}',
+      '.we-chip .sw.dot{width:16px;height:16px;border-radius:50%;vertical-align:-3px;}',
+      '.we-hue{position:relative;flex:1;min-width:160px;height:34px;cursor:pointer;touch-action:pan-y;outline:none;-webkit-tap-highlight-color:transparent;}',
+      '.we-hue::before{content:"";position:absolute;left:0;right:0;top:10px;height:14px;border-radius:7px;background:var(--we-hue-track);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}',
+      '.we-hue-knob{position:absolute;top:3px;width:28px;height:28px;margin-left:-14px;border-radius:50%;box-sizing:border-box;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);pointer-events:none;}',
+      '.we-hue[data-on="false"] .we-hue-knob{opacity:.55;}',
+      '.we-hue:focus-visible .we-hue-knob{box-shadow:0 0 0 3px #e2774f,0 2px 6px rgba(0,0,0,.45);}',
       '.we-range{flex:1;min-width:120px;accent-color:#e2774f;}',
       '.we-tip{padding:0 14px;margin:9px 0 0;font-size:12px;color:#c9b9a6;line-height:1.45;}',
       // 큰 글 칸 탭 — 도구 칸을 화면 절반쯤으로 키운다(미리 보기는 그만큼 작아짐). 글 쓰는 동안은 탭·칩을 숨기고 글 칸만 자판 위에
@@ -353,9 +363,43 @@
     function rowsHtml(rows) {
       return rows.map(function (r) {
         if (r.tip) return '<p class="we-tip">' + esc(r.tip) + '</p>';
-        return '<div class="we-row">' + (r.label ? '<span class="we-label">' + esc(r.label) + '</span>' : '') +
-          (r.chips || []).map(function (c) { return chip(c.text, c.on, c.value, c.cls, c.disabled); }).join('') + '</div>';
+        var label = r.label ? '<span class="we-label">' + esc(r.label) + '</span>' : '';
+        if (r.hue) {
+          // 색 막대 — 누르거나 끌어서 고른다(색 계산은 탭이 준 color(h))
+          var hv = Math.round(clamp(Number(r.hue.value) || 0, 0, 359));
+          return '<div class="we-row">' + label + '<div class="we-hue" role="slider" tabindex="0" aria-label="' + esc(r.hue.aria || '색 막대 — 누르거나 끌어서 골라요') + '"' +
+            ' aria-valuemin="0" aria-valuemax="359" aria-valuenow="' + hv + '" data-on="' + !!r.hue.on + '" style="--we-hue-track:' + esc(r.hue.track || '') + '">' +
+            '<span class="we-hue-knob" style="left:' + (hv / 359 * 100) + '%;background:' + esc(r.hue.color ? r.hue.color(hv) : '#fff') + '"></span></div></div>';
+        }
+        return '<div class="we-row">' + label +
+          (r.chips || []).map(function (c) {
+            if (!c.swatch) return chip(c.text, c.on, c.value, c.cls, c.disabled);
+            return chip('<span class="sw dot" style="background:' + esc(c.swatch) + '"></span>' + esc(c.text), c.on, c.value, c.cls, c.disabled, true);
+          }).join('') + '</div>';
       }).join('');
+    }
+    // 색 막대 줄 — 끄는 동안은 미리 보기만 다시(도구 칸은 그대로 — 다시 만들면 끌기가 끊긴다), 손을 떼면 도구 칸도 새로
+    function wireHue(T) {
+      var bar = tray.querySelector('.we-hue');
+      if (!bar || !T || typeof T.onHue !== 'function') return;
+      var knob = bar.querySelector('.we-hue-knob'), rows = T.rows(st), spec = null, dragging = false, h = Number(bar.getAttribute('aria-valuenow')) || 0;
+      rows.forEach(function (r) { if (r.hue) spec = r.hue; });
+      function place() { knob.style.left = (h / 359 * 100) + '%'; if (spec && spec.color) knob.style.background = spec.color(h); bar.setAttribute('aria-valuenow', String(h)); bar.setAttribute('data-on', 'true'); }
+      function at(x) { var r = bar.getBoundingClientRect(); return Math.round(clamp(r.width ? (x - r.left) / r.width : 0, 0, 1) * 359); }
+      function live() { place(); T.onHue(h, false, st, api); schedule(); }
+      function done() { T.onHue(h, true, st, api); render(false); buildTray(); }
+      bar.addEventListener('pointerdown', function (e) { dragging = true; try { bar.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ } h = at(e.clientX); live(); hideHint(); });
+      bar.addEventListener('pointermove', function (e) { if (!dragging) return; h = at(e.clientX); live(); });
+      function end() { if (!dragging) return; dragging = false; done(); }
+      bar.addEventListener('pointerup', end);
+      bar.addEventListener('pointercancel', end);
+      bar.addEventListener('keydown', function (e) {
+        var k = e.key, step = e.shiftKey ? 30 : 6;
+        if (k === 'ArrowRight' || k === 'ArrowUp') h = Math.min(359, h + step);
+        else if (k === 'ArrowLeft' || k === 'ArrowDown') h = Math.max(0, h - step);
+        else if (k === 'Home') h = 0; else if (k === 'End') h = 359; else return;
+        e.preventDefault(); place(); done(); var nb = tray.querySelector('.we-hue'); if (nb) nb.focus();
+      });
     }
     function syncZoom() { var r = tray.querySelector('.we-range'); if (r && st.photo) r.value = Math.round(st.photo.zoom * 100); }
     function custom() { for (var i = 0; i < tabs.length; i++) if (tabs[i].id === tab && tabs[i].rows) return tabs[i]; return null; }
@@ -383,6 +427,7 @@
       Array.prototype.forEach.call(tray.querySelectorAll('.we-chip'), function (b) { b.addEventListener('click', function () { onChip(b.getAttribute('data-v')); }); });
       var z = tray.querySelector('.we-range');
       if (z) z.addEventListener('input', function () { st.photo.zoom = z.value / 100; hideHint(); schedule(); });
+      if (T) wireHue(T);
     }
     function onChip(v) {
       var T = custom();
@@ -530,9 +575,10 @@
       if (cfg.onClose) cfg.onClose(st, kept);
     }
     function close() { if (pushed) { pushed = false; history.back(); } else cleanup(); }   // 뒤로 가기(popstate)가 cleanup을 부른다
+    var asked = false;   // [×]에서 이미 물었으면 뒤이은 뒤로 가기(popstate)에서 또 묻지 않는다(2026-11-19 — 두 번 묻던 것)
     function onPop() {
       // 안드로이드 뒤로 가기도 [×]처럼 — 저장 안 한 고침이 있으면 묻고, 남겠다면 편집기 그대로
-      if (!kept && snapshot() !== opened && !confirm('고친 내용을 저장하지 않고 나갈까요?')) {
+      if (!asked && !kept && snapshot() !== opened && !confirm('고친 내용을 저장하지 않고 나갈까요?')) {
         try { history.pushState({ walsonEditor: 1 }, ''); } catch (e) { /* 못 막으면 닫힘 */ }
         return;
       }
@@ -541,6 +587,7 @@
     // [×]·뒤로 가기: 고친 게 있는데 [저장]도 내보내기도 안 했으면 한 번 묻는다(아니요면 편집기에 그대로)
     function askClose() {
       if (!kept && snapshot() !== opened && !confirm('고친 내용을 저장하지 않고 나갈까요?')) return;
+      asked = true;
       close();
     }
     // 고친 것 남기기 — 부른 화면은 onClose(st, true)로, storeKey가 있으면 여기서 이 휴대폰에

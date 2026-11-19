@@ -704,6 +704,25 @@
       },
       onPick: function (v, st) { st.extra.side = v === 'back' ? 'back' : 'front'; }
     });
+    // 테두리 색(2026-11-19 가르시아 "꾸미고 저장하기 안에다가 테두리 색 변경 기능 넣어라") — 이름 붙은 색 + 색 막대(card-color.js).
+    // 고르면 미리 보기에 바로. [저장]하거나 그림을 내보내면 주민증에도 남고, [×]로 나오면 열 때 색으로 되돌린다
+    var CC = window.WalsonCardColor, color0 = o.profile.cardColor;
+    tabs.push({
+      id: 'color', label: '테두리', icon: 'color',
+      rows: function () {
+        var cur = o.profile.cardColor, picked = typeof cur === 'string' && /^#[0-9a-f]{6}$/i.test(cur);
+        var known = CARD_COLORS.some(function (c) { return c.id === cur; }), now = picked ? null : (known ? cur : 'mocha');
+        var rows = [{ label: '테두리', chips: CARD_COLORS.map(function (c) {
+          return { text: c.label, value: 'cc:' + c.id, on: now === c.id, swatch: c.color || (SIGNALS[o.profile.signal] || SIGNALS.none).color };
+        }) }];
+        if (CC) rows.push({ label: '직접', hue: { value: picked ? CC.hexHue(cur) : 28, on: picked, track: CC.TRACK, color: CC.hueHex, aria: '테두리 색 직접 고르기 — 색 막대를 누르거나 끌어요' } });
+        rows.push({ tip: '테두리만 바뀌어요. 성향 띠는 성향 색 그대로예요.' });
+        return rows;
+      },
+      // st.extra에도 적어 둔다 — 편집기가 [×]로 나갈 때 '고친 내용을 저장하지 않고 나갈까요?'를 물을 수 있게(저장 칸에는 안 남김)
+      onPick: function (v, st) { if (String(v).indexOf('cc:') === 0) { o.profile.cardColor = String(v).slice(3); st.extra.cardColor = o.profile.cardColor; } },
+      onHue: function (h, done, st) { if (CC) { o.profile.cardColor = CC.hueHex(h); st.extra.cardColor = o.profile.cardColor; } }
+    });
     return WalsonEditor.open({
       title: o.title || '강아지 주민증',
       formats: [['card', '카드만'], ['square', '정사각형'], ['story', '스토리']], fmt: o.fmt || 'card',
@@ -740,6 +759,11 @@
       // [저장]했거나 내보냈으면(kept) 사진 맞춤을 카드 쪽에도 남긴다 — 부른 화면은 onClose에서 카드를 다시 그린다
       onClose: function (st, kept) {
         if (kept && o.photo && st.photo) saveFrame(o.profile, st.photo);
+        // 테두리 색: 남겼으면 프로필에 저장, [×]로 나왔으면 열 때 색으로
+        if (o.profile.cardColor !== color0) {
+          if (kept) { if (window.WalsonStore) WalsonStore.saveProfile(o.profile); }
+          else if (color0 === undefined) delete o.profile.cardColor; else o.profile.cardColor = color0;
+        }
         if (o.onClose) o.onClose(st, kept);
       }
     });
