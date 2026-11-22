@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도트 키링 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 도트 아크릴 키링 시안(2026-11-22 가르시아: 실물 키링 사진을 "따라 하고 싶어" → 비교 분석 → 받은 HTML(Gemini) 바탕으로 분석대로 다시 짜기).
+     분석에서 고친 것: 머리띠 낮게·제목 도트 글꼴·구멍은 머리띠 가운데, 바탕 흰 분홍, 사진 틀 가는 한 겹 + 연분홍 네모 마디(주황 X),
+     강아지가 틀을 꽉 채움(아래 붙임), 정보 칸 가는 갈색 테두리·전부 흰색·작은 글씨, WALSON 알약 작게 왼쪽 맞춤, QR 작게 오른쪽 아래.
+     규칙 때문에 더한 것: 알약 아래 홍보 문구 한 줄(site-config.js brand), 번호 칸 오른쪽 작은 신호등(안전 표시), TYPE: DOG → BREED, QR은 진짜 주소(받은 HTML의 QR은 가짜 무늬라 안 찍힘).
+     사진은 photo-dot.js로 강아지만 도트로(끄면 그대로). 사진은 이 브라우저 안에서만 — 어디로도 보내지 않고 저장도 안 한다. */
+  @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
+  :root { --k-ink: #4a2a30; --k-pink: #f6a6c1; --k-pink-d: #df7f9f; --k-pink-l: #fbe1ea; --k-paper: #fff8fb; --k-frame: #f2c8d2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Pretendard, sans-serif; background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  main { max-width: 760px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 22px; margin: 6px 0 4px; }
+  .lead { color: var(--ink-soft, #6b6b70); font-size: 14px; margin: 0 0 14px; line-height: 1.55; }
+
+  /* 탁자 위 — 실물 사진처럼 보이게 하는 무대(카드 색은 실물 색이라 테마와 상관없이 고정) */
+  .table { border-radius: 20px; padding: 36px 12px; display: flex; justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #d9b48d 0%, #a9774e 100%); }
+
+  /* 1. 투명 아크릴 — 인쇄면 바깥 3~4mm 투명 테두리 + 가장자리 반사 + 그림자 */
+  .acrylic { position: relative; width: 360px; max-width: 100%; padding: 13px; border-radius: 26px;
+    background: linear-gradient(135deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.18) 45%, rgba(255,255,255,.5) 100%);
+    border: 2px solid rgba(255,255,255,.9);
+    box-shadow: 0 18px 30px rgba(50,28,12,.35), inset 0 0 0 1px rgba(210,225,235,.9), 0 5px 0 rgba(190,200,208,.9); }
+  .acrylic::after { content: ''; position: absolute; left: 22px; right: 46%; top: 6px; height: 3px; border-radius: 3px;
+    background: rgba(255,255,255,.95); }   /* 윗변 반사 한 줄 */
+  /* 고리 구멍 — 머리띠 가운데를 뚫는다(실물처럼) */
+  .hole { position: absolute; top: 20px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; z-index: 3;
+    background: rgba(255,255,255,.55); border: 2px solid rgba(255,255,255,.95); box-shadow: inset 0 2px 3px rgba(0,0,0,.25); }
+
+  /* 2. 인쇄면 */
+  .card { border-radius: 14px; overflow: hidden; background: linear-gradient(#fffdfe, var(--k-paper) 60%, #fdeef4); }
+  .head { background: var(--k-pink); padding: 22px 8px 8px; text-align: center; border-bottom: 3px solid var(--k-pink-d);
+    font-family: 'DungGeunMo', monospace; color: var(--k-ink); }
+  .head .l1 { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 27px; line-height: 1; letter-spacing: 1px; }
+  .head .l2 { font-size: 25px; line-height: 1; margin-top: 3px; letter-spacing: 1px; }
+  .paw { width: 18px; height: 14px; image-rendering: pixelated; }
+
+  .body { display: grid; grid-template-columns: 1.08fr 1fr; gap: 10px; padding: 12px 11px 11px; }
+
+  /* 사진 틀 — 가는 분홍 베이지 한 겹 + 귀퉁이 네모 마디 */
+  .frame { position: relative; height: 236px; border: 2px solid var(--k-ink); background: var(--k-frame); padding: 4px; }
+  .photo { position: relative; height: 100%; border: 2px solid var(--k-ink); background: #fff; overflow: hidden; cursor: pointer; }
+  .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; image-rendering: pixelated; display: none; }
+  .photo .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+    font-family: 'DungGeunMo', monospace; font-size: 13px; line-height: 1.5; color: var(--k-pink-d); padding: 8px; }
+  .knot { position: absolute; width: 14px; height: 14px; background: var(--k-pink-l); border: 2px solid var(--k-ink); z-index: 2; }
+  .knot::after { content: ''; position: absolute; left: 3px; top: 3px; width: 4px; height: 4px; background: var(--k-pink); }
+  .knot.tl { top: -6px; left: -6px; } .knot.tr { top: -6px; right: -6px; } .knot.bl { bottom: -6px; left: -6px; } .knot.br { bottom: -6px; right: -6px; }
+
+  /* 계단 귀퉁이 칸(바깥 2px 짙은 갈색) */
+  .pix { background: var(--k-ink); padding: 2px;
+    clip-path: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px),
+      calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 2px 2px); }
+  .pix > div { background: #fff; }
+
+  .info { display: flex; flex-direction: column; gap: 7px; }
+  .field > div { display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 7px; font-family: 'DungGeunMo', monospace; font-size: 13px; color: var(--k-ink); white-space: nowrap; overflow: hidden; }
+  .field b { font-weight: normal; }
+  .field span { overflow: hidden; text-overflow: ellipsis; }
+  .lamps { margin-left: auto; display: flex; gap: 2px; }
+  .lamps i { width: 7px; height: 7px; background: #c9b7bd; }
+  .lamps i.on.green { background: #3f9b5b; } .lamps i.on.yellow { background: #dfa21f; } .lamps i.on.red { background: #d2493f; }
+  .dash { height: 2px; margin: 3px 0 1px; background: linear-gradient(to right, var(--k-pink-d) 60%, transparent 0) 0 0 / 8px 2px repeat-x; }
+  .pill { align-self: flex-start; width: 72%; }
+  .pill > div { background: var(--k-pink); text-align: center; height: 26px; line-height: 26px; font-family: 'DungGeunMo', monospace; font-size: 15px; color: var(--k-ink); letter-spacing: 1px; }
+  .tagline { font-size: 8.5px; font-weight: 700; color: #8a5262; letter-spacing: -.2px; margin-top: -2px; }
+  .qr { margin-top: auto; align-self: flex-end; background: #fff; padding: 2px; line-height: 0; }
+  .qr canvas { width: 54px; height: 54px; image-rendering: pixelated; }
+
+  /* 3. 고치는 칸 */
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 16px; background: var(--panel, #fff);
+    border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; }
+  .form .wide { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); display: block; margin-bottom: 4px; }
+  input, select { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; margin-top: 6px; }
+  .check input { width: auto; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6b6b70); margin-top: 4px; line-height: 1.5; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="photo-dot.js?v=2"></script>
+</head>
+<body>
+<main>
+  <h1>도트 키링 시안</h1>
+  <p class="lead">실물 키링 사진처럼 다시 짰어요. 강아지 사진을 넣으면 강아지만 도트로 바꿔 사진 칸에 넣어요.
+    사진은 이 휴대폰 안에서만 다루고 어디로도 보내지 않아요.</p>
+
+  <div class="table">
+    <div class="acrylic">
+      <div class="hole"></div>
+      <div class="card">
+        <div class="head">
+          <div class="l1"><canvas class="paw" width="9" height="7"></canvas><span>WALSON</span><canvas class="paw" width="9" height="7"></canvas></div>
+          <div class="l2">WALKING PASS</div>
+        </div>
+        <div class="body">
+          <div class="frame">
+            <i class="knot tl"></i><i class="knot tr"></i><i class="knot bl"></i><i class="knot br"></i>
+            <div class="photo" id="photo" title="눌러서 강아지 사진 넣기">
+              <div class="empty" id="empty">여기를 눌러<br>강아지 사진 넣기</div>
+              <img id="dog" alt="강아지 사진">
+            </div>
+          </div>
+          <div class="info">
+            <div class="pix field"><div><b>NO.</b><span id="v-no"></span><span class="lamps" id="lamps"><i class="green"></i><i class="yellow"></i><i class="red"></i></span></div></div>
+            <div class="pix field"><div><b>NAME:</b><span id="v-name"></span></div></div>
+            <div class="pix field"><div><b>BREED:</b><span id="v-breed"></span></div></div>
+            <div class="dash"></div>
+            <div class="pix pill"><div id="v-brand">WALSON</div></div>
+            <div class="tagline" id="v-tagline"></div>
+            <div class="qr"><canvas id="qr"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form">
+    <div class="wide">
+      <label for="f-photo">강아지 사진</label>
+      <input type="file" id="f-photo" accept="image/*">
+      <label class="check"><input type="checkbox" id="f-dot" checked> 강아지만 도트로 바꾸기(끄면 사진 그대로)</label>
+      <div class="hint" id="status">몸 전체가 크게 나온 사진이 잘 돼요. 이미 도트로 만든 그림이면 체크를 끄고 넣어 주세요.</div>
+    </div>
+    <div><label for="f-no">번호</label><input id="f-no" value="0815" maxlength="6"></div>
+    <div><label for="f-name">이름</label><input id="f-name" value="POM" maxlength="10"></div>
+    <div><label for="f-breed">견종</label><input id="f-breed" value="포메" maxlength="10"></div>
+    <div><label for="f-signal">성향(번호 옆 작은 불)</label><select id="f-signal">
+      <option value="green">다가와도 좋아요</option><option value="yellow">천천히 인사해요</option><option value="red">눈으로만 예뻐해 주세요</option></select></div>
+    <div><label for="f-cols">도트 칸 수</label><select id="f-cols"><option value="32">32 · 굵게</option><option value="40" selected>40</option><option value="52">52 · 곱게</option></select></div>
+  </div>
+</main>
+<script>
+  (function () {
+    function $(id) { return document.getElementById(id); }
+    var INK = '#4a2a30', photo = null;
+
+    // 발바닥 9×7 도트
+    var PAW = ['..XX.XX..', '..XX.XX..', 'XX.....XX', 'XX.XXX.XX', '..XXXXX..', '.XXXXXXX.', '.XXX.XXX.'];
+    document.querySelectorAll('.paw').forEach(function (c) {
+      var g = c.getContext('2d'); g.fillStyle = INK;
+      PAW.forEach(function (r, y) { for (var x = 0; x < r.length; x++) if (r[x] === 'X') g.fillRect(x, y, 1, 1); });
+    });
+
+    // 브랜드 두 줄(홍보물 규칙 — site-config.js 한 곳에서)
+    var B = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
+    $('v-brand').textContent = B.name; $('v-tagline').textContent = B.tagline;
+
+    // 진짜 QR(나도 만들기 주소 — 원래 워킹패스와 같음)
+    (function () {
+      var c = $('qr'), url = 'https://johnsongarage.co.kr/walson/start.html';
+      if (!window.qrcode) return;
+      var q = qrcode(0, 'M'); q.addData(url); q.make();
+      var n = q.getModuleCount(); c.width = c.height = n;
+      var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, n, n); g.fillStyle = INK;
+      for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(k, r, 1, 1);
+    })();
+
+    function fields() {
+      $('v-no').textContent = $('f-no').value; $('v-name').textContent = $('f-name').value; $('v-breed').textContent = $('f-breed').value;
+      var s = $('f-signal').value;
+      document.querySelectorAll('#lamps i').forEach(function (i) { i.classList.toggle('on', i.classList.contains(s)); });
+    }
+    ['f-no', 'f-name', 'f-breed', 'f-signal'].forEach(function (id) { $(id).addEventListener('input', fields); });
+    fields();
+
+    function show(src) { $('dog').src = src; $('dog').style.display = 'block'; $('empty').style.display = 'none'; }
+    function say(t) { $('status').textContent = t; }
+    function apply() {
+      if (!photo) return;
+      if (!$('f-dot').checked || !window.WalsonPhotoDot) { show(photo.src); say('사진 그대로 넣었어요.'); return; }
+      say('강아지를 찾고 있어요… (처음엔 몇 초 걸려요)');
+      WalsonPhotoDot.findDog(photo).then(function (m) {
+        if (m.source === 'none') { show(photo.src); say('강아지를 못 찾아서 사진 그대로 넣었어요. 강아지가 더 크게 나온 사진으로 해 봐 주세요.'); return; }
+        var big = WalsonPhotoDot.render(photo, m, { cols: Number($('f-cols').value), colors: 16, bg: 'none', width: 1000 });
+        var st = WalsonPhotoDot.sticker(big);
+        if (!st) { show(photo.src); return; }
+        show(st.toDataURL('image/png'));
+        say('강아지만 도트로 바꿔 넣었어요. 칸 수를 바꿔 보세요.');
+      }).catch(function () { show(photo.src); say('강아지 찾는 모델을 못 불러와서 사진 그대로 넣었어요.'); });
+    }
+    $('photo').addEventListener('click', function () { $('f-photo').click(); });
+    $('f-photo').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0]; if (!f) return;
+      var im = new Image(); im.onload = function () { photo = im; apply(); }; im.src = URL.createObjectURL(f);
+    });
+    $('f-dot').addEventListener('change', apply);
+    $('f-cols').addEventListener('input', apply);
+    window._keyringLoad = function (url) { var im = new Image(); im.onload = function () { photo = im; apply(); }; im.src = url; };   // 시험용
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>시안 모음</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 시안 모음(2026-11-22 밤 가르시아 "지금 시안으로 만들어대는 페이지를 한번에 볼 수 있는 탭을 만들어 줘").
+     주소로만 여는 시안 페이지(*-sian · *-sample · *-proto)를 위쪽 탭으로 골라 아래에서 바로 본다. 앱 메뉴에는 없다.
+     새 시안을 만들면 아래 SIANS 맨 위에 한 줄 더한다(CLAUDE.md). 이 화면은 아무것도 보내지 않는다 —
+     고른 탭만 이 브라우저에 기억한다(다시 열면 그 시안부터). */
+  :root {
+    --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
+    --accent: #ff5c9d; --accent-tint: #ffe4ef; --hl: #ff5c9d; --hl-ink: #ffffff; --line: #2a2026; --shadow-rgb: 74, 40, 58;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  /* 화면 높이를 위(탭·설명)와 아래(보는 칸)로 나눈다 — 높이를 재서 맞추지 않아 글자가 늦게 줄바꿈돼도 빈틈이 안 생긴다 */
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .head { flex: none; background: var(--bg); border-bottom: 1px solid var(--panel-border); padding: 10px 0 8px; }
+  .top { display: flex; align-items: baseline; gap: 8px; padding: 0 14px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .top small { font-size: 12px; color: var(--ink-soft); }
+  /* 탭 — 옆으로 밀어 넘긴다 */
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px 14px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 44px; padding: 6px 11px; border-radius: 10px;
+    border: 1.5px solid var(--panel-border); background: var(--panel); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .tab small { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+  .tab b { font-size: 14px; font-weight: 800; white-space: nowrap; }
+  .tab[aria-selected="true"] { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
+  .tab[aria-selected="true"] small { color: var(--hl-ink); opacity: 0.85; }
+  .info { display: flex; align-items: flex-start; gap: 10px; padding: 6px 14px 0; }
+  .info p { flex: 1; margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .info p b { color: var(--ink); }
+  .tag { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: var(--accent-tint); color: var(--accent); font-size: 11px; font-weight: 800; }
+  .open { flex: none; display: inline-flex; align-items: center; min-height: 34px; padding: 0 11px; border-radius: 999px; border: 1.5px solid var(--line);
+    color: var(--ink); font-size: 13px; font-weight: 800; text-decoration: none; background: var(--panel); }
+  .sizes { display: none; gap: 4px; padding: 6px 14px 0; }
+  .sizes button { min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1.5px solid var(--panel-border); background: var(--panel); color: var(--ink-soft);
+    font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .sizes button[aria-pressed="true"] { border-color: var(--line); color: var(--ink); }
+  /* 보는 칸 — 휴대폰은 화면 꽉, PC는 폰 크기 틀(넓게 보기 가능) */
+  .stage { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 0; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; background: #ffffff; }
+  @media (min-width: 700px) {
+    .sizes { display: flex; }
+    .stage { padding: 14px; }
+    .stage.is-phone iframe { width: 390px; max-height: 844px; border: 1.5px solid var(--line); border-radius: 22px; box-shadow: 0 12px 32px rgba(var(--shadow-rgb), 0.18); }
+    .stage.is-wide iframe { width: min(1100px, 100%); border: 1.5px solid var(--panel-border); border-radius: 10px; }
+  }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+</head>
+<body>
+<header class="head" id="head">
+  <div class="top"><h1>시안 모음</h1><small>주소로만 열려요 · 앱 메뉴엔 없어요 · 실제 화면은 그대로</small></div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="시안"></nav>
+  <div class="info"><p id="desc"></p><a class="open" id="open" href="#" target="_blank" rel="noopener">새 창으로</a></div>
+  <div class="sizes" role="group" aria-label="보는 크기">
+    <button type="button" id="size-phone" aria-pressed="true">폰 크기</button>
+    <button type="button" id="size-wide" aria-pressed="false">넓게</button>
+  </div>
+</header>
+<main class="stage is-phone" id="stage">
+  <iframe id="view" title="시안 미리 보기"></iframe>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  // 새 시안을 만들면 맨 위에 한 줄(최신이 위). id는 주소 뒤 #에 쓰는 짧은 이름. done: 앱에 들어간 것
+  var SIANS = [
+    { id: 'keyring-dot', file: 'keyring-dot-sample.html', date: '11/22', title: '도트 키링',
+      desc: '실물 아크릴 키링 사진을 따라 한 도트 키링 — 사진은 강아지만 도트로, 진짜 주소 QR·브랜드 문구·작은 신호등.' },
+    { id: 'azit', file: 'azit-sian.html', date: '11/22', title: '산책 아지트',
+      desc: '도트 미니룸 감성 — 방에 놓이는 건 산책으로 한 것(등급 액자·발도장 엽서·꾸준함 트로피·가게 방석), 만난 친구 방 구경, 공유 그림.' },
+    { id: 'photo-dot', file: 'photo-dot-sample.html', date: '11/22', title: '사진 도트 강아지',
+      desc: '사진 속 강아지만 도트 스티커로 바꿔 보기. 사진은 이 브라우저 안에서만 다뤄요.' },
+    { id: 'mini-dog', file: 'mini-dog-sample.html', date: '11/22', title: '도트 강아지 캐릭터',
+      desc: '미니미 느낌 2등신 — 견종 6종 견본, 색·귀·털결·소품 꾸미기, 산책 장면.' },
+    { id: 'pass-pixel', file: 'pass-pixel-sample.html', date: '11/22', title: '도트 워킹패스',
+      desc: '사진 하나로 원래 사진·굵은 도트·가는 도트 세 장 비교. 사진 칸을 끌고 키워요.' },
+    { id: 'map-pixel', file: 'map-pixel-sample.html', date: '11/22', title: '도트 지도',
+      desc: '지도를 칸으로 다시 칠한 도트 지도와 가짜 산책 경로(실제 위치는 안 읽어요).' },
+    { id: 'renewal', file: 'renewal-sian.html', date: '11/20', title: '리뉴얼 화면',
+      desc: '받은 시안 그림대로 그린 [동네]·[기록]·[워킹패스] — 아래 탭으로 셋을 오가요.' },
+    { id: 'keyring-pass', file: 'keyring-pass-proto.html', date: '11/19', title: '세로 워킹패스(키링)',
+      desc: '키링·굿즈 앞면 틀 — 사진만 바꿔 끼우면 성향 셋 모양, 디자인 편집.' },
+    { id: 'map-sheet', file: 'map-sheet-proto.html', date: '11/17', title: '지도 목록 시트', done: '[동네] 목록 시트로',
+      desc: '[동네] 지도 위에 끌어 올리는 목록 시트(접힘·반·펼침) — A안.' },
+    { id: 'edit', file: 'edit-proto.html', date: '11/16', title: '한 화면 편집기', done: '꾸미고 저장하기로',
+      desc: '사진·글자를 한 화면에서 고치는 편집기의 첫 시안.' }
+  ];
+  var KEY = 'walson_sian_tab';   // 마지막에 본 탭(이 브라우저에만)
+  var $ = function (id) { return document.getElementById(id); };
+  var view = $('view'), cur = null;
+
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function paintTabs() {
+    $('tabs').innerHTML = SIANS.map(function (s) {
+      return '<button type="button" class="tab" role="tab" data-id="' + s.id + '" aria-selected="' + (cur && cur.id === s.id) + '"><small>' + esc(s.date) + '</small><b>' + esc(s.title) + '</b></button>';
+    }).join('');
+    Array.prototype.forEach.call($('tabs').children, function (b) { b.addEventListener('click', function () { pick(b.getAttribute('data-id'), true); }); });
+  }
+  function pick(id, user) {
+    var s = SIANS.filter(function (x) { return x.id === id; })[0] || SIANS[0];
+    cur = s;
+    paintTabs();
+    $('desc').innerHTML = '<b>' + esc(s.title) + '</b> · ' + esc(s.date) + (s.done ? '<span class="tag">앱에 들어감 — ' + esc(s.done) + '</span>' : '') + '<br>' + esc(s.desc);
+    $('open').href = s.file;
+    if (view.getAttribute('src') !== s.file) view.setAttribute('src', s.file);
+    try { localStorage.setItem(KEY, s.id); } catch (e) { /* 기억 못 해도 그만 */ }
+    if (location.hash !== '#' + s.id) history.replaceState(null, '', '#' + s.id);
+    var on = $('tabs').querySelector('[aria-selected="true"]');
+    if (on && on.scrollIntoView && user) on.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }
+  $('size-phone').addEventListener('click', function () { size('phone'); });
+  $('size-wide').addEventListener('click', function () { size('wide'); });
+  function size(k) {
+    $('stage').className = 'stage is-' + k;
+    $('size-phone').setAttribute('aria-pressed', k === 'phone' ? 'true' : 'false');
+    $('size-wide').setAttribute('aria-pressed', k === 'wide' ? 'true' : 'false');
+  }
+  window.addEventListener('hashchange', function () { var id = location.hash.replace('#', ''); if (id && (!cur || cur.id !== id)) pick(id, true); });
+
+  // 처음: 주소 뒤 #이 있으면 그것, 없으면 지난번에 본 것, 그것도 없으면 맨 위(최신)
+  var first = location.hash.replace('#', '');
+  if (!first) { try { first = localStorage.getItem(KEY) || ''; } catch (e) { first = ''; } }
+  pick(first, false);
+})();
+</script>
+</body>
+</html>
