@@ -2855,3 +2855,6 @@ Black Han Sans 굵게 뭉개짐 0곳. 실제 폰은 아직.
   [동네]와 같은 OpenFreeMap 데이터에서 글자 층만(길·하천·동네 이름 + poi 중 공원만 따로 뽑음, 가게·정류장·도로 번호 X) 투명하게 얹고,
   한글은 MapLibre `localIdeographFontFamily`로 둥근모꼴(도트 글꼴). MapLibre(약 800KB)는 [이름]을 처음 켤 때만 불러온다. 못 받으면 이름 없이.
   11/22 "배포해줘"로 배포.
+- 가르시아 "동네 지도에도 도트 버전 붙여줘": [동네] 오른쪽 줌 버튼 아래 [도트]·[이름]. 기본은 벡터 지도(map-vector.js) 그대로, 도트로 고르면 벡터 층을 빼고
+  pixel-map.js 타일로(벡터가 늦게 도착해도 layeradd에서 뺀다). 선택(`walson_map_style`·`walson_map_labels`)은 [산책]과 같이 쓴다.
+  같이 고침: 블랙 화면의 지도 뒤집기(theme-black.css)가 도트 지도에도 걸리던 것 → `body.map-pixel` 규칙에 !important. 11/22 "배포해줘"로 배포.

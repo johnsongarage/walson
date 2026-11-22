@@ -48,7 +48,7 @@
   /* 지도 컬러톤: 라벤더 파스텔(예전 산책 화면·[동네]와 같은 값) */
   .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
   /* 도트 지도(2026-11-22, pixel-map.js) — 기본은 위 그림 지도, 위 [도트] 버튼으로 바꾼다. 라벤더 필터를 끄고 칸이 뭉개지지 않게 */
-  body.map-pixel .leaflet-tile-pane { filter: none; image-rendering: pixelated; }
+  body.map-pixel .leaflet-tile-pane { filter: none !important; image-rendering: pixelated; }   /* !important: 블랙 화면의 지도 뒤집기(theme-black.css)보다 앞서게 */
   .map-top-right { display: flex; align-items: center; gap: 8px; }
   #map-style-btn, #map-label-btn { font-family: inherit; font-size: 13px; font-weight: 800; color: var(--ink); }
   #map-label-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
