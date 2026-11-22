@@ -15,6 +15,9 @@
   };
   // 발바닥 7×6
   var PAW = ['.X...X.', 'X.X.X.X', '.......', '..XXX..', '.XXXXX.', '.XX.XX.'];
+  // 사진 틀(뼈다귀 귀퉁이)과 그 안 사진 칸 — 시안 화면이 사진 칸 위에 '끌어서 옮기기·확대' 칸을 얹으려고 PHOTO를 밖으로 알려 준다(2026-11-22)
+  var FRAME = { x: 54, y: 354, w: 552, h: 672 };
+  var PHOTO = { x: FRAME.x + 5 * U, y: FRAME.y + 5 * U, w: FRAME.w - 10 * U, h: FRAME.h - 10 * U };
 
   function snap(v) { return Math.round(v / U) * U; }
   function box(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(snap(x), snap(y), snap(w), snap(h)); }
@@ -53,6 +56,7 @@
     var c = document.createElement('canvas'); c.width = cols; c.height = rows;
     var g = c.getContext('2d');
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.fillStyle = PINK_L; g.fillRect(0, 0, cols, rows);   // 줌아웃해서 사진이 칸보다 작으면 남는 곳은 사진 칸 바탕색(검정 도트가 되지 않게)
     var s = Math.max(cols / img.width, rows / img.height) * (zoom || 1);
     var iw = img.width * s, ih = img.height * s;
     g.drawImage(img, (cols - iw) * (qx == null ? 0.5 : qx), (rows - ih) * (qy == null ? 0.5 : qy), iw, ih);
@@ -96,6 +100,7 @@
   }
 
   // data: { name, breed, sex, signal, rankName, rankFrac(0~1), cardNo, photo, mode('photo'|'dot'), cols, colors, qr, zoom, qx, qy }
+  // zoom: 사진 칸을 꽉 채운 크기의 배수(1 = 꽉 채움, 1보다 작으면 줌아웃 — 남는 곳은 바탕색). qx·qy: 0~1, 사진이 칸 안에서 놓인 자리(0.5 = 가운데)
   function draw(canvas, data) {
     data = data || {};
     canvas.width = W; canvas.height = H;
@@ -125,11 +130,11 @@
     sprite(ctx, PAW, W / 2 + tw / 2 + 2 * U, 120, 2 * U, INK);
 
     // 사진 틀(뼈다귀 귀퉁이)
-    var fx = 54, fy = 354, fw = 552, fh = 672;
+    var fx = FRAME.x, fy = FRAME.y, fw = FRAME.w, fh = FRAME.h;
     box(ctx, fx, fy, fw, fh, INK);
     box(ctx, fx + U, fy + U, fw - 2 * U, fh - 2 * U, PINK);
     box(ctx, fx + 4 * U, fy + 4 * U, fw - 8 * U, fh - 8 * U, INK);
-    var px = fx + 5 * U, py = fy + 5 * U, pw = fw - 10 * U, ph = fh - 10 * U;
+    var px = PHOTO.x, py = PHOTO.y, pw = PHOTO.w, ph = PHOTO.h;
     box(ctx, px, py, pw, ph, PINK_L);
     var img = data.photo;
     if (img) {
@@ -227,5 +232,5 @@
     return (document.fonts && document.fonts.load) ? document.fonts.load("48px 'DungGeunMo'", '워킹패스 WALSON').catch(function () {}) : Promise.resolve();
   }
 
-  window.WalsonPassPixel = { W: W, H: H, SIGNALS: SIGNALS, draw: draw, dotPhoto: dotPhoto, fontsReady: fontsReady };
+  window.WalsonPassPixel = { W: W, H: H, PHOTO: PHOTO, SIGNALS: SIGNALS, draw: draw, dotPhoto: dotPhoto, fontsReady: fontsReady };
 })();

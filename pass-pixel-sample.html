@@ -9,7 +9,9 @@
 <style>
   /* 도트 워킹패스 시안(2026-11-22 가르시아 "키링이야. 주민증도 이런 느낌 어떨까?" → "샘플 만들어줘").
      사진 하나를 넣으면 원래 사진 / 굵은 도트 / 가는 도트 세 장을 같이 그려, 사진이 자동으로 도트가 되면 어떻게 보이는지 본다. 그림은 pass-pixel.js.
-     이 화면은 아무것도 저장하지 않고 어디로도 보내지 않는다(사진도 이 브라우저 안에서만 그림). */
+     이 화면은 아무것도 저장하지 않고 어디로도 보내지 않는다(사진도 이 브라우저 안에서만 그림).
+     사진 맞추기(11/22 가르시아 "사진 줌인아웃 기능 추가해줘"): 사진 칸을 끌어서 옮기고, 두 손가락·마우스 휠·막대로 키우고 줄인다(50~400%).
+     세 장이 같이 움직이고, PNG도 맞춘 그대로 저장된다. 끌기 칸은 사진 칸 위에만 얹어서 나머지 곳에서는 화면이 그대로 스크롤된다. */
   body { margin: 0; font-family: Pretendard, sans-serif; background: var(--bg, #fffdfd); color: var(--ink, #121215); }
   main { max-width: 1100px; margin: 0 auto; padding: 18px 16px 60px; }
   h1 { font-size: 22px; margin: 6px 0 4px; }
@@ -24,6 +26,18 @@
   .passes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px; }
   .pass h2 { font-size: 15px; margin: 0 0 8px; }
   .pass canvas { width: 100%; aspect-ratio: 4 / 5; display: block; }
+  .fitrow { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .fitrow .lbl { font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); }
+  .fitrow input[type=range] { flex: 1; width: auto; min-width: 140px; padding: 0; border: none; background: none; accent-color: var(--hl, #ff5c9d); }
+  .fitrow button { flex: none; font: inherit; font-size: 15px; font-weight: 800; min-width: 40px; height: 38px; padding: 0 12px; border-radius: 10px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--bg, #fffdfd); color: var(--ink, #121215); cursor: pointer; }
+  .fitrow output { min-width: 46px; font-size: 13px; font-weight: 800; text-align: right; }
+  .fitrow .hint { flex-basis: 100%; margin-top: 0; }
+  .cv { position: relative; }
+  /* 사진 칸 위에 얹는 끌기 칸 — 자리는 pass-pixel.js PHOTO에서 %로 */
+  .grab { position: absolute; cursor: grab; touch-action: none; outline-offset: -2px; }
+  .grab:hover, .grab:focus-visible { outline: 2px dashed var(--hl, #ff5c9d); }
+  .grab.on { cursor: grabbing; outline: 2px solid var(--hl, #ff5c9d); }
   .pass button { margin-top: 8px; width: 100%; font: inherit; font-size: 14px; font-weight: 700; padding: 10px; border-radius: 12px;
     border: 1px solid var(--panel-border, #f0d6e2); background: var(--panel, #fff); color: var(--ink, #121215); cursor: pointer; }
 </style>
@@ -31,7 +45,7 @@
 <script src="site-config.js?v=10"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="canvas-view.js?v=1"></script>
-<script src="pass-pixel.js?v=3"></script>
+<script src="pass-pixel.js?v=4"></script>
 </head>
 <body>
 <main>
@@ -44,6 +58,15 @@
       <input type="file" id="f-photo" accept="image/*">
       <div class="hint">처음엔 왈슨 그림으로 보여요. 실제 강아지 사진을 넣어 봐야 도트로 바뀐 모습을 제대로 볼 수 있어요.</div>
     </div>
+    <div class="fitrow" role="group" aria-label="사진 맞추기">
+      <span class="lbl">사진 크기</span>
+      <button type="button" id="z-out" aria-label="사진 작게">−</button>
+      <input type="range" id="z-range" min="50" max="400" step="5" value="100" aria-label="사진 크기">
+      <button type="button" id="z-in" aria-label="사진 크게">+</button>
+      <output id="z-val" for="z-range">100%</output>
+      <button type="button" id="z-reset">처음대로</button>
+      <div class="hint">아래 그림의 사진 칸을 끌어서 옮기고, 두 손가락(컴퓨터는 마우스 휠)이나 막대로 키우고 줄여요. 세 장이 같이 움직이고, 저장도 맞춘 그대로 돼요.</div>
+    </div>
     <div><label for="f-name">이름</label><input id="f-name" value="콩이"></div>
     <div><label for="f-breed">견종</label><input id="f-breed" value="포메라니안"></div>
     <div><label for="f-sex">성별</label><select id="f-sex"><option value="female">암컷</option><option value="male">수컷</option><option value="">안 적음</option></select></div>
@@ -55,15 +78,18 @@
     <div><label for="f-colors">도트 색 수</label><select id="f-colors"><option>6</option><option>8</option><option selected>12</option><option>16</option></select></div>
   </div>
   <div class="passes">
-    <div class="pass"><h2>원래 사진</h2><canvas id="v-photo"></canvas><button data-k="photo">PNG로 저장</button></div>
-    <div class="pass"><h2>굵은 도트 (가로 32칸)</h2><canvas id="v-coarse"></canvas><button data-k="coarse">PNG로 저장</button></div>
-    <div class="pass"><h2>가는 도트 (가로 56칸)</h2><canvas id="v-fine"></canvas><button data-k="fine">PNG로 저장</button></div>
+    <div class="pass"><h2>원래 사진</h2><div class="cv"><canvas id="v-photo"></canvas><div class="grab" tabindex="0" role="group" aria-label="사진 칸 — 끌어서 옮기기, 두 손가락이나 휠로 확대·축소, 방향키와 +·− 키도 돼요"></div></div><button data-k="photo">PNG로 저장</button></div>
+    <div class="pass"><h2>굵은 도트 (가로 32칸)</h2><div class="cv"><canvas id="v-coarse"></canvas><div class="grab" tabindex="0" role="group" aria-label="사진 칸 — 끌어서 옮기기, 두 손가락이나 휠로 확대·축소, 방향키와 +·− 키도 돼요"></div></div><button data-k="coarse">PNG로 저장</button></div>
+    <div class="pass"><h2>가는 도트 (가로 56칸)</h2><div class="cv"><canvas id="v-fine"></canvas><div class="grab" tabindex="0" role="group" aria-label="사진 칸 — 끌어서 옮기기, 두 손가락이나 휠로 확대·축소, 방향키와 +·− 키도 돼요"></div></div><button data-k="fine">PNG로 저장</button></div>
   </div>
 </main>
 <script>
   (function () {
     var KINDS = { photo: { mode: 'photo' }, coarse: { mode: 'dot', cols: 32 }, fine: { mode: 'dot', cols: 56 } };
     var big = {}, photo = null;
+    // 사진 맞추기 — zoom: 꽉 채운 크기의 배수(1 = 꽉 채움, 1보다 작으면 줌아웃), qx·qy: 0~1 사진이 칸 안에 놓인 자리(pass-pixel.js와 같은 뜻)
+    var P = WalsonPassPixel.PHOTO, ZMIN = 0.5, ZMAX = 4;
+    var fit = { zoom: 1, qx: 0.5, qy: 0.5 };
     Object.keys(KINDS).forEach(function (k) { big[k] = document.createElement('canvas'); });
     function val(id) { return document.getElementById(id).value; }
     function render() {
@@ -71,7 +97,8 @@
       var data = {
         name: val('f-name'), breed: val('f-breed'), sex: val('f-sex'), signal: val('f-signal'),
         rankName: rank, rankFrac: { '산책 입문자': 0.4, '산책 러버': 0.3, '프로 산책러': 0.2, '핑크 앰배서더': 1 }[rank],
-        cardNo: val('f-no'), photo: photo, colors: Number(val('f-colors')), qr: 'https://johnsongarage.co.kr/walson/start.html'
+        cardNo: val('f-no'), photo: photo, colors: Number(val('f-colors')), qr: 'https://johnsongarage.co.kr/walson/start.html',
+        zoom: fit.zoom, qx: fit.qx, qy: fit.qy
       };
       Object.keys(KINDS).forEach(function (k) {
         var d = Object.assign({}, data, KINDS[k]);
@@ -79,12 +106,12 @@
         WalsonView.show(document.getElementById('v-' + k), big[k]);
       });
     }
-    document.querySelectorAll('.form input:not([type=file]), .form select').forEach(function (el) { el.addEventListener('input', render); });
+    document.querySelectorAll('.form input:not([type=file]):not([type=range]), .form select').forEach(function (el) { el.addEventListener('input', render); });
     document.getElementById('f-photo').addEventListener('change', function (e) {
       var f = e.target.files && e.target.files[0];
       if (!f) return;
       var url = URL.createObjectURL(f), im = new Image();
-      im.onload = function () { photo = im; render(); };
+      im.onload = function () { photo = im; fit = { zoom: 1, qx: 0.5, qy: 0.5 }; syncRange(); render(); };
       im.src = url;
     });
     document.querySelectorAll('.pass button').forEach(function (b) {
@@ -95,6 +122,103 @@
         a.click();
       });
     });
+
+    // ── 사진 맞추기(11/22) ──
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    // 이 크기에서 사진이 사진 칸 안에 그려지는 너비·높이(판 단위) — pass-pixel.js와 같은 셈(꽉 채움 × zoom)
+    function imgSize(z) {
+      var w0 = photo ? (photo.naturalWidth || photo.width) : P.w, h0 = photo ? (photo.naturalHeight || photo.height) : P.h;
+      var sc = Math.max(P.w / w0, P.h / h0) * z;
+      return { w: w0 * sc, h: h0 * sc };
+    }
+    // 사진 왼쪽 위가 사진 칸 왼쪽 위에서 떨어진 거리(판 단위) ↔ qx·qy
+    function offsetOf(st) { var m = imgSize(st.zoom); return { x: (P.w - m.w) * st.qx, y: (P.h - m.h) * st.qy, w: m.w, h: m.h }; }
+    // 크기와 떨어진 거리로 qx·qy를 다시 셈 — 사진이 칸 밖으로 빠져 빈 곳이 생기지 않게 0~1로 묶는다(줌아웃이면 칸 안에서만 움직임)
+    function placeAt(z, ox, oy) {
+      z = clamp(z, ZMIN, ZMAX);
+      var m = imgSize(z), sx = P.w - m.w, sy = P.h - m.h;
+      return { zoom: z, qx: Math.abs(sx) < 0.5 ? 0.5 : clamp(ox / sx, 0, 1), qy: Math.abs(sy) < 0.5 ? 0.5 : clamp(oy / sy, 0, 1) };
+    }
+    // 사진 칸의 한 점(fx, fy)을 붙잡은 채 크기를 바꾼다 — 그 점은 (tx, ty)로 간다(두 손가락 사이·휠 자리·칸 가운데)
+    function zoomAround(base, z, fx, fy, tx, ty) {
+      var o = offsetOf(base), u = (fx - o.x) / o.w, v = (fy - o.y) / o.h, m = imgSize(clamp(z, ZMIN, ZMAX));
+      return placeAt(z, (tx == null ? fx : tx) - u * m.w, (ty == null ? fy : ty) - v * m.h);
+    }
+    function syncRange() {
+      document.getElementById('z-range').value = Math.round(fit.zoom * 100);
+      document.getElementById('z-val').textContent = Math.round(fit.zoom * 100) + '%';
+    }
+    var raf = 0;
+    function setFit(st) {
+      fit = st; syncRange();
+      if (!raf) raf = requestAnimationFrame(function () { raf = 0; render(); });   // 끄는 동안은 한 화면에 한 번만 다시 그림
+    }
+    function zoomCenter(z) { setFit(zoomAround(fit, z, P.w / 2, P.h / 2)); }
+    document.getElementById('z-range').addEventListener('input', function (e) { zoomCenter(Number(e.target.value) / 100); });
+    document.getElementById('z-in').addEventListener('click', function () { zoomCenter(fit.zoom * 1.2); });
+    document.getElementById('z-out').addEventListener('click', function () { zoomCenter(fit.zoom / 1.2); });
+    document.getElementById('z-reset').addEventListener('click', function () { setFit({ zoom: 1, qx: 0.5, qy: 0.5 }); });
+    document.querySelectorAll('.grab').forEach(function (el) {
+      el.style.left = (P.x / WalsonPassPixel.W * 100) + '%'; el.style.top = (P.y / WalsonPassPixel.H * 100) + '%';
+      el.style.width = (P.w / WalsonPassPixel.W * 100) + '%'; el.style.height = (P.h / WalsonPassPixel.H * 100) + '%';
+      var ptrs = {}, g = null;
+      // 화면 좌표 → 사진 칸 안 좌표(판 단위)
+      function toFrame(cx, cy) { var r = el.getBoundingClientRect(), k = P.w / r.width; return { x: (cx - r.left) * k, y: (cy - r.top) * k }; }
+      function list() { return Object.keys(ptrs).map(function (id) { return ptrs[id]; }); }
+      // 손가락 수가 바뀔 때마다 지금 상태에서 새로 시작(한 손가락 = 옮기기, 두 손가락 = 크기 + 옮기기)
+      function begin() {
+        var ps = list();
+        if (ps.length === 1) g = { kind: 'drag', p0: toFrame(ps[0].x, ps[0].y), base: fit };
+        else if (ps.length >= 2) {
+          var a = toFrame(ps[0].x, ps[0].y), b = toFrame(ps[1].x, ps[1].y);
+          g = { kind: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, m0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, base: fit };
+        } else g = null;
+        el.classList.toggle('on', !!g);
+      }
+      el.addEventListener('pointerdown', function (e) {
+        if (!photo || (e.pointerType === 'mouse' && e.button !== 0)) return;
+        e.preventDefault();
+        try { el.setPointerCapture(e.pointerId); } catch (err) { /* 붙잡지 못해도 움직임은 받음 */ }
+        ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+        begin();
+      });
+      el.addEventListener('pointermove', function (e) {
+        if (!ptrs[e.pointerId] || !g) return;
+        ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+        var ps = list();
+        if (g.kind === 'drag' && ps.length === 1) {
+          var p = toFrame(ps[0].x, ps[0].y), o = offsetOf(g.base);
+          setFit(placeAt(g.base.zoom, o.x + p.x - g.p0.x, o.y + p.y - g.p0.y));
+        } else if (g.kind === 'pinch' && ps.length >= 2) {
+          var a = toFrame(ps[0].x, ps[0].y), b = toFrame(ps[1].x, ps[1].y);
+          var d = Math.hypot(a.x - b.x, a.y - b.y);
+          setFit(zoomAround(g.base, g.base.zoom * d / g.d0, g.m0.x, g.m0.y, (a.x + b.x) / 2, (a.y + b.y) / 2));
+        }
+      });
+      function end(e) { if (!ptrs[e.pointerId]) return; delete ptrs[e.pointerId]; begin(); }
+      el.addEventListener('pointerup', end);
+      el.addEventListener('pointercancel', end);
+      el.addEventListener('wheel', function (e) {
+        if (!photo) return;
+        e.preventDefault();   // 사진 칸 위에서만 휠이 확대·축소 — 다른 곳에서는 그대로 스크롤
+        var p = toFrame(e.clientX, e.clientY);
+        setFit(zoomAround(fit, fit.zoom * Math.exp(-e.deltaY * 0.0015), p.x, p.y));
+      }, { passive: false });
+      el.addEventListener('keydown', function (e) {
+        if (!photo) return;
+        var o = offsetOf(fit), step = 18, k = e.key;
+        if (k === 'ArrowLeft') setFit(placeAt(fit.zoom, o.x - step, o.y));
+        else if (k === 'ArrowRight') setFit(placeAt(fit.zoom, o.x + step, o.y));
+        else if (k === 'ArrowUp') setFit(placeAt(fit.zoom, o.x, o.y - step));
+        else if (k === 'ArrowDown') setFit(placeAt(fit.zoom, o.x, o.y + step));
+        else if (k === '+' || k === '=') zoomCenter(fit.zoom * 1.2);
+        else if (k === '-' || k === '_') zoomCenter(fit.zoom / 1.2);
+        else return;
+        e.preventDefault();
+      });
+    });
+    window.__passFit = { get: function () { return fit; }, set: setFit };   // 시험용
+
     var first = new Image();
     first.onload = function () { photo = first; WalsonPassPixel.fontsReady().then(render); };
     first.onerror = function () { WalsonPassPixel.fontsReady().then(render); };
