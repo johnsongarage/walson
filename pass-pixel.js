@@ -4,6 +4,7 @@
 // 모든 선·칸은 U(6px) 칸에 맞춰 그리고, 글자는 둥근모꼴(DungGeunMo — 도트 지도 이름 글자와 같은 글꼴).
 // 사진: mode 'photo' = 원래 사진 그대로, 'dot' = cols칸으로 줄이고 색을 palette개로 줄여 도트로(이 휴대폰 안에서만, 어디로도 안 보냄).
 // 크기 1200×1500(4:5). 인쇄 규격은 정해지면 바꾼다. window.WalsonPassPixel.draw(canvas, data)
+// 쓰는 곳: 시안 화면 pass-pixel-sample.html, [워킹패스] my-card.html의 [도트 카드](2026-11-22)
 (function () {
   var W = 1200, H = 1500, U = 6;
   var PIX = "'DungGeunMo', 'Galmuri11', monospace";
@@ -176,14 +177,16 @@
     dashes(ctx, rx, rx + rw, 744, PINK_D);
 
     // 성향 띠(안전 표시 — 원래 주민증과 같은 문구·색)
-    var sig = SIGNALS[data.signal] || SIGNALS.green, sy = 780, sh = 246;
+    // 성향이 없거나 모르는 값이면 초록으로 그리지 않는다(안전 표시라 잘못 알려 주면 안 됨) — 지킴이 카드처럼 문구·색을 받으면 그것으로
+    var known = SIGNALS[data.signal] ? data.signal : '';
+    var sig = SIGNALS[data.signal] || { line: data.signalLine || '성향을 골라 주세요', color: data.signalColor || '#8d7a86' }, sy = 780, sh = 246;
     stepBox(ctx, rx, sy, rw, sh, sig.color, INK, PINK);
     // 신호등 불 셋(켜진 것만 밝게)
     ['green', 'yellow', 'red'].forEach(function (k, i) {
       var lx = rx + 5 * U + i * 9 * U, ly = sy + 4 * U;
       box(ctx, lx, ly, 7 * U, 7 * U, INK);
-      box(ctx, lx + U, ly + U, 5 * U, 5 * U, k === (data.signal || 'green') ? SIGNALS[k].color : '#7a6670');
-      if (k === (data.signal || 'green')) box(ctx, lx + 2 * U, ly + 2 * U, U, U, WHITE);
+      box(ctx, lx + U, ly + U, 5 * U, 5 * U, k === known ? SIGNALS[k].color : '#7a6670');
+      if (k === known) box(ctx, lx + 2 * U, ly + 2 * U, U, U, WHITE);
     });
     ctx.fillStyle = WHITE;
     // 한 줄에 48로 들어가면 한 줄, 아니면 띄어쓰기에서 두 줄
@@ -232,5 +235,97 @@
     return (document.fonts && document.fonts.load) ? document.fonts.load("48px 'DungGeunMo'", '워킹패스 WALSON').catch(function () {}) : Promise.resolve();
   }
 
-  window.WalsonPassPixel = { W: W, H: H, PHOTO: PHOTO, SIGNALS: SIGNALS, draw: draw, dotPhoto: dotPhoto, fontsReady: fontsReady };
+  // ── 사진 맞추기(2026-11-22) — 시안 화면(pass-pixel-sample.html)과 [워킹패스](my-card.html)가 같이 쓴다 ──
+  // 맞춤 fit = { zoom, qx, qy } — zoom: 사진 칸을 꽉 채운 크기의 배수(1 = 꽉 채움, 1보다 작으면 줌아웃), qx·qy: 0~1 사진이 칸 안에 놓인 자리.
+  // 사진 칸 위에 얹은 칸(el)에 끌어서 옮기기 · 두 손가락 · 마우스 휠 · 방향키와 +/− 키를 붙인다. 그 칸만 touch-action: none이라
+  // 나머지 곳에서는 화면이 그대로 스크롤된다. 사진은 이 휴대폰 안에서만 다룬다.
+  var FIT = { MIN: 0.5, MAX: 4, DEFAULT: { zoom: 1, qx: 0.5, qy: 0.5 } };
+  function clampN(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function fitMath(photo) {
+    // 이 크기에서 사진이 사진 칸 안에 그려지는 너비·높이(판 단위) — draw()와 같은 셈(꽉 채움 × zoom)
+    function imgSize(z) {
+      var w0 = photo ? (photo.naturalWidth || photo.width) : PHOTO.w, h0 = photo ? (photo.naturalHeight || photo.height) : PHOTO.h;
+      var sc = Math.max(PHOTO.w / w0, PHOTO.h / h0) * z;
+      return { w: w0 * sc, h: h0 * sc };
+    }
+    // 사진 왼쪽 위가 사진 칸 왼쪽 위에서 떨어진 거리(판 단위) ↔ qx·qy
+    function offsetOf(st) { var m = imgSize(st.zoom); return { x: (PHOTO.w - m.w) * st.qx, y: (PHOTO.h - m.h) * st.qy, w: m.w, h: m.h }; }
+    // 크기와 떨어진 거리로 qx·qy를 다시 셈 — 0~1로 묶어 사진이 칸 밖으로 빠져 빈 곳이 생기지 않게(줌아웃이면 칸 안에서만 움직임)
+    function placeAt(z, ox, oy) {
+      z = clampN(z, FIT.MIN, FIT.MAX);
+      var m = imgSize(z), sx = PHOTO.w - m.w, sy = PHOTO.h - m.h;
+      return { zoom: z, qx: Math.abs(sx) < 0.5 ? 0.5 : clampN(ox / sx, 0, 1), qy: Math.abs(sy) < 0.5 ? 0.5 : clampN(oy / sy, 0, 1) };
+    }
+    // 사진 칸의 한 점(fx, fy)을 붙잡은 채 크기를 바꾼다 — 그 점은 (tx, ty)로 간다(두 손가락 사이·휠 자리·칸 가운데)
+    function zoomAround(base, z, fx, fy, tx, ty) {
+      var o = offsetOf(base), u = (fx - o.x) / o.w, v = (fy - o.y) / o.h, m = imgSize(clampN(z, FIT.MIN, FIT.MAX));
+      return placeAt(z, (tx == null ? fx : tx) - u * m.w, (ty == null ? fy : ty) - v * m.h);
+    }
+    return { imgSize: imgSize, offsetOf: offsetOf, placeAt: placeAt, zoomAround: zoomAround };
+  }
+  // 지금 맞춤에서 칸 가운데를 붙잡고 크기만 바꾸기(막대·[−][+] 버튼)
+  function zoomCenter(photo, fit, z) { return fitMath(photo).zoomAround(fit, z, PHOTO.w / 2, PHOTO.h / 2); }
+  // o: { photo(): 지금 사진, get(): 지금 맞춤, set(fit): 바꾼 맞춤 }
+  function bindFit(el, o) {
+    el.style.left = (PHOTO.x / W * 100) + '%'; el.style.top = (PHOTO.y / H * 100) + '%';
+    el.style.width = (PHOTO.w / W * 100) + '%'; el.style.height = (PHOTO.h / H * 100) + '%';
+    var ptrs = {}, g = null;
+    function toFrame(cx, cy) { var r = el.getBoundingClientRect(), k = PHOTO.w / (r.width || 1); return { x: (cx - r.left) * k, y: (cy - r.top) * k }; }
+    function list() { return Object.keys(ptrs).map(function (id) { return ptrs[id]; }); }
+    // 손가락 수가 바뀔 때마다 지금 상태에서 새로 시작(한 손가락 = 옮기기, 두 손가락 = 크기 + 옮기기)
+    function begin() {
+      var ps = list();
+      if (ps.length === 1) g = { kind: 'drag', p0: toFrame(ps[0].x, ps[0].y), base: o.get() };
+      else if (ps.length >= 2) {
+        var a = toFrame(ps[0].x, ps[0].y), b = toFrame(ps[1].x, ps[1].y);
+        g = { kind: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, m0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, base: o.get() };
+      } else g = null;
+      el.classList.toggle('on', !!g);
+    }
+    el.addEventListener('pointerdown', function (e) {
+      if (!o.photo() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      e.preventDefault(); e.stopPropagation();
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* 붙잡지 못해도 움직임은 받음 */ }
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      begin();
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!ptrs[e.pointerId] || !g) return;
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ps = list(), fm = fitMath(o.photo());
+      if (g.kind === 'drag' && ps.length === 1) {
+        var p = toFrame(ps[0].x, ps[0].y), q = fm.offsetOf(g.base);
+        o.set(fm.placeAt(g.base.zoom, q.x + p.x - g.p0.x, q.y + p.y - g.p0.y));
+      } else if (g.kind === 'pinch' && ps.length >= 2) {
+        var a = toFrame(ps[0].x, ps[0].y), b = toFrame(ps[1].x, ps[1].y);
+        var d = Math.hypot(a.x - b.x, a.y - b.y);
+        o.set(fm.zoomAround(g.base, g.base.zoom * d / g.d0, g.m0.x, g.m0.y, (a.x + b.x) / 2, (a.y + b.y) / 2));
+      }
+    });
+    function end(e) { if (!ptrs[e.pointerId]) return; delete ptrs[e.pointerId]; begin(); }
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('click', function (e) { e.stopPropagation(); });   // 밑의 카드(뒤집기 등)까지 눌리지 않게
+    el.addEventListener('wheel', function (e) {
+      if (!o.photo()) return;
+      e.preventDefault();   // 사진 칸 위에서만 휠이 확대·축소 — 다른 곳에서는 그대로 스크롤
+      var p = toFrame(e.clientX, e.clientY), cur = o.get();
+      o.set(fitMath(o.photo()).zoomAround(cur, cur.zoom * Math.exp(-e.deltaY * 0.0015), p.x, p.y));
+    }, { passive: false });
+    el.addEventListener('keydown', function (e) {
+      if (!o.photo()) return;
+      var cur = o.get(), fm = fitMath(o.photo()), q = fm.offsetOf(cur), step = 18, k = e.key;
+      if (k === 'ArrowLeft') o.set(fm.placeAt(cur.zoom, q.x - step, q.y));
+      else if (k === 'ArrowRight') o.set(fm.placeAt(cur.zoom, q.x + step, q.y));
+      else if (k === 'ArrowUp') o.set(fm.placeAt(cur.zoom, q.x, q.y - step));
+      else if (k === 'ArrowDown') o.set(fm.placeAt(cur.zoom, q.x, q.y + step));
+      else if (k === '+' || k === '=') o.set(zoomCenter(o.photo(), cur, cur.zoom * 1.2));
+      else if (k === '-' || k === '_') o.set(zoomCenter(o.photo(), cur, cur.zoom / 1.2));
+      else return;
+      e.preventDefault();
+    });
+  }
+
+  window.WalsonPassPixel = { W: W, H: H, PHOTO: PHOTO, SIGNALS: SIGNALS, draw: draw, dotPhoto: dotPhoto, fontsReady: fontsReady,
+    FIT: FIT, fitMath: fitMath, zoomCenter: zoomCenter, bindFit: bindFit };
 })();

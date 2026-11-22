@@ -58,6 +58,29 @@
   .side-toggle button.active { background: var(--ink); color: #fff; }
 
   .canvas-holder { display: flex; justify-content: center; }
+  /* 카드 모양(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘"): [기본 카드] [도트 카드]. 도트 카드는 pass-pixel.js(도트 워킹패스 시안과 같은 그림, 1200×1500).
+     도트 카드는 한 면이라 앞면·뒷면 대신 사진 맞추기(사진 칸 끌기·두 손가락·막대)와 저장·공유. 고른 것은 이 휴대폰에만(walson_pass_dot) */
+  .style-toggle { display: flex; gap: 4px; padding: 4px; margin: 0 auto 10px; width: max-content;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px; }
+  .style-toggle button { border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
+    padding: 7px 16px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .style-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+  .cv { position: relative; width: 100%; }
+  .cv.is-dot { max-width: 340px; }
+  .cv.is-dot #card-canvas { cursor: default; }
+  .dot-grab { position: absolute; cursor: grab; touch-action: none; outline-offset: -2px; }
+  .dot-grab:hover, .dot-grab:focus-visible { outline: 2px dashed var(--accent); }
+  .dot-grab.on { cursor: grabbing; outline: 2px solid var(--accent); }
+  .dot-tools { display: grid; gap: 10px; margin-top: 12px; }
+  .dot-row { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+  .dot-row .lbl { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-right: 2px; }
+  .dot-row input[type=range] { flex: 1; min-width: 110px; max-width: 200px; accent-color: var(--accent); }
+  .dot-row .zb { min-width: 36px; height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--panel-border);
+    background: var(--panel); color: var(--ink); font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .dot-row .zb.txt { font-size: 12.5px; }
+  .dot-row output { min-width: 42px; font-size: 12.5px; font-weight: 800; text-align: right; }
+  .dot-save { display: flex; gap: 8px; }
+  .dot-save .btn { flex: 1; }
   #card-canvas {
     width: 100%; height: auto; cursor: pointer;
     filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
@@ -199,21 +222,53 @@
   </div>
 
   <div id="card-area" hidden>
-    <div class="side-toggle" role="tablist">
+    <!-- 카드 모양(2026-11-22): 처음엔 [산책]·[동네] 지도에서 [도트]를 고른 사람이면 도트 카드, 아니면 기본 카드 -->
+    <div class="style-toggle" role="group" aria-label="카드 모양">
+      <button type="button" id="style-basic" aria-pressed="true">기본 카드</button>
+      <button type="button" id="style-dot" aria-pressed="false">도트 카드</button>
+    </div>
+    <div class="side-toggle" id="side-toggle" role="tablist">
       <button type="button" id="side-front" class="active">앞면</button>
       <button type="button" id="side-back">뒷면 · 산책 경력</button>
     </div>
     <div class="canvas-holder">
-      <canvas id="card-canvas" width="1600" height="1000" role="img" aria-label="강아지 워킹패스 앞면"></canvas>
+      <div class="cv" id="card-cv">
+        <canvas id="card-canvas" width="1600" height="1000" role="img" aria-label="강아지 워킹패스 앞면"></canvas>
+        <div class="dot-grab" id="dot-grab" tabindex="0" role="group" aria-label="사진 칸 — 끌어서 옮기기, 두 손가락이나 휠로 확대·축소, 방향키와 +·− 키도 돼요" hidden></div>
+      </div>
     </div>
-    <div class="canvas-hint">워킹패스를 누르면 뒤집혀요</div>
+    <div class="canvas-hint" id="canvas-hint">워킹패스를 누르면 뒤집혀요</div>
+    <!-- 도트 카드 — 사진을 어떻게 그릴지 · 사진 크기(사진 칸을 끌어서 옮기기는 카드 위에서) -->
+    <div class="dot-tools" id="dot-tools" hidden>
+      <div class="dot-row" role="group" aria-label="사진을 어떻게 그릴지">
+        <span class="lbl">사진</span>
+        <div class="format" id="dot-photo-mode">
+          <button type="button" data-m="fine" aria-pressed="true">도트 가늘게</button>
+          <button type="button" data-m="coarse" aria-pressed="false">도트 굵게</button>
+          <button type="button" data-m="photo" aria-pressed="false">원래 사진</button>
+        </div>
+      </div>
+      <div class="dot-row" role="group" aria-label="사진 크기">
+        <span class="lbl">사진 크기</span>
+        <button type="button" class="zb" id="dz-out" aria-label="사진 작게">−</button>
+        <input type="range" id="dz-range" min="50" max="400" step="5" value="100" aria-label="사진 크기">
+        <button type="button" class="zb" id="dz-in" aria-label="사진 크게">+</button>
+        <output id="dz-val" for="dz-range">100%</output>
+        <button type="button" class="zb txt" id="dz-reset">처음대로</button>
+      </div>
+    </div>
     <!-- 화면 정리(2026-11-18 밤 가르시아 "주민증 밑에 여러 개 더 있고 편집 화면은 밑에 있어, UI 좀 정리해 줘"):
          카드 바로 아래에 꾸미고 저장하기(편집기 — 11/19부터 테두리 색도 그 안), 인쇄·키링 파일은 맨 아래 접는 칸 -->
     <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·면·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
     <button type="button" class="btn btn-primary" id="save-btn">꾸미고 저장하기</button>
     <!-- 테두리 색은 [꾸미고 저장하기] 안 [테두리] 탭에서 고른다(2026-11-19 가르시아 "꾸미고 저장하기 안에다가 테두리 색 변경 기능 넣어라").
          카드 아래 접는 줄(11/18 밤)은 뺐다. 고르는 칩·색 막대는 id-card.js openEditor + card-color.js -->
-    <p class="color-note">테두리 색은 [꾸미고 저장하기] 안 [테두리]에서 바꿔요.</p>
+    <p class="color-note" id="color-note">테두리 색은 [꾸미고 저장하기] 안 [테두리]에서 바꿔요.</p>
+    <div class="dot-save" id="dot-save" hidden>
+      <button type="button" class="btn btn-primary" id="dot-save-btn">도트 워킹패스 저장</button>
+      <button type="button" class="btn btn-secondary" id="dot-share-btn" hidden>공유</button>
+    </div>
+    <p class="color-note" id="dot-note" hidden>고른 모양과 사진 맞춤은 이 휴대폰에만 기억해요. 실물로 뽑기·키링 파일은 아직 기본 카드로 나와요(도트 인쇄 크기는 정해지면).</p>
   </div>
 
   <div class="panel">
@@ -276,6 +331,7 @@
 <script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="id-card.js?v=14"></script>
+<script src="pass-pixel.js?v=5"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="steady-stamp.js?v=4"></script>
@@ -333,6 +389,13 @@
   }
   function render() {
     if (!hasCard) return;
+    if (cardStyle === 'pixel' && PP) {   // 도트 카드(한 면)
+      PP.draw(dotCanvas, dotData());
+      if (window.WalsonView) WalsonView.show(view, dotCanvas);
+      else { view.width = dotCanvas.width; view.height = dotCanvas.height; view.getContext('2d').drawImage(dotCanvas, 0, 0); }
+      view.setAttribute('aria-label', '강아지 도트 워킹패스');
+      return;
+    }
     if (side === 'front') IC.drawFront(canvas, profile, frontOpts());
     else IC.drawBack(canvas, profile, progress, backOpts());
     if (window.WalsonView) WalsonView.show(view, canvas);
@@ -344,6 +407,86 @@
   var pixelOn = false;
   try { pixelOn = localStorage.getItem('walson_map_style') === 'pixel'; } catch (e) { /* 기본 모양 */ }
   if (pixelOn) document.body.classList.add('is-pixel');
+
+  // ── 도트 카드(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘") ──
+  // 그림은 pass-pixel.js(도트 워킹패스 시안과 같은 그림). 고른 모양·사진 방식·사진 맞춤은 이 휴대폰에만(localStorage walson_pass_dot) —
+  // 어디로도 안 보낸다. 처음 모양은 지도에서 [도트]를 고른 사람이면 도트 카드. 사진은 원본(photoOrig)이 있으면 그것으로(세로 칸이라 덜 잘림).
+  var PP = window.WalsonPassPixel, DOT_KEY = 'walson_pass_dot';
+  var dotCanvas = document.createElement('canvas'), dotPhoto = null;
+  function readDot() { try { var v = JSON.parse(localStorage.getItem(DOT_KEY)); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+  function writeDot() { try { localStorage.setItem(DOT_KEY, JSON.stringify(dot)); } catch (e) { /* 못 남겨도 이번 화면은 그대로 */ } }
+  var dot = readDot();
+  var cardStyle = (dot.style === 'pixel' || dot.style === 'basic') ? dot.style : (pixelOn ? 'pixel' : 'basic');
+  if (!PP) cardStyle = 'basic';
+  // 사진이 바뀌면 예전 맞춤을 쓰지 않으려고 사진 글자로 짧은 표를 만든다(id-card.js 카드 사진 맞춤과 같은 방식)
+  function photoKey(src) {
+    if (!src || typeof src !== 'string') return '';
+    var h = 5381;
+    for (var i = 0; i < src.length; i++) h = ((h << 5) + h + src.charCodeAt(i)) | 0;
+    return src.length + ':' + (h >>> 0).toString(36);
+  }
+  var dotSig = photoKey(profile.photoOrig || profile.photo || '');
+  function num(v, d, a, b) { v = Number(v); return isFinite(v) ? Math.max(a, Math.min(b, v)) : d; }
+  var fit = (PP && dot.fit && dotSig && dot.fit.sig === dotSig)
+    ? { zoom: num(dot.fit.zoom, 1, PP.FIT.MIN, PP.FIT.MAX), qx: num(dot.fit.qx, 0.5, 0, 1), qy: num(dot.fit.qy, 0.5, 0, 1) }
+    : { zoom: 1, qx: 0.5, qy: 0.5 };
+  function dotData() {
+    var frac = next ? (progress.walks - rank.minWalks) / (next.minWalks - rank.minWalks) : 1;
+    var sg = IC.SIGNALS && IC.SIGNALS[profile.signal];
+    var m = dot.photo === 'photo' ? { mode: 'photo' } : { mode: 'dot', cols: dot.photo === 'coarse' ? 32 : 56 };
+    return Object.assign({
+      name: profile.name, breed: profile.breed, sex: profile.sex, signal: profile.signal,
+      signalLine: sg ? sg.line : '', signalColor: sg ? sg.color : '',   // 성향이 없거나 지킴이 카드면 그 문구·색으로(초록으로 그리지 않음)
+      rankName: rank.name, rankFrac: Math.max(0, Math.min(1, frac)), cardNo: profile.cardNo,
+      photo: dotPhoto || photo, colors: 12, qr: IC.SHARE_URL, zoom: fit.zoom, qx: fit.qx, qy: fit.qy
+    }, m);
+  }
+  function syncZoom() {
+    $('dz-range').value = Math.round(fit.zoom * 100);
+    $('dz-val').textContent = Math.round(fit.zoom * 100) + '%';
+  }
+  var dotRaf = 0, dotSaveT = null;
+  function setFit(st) {
+    fit = { zoom: st.zoom, qx: st.qx, qy: st.qy };
+    syncZoom();
+    if (!dotRaf) dotRaf = requestAnimationFrame(function () { dotRaf = 0; render(); });   // 끄는 동안은 한 화면에 한 번만 다시 그림
+    clearTimeout(dotSaveT);
+    dotSaveT = setTimeout(function () { dot.fit = { zoom: fit.zoom, qx: fit.qx, qy: fit.qy, sig: dotSig }; writeDot(); }, 300);
+  }
+  function dotZoom(z) { setFit(PP.zoomCenter(dotPhoto || photo, fit, z)); }
+  function syncPhotoMode() {
+    var m = dot.photo === 'coarse' || dot.photo === 'photo' ? dot.photo : 'fine';
+    Array.prototype.forEach.call($('dot-photo-mode').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-m') === m)); });
+  }
+  // 모양 바꾸기 — save가 true일 때(직접 눌렀을 때)만 기억한다. 그래야 안 고른 사람은 지도 모양을 따라간다
+  function applyStyle(st, save) {
+    cardStyle = st;
+    if (save) { dot.style = st; writeDot(); }
+    var isDot = st === 'pixel';
+    $('style-basic').setAttribute('aria-pressed', String(!isDot));
+    $('style-dot').setAttribute('aria-pressed', String(isDot));
+    $('side-toggle').hidden = isDot;
+    $('card-cv').classList.toggle('is-dot', isDot);
+    $('dot-grab').hidden = !isDot; $('dot-tools').hidden = !isDot; $('dot-save').hidden = !isDot; $('dot-note').hidden = !isDot;
+    $('save-btn').hidden = isDot; $('color-note').hidden = isDot;
+    $('canvas-hint').textContent = isDot ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키우고 줄여요' : '워킹패스를 누르면 뒤집혀요';
+    render();
+  }
+  if (PP) {
+    $('style-basic').addEventListener('click', function () { applyStyle('basic', true); });
+    $('style-dot').addEventListener('click', function () { applyStyle('pixel', true); });
+    Array.prototype.forEach.call($('dot-photo-mode').querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () { dot.photo = b.getAttribute('data-m'); writeDot(); syncPhotoMode(); render(); });
+    });
+    $('dz-range').addEventListener('input', function (e) { dotZoom(Number(e.target.value) / 100); });
+    $('dz-in').addEventListener('click', function () { dotZoom(fit.zoom * 1.2); });
+    $('dz-out').addEventListener('click', function () { dotZoom(fit.zoom / 1.2); });
+    $('dz-reset').addEventListener('click', function () { setFit({ zoom: 1, qx: 0.5, qy: 0.5 }); });
+    PP.bindFit($('dot-grab'), { photo: function () { return dotPhoto || photo; }, get: function () { return fit; }, set: setFit });
+    syncPhotoMode(); syncZoom();
+  } else {
+    document.querySelector('.style-toggle').hidden = true;   // 도트 그림 파일을 못 받았으면 기본 카드만
+  }
 
   // ── 진행도 ──
   function renderSummary() {
@@ -478,7 +621,7 @@
   }
   $('side-front').addEventListener('click', function () { setSide('front'); });
   $('side-back').addEventListener('click', function () { setSide('back'); });
-  view.addEventListener('click', function () { setSide(side === 'front' ? 'back' : 'front'); });
+  view.addEventListener('click', function () { if (cardStyle === 'pixel') return; setSide(side === 'front' ? 'back' : 'front'); });
 
   // ── 꾸미고 저장하기(한 화면 편집기 — 오른쪽 위 [저장]은 사진첩·내려받기, [공유]는 공유 창) ──
   $('save-btn').addEventListener('click', function () {
@@ -499,6 +642,23 @@
     if (window.WalsonSave.save) { WalsonSave.save(c, name); return; }
     c.toBlob(function (blob) { if (blob) window.WalsonSave.blob(blob, name); }, 'image/png');
   }
+  // 도트 카드 저장·공유(원래 크기 1200×1500) — 그림은 이 휴대폰 안에서만 만든다
+  function dotFile() { var c = document.createElement('canvas'); PP.draw(c, dotData()); return c; }
+  function dotName() { return (profile.name || 'dog') + '-도트-워킹패스.png'; }
+  if (PP) {
+    $('dot-save-btn').addEventListener('click', function () {
+      window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_dot', format: 'dot', how: 'save' });
+      saveFile(dotFile(), dotName());
+    });
+    if (window.WalsonSave && WalsonSave.canShare && WalsonSave.canShare()) {
+      $('dot-share-btn').hidden = false;
+      $('dot-share-btn').addEventListener('click', function () {
+        window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_dot', format: 'dot', how: 'share' });
+        WalsonSave.share(dotFile(), dotName());
+      });
+    }
+  }
+
   $('keyring-file-btn').addEventListener('click', function () {
     var c = document.createElement('canvas');
     IC.drawFront(c, profile, Object.assign({}, frontOpts(), { noQr: true }));
@@ -582,8 +742,10 @@
   }
   renderSummary();
   renderTraits();
-  render();
-  Promise.all([IC.loadImage(profile.photo), IC.fontsReady()]).then(function (res) { photo = res[0]; render(); });
+  if (hasCard) applyStyle(cardStyle, false); else render();
+  window.__passDot = { fit: function () { return fit; }, style: function () { return cardStyle; } };   // 시험용
+  Promise.all([IC.loadImage(profile.photo), IC.fontsReady(), profile.photoOrig ? IC.loadImage(profile.photoOrig) : null, PP ? PP.fontsReady() : null])
+    .then(function (res) { photo = res[0]; dotPhoto = res[2]; render(); });
 })();
 </script>
 <script>
