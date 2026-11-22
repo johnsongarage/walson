@@ -15,6 +15,7 @@
 <script src="store.js?v=2"></script>
 <script src="device.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
+<script src="pixel-map.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="infra-pins.js?v=28"></script>
@@ -46,6 +47,10 @@
   #map { position: absolute; inset: 0; z-index: 0; }
   /* 지도 컬러톤: 라벤더 파스텔(예전 산책 화면·[동네]와 같은 값) */
   .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
+  /* 도트 지도(2026-11-22, pixel-map.js) — 기본은 위 그림 지도, 위 [도트] 버튼으로 바꾼다. 라벤더 필터를 끄고 칸이 뭉개지지 않게 */
+  body.map-pixel .leaflet-tile-pane { filter: none; image-rendering: pixelated; }
+  .map-top-right { display: flex; align-items: center; gap: 8px; }
+  #map-style-btn { font-family: inherit; font-size: 13px; font-weight: 800; color: var(--ink); }
   .map-top { position: absolute; z-index: 500; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; right: 16px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
   .map-top > * { pointer-events: auto; }
@@ -153,9 +158,12 @@
   <div id="map"></div>
   <div class="map-top">
     <div class="ws-chip is-dark"><span class="ws-dot" aria-hidden="true"></span><span id="map-chip-text">0분 · 길 기록 중</span></div>
-    <button type="button" class="ws-icon-btn" id="map-close-x" aria-label="지도 닫기">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </button>
+    <div class="map-top-right">
+      <button type="button" class="ws-icon-btn" id="map-style-btn" hidden>도트</button>
+      <button type="button" class="ws-icon-btn" id="map-close-x" aria-label="지도 닫기">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
   </div>
   <section class="map-sheet" aria-label="지금까지 걸은 길">
     <b id="map-mission">지금까지 걸은 길</b>
@@ -347,9 +355,18 @@
 
   // ── 지도 보기(시안 ⑫) — 처음 열 때 만든다 ──
   var map = null, routeLayer = null, markLayer = null, pinLayer = null, mapOpen = false;
+  var basicTiles = null, pixelTiles = null, pixelRoute = null, mapStyle = 'basic';
   function initMap() {
     map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
-    WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
+    basicTiles = WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
+    // 도트 지도(2026-11-22): 기본은 위 그림 지도, [도트] 버튼으로 바꾸고 고른 것은 이 휴대폰에 기억한다.
+    // 도트 칸 색은 OpenStreetMap 그림 색을 기준으로 나누므로 pixel-map.js는 OSM 타일을 직접 받는다.
+    if (window.PixelMap) {
+      pixelTiles = PixelMap.createLayer({ pixelSize: 4 });
+      pixelRoute = PixelMap.createRoute(map, { color: '#b8563a' });
+      $('map-style-btn').hidden = false;
+      setMapStyle(PixelMap.getStyle());
+    }
     routeLayer = L.layerGroup().addTo(map);
     markLayer = L.layerGroup().addTo(map);
     pinLayer = L.layerGroup().addTo(map);
@@ -361,19 +378,22 @@
     routeLayer.clearLayers();
     markLayer.clearLayers();
     var solid = { color: '#b8563a', weight: 5, opacity: 0.9 }, dashed = { color: '#b8563a', weight: 4, opacity: 0.85, dashArray: '2 10', lineCap: 'round' };
-    var run = [];
+    var run = [], lines = [];
     for (var i = 1; i < routeSamples.length; i++) {
       var a = routeSamples[i - 1], b = routeSamples[i];
       if (b.t - E.seenT(a) > E.GAP_MS) {
-        if (run.length > 1) L.polyline(run, solid).addTo(routeLayer);
-        L.polyline([a.c, b.c], dashed).addTo(routeLayer);
+        if (run.length > 1) lines.push({ latlngs: run, dashed: false });
+        lines.push({ latlngs: [a.c, b.c], dashed: true });
         run = [b.c];
       } else {
         if (!run.length) run.push(a.c);
         run.push(b.c);
       }
     }
-    if (run.length > 1) L.polyline(run, solid).addTo(routeLayer);
+    if (run.length > 1) lines.push({ latlngs: run, dashed: false });
+    // 도트 지도면 같은 길을 지도 칸에 맞춘 칸으로(pixel-map.js), 아니면 원래 선으로
+    if (mapStyle === 'pixel' && pixelRoute) pixelRoute.setLines(lines);
+    else lines.forEach(function (l) { L.polyline(l.latlngs, l.dashed ? dashed : solid).addTo(routeLayer); });
     if (routeCoords.length) L.marker(routeCoords[0], { icon: L.divIcon({ className: 'wm-start', iconSize: [14, 14], iconAnchor: [7, 7] }), interactive: false }).addTo(markLayer);
     // 응가 찍은 자리(이 휴대폰 안에만)
     (s.poopMarks || []).forEach(function (p) {
@@ -414,6 +434,22 @@
     if (!map) initMap(); else map.invalidateSize();
     drawMap(true);
   }
+  function setMapStyle(v) {
+    mapStyle = v === 'pixel' ? 'pixel' : 'basic';
+    if (mapStyle === 'pixel') { map.removeLayer(basicTiles); pixelTiles.addTo(map); }
+    else { map.removeLayer(pixelTiles); basicTiles.addTo(map); }
+    document.body.classList.toggle('map-pixel', mapStyle === 'pixel');
+    pixelRoute.setEnabled(mapStyle === 'pixel');
+    var btn = $('map-style-btn');
+    btn.textContent = mapStyle === 'pixel' ? '기본' : '도트';
+    btn.setAttribute('aria-label', mapStyle === 'pixel' ? '기본 지도로 보기' : '도트 지도로 보기');
+  }
+  $('map-style-btn').addEventListener('click', function () {
+    if (!map || !window.PixelMap) return;
+    setMapStyle(mapStyle === 'pixel' ? 'basic' : 'pixel');
+    PixelMap.setStyle(mapStyle);
+    drawMap(false);
+  });
   function closeMap() { $('map-view').hidden = true; document.body.classList.remove('map-open'); mapOpen = false; }
   $('map-btn').addEventListener('click', openMap);
   $('map-close').addEventListener('click', closeMap);

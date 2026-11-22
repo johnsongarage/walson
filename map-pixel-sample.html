@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>왈슨 도트 지도 샘플</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    /* 둥근모꼴(OFL) — 지정만 하고 불러오지 않으면 맑은고딕으로 떨어지므로 직접 로드 */
+    @font-face {
+      font-family: 'DungGeunMo';
+      src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+      font-display: swap;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'DungGeunMo', 'Malgun Gothic', sans-serif;
+      background: #2b2623; color: #2c241e;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .hud-top {
+      background: #f4f7d4; border-bottom: 4px solid #3c2f26;
+      padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; z-index: 1000; box-shadow: 0 4px 0 rgba(0,0,0,0.25);
+    }
+    .hud-title { font-size: 16px; }
+    .hud-stats { font-size: 13px; color: #5c4938; margin-top: 3px; }
+    .pixel-controls { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .pixel-btn {
+      font-family: inherit; background: #ffcc33; border: 3px solid #3c2f26;
+      box-shadow: 2px 2px 0 #3c2f26; padding: 4px 8px; font-size: 12px; cursor: pointer; color: #2c241e;
+    }
+    .pixel-btn.active { background: #ff7b54; color: #fff; }
+    .pixel-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+
+    .map-wrap { flex: 1; position: relative; }
+    #map { position: absolute; inset: 0; background: #e9dfc4; }
+    /* 타일 캔버스를 확대할 때 뭉개지지 않게 (상속 속성) */
+    #map .leaflet-tile-pane { image-rendering: pixelated; }
+    /* 산책 경로 도트 캔버스: 타일 위, 마커 아래 */
+    #routeCanvas { position: absolute; inset: 0; z-index: 450; pointer-events: none; image-rendering: pixelated; }
+    .leaflet-control-attribution { font-family: sans-serif; }
+
+    .dog-marker-wrap { display: flex; flex-direction: column; align-items: center; }
+    .dog-badge {
+      background: #ff4757; color: #fff; font-size: 11px; padding: 2px 6px;
+      border: 2px solid #2c241e; margin-bottom: 2px; white-space: nowrap; box-shadow: 2px 2px 0 #2c241e;
+    }
+    .dog-sprite { width: 48px; height: 48px; image-rendering: pixelated; filter: drop-shadow(0 3px 0 rgba(0,0,0,0.35)); }
+    .walking .dog-sprite { animation: walkBounce 0.3s infinite steps(2); }
+    @keyframes walkBounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+    .spot-marker {
+      display: inline-block; background: #fff8e7; border: 3px solid #3c2f26; box-shadow: 3px 3px 0 #3c2f26;
+      padding: 3px 6px; font-size: 12px; white-space: nowrap; transform: translate(-50%, -50%);
+    }
+
+    .hud-bottom {
+      background: #ffe066; border-top: 4px solid #3c2f26; padding: 10px 14px;
+      display: flex; gap: 10px; z-index: 1000;
+    }
+    .action-btn {
+      font-family: inherit; flex: 1; padding: 12px; font-size: 15px; border: 3px solid #3c2f26;
+      box-shadow: 3px 3px 0 #3c2f26; cursor: pointer; color: #2c241e; background: #ffd43b;
+    }
+    .action-btn.primary { background: #69db7c; }
+    .action-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #3c2f26; }
+
+    .sample-note {
+      position: absolute; left: 10px; bottom: 26px; z-index: 900; max-width: 260px;
+      background: rgba(255,248,231,0.95); border: 3px solid #3c2f26; padding: 6px 8px; font-size: 11px; line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud-top">
+    <div>
+      <div class="hud-title">🐾 WALSON · 다산동 도트 월드</div>
+      <div class="hud-stats" id="walkStats">00:00 · 0m · 밟은 칸 0</div>
+    </div>
+    <div class="pixel-controls">
+      <!-- 256의 약수만 둔다: 6px처럼 나누어떨어지지 않으면 칸 크기가 들쭉날쭉해지고 타일 경계에 줄이 생김 -->
+      <button class="pixel-btn size-btn active" data-size="4">도트 4</button>
+      <button class="pixel-btn size-btn" data-size="8">도트 8</button>
+      <button class="pixel-btn" id="compareBtn">원본 비교</button>
+    </div>
+  </div>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+    <canvas id="routeCanvas"></canvas>
+    <div class="sample-note">샘플 화면 — 경로·통계는 가짜 시뮬레이션 데이터이고 실제 위치를 읽지 않습니다.</div>
+  </div>
+
+  <div class="hud-bottom">
+    <button class="action-btn primary" id="walkToggleBtn">▶ 산책 시뮬레이션 시작</button>
+    <button class="action-btn" id="centerBtn">📍 우리 댕댕이</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  (function () {
+    // ───────────────── 1. 팔레트: "가장 가까운 RGB"가 아니라 "역할"별로 색을 정한다 ─────────────────
+    // 원본 타일 색을 물/공원/도로/건물/땅으로 먼저 분류하고, 역할마다 게임 팔레트 색을 준다.
+    // (RGB 최근접 매칭은 연한 회색 땅이 '큰 도로' 흰색으로, 연회색 물이 '건물'로 가는 식의 오분류가 많다)
+    var PAL = {
+      land:      [[233, 223, 196], [226, 215, 186]],  // 땅 (두 톤 체커 → 도트 질감)
+      building:  [[214, 196, 170], [214, 196, 170]],
+      buildShade:[[176, 156, 130], [176, 156, 130]],  // 건물 아래쪽 그림자 한 칸
+      park:      [[128, 196, 92],  [112, 182, 80]],
+      water:     [[88, 172, 232],  [76, 160, 222]],
+      road:      [[252, 248, 236], [252, 248, 236]],
+      major:     [[250, 204, 92],  [250, 204, 92]]
+    };
+    // 한 칸 안에서 역할 우선순위: 얇은 도로가 끊기지 않도록 도로는 조금만 섞여 있어도 이긴다
+    var ROLE_WEIGHT = { major: 3.0, road: 2.2, water: 1.2, park: 1.1, building: 1.0, land: 0.6 };
+
+    function classify(r, g, b) {
+      var max = Math.max(r, g, b), min = Math.min(r, g, b);
+      var l = (max + min) / 2, d = max - min;
+      var s = d === 0 ? 0 : d / (255 - Math.abs(max + min - 255));
+      var h = 0;
+      if (d !== 0) {
+        if (max === r) h = ((g - b) / d) % 6;
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h *= 60; if (h < 0) h += 360;
+      }
+      if (l < 140 && s < 0.25) return null;                               // 글자·아이콘 → 투표에서 뺀다
+      if (s > 0.5 && l < 160) return null;                                 // 진한 원색 = POI 아이콘 → 제외
+      if (s > 0.12 && s < 0.8 && h >= 180 && h <= 250 && l >= 180) return 'water';  // 진한 파랑 = 아이콘이라 제외
+      if (s > 0.10 && h >= 70 && h < 170) return 'park';
+      if (s > 0.5 && (h < 12 || h > 345) && l < 200) return 'road';      // 연어색 점선 = 보행로
+      if (s > 0.35 && h >= 10 && h <= 68 && l >= 190 && l < 240) return 'major';     // 주황·노랑 = 간선도로
+      if (l >= 250) return 'road';
+      if (l < 216) return 'building';
+      return 'land';
+    }
+
+    // ───────────────── 2. 도트 타일 레이어 ─────────────────
+    var TILE = 256;
+    // 원본 소스의 CARTO voyager 타일은 이제 API 키 없이는 'API KEY REQUIRED' 워터마크 타일만 준다.
+    // 그래서 프로젝트가 이미 쓰는 공개 OSM 타일을 그대로 쓴다 (CORS 허용이라 캔버스로 읽을 수 있음).
+    var tileUrl = function (c) {
+      return 'https://tile.openstreetmap.org/' + c.z + '/' + c.x + '/' + c.y + '.png';
+    };
+
+    var PixelLayer = L.GridLayer.extend({
+      options: { pixelSize: 4, maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' },
+      createTile: function (coords, done) {
+        var tile = document.createElement('canvas');
+        tile.width = TILE; tile.height = TILE;
+        var B = this.options.pixelSize;
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+          var src = document.createElement('canvas');
+          src.width = TILE; src.height = TILE;
+          var sctx = src.getContext('2d', { willReadFrequently: true });
+          sctx.drawImage(img, 0, 0);
+          var px = sctx.getImageData(0, 0, TILE, TILE).data;
+          var n = TILE / B;
+          var roles = new Array(n * n);
+
+          // 칸마다 원본 픽셀 전체를 보고 다수결(가중치) — 한 점만 찍어 읽으면 얇은 길이 사라진다
+          for (var by = 0; by < n; by++) {
+            for (var bx = 0; bx < n; bx++) {
+              var score = { major: 0, road: 0, water: 0, park: 0, building: 0, land: 0 };
+              for (var y = by * B; y < by * B + B; y++) {
+                for (var x = bx * B; x < bx * B + B; x++) {
+                  var i = (y * TILE + x) * 4;
+                  var rl = classify(px[i], px[i + 1], px[i + 2]);
+                  if (rl) score[rl] += 1;
+                }
+              }
+              var best = 'land', bestScore = -1;
+              for (var k in score) {
+                var v = score[k] * ROLE_WEIGHT[k];
+                if (v > bestScore) { bestScore = v; best = k; }
+              }
+              roles[by * n + bx] = best;
+            }
+          }
+
+          var ctx = tile.getContext('2d');
+          var baseX = coords.x * n, baseY = coords.y * n;   // 월드 기준 칸 좌표 → 체커가 타일 경계에서 안 끊김
+          for (var by2 = 0; by2 < n; by2++) {
+            for (var bx2 = 0; bx2 < n; bx2++) {
+              var role = roles[by2 * n + bx2];
+              if (role === 'building') {
+                var below = by2 + 1 < n ? roles[(by2 + 1) * n + bx2] : 'building';
+                if (below !== 'building') role = 'buildShade';
+              }
+              var c = PAL[role][(baseX + bx2 + baseY + by2) & 1];
+              ctx.fillStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+              ctx.fillRect(bx2 * B, by2 * B, B, B);
+            }
+          }
+          done(null, tile);
+        };
+        img.onerror = function () { done(new Error('타일 로드 실패'), tile); };
+        img.src = tileUrl(coords);
+        return tile;
+      }
+    });
+
+    // ───────────────── 3. 지도 ─────────────────
+    var DASAN_CENTER = [37.6248, 127.1518];
+    var map = L.map('map', { center: DASAN_CENTER, zoom: 17, zoomControl: false, maxZoom: 19, minZoom: 14 });
+    var pixelLayer = new PixelLayer({ pixelSize: 4 }).addTo(map);
+    var originalLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' });
+
+    // 도트 크기 변경: 레이어를 갈아끼우지 않고 옵션만 바꿔 다시 그린다 (깜빡임 감소)
+    document.querySelectorAll('.size-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.size-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        pixelLayer.options.pixelSize = Number(btn.dataset.size);
+        pixelLayer.redraw();
+        drawRoute();
+      });
+    });
+    document.getElementById('compareBtn').addEventListener('click', function () {
+      if (map.hasLayer(originalLayer)) { map.removeLayer(originalLayer); pixelLayer.addTo(map); this.classList.remove('active'); }
+      else { map.removeLayer(pixelLayer); originalLayer.addTo(map); this.classList.add('active'); }
+      drawRoute();
+    });
+
+    // ───────────────── 4. 도트 강아지 (16x16 문자 지도 → 캔버스) ─────────────────
+    var DOG = [
+      '................',
+      '..kk........kk..',
+      '.kwck......kcwk.',
+      '.kwwckkkkkkcwwk.',
+      'kwwwwwwwwwwwwwwk',
+      'kwwwwwwwwwwwwwwk',
+      'kwwekwwwwwwekwwk',
+      'kwweewwwwwweewwk',
+      'kcwwwwwkkwwwwwck',
+      '.kcwwwwppwwwwck.',
+      '.kkbbbbbbbbbbkk.',
+      '.kbllbbbbbbllbk.',
+      '.kbbbbbbbbbbbbk.',
+      '..kwwk....kwwk..',
+      '..kkkk....kkkk..',
+      '................'
+    ];
+    var DOG_COLORS = { k: '#221c18', w: '#ffffff', c: '#efe2c8', e: '#1a1a1a', p: '#ff7b9c', b: '#2b6cb0', l: '#63b3ed' };
+    function spriteUrl(rows) {
+      var cv = document.createElement('canvas'); cv.width = 16; cv.height = 16;
+      var cx = cv.getContext('2d');
+      rows.forEach(function (row, y) {
+        for (var x = 0; x < 16; x++) {
+          var col = DOG_COLORS[row[x]];
+          if (col) { cx.fillStyle = col; cx.fillRect(x, y, 1, 1); }
+        }
+      });
+      return cv.toDataURL();
+    }
+    var dogIcon = L.divIcon({
+      className: '',
+      html: '<div class="dog-marker-wrap" id="dogWrap"><div class="dog-badge">▼ 우리 댕댕이</div>' +
+            '<img class="dog-sprite" src="' + spriteUrl(DOG) + '" alt="도트 강아지" /></div>',
+      iconSize: [80, 70], iconAnchor: [40, 66]
+    });
+
+    // 샘플 경로 — 가짜 좌표 (실제 산책 기록 아님)
+    var walkRoute = [
+      [37.6248, 127.1518], [37.6253, 127.1524], [37.6259, 127.1531], [37.6264, 127.1525],
+      [37.6268, 127.1515], [37.6261, 127.1506], [37.6254, 127.1510], [37.6248, 127.1518]
+    ];
+    var dogMarker = L.marker(walkRoute[0], { icon: dogIcon, zIndexOffset: 1000 }).addTo(map);
+
+    [
+      { pos: [37.6255, 127.1522], label: '🌲 다산 중앙공원' },
+      { pos: [37.6238, 127.1495], label: '🌊 왕숙천 산책로' },
+      { pos: [37.6266, 127.1535], label: '☕ 펫프렌들리 카페' }
+    ].forEach(function (s) {
+      L.marker(s.pos, { icon: L.divIcon({ className: '', html: '<div class="spot-marker">' + s.label + '</div>', iconSize: [0, 0] }) }).addTo(map);
+    });
+
+    // ───────────────── 5. 경로를 지도와 같은 격자에 맞춘 도트로 그린다 ─────────────────
+    // SVG 점선(polyline)은 안티앨리어싱된 매끈한 선이라 도트 지도 위에서 혼자 튄다.
+    // 월드 픽셀 좌표를 도트 크기로 나눈 격자 = 타일 격자와 같으므로 경로 칸이 지도 칸에 딱 맞는다.
+    var canvas = document.getElementById('routeCanvas');
+    var rctx = canvas.getContext('2d');
+    var trail = [walkRoute[0]];   // 지금까지 걸은 점들 (위경도)
+    var visited = {};             // 밟은 칸 (z18 기준 8px 칸) — '탐험' 지표 샘플
+
+    function resizeCanvas() {
+      var size = map.getSize();
+      canvas.width = size.x; canvas.height = size.y;
+    }
+    function blockPath(points, B, z) {
+      // 위경도 목록 → 칸 좌표 목록 (브레젠험으로 빈칸 없이 이음)
+      var out = [], last = null;
+      for (var i = 0; i < points.length; i++) {
+        var p = map.project(points[i], z);
+        var cur = { x: Math.floor(p.x / B), y: Math.floor(p.y / B) };
+        if (!last) { out.push(cur); last = cur; continue; }
+        var dx = Math.abs(cur.x - last.x), dy = -Math.abs(cur.y - last.y);
+        var sx = last.x < cur.x ? 1 : -1, sy = last.y < cur.y ? 1 : -1;
+        var err = dx + dy, x = last.x, y = last.y;
+        while (x !== cur.x || y !== cur.y) {
+          var e2 = 2 * err;
+          if (e2 >= dy) { err += dy; x += sx; }
+          if (e2 <= dx) { err += dx; y += sy; }
+          out.push({ x: x, y: y });
+        }
+        last = cur;
+      }
+      return out;
+    }
+    function drawRoute() {
+      rctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (trail.length < 2) return;
+      var B = map.hasLayer(pixelLayer) ? pixelLayer.options.pixelSize : 4;
+      var step = B < 8 ? B * 2 : B;            // 4px 도트일 땐 경로를 2배 칸으로 (너무 가늘지 않게)
+      var z = map.getZoom();
+      var origin = map.getPixelBounds().min;    // 화면 왼쪽 위의 월드 픽셀 좌표
+      var cells = blockPath(trail, step, z);
+      var seen = {};
+      cells.forEach(function (c) {
+        var key = c.x + ',' + c.y;
+        if (seen[key]) return; seen[key] = 1;
+        var sx = c.x * step - origin.x, sy = c.y * step - origin.y;
+        rctx.fillStyle = '#3c2f26'; rctx.fillRect(sx, sy, step, step);
+        rctx.fillStyle = '#ff3b30'; rctx.fillRect(sx + 1, sy + 1, step - 2, step - 2);
+      });
+    }
+    resizeCanvas();
+    map.on('resize', function () { resizeCanvas(); drawRoute(); });
+    map.on('move zoomend viewreset', drawRoute);
+    map.on('zoomstart', function () { canvas.style.visibility = 'hidden'; });
+    map.on('zoomend', function () { canvas.style.visibility = 'visible'; });
+
+    // ───────────────── 6. 산책 시뮬레이션: 칸 단위로 '뚜벅뚜벅' 움직이기 ─────────────────
+    var SPEED_MPS = 25;           // 시뮬레이션 배속 (한 바퀴 약 20초)
+    var running = false, seg = 0, segT = 0, lastTs = 0, simSec = 0, distM = 0;
+
+    function snapToGrid(latlng) {
+      // 강아지 위치도 현재 줌의 도트 격자에 맞춘다 → 칸을 밟고 지나가는 느낌
+      var z = map.getZoom(), B = pixelLayer.options.pixelSize * 2;
+      var p = map.project(latlng, z);
+      return map.unproject(L.point(Math.floor(p.x / B) * B + B / 2, Math.floor(p.y / B) * B + B / 2), z);
+    }
+    function updateStats() {
+      var mm = String(Math.floor(simSec / 60)).padStart(2, '0'), ss = String(Math.floor(simSec % 60)).padStart(2, '0');
+      document.getElementById('walkStats').textContent =
+        mm + ':' + ss + ' · ' + Math.round(distM).toLocaleString() + 'm · 밟은 칸 ' + Object.keys(visited).length;
+    }
+    function tick(ts) {
+      if (!running) return;
+      var dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.1) : 0; lastTs = ts;
+      var a = L.latLng(walkRoute[seg]), b = L.latLng(walkRoute[seg + 1]);
+      var segLen = a.distanceTo(b);
+      segT += (SPEED_MPS * dt) / segLen;
+      distM += SPEED_MPS * dt; simSec += dt * 20;
+      if (segT >= 1) {
+        segT = 0; seg += 1;
+        trail.push(walkRoute[seg]);
+        if (seg >= walkRoute.length - 1) { seg = 0; }
+      }
+      var cur = L.latLng(a.lat + (b.lat - a.lat) * segT, a.lng + (b.lng - a.lng) * segT);
+      var live = trail.concat([[cur.lat, cur.lng]]);
+      var savedTrail = trail; trail = live; drawRoute(); trail = savedTrail;
+      dogMarker.setLatLng(snapToGrid(cur));
+
+      var vp = map.project(cur, 18);
+      visited[Math.floor(vp.x / 8) + ',' + Math.floor(vp.y / 8)] = 1;
+      updateStats();
+
+      // 강아지가 화면 가운데 영역을 벗어나면 따라가기
+      var cp = map.latLngToContainerPoint(cur), size = map.getSize();
+      if (cp.x < size.x * 0.25 || cp.x > size.x * 0.75 || cp.y < size.y * 0.25 || cp.y > size.y * 0.75) {
+        map.panTo(cur, { animate: true, duration: 0.6 });
+      }
+      requestAnimationFrame(tick);
+    }
+
+    var walkBtn = document.getElementById('walkToggleBtn');
+    walkBtn.addEventListener('click', function () {
+      var wrap = document.getElementById('dogWrap');
+      running = !running;
+      if (running) {
+        walkBtn.textContent = '⏸ 일시정지';
+        if (wrap) wrap.classList.add('walking');
+        lastTs = 0; requestAnimationFrame(tick);
+      } else {
+        walkBtn.textContent = '▶ 산책 시뮬레이션 재개';
+        if (wrap) wrap.classList.remove('walking');
+      }
+    });
+    document.getElementById('centerBtn').addEventListener('click', function () {
+      map.setView(dogMarker.getLatLng(), 18);
+    });
+  })();
+  </script>
+</body>
+</html>
