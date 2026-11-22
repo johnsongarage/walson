@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 도트 강아지 캐릭터 시안(2026-11-22 가르시아 "미니미 느낌으로 강아지 도트 캐릭터 샘플 만들어줘").
-     같은 날 밤 "이 페이지 강아지들 다 지우고 이 강아지들로, 작은 건 확대해서 크기 맞춰줘" → 받은 도트 그림 5장으로 바꿈.
-     그림은 icons/dot-dogs/*.webp — 원래 흰 바탕·크기 제각각이라 테두리 바깥 흰 바탕만 지우고 키를 똑같이(768px) 맞춘 것.
+     같은 날 밤 "이 페이지 강아지들 다 지우고 이 강아지들로, 작은 건 확대해서 크기 맞춰줘" → 받은 도트 그림 5장으로 바꿈, 이어서 닥스훈트·진돗개·시바 추가("추가해서 배포", "이것도 추가하고").
+     그림은 icons/dot-dogs/*.webp — 원래 흰 바탕·크기 제각각이라 테두리 바깥 흰 바탕만 지우고 키를 똑같이(768px) 맞춘 것(_dev/dot-dog-cutout.py).
      코드로 그리던 32칸 강아지(dog-pixel.js)는 이 화면에서만 뺐다(아지트 시안 등은 그대로 씀).
      이 화면은 아무것도 저장하지 않고 어디로도 보내지 않는다. */
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
@@ -61,7 +61,7 @@
 <body>
 <main>
   <h1>도트 강아지 시안</h1>
-  <p class="lead">받은 도트 강아지 그림 5마리예요. 그림마다 크기가 달라서 흰 바탕을 지우고 키를 똑같이 맞췄어요(작은 그림은 키웠어요).
+  <p class="lead">받은 도트 강아지 그림 8마리예요. 그림마다 크기가 달라서 흰 바탕을 지우고 키를 똑같이 맞췄어요(작은 그림은 키웠어요).
     견본을 누르면 아래에서 크게 볼 수 있어요.</p>
 
   <h2>견본</h2>
@@ -77,7 +77,7 @@
     <div class="form">
       <label for="f-name">이름</label><input id="f-name" value="콩이" maxlength="8">
       <button class="save" id="save">PNG로 저장(512×512, 바탕 투명)</button>
-      <p class="note">원래 그림은 흰 바탕에 강아지 크기가 제각각이었어요. 테두리 바깥 흰 바탕만 지우고, 다섯 마리 키를 똑같이 맞췄어요.</p>
+      <p class="note">원래 그림은 흰 바탕에 강아지 크기가 제각각이었어요. 테두리 바깥 흰 바탕만 지우고, 여덟 마리 키를 똑같이 맞췄어요.</p>
     </div>
   </div>
 
@@ -86,13 +86,16 @@
 </main>
 <script>
   (function () {
-    // 받은 그림 5장(icons/dot-dogs/ — 흰 바탕 지우고 키 768px로 맞춤, 둘레 16px 여백)
+    // 받은 그림 8장(icons/dot-dogs/ — 흰 바탕 지우고 키 768px로 맞춤, 둘레 16px 여백)
     var DOGS = [
       { id: 'pom', breed: '포메' },
       { id: 'poodle', breed: '푸들' },
       { id: 'maltese', breed: '말티즈' },
       { id: 'knit', breed: '파란 니트' },
-      { id: 'chihuahua', breed: '치와와' }
+      { id: 'chihuahua', breed: '치와와' },
+      { id: 'dachs', breed: '닥스훈트' },
+      { id: 'jindo', breed: '진돗개' },
+      { id: 'shiba', breed: '시바' }
     ];
     function src(d) { return 'icons/dot-dogs/' + d.id + '.webp?v=1'; }
     function $(id) { return document.getElementById(id); }
