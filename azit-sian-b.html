@@ -24,7 +24,9 @@
      내 강아지 = 포메(내 소품 칸에서 8마리 중에 고름), 만난 친구 7명 = 나머지 일곱 마리(위 '만난 친구' 줄을 누르면 그 집으로 마실).
      방·소품은 그대로 도트 칸이고, 강아지만 화면 픽셀 배율(R)로 다시 그려 또렷하게 — 방 그림도 R배로 키워 칸이 흐려지지 않는다.
      11/23 가르시아 "너무 고퀄이라 도트가 덜 튀는 것 같네" → 강아지도 방 한 칸에 한 점으로 다시 찍어(키 32점 + 방 소품과 같은 바깥 테두리) 방과 같은 굵기로.
-     내 소품 칸의 '강아지 도트'에서 굵게(기본)·중간(반 칸에 한 점)·그림(앞 버전)을 바꿔 볼 수 있다. */
+     내 소품 칸의 '강아지 도트'에서 굵게(기본)·중간(반 칸에 한 점)·그림(앞 버전)을 바꿔 볼 수 있다.
+     같은 날 가르시아 "강아지가 배치되니까 뭉개지는데 그대로 못 살리냐" → 기본을 '원본'으로: 받은 그림을 원래 점 격자로 되돌린 그림
+     (icons/dot-dogs/px, _dev/dot-dog-native.py)을 화면 픽셀에 맞춰 번지지 않게 그대로. 버튼은 원본(기본)·중간·굵게. */
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
   :root { --line: #2a2026; }
   * { box-sizing: border-box; }
@@ -132,7 +134,7 @@
   <div class="box" id="mine-box">
     <div class="box-title"><span>내 강아지</span><small>도트 강아지 8마리 중에 고르기</small></div>
     <div class="dogs" id="dogs"></div>
-    <div class="box-title" style="margin-top:12px;"><span>강아지 도트</span><small>굵게 = 방 한 칸에 한 점</small></div>
+    <div class="box-title" style="margin-top:12px;"><span>강아지 도트</span><small>원본 = 받은 그림의 점 그대로</small></div>
     <div class="walls" id="dotmode"></div>
     <div class="box-title" style="margin-top:12px;"><span>내 소품</span><small>산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
     <div class="tray" id="tray"></div>
@@ -162,9 +164,12 @@
     { id: 'chihuahua', breed: '치와와' }, { id: 'dachs', breed: '닥스훈트' }, { id: 'jindo', breed: '진돗개' }, { id: 'shiba', breed: '시바' }
   ];
   function dogSrc(id) { return 'icons/dot-dogs/' + id + '.webp?v=1'; }
-  var DOG_IMG = {};
+  function dogPxSrc(id) { return 'icons/dot-dogs/px/' + id + '.png?v=1'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
+  var DOG_IMG = {}, DOG_PX = {};
   var dogsReady = Promise.all(DOGS.map(function (d) {
-    return new Promise(function (res) { var im = new Image(); im.onload = im.onerror = function () { res(); }; im.src = dogSrc(d.id); DOG_IMG[d.id] = im; });
+    return Promise.all([[DOG_IMG, dogSrc(d.id)], [DOG_PX, dogPxSrc(d.id)]].map(function (e) {
+      return new Promise(function (res) { var im = new Image(); im.onload = im.onerror = function () { res(); }; im.src = e[1]; e[0][d.id] = im; });
+    }));
   }));
   function breedOf(id) { var d = DOGS.filter(function (x) { return x.id === id; })[0]; return d ? d.breed : ''; }
 
@@ -349,31 +354,52 @@
     canvas.width = CW * R; canvas.height = CH * R;    // 강아지 그림은 이 해상도로 그려 또렷하게
     canvas.style.width = CW * K + 'px'; canvas.style.height = CH * K + 'px';
   }
-  // 도트 강아지 — 키 DOG_H칸(방 칸 단위). 강아지 점 굵기 세 가지(11/23 가르시아 "너무 고퀄이라 도트가 덜 튀는 것 같네"):
-  //   굵게(기본) = 방 한 칸에 강아지 한 점 — 받은 그림(점 하나 ≈ 8.5px)을 키 32점으로 다시 찍고, 방 소품처럼 바깥 1점 테두리(OUT)
-  //   중간 = 반 칸에 한 점(키 64점) · 그림 = 받은 그림을 지금 해상도(R)에 맞게 곱게 줄인 것(앞 버전)
-  var DOT_MODES = [{ id: 'big', name: '굵게', n: 32, u: 1 }, { id: 'mid', name: '중간', n: 64, u: 0.5 }, { id: 'pic', name: '그림' }];
-  var dotMode = 'big', DOG_H = 34, dogCache = {};
+  // 도트 강아지 — 키 DOG_H칸(방 칸 단위). 그리는 법 세 가지:
+  //   원본(기본, 11/23 가르시아 "강아지가 배치되니까 뭉개지는데 그대로 못 살리냐") = 받은 그림의 점 그대로 —
+  //     원래 점 격자로 되돌린 그림(icons/dot-dogs/px, 점 하나 = 한 픽셀, 강아지마다 키 65~188점)을 지금 화면 픽셀(R)에 맞춰
+  //     가장 가까운 점으로 키워 번지지 않게. 화면 픽셀이 점보다 적을 때(PC 등)만 곱게 줄인다. 키는 앞 버전과 같은 DOG_VIS칸.
+  //   중간 = 반 칸에 한 점(키 64점) · 굵게 = 방 한 칸에 한 점(키 32점 + 방 소품과 같은 바깥 테두리) — 같은 날 "너무 고퀄이라
+  //     도트가 덜 튀는 것 같네"로 만든 것. 칸 수를 줄여 다시 찍어서 얼굴이 단순해진다(그래서 원본이 기본).
+  var DOT_MODES = [{ id: 'orig', name: '원본' }, { id: 'mid', name: '중간', n: 64, u: 0.5 }, { id: 'big', name: '굵게', n: 32, u: 1 }];
+  var dotMode = 'orig', DOG_H = 34, DOG_VIS = 32.6, dogCache = {};
   function modeOf(id) { return DOT_MODES.filter(function (m) { return m.id === id; })[0]; }
   function dogBitmap(id) {
-    var key = id + '@' + dotMode + (dotMode === 'pic' ? R : '');
+    var key = id + '@' + dotMode + (dotMode === 'orig' ? R : '');
     if (key in dogCache) return dogCache[key];
-    var im = DOG_IMG[id];
+    var im = DOG_IMG[id], nat = DOG_PX[id];
+    if (dotMode === 'orig' && nat && nat.naturalWidth) return (dogCache[key] = nativeBitmap(nat));
     if (!im || !im.naturalWidth) return null;
-    if (dotMode !== 'pic') {
+    if (dotMode !== 'orig') {
       var dd = null;
-      try { dd = dotDog(im, modeOf(dotMode).n); } catch (e) { dd = null; }   // 그림을 못 읽는 곳(파일로 연 화면 등)이면 아래 '그림'으로
+      try { dd = dotDog(im, modeOf(dotMode).n); } catch (e) { dd = null; }   // 그림을 못 읽는 곳(파일로 연 화면 등)이면 아래 그림으로
       if (dd) return (dogCache[key] = dd);
     }
-    var h = Math.round(DOG_H * R), w = Math.round(im.naturalWidth * h / im.naturalHeight), src = im, sw = im.naturalWidth, sh = im.naturalHeight;
+    // 원본 점 그림이나 다시 찍기를 못 쓸 때만: 받은 그림을 지금 해상도(R)에 맞게 곱게 줄인 것(앞 버전)
+    var h = Math.round(DOG_H * R), c = smallCopy(im, Math.round(im.naturalWidth * h / im.naturalHeight), h);
+    c.pic = true;
+    return (dogCache[key] = c);
+  }
+  // 곱게 줄이기 — 한 번에 많이 줄이면 거칠어져서 반씩 줄여 간다
+  function smallCopy(src, w, h) {
+    var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
     while (sw / 2 >= w * 1.5) {
       var t = document.createElement('canvas'); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
       var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(src, 0, 0, t.width, t.height);
       src = t; sw = t.width; sh = t.height;
     }
-    var c = document.createElement('canvas'); c.width = w; c.height = h; c.pic = true;
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
     var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, w, h);
-    return (dogCache[key] = c);
+    return c;
+  }
+  // 원본: 점 그림 → 화면 픽셀 그림(키 DOG_VIS칸 = 화면 픽셀 hd개). 픽셀이 점보다 많으면 가장 가까운 점으로 키우고(번짐 없음), 적으면 곱게 줄인다
+  function nativeBitmap(nat) {
+    var hd = Math.round(DOG_VIS * R), wd = Math.round(nat.naturalWidth * hd / nat.naturalHeight), c;
+    if (hd >= nat.naturalHeight) {
+      c = document.createElement('canvas'); c.width = wd; c.height = hd;
+      var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(nat, 0, 0, wd, hd);
+    } else c = smallCopy(nat, wd, hd);
+    c.dev = true;
+    return c;
   }
   // 받은 그림 → 키 n점 도트 + 바깥 테두리 1점(캔버스 한 픽셀 = 한 점).
   //   칸 모양: 원래 그림의 불투명한 곳이 칸의 절반 넘게 차면 칠한다.
@@ -500,10 +526,15 @@
       w = b.width / R; h = b.height / R; x = px - w / 2; top = py - h + 1 - hop;
       ctx.beginPath(); ctx.ellipse(px, py + 0.5, w * 0.34, 2.2, 0, 0, Math.PI * 2); ctx.fill();
     } else {
-      var u = modeOf(dotMode).u;                   // 강아지 한 점 = 방 u칸
-      w = b.width * u; h = b.height * u;
-      x = Math.round(px - w / 2); top = Math.round(py - h + 1) - hop;   // 방 칸에 딱 맞게
-      var sw = Math.max(6, Math.round(w * 0.66)), sx = Math.round(px - sw / 2), sy = Math.round(py);   // 그림자도 칸으로
+      if (b.dev) {                                 // 원본: 화면 픽셀에 딱 맞게 놓아(1/R칸 = 한 픽셀) 점이 번지거나 걸을 때 일렁이지 않게
+        w = b.width / R; h = b.height / R;
+        x = Math.round((px - w / 2) * R) / R; top = Math.round((py - h + 1) * R) / R - hop;
+      } else {
+        var u = modeOf(dotMode).u;                 // 강아지 한 점 = 방 u칸
+        w = b.width * u; h = b.height * u;
+        x = Math.round(px - w / 2); top = Math.round(py - h + 1) - hop;   // 방 칸에 딱 맞게
+      }
+      var sw = Math.max(6, Math.round(w * 0.66)), sx = Math.round(px - sw / 2), sy = Math.round(py);   // 그림자는 칸으로
       ctx.fillRect(sx + 2, sy - 1, sw - 4, 1); ctx.fillRect(sx, sy, sw, 2); ctx.fillRect(sx + 2, sy + 2, sw - 4, 1);
     }
     ctx.save();
@@ -712,11 +743,9 @@
   window.addEventListener('resize', fit);
   Promise.all([dogsReady, document.fonts && document.fonts.load ? document.fonts.load("13px 'DungGeunMo'").catch(function () {}) : null]).then(function () {
     fit(); ui(); requestAnimationFrame(step);
-    // 굵은 도트는 강아지마다 처음 그릴 때 한 번 계산(0.05초 남짓) — 나머지 강아지도 미리 조금씩
-    DOGS.forEach(function (d, n) { setTimeout(function () { if (dotMode !== 'pic') dogBitmap(d.id); }, 300 + n * 80); });
   });
   window.__azit = { goTo: goTo, state: function () { return { view: view, me: ME.dog, host: owner().dog, R: R, K: K, dot: dotMode }; },
-    sprite: function (id) { var b = dogBitmap(id); if (!b) return null; var url = ''; try { url = b.toDataURL(); } catch (e) {} return { w: b.width, h: b.height, pic: !!b.pic, url: url }; } };   // 시험용
+    sprite: function (id) { var b = dogBitmap(id); if (!b) return null; var url = ''; try { url = b.toDataURL(); } catch (e) {} return { w: b.width, h: b.height, pic: !!b.pic, dev: !!b.dev, url: url }; } };   // 시험용
 })();
 </script>
 </body>

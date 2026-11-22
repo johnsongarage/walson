@@ -5,11 +5,12 @@
 # 쓰는 법(저장소 맨 위에서, pip pillow numpy scipy):
 #   python3 _dev/dot-dog-cutout.py 받은그림.webp pom
 #   → icons/dot-dogs/pom.webp (강아지 키 768px + 둘레 16px 여백, 바탕 투명)
+#   → 이어서 _dev/dot-dog-native.py가 저절로 돌아 icons/dot-dogs/px/pom.png(원래 점 격자 그대로, 산책 아지트 B안이 씀)도 만든다
 #
 # 바탕 찾는 법: 밝은 칸(RGB 가장 어두운 값 200 이상)을 4방향으로 이어 덩어리를 만들고, 그림 가장자리에 닿은 덩어리 중
 # "거의 흰색(평균 252 이상)·고른 색(표준편차 3.5 미만)"만 바탕으로 본다. 도트 그림은 강아지 둘레에 검은 선이 있어서 털 안으로 번지지 않고,
 # 그림 밖으로 잘린 털(꼬리·다리)은 가장자리에 닿아도 색이 고르지 않아 남는다. 그다음 검은 선 바깥의 옅은 회색 번짐 1px을 지운다.
-import os, sys
+import os, sys, subprocess
 from PIL import Image
 import numpy as np
 from scipy import ndimage as ndi
@@ -53,6 +54,7 @@ def main():
     dst = os.path.join(OUT, sys.argv[2] + '.webp')
     out.save(dst, 'WEBP', quality=92, method=6, alpha_quality=100)
     print(f'{dst}: 강아지 {w}x{h} → x{s:.3f} → 그림 {out.size[0]}x{out.size[1]}, {os.path.getsize(dst) // 1024}KB')
+    subprocess.run([sys.executable, os.path.join(ROOT, '_dev', 'dot-dog-native.py'), sys.argv[2]], check=True)
 
 
 if __name__ == '__main__':
