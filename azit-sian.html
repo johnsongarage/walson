@@ -313,8 +313,12 @@
     // 쓸 수 있는 폭(틀 테두리 6px·그림자 4px 빼고) 안에서 한 칸 = 정수 픽셀이 되게
     var dpr = window.devicePixelRatio || 1, avail = $('room-box').clientWidth - 10;
     scale = Math.max(1, Math.floor(avail * dpr / W));
+    var cssW = W * scale / dpr, exact = true;
+    // 정수 배로 맞추면 방이 너무 작아질 때(PC 좁은 칸 — 스크롤바가 폭을 먹음)만 한 단계 크게 그려 칸 폭에 살짝 줄여 보인다
+    if (cssW < avail * 0.7) { scale += 1; cssW = avail; exact = false; }
     cv.width = W * scale; cv.height = H * scale;
-    cv.style.width = (W * scale / dpr) + 'px'; cv.style.height = (H * scale / dpr) + 'px';
+    cv.style.width = cssW + 'px'; cv.style.height = (cssW * H / W) + 'px';
+    cv.style.imageRendering = exact ? 'pixelated' : 'auto';
     rebuild();
   }
   function rebuild() {
