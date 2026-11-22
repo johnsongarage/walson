@@ -331,7 +331,7 @@
 <script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=1"></script>
 <script src="id-card.js?v=14"></script>
-<script src="pass-pixel.js?v=5"></script>
+<script src="pass-pixel.js?v=6"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="steady-stamp.js?v=4"></script>
@@ -409,7 +409,7 @@
   if (pixelOn) document.body.classList.add('is-pixel');
 
   // ── 도트 카드(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘") ──
-  // 그림은 pass-pixel.js(도트 워킹패스 시안과 같은 그림). 고른 모양·사진 방식·사진 맞춤은 이 휴대폰에만(localStorage walson_pass_dot) —
+  // 그림은 pass-pixel.js(11/22 가르시아가 준 아크릴 키링 디자인 — ID No.·NAME·TYPE·WALSON·QR). 고른 모양·사진 방식·사진 맞춤은 이 휴대폰에만(localStorage walson_pass_dot) —
   // 어디로도 안 보낸다. 처음 모양은 지도에서 [도트]를 고른 사람이면 도트 카드. 사진은 원본(photoOrig)이 있으면 그것으로(세로 칸이라 덜 잘림).
   var PP = window.WalsonPassPixel, DOT_KEY = 'walson_pass_dot';
   var dotCanvas = document.createElement('canvas'), dotPhoto = null;
@@ -438,7 +438,8 @@
       name: profile.name, breed: profile.breed, sex: profile.sex, signal: profile.signal,
       signalLine: sg ? sg.line : '', signalColor: sg ? sg.color : '',   // 성향이 없거나 지킴이 카드면 그 문구·색으로(초록으로 그리지 않음)
       rankName: rank.name, rankFrac: Math.max(0, Math.min(1, frac)), cardNo: profile.cardNo,
-      photo: dotPhoto || photo, colors: 12, qr: IC.SHARE_URL, zoom: fit.zoom, qx: fit.qx, qy: fit.qy
+      photo: dotPhoto || photo, colors: 12, qr: IC.SHARE_URL, zoom: fit.zoom, qx: fit.qx, qy: fit.qy,
+      emptyText: '여기를 눌러\n사진 넣기'
     }, m);
   }
   function syncZoom() {
@@ -482,7 +483,8 @@
     $('dz-in').addEventListener('click', function () { dotZoom(fit.zoom * 1.2); });
     $('dz-out').addEventListener('click', function () { dotZoom(fit.zoom / 1.2); });
     $('dz-reset').addEventListener('click', function () { setFit({ zoom: 1, qx: 0.5, qy: 0.5 }); });
-    PP.bindFit($('dot-grab'), { photo: function () { return dotPhoto || photo; }, get: function () { return fit; }, set: setFit });
+    PP.bindFit($('dot-grab'), { photo: function () { return dotPhoto || photo; }, get: function () { return fit; }, set: setFit,
+      onEmpty: function () { location.href = 'profile.html'; } });   // 사진이 없으면 사진 칸을 눌러 프로필에서 넣는다
     syncPhotoMode(); syncZoom();
   } else {
     document.querySelector('.style-toggle').hidden = true;   // 도트 그림 파일을 못 받았으면 기본 카드만

@@ -1,63 +1,122 @@
-// 도트 워킹패스(키링·굿즈 앞면) 시안 — 2026-11-22 가르시아가 보여 준 도트 아크릴 키링("WALSON WALKING PASS", 분홍 머리띠,
-// 뼈다귀 귀퉁이 사진 틀, 오른쪽 칸 ID·NAME·TYPE, 아래 WALSON 알약 + QR)을 틀로 옮긴 것. 시안 화면은 pass-pixel-sample.html.
-// 원래 그림과 다른 점: 칸 이름은 한국어(번호·이름·견종), 성향 띠(안전 표시)·산책 등급 칸을 넣었고, 맨 아래 홍보물 문구 두 줄(site-config.js brand).
-// 모든 선·칸은 U(6px) 칸에 맞춰 그리고, 글자는 둥근모꼴(DungGeunMo — 도트 지도 이름 글자와 같은 글꼴).
-// 사진: mode 'photo' = 원래 사진 그대로, 'dot' = cols칸으로 줄이고 색을 palette개로 줄여 도트로(이 휴대폰 안에서만, 어디로도 안 보냄).
-// 크기 1200×1500(4:5). 인쇄 규격은 정해지면 바꾼다. window.WalsonPassPixel.draw(canvas, data)
-// 쓰는 곳: 시안 화면 pass-pixel-sample.html, [워킹패스] my-card.html의 [도트 카드](2026-11-22)
+// 도트 워킹패스(아크릴 키링) — 2026-11-22 가르시아가 준 디자인(HTML "WALSON WALKING PASS - 최종 완성형 풀버전")을 캔버스로 그대로 옮긴 것.
+// 가르시아 "이 디자인 보고 다시 참고해서 만들어 봐. 타이틀 텍스트 옆에 발바닥, 그리고 사진의 테두리 이런 구성을 다시 적용해.
+//          지금 거 없애고 저대로 하고 거기서 변형한다고 생각해라" — 앞의 도트 그림(한국어 칸·성향 띠·등급 게이지)은 지웠다.
+// 구성: 바탕(따뜻한 베이지) 위 투명 아크릴 케이스(고리 구멍) · 안쪽 인쇄 카드(분홍 머리띠 + "WALSON" 양옆 도트 발바닥 + "WALKING PASS") ·
+//       왼쪽 사진 틀(검정 계단 테두리 + 분홍 안쪽 선 + 네 귀퉁이 꺾쇠·발바닥 장식) · 오른쪽 ID No. / NAME: / TYPE: 두 색 칸 · 분홍 점선 · WALSON 칸 · QR.
+// 크기·색은 받은 디자인의 CSS 값 그대로(단위 CSS px, 디자인 424×530을 판 1200×1500으로 키움). 디자인과 다르게 한 것:
+//   ① 사진 아래 빈 곳에 홍보물 문구 한 줄(site-config.js brand — 키링도 두 줄 규칙, "WALSON"은 이미 있음)
+//   ② QR은 진짜 QR(나도 만들기 주소) ③ 칸 값은 이 휴대폰 기록(번호 끝 네 자리 · 이름 · 견종, 없으면 DOG)
+//   ④ 사진은 도트로 바꿀 수 있고(가늘게 56칸 · 굵게 32칸 · 원래 사진) 끌어서 맞춘다 — 처음엔 칸을 꽉 채움(디자인은 통째로 보이기)
+// 사진은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. window.WalsonPassPixel.draw(canvas, data)
+// 쓰는 곳: 시안 화면 pass-pixel-sample.html, [워킹패스] my-card.html의 [도트 카드]
 (function () {
-  var W = 1200, H = 1500, U = 6;
+  var W = 1200, H = 1500;
+  var DW = 424, DH = 530, S = W / DW;   // 디자인 단위(CSS px) → 판
+  var DARK = '#221a17', PAW_C = '#4e2732', PINK_HEAD = '#f6a3bf', PINK_LINE = '#e2789c', CARD_BG = '#fff9fb', CARD_LINE = '#f4a4c0',
+      FRAME_PINK = '#f7b5cc', LABEL_BG = '#f9dce6', VALUE_BG = '#f4fbfb', DASH = '#f38cb1', GUIDE = '#d896ad';
+  var SANS = "Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
   var PIX = "'DungGeunMo', 'Galmuri11', monospace";
-  var INK = '#4a3340', PINK = '#f4a6c0', PINK_D = '#d97f9f', LABEL = '#a8566f', PINK_L = '#fde8ef', PAPER = '#fff7fa', WHITE = '#ffffff';
+  function sans(weight, size) { return weight + ' ' + size + 'px ' + SANS; }
+  // 성향(원래 주민증과 같은 문구·색) — 이 그림엔 안 그리지만 다른 화면이 같이 쓴다
   var SIGNALS = {
     green:  { line: '다가와도 좋아요', color: '#3f9b5b' },
     yellow: { line: '천천히 인사해요', color: '#dfa21f' },
     red:    { line: '눈으로만 예뻐해 주세요', color: '#d2493f' }
   };
-  // 발바닥 7×6
-  var PAW = ['.X...X.', 'X.X.X.X', '.......', '..XXX..', '.XXXXX.', '.XX.XX.'];
-  // 사진 틀(뼈다귀 귀퉁이)과 그 안 사진 칸 — 시안 화면이 사진 칸 위에 '끌어서 옮기기·확대' 칸을 얹으려고 PHOTO를 밖으로 알려 준다(2026-11-22)
-  var FRAME = { x: 54, y: 354, w: 552, h: 672 };
-  var PHOTO = { x: FRAME.x + 5 * U, y: FRAME.y + 5 * U, w: FRAME.w - 10 * U, h: FRAME.h - 10 * U };
 
-  function snap(v) { return Math.round(v / U) * U; }
-  function box(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(snap(x), snap(y), snap(w), snap(h)); }
-  // 귀퉁이를 한 칸 깎은 도트 상자(테두리 b칸) + 오른쪽 아래 그림자
-  function stepBox(ctx, x, y, w, h, fill, border, shadow) {
-    x = snap(x); y = snap(y); w = snap(w); h = snap(h);
-    if (shadow) { ctx.fillStyle = shadow; ctx.fillRect(x + 2 * U, y + 2 * U, w - U, h - U); ctx.fillRect(x + U, y + 3 * U, w, h - 3 * U); }
-    ctx.fillStyle = border || INK;
-    ctx.fillRect(x + U, y, w - 2 * U, h); ctx.fillRect(x, y + U, w, h - 2 * U);
-    ctx.fillStyle = fill;
-    ctx.fillRect(x + 2 * U, y + U, w - 4 * U, h - 2 * U); ctx.fillRect(x + U, y + 2 * U, w - 2 * U, h - 4 * U);
+  // ── 자리(받은 디자인을 브라우저로 그려 잰 값, 디자인 단위) ──
+  var CASE = { x: 24, y: 24, w: 376, h: 451.2, r: 24 };
+  var CX = CASE.x + CASE.w / 2;
+  var CARD = { x: CASE.x + 17, y: CASE.y + 35, w: 342, h: 399.2, r: 15 };
+  var HEAD = { x: CARD.x + 2, y: CARD.y + 2, w: 338, h: 83.2 };
+  var PF = { x: CASE.x + 31, y: CASE.y + 135.2, w: 155.9, h: 244 };          // 사진 틀 바깥(검정 계단 테두리)
+  var PI = { x: PF.x + 3.5, y: PF.y + 3.5, w: PF.w - 7, h: PF.h - 7 };          // 사진 틀 안(분홍 안쪽 선 4px)
+  var PIMG = { w: PI.w * 0.93, h: PI.h * 0.93 };                                  // 사진 칸(틀 안 93%)
+  PIMG.x = PI.x + (PI.w - PIMG.w) / 2; PIMG.y = PI.y + (PI.h - PIMG.h) / 2;
+  var INFO = { x: CASE.x + 197.9, y: CASE.y + 135.2, w: 147.1, h: 283 };
+  // 사진 칸(판 단위) — 시안 화면·[워킹패스]가 그 위에 '끌어서 옮기기·확대' 칸을 얹는다
+  var PHOTO = { x: PIMG.x * S, y: PIMG.y * S, w: PIMG.w * S, h: PIMG.h * S };
+
+  // ── 그리기 도구 ──
+  function rrPath(ctx, x, y, w, h, r) {
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
   }
-  function sprite(ctx, rows, x, y, s, color) {
-    ctx.fillStyle = color;
-    rows.forEach(function (r, j) { for (var i = 0; i < r.length; i++) if (r[i] === 'X') ctx.fillRect(x + i * s, y + j * s, s, s); });
+  // 계단 테두리(받은 디자인의 clip-path 그대로): 바깥은 귀퉁이를 두 칸(7px·3.5px), 안쪽은 한 칸(3.5×4px) 깎는다
+  function stepOuter(ctx, x, y, w, h) {
+    var a = 3.5, b = 7;
+    ctx.beginPath();
+    ctx.moveTo(x, y + b); ctx.lineTo(x + a, y + b); ctx.lineTo(x + a, y + a); ctx.lineTo(x + b, y + a); ctx.lineTo(x + b, y);
+    ctx.lineTo(x + w - b, y); ctx.lineTo(x + w - b, y + a); ctx.lineTo(x + w - a, y + a); ctx.lineTo(x + w - a, y + b); ctx.lineTo(x + w, y + b);
+    ctx.lineTo(x + w, y + h - b); ctx.lineTo(x + w - a, y + h - b); ctx.lineTo(x + w - a, y + h - a); ctx.lineTo(x + w - b, y + h - a); ctx.lineTo(x + w - b, y + h);
+    ctx.lineTo(x + b, y + h); ctx.lineTo(x + b, y + h - a); ctx.lineTo(x + a, y + h - a); ctx.lineTo(x + a, y + h - b); ctx.lineTo(x, y + h - b);
+    ctx.closePath();
   }
-  function dashes(ctx, x1, x2, y, c) { for (var x = x1; x + 3 * U <= x2; x += 5 * U) box(ctx, x, y, 3 * U, U, c); }
-  function font(size) { return size + 'px ' + PIX; }
-  function fit(ctx, text, maxW, size, min) {
+  function stepInner(ctx, x, y, w, h) {
+    var a = 3.5, b = 4;
+    ctx.beginPath();
+    ctx.moveTo(x, y + b); ctx.lineTo(x + a, y + b); ctx.lineTo(x + a, y);
+    ctx.lineTo(x + w - a, y); ctx.lineTo(x + w - a, y + b); ctx.lineTo(x + w, y + b);
+    ctx.lineTo(x + w, y + h - b); ctx.lineTo(x + w - a, y + h - b); ctx.lineTo(x + w - a, y + h);
+    ctx.lineTo(x + a, y + h); ctx.lineTo(x + a, y + h - b); ctx.lineTo(x, y + h - b);
+    ctx.closePath();
+  }
+  // 검정 계단 테두리 칸 — 안쪽(3.5px 들어간 곳)은 계단 모양으로 잘라 paint(x, y, w, h)가 칠한다
+  function stepBox(ctx, x, y, w, h, paint) {
+    ctx.fillStyle = DARK; stepOuter(ctx, x, y, w, h); ctx.fill();
+    ctx.save(); stepInner(ctx, x + 3.5, y + 3.5, w - 7, h - 7); ctx.clip();
+    paint(x + 3.5, y + 3.5, w - 7, h - 7);
+    ctx.restore();
+  }
+  // CSS letter-spacing처럼 글자마다 간격을 더한다(마지막 글자 뒤 간격도 폭에 넣어 가운데 맞춤이 CSS와 같게)
+  function spacedWidth(ctx, text, sp) { var w = 0; for (var i = 0; i < text.length; i++) w += ctx.measureText(text[i]).width + sp; return w; }
+  function spacedText(ctx, text, x, y, sp) {
+    ctx.textAlign = 'left';
+    for (var i = 0; i < text.length; i++) { ctx.fillText(text[i], x, y); x += ctx.measureText(text[i]).width + sp; }
+  }
+  // 칸에 맞게 글자 크기를 줄이고(최소 min), 그래도 길면 끝을 …으로
+  function fitSpaced(ctx, text, maxW, weight, size, min, sp) {
     var s = size;
-    while (s > (min || 24)) { ctx.font = font(s); if (ctx.measureText(text).width <= maxW) break; s -= 6; }
-    ctx.font = font(s);
-    return s;
+    ctx.font = sans(weight, s);
+    while (s > min && spacedWidth(ctx, text, sp) > maxW) { s -= 0.5; ctx.font = sans(weight, s); }
+    if (spacedWidth(ctx, text, sp) <= maxW) return text;
+    var t = text;
+    while (t.length > 1 && spacedWidth(ctx, t + '…', sp) > maxW) t = t.slice(0, -1);
+    return t + '…';
   }
-  // 띄어쓰기에서 두 줄로(가운데에 가까운 곳)
-  function split2(text) {
-    var mid = text.length / 2, best = -1;
-    for (var i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
-    return best > 0 ? [text.slice(0, best), text.slice(best + 1)] : [text];
+  // 받은 디자인의 도트 발바닥(24×24)과 귀퉁이 꺾쇠·발바닥 장식(16×16 → 22px)
+  var PAW_PATH = 'M9 3h3v4H9V3z M4 5h3v4H4V5z M14 5h3v4h-3V5z M18 9h3v4h-3V9z M9 10h5v1h2v2h1v4h-2v2h-2v-1h-3v1H7v-2H5v-4h1v-2h3v-1z';
+  var CORNER_DARK = 'M0 0h12v2H2v10H0V0zm4 4h2v2H4V4zm4 0h2v2H8V4zM3 7h2v2H3V7zm6 0h2v2H9V7zM5 8h6v5H5V8z';
+  var CORNER_PINK = 'M2 2h9v1H3v8H2V2zm4 7h4v3H6V9z';
+  var paths = null;
+  function P() { return paths || (paths = { paw: new Path2D(PAW_PATH), cd: new Path2D(CORNER_DARK), cp: new Path2D(CORNER_PINK) }); }
+  // 발바닥(가운데 cx·cy, 24px) — 왼쪽은 -10도, 오른쪽은 거울로 뒤집고 -10도(디자인 transform 그대로)
+  function paw(ctx, cx, cy, mirror) {
+    ctx.save(); ctx.translate(cx, cy);
+    if (mirror) ctx.scale(-1, 1);
+    ctx.rotate(-10 * Math.PI / 180);
+    ctx.translate(-12, -12);
+    ctx.fillStyle = PAW_C; ctx.fill(P().paw);
+    ctx.restore();
+  }
+  function corner(ctx, x, y, sx, sy) {
+    ctx.save(); ctx.translate(x + 11, y + 11); ctx.scale(sx * 22 / 16, sy * 22 / 16); ctx.translate(-8, -8);
+    ctx.fillStyle = DARK; ctx.fill(P().cd);
+    ctx.fillStyle = PINK_HEAD; ctx.fill(P().cp);
+    ctx.restore();
   }
 
   // ── 사진을 도트로 ──
   // 사진 칸(bw×bh)을 cols칸으로 줄이고, 색을 k개로 줄인다(k-평균). 채도를 조금 올려 그림처럼.
-  function dotPhoto(img, bw, bh, cols, k, zoom, qx, qy) {
+  // 줌아웃해서 사진이 칸보다 작으면 남는 곳은 bg(사진 칸 바탕색)로 — 검정 도트가 되지 않게
+  function dotPhoto(img, bw, bh, cols, k, zoom, qx, qy, bg) {
     var rows = Math.max(1, Math.round(cols * bh / bw));
     var c = document.createElement('canvas'); c.width = cols; c.height = rows;
     var g = c.getContext('2d');
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    g.fillStyle = PINK_L; g.fillRect(0, 0, cols, rows);   // 줌아웃해서 사진이 칸보다 작으면 남는 곳은 사진 칸 바탕색(검정 도트가 되지 않게)
+    g.fillStyle = bg || '#ffffff'; g.fillRect(0, 0, cols, rows);
     var s = Math.max(cols / img.width, rows / img.height) * (zoom || 1);
     var iw = img.width * s, ih = img.height * s;
     g.drawImage(img, (cols - iw) * (qx == null ? 0.5 : qx), (rows - ih) * (qy == null ? 0.5 : qy), iw, ih);
@@ -91,138 +150,153 @@
     return c;
   }
 
+  // QR — 한 칸 = 1px로 따로 그려 키운다(칸 사이 이음매 없이 또렷하게). QR 그리는 파일(qrcode-generator)이 없으면 흰 칸만
   function drawQr(ctx, text, x, y, size) {
-    box(ctx, x, y, size, size, WHITE);
     if (!window.qrcode || !text) return;
     var qr = window.qrcode(0, 'M'); qr.addData(text); qr.make();
-    var m = qr.getModuleCount(), pad = 2 * U, cell = Math.floor((size - 2 * pad) / m), off = Math.floor((size - cell * m) / 2);
-    ctx.fillStyle = INK;
-    for (var r = 0; r < m; r++) for (var c = 0; c < m; c++) if (qr.isDark(r, c)) ctx.fillRect(x + off + c * cell, y + off + r * cell, cell, cell);
+    var m = qr.getModuleCount(), c = document.createElement('canvas'); c.width = c.height = m;
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, m, m); g.fillStyle = DARK;
+    for (var r = 0; r < m; r++) for (var q = 0; q < m; q++) if (qr.isDark(r, q)) g.fillRect(q, r, 1, 1);
+    var was = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(c, x, y, size, size);
+    ctx.imageSmoothingEnabled = was;
   }
 
-  // data: { name, breed, sex, signal, rankName, rankFrac(0~1), cardNo, photo, mode('photo'|'dot'), cols, colors, qr, zoom, qx, qy }
-  // zoom: 사진 칸을 꽉 채운 크기의 배수(1 = 꽉 채움, 1보다 작으면 줌아웃 — 남는 곳은 바탕색). qx·qy: 0~1, 사진이 칸 안에서 놓인 자리(0.5 = 가운데)
+  // data: { name, breed, type, cardNo, idNo, photo, mode('photo'|'dot'), cols, colors, qr, zoom, qx, qy, emptyText }
+  // zoom: 사진 칸을 꽉 채운 크기의 배수(1 = 꽉 채움, 1보다 작으면 줌아웃 — 남는 곳은 흰색). qx·qy: 0~1, 사진이 칸 안에서 놓인 자리(0.5 = 가운데)
   function draw(canvas, data) {
     data = data || {};
     canvas.width = W; canvas.height = H;
     var ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    ctx.textBaseline = 'alphabetic';
+    ctx.save();
+    ctx.scale(S, S);
 
-    // 판 + 테두리
-    stepBox(ctx, 0, 0, W, H, PAPER, INK);
-    box(ctx, 2 * U, 2 * U, W - 4 * U, 300 - 2 * U, PINK);          // 머리띠
-    box(ctx, 2 * U, 300, W - 4 * U, U, INK);
-    box(ctx, 2 * U, 300 + U, W - 4 * U, U, PINK_D);
-    // 고리 구멍(도트 원)
-    var hx = W / 2, hy = 66;
-    for (var yy = -5; yy <= 5; yy++) for (var xx = -5; xx <= 5; xx++) {
-      var d2 = xx * xx + yy * yy;
-      if (d2 <= 30) box(ctx, hx + xx * U - U / 2, hy + yy * U, U, U, d2 >= 20 ? INK : PAPER);
-    }
+    // 바탕 — 받은 디자인의 페이지 바탕(투명 아크릴이 보이게)
+    var bgG = ctx.createRadialGradient(DW / 2, DH * 0.25, 0, DW / 2, DH * 0.25, Math.sqrt(DW * DW / 4 + DH * DH * 0.5625));
+    bgG.addColorStop(0, '#efe0cf'); bgG.addColorStop(1, '#c8a47e');
+    ctx.fillStyle = bgG; ctx.fillRect(0, 0, DW, DH);
 
-    // 제목
-    ctx.fillStyle = INK; ctx.textAlign = 'center';
-    ctx.font = font(120); ctx.fillText('WALSON', W / 2, 204);
-    ctx.font = font(66); ctx.fillText('WALKING PASS', W / 2, 276);
-    var tw = (ctx.font = font(120), ctx.measureText('WALSON').width);
-    sprite(ctx, PAW, W / 2 - tw / 2 - 16 * U, 120, 2 * U, INK);
-    sprite(ctx, PAW, W / 2 + tw / 2 + 2 * U, 120, 2 * U, INK);
+    // 아크릴 케이스 그림자 — CSS box-shadow처럼 케이스 밖에만(투명 케이스 안에는 안 비침)
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, DW, DH); rrPath(ctx, CASE.x, CASE.y, CASE.w, CASE.h, CASE.r); ctx.clip('evenodd');
+    ctx.fillStyle = 'rgba(175, 192, 204, 0.95)';                   // 아래로 6px — 아크릴 두께
+    ctx.beginPath(); rrPath(ctx, CASE.x, CASE.y + 6, CASE.w, CASE.h, CASE.r); ctx.fill();
+    ctx.shadowColor = 'rgba(42, 28, 18, 0.32)'; ctx.shadowBlur = 38 * S; ctx.shadowOffsetX = 5000 * S; ctx.shadowOffsetY = 22 * S;
+    ctx.fillStyle = '#000';                                          // 그림자만 남기려고 모양은 화면 밖에 그린다
+    ctx.beginPath(); rrPath(ctx, CASE.x - 5000, CASE.y, CASE.w, CASE.h, CASE.r); ctx.fill();
+    ctx.restore();
 
-    // 사진 틀(뼈다귀 귀퉁이)
-    var fx = FRAME.x, fy = FRAME.y, fw = FRAME.w, fh = FRAME.h;
-    box(ctx, fx, fy, fw, fh, INK);
-    box(ctx, fx + U, fy + U, fw - 2 * U, fh - 2 * U, PINK);
-    box(ctx, fx + 4 * U, fy + 4 * U, fw - 8 * U, fh - 8 * U, INK);
-    var px = PHOTO.x, py = PHOTO.y, pw = PHOTO.w, ph = PHOTO.h;
-    box(ctx, px, py, pw, ph, PINK_L);
-    var img = data.photo;
-    if (img) {
-      ctx.save(); ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip();
-      if (data.mode === 'dot') {
-        var small = dotPhoto(img, pw, ph, data.cols || 48, data.colors || 12, data.zoom, data.qx, data.qy);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(small, px, py, pw, ph);
-      } else {
-        ctx.imageSmoothingEnabled = true;
-        var s = Math.max(pw / img.width, ph / img.height) * (data.zoom || 1), iw = img.width * s, ih = img.height * s;
-        ctx.drawImage(img, px + (pw - iw) * (data.qx == null ? 0.5 : data.qx), py + (ph - ih) * (data.qy == null ? 0.5 : data.qy), iw, ih);
-        ctx.imageSmoothingEnabled = false;
-      }
-      ctx.restore();
-    } else {
-      ctx.fillStyle = PINK_D; ctx.font = font(36); ctx.fillText('사진을 넣어 주세요', px + pw / 2, py + ph / 2);
-    }
-    // 귀퉁이 뼈다귀 칸
-    [[fx - 3 * U, fy - 3 * U], [fx + fw - 6 * U, fy - 3 * U], [fx - 3 * U, fy + fh - 6 * U], [fx + fw - 6 * U, fy + fh - 6 * U]].forEach(function (q) {
-      box(ctx, q[0], q[1], 9 * U, 9 * U, INK);
-      box(ctx, q[0] + U, q[1] + U, 7 * U, 7 * U, PINK);
-      box(ctx, q[0] + 3 * U, q[1] + 3 * U, 3 * U, 3 * U, PINK_L);
-    });
+    // 아크릴 케이스 — 흰빛 사선 그라데이션 + 흰 테두리 3px + 안쪽 하늘빛 선 2px
+    var len = (CASE.w + CASE.h) * Math.SQRT1_2, dd = len / 2 * Math.SQRT1_2, ccx = CASE.x + CASE.w / 2, ccy = CASE.y + CASE.h / 2;
+    var acr = ctx.createLinearGradient(ccx - dd, ccy - dd, ccx + dd, ccy + dd);
+    acr.addColorStop(0, 'rgba(255, 255, 255, 0.78)'); acr.addColorStop(0.48, 'rgba(255, 255, 255, 0.30)'); acr.addColorStop(1, 'rgba(255, 255, 255, 0.68)');
+    ctx.fillStyle = acr; ctx.beginPath(); rrPath(ctx, CASE.x, CASE.y, CASE.w, CASE.h, CASE.r); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.beginPath(); rrPath(ctx, CASE.x + 1.5, CASE.y + 1.5, CASE.w - 3, CASE.h - 3, CASE.r - 1.5); ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(215, 230, 240, 0.85)';
+    ctx.beginPath(); rrPath(ctx, CASE.x + 4, CASE.y + 4, CASE.w - 8, CASE.h - 8, CASE.r - 4); ctx.stroke();
+    // 고리 구멍(16px, 흰 테두리 2.5px, 안쪽 그림자)
+    var hx = CX, hy = CASE.y + 20;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#cbb094'; ctx.beginPath(); ctx.arc(hx, hy, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(hx, hy, 5.5, 0, Math.PI * 2); ctx.clip();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.38)'; ctx.shadowBlur = 3 * S; ctx.shadowOffsetY = 2 * S;
+    ctx.lineWidth = 6; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.arc(hx, hy, 8.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
 
-    // 오른쪽 칸 — 번호 · 이름 · 견종
-    var rx = 654, rw = W - 54 - rx, ry = 354;
-    var bits = [];
-    if (data.sex === 'female') bits.push('암컷'); else if (data.sex === 'male') bits.push('수컷');
-    if (data.breed) bits.push(data.breed);
-    var rowsInfo = [['번호', data.cardNo || '0001'], ['이름', data.name || '우리 강아지'], ['견종', bits.join(' · ') || '-']];
-    ctx.textAlign = 'left';
-    rowsInfo.forEach(function (row, i) {
-      var y = ry + i * 126;
-      stepBox(ctx, rx, y, rw, 102, WHITE, INK, PINK);
-      ctx.fillStyle = LABEL; ctx.font = font(36); ctx.fillText(row[0], rx + 5 * U, y + 64);
-      ctx.fillStyle = INK; fit(ctx, row[1], rw - 27 * U, 48, 24); ctx.fillText(row[1], rx + 21 * U, y + 68);
-    });
-    dashes(ctx, rx, rx + rw, 744, PINK_D);
+    // 안쪽 인쇄 카드 — 바탕 + 분홍 머리띠(아래 진분홍 3px) + 테두리 2px
+    ctx.fillStyle = CARD_BG; ctx.beginPath(); rrPath(ctx, CARD.x, CARD.y, CARD.w, CARD.h, CARD.r); ctx.fill();
+    ctx.save(); ctx.beginPath(); rrPath(ctx, CARD.x + 2, CARD.y + 2, CARD.w - 4, CARD.h - 4, CARD.r - 2); ctx.clip();
+    ctx.fillStyle = PINK_HEAD; ctx.fillRect(HEAD.x, HEAD.y, HEAD.w, HEAD.h - 3);
+    ctx.fillStyle = PINK_LINE; ctx.fillRect(HEAD.x, HEAD.y + HEAD.h - 3, HEAD.w, 3);
+    ctx.restore();
+    ctx.lineWidth = 2; ctx.strokeStyle = CARD_LINE; ctx.beginPath(); rrPath(ctx, CARD.x + 1, CARD.y + 1, CARD.w - 2, CARD.h - 2, CARD.r - 1); ctx.stroke();
 
-    // 성향 띠(안전 표시 — 원래 주민증과 같은 문구·색)
-    // 성향이 없거나 모르는 값이면 초록으로 그리지 않는다(안전 표시라 잘못 알려 주면 안 됨) — 지킴이 카드처럼 문구·색을 받으면 그것으로
-    var known = SIGNALS[data.signal] ? data.signal : '';
-    var sig = SIGNALS[data.signal] || { line: data.signalLine || '성향을 골라 주세요', color: data.signalColor || '#8d7a86' }, sy = 780, sh = 246;
-    stepBox(ctx, rx, sy, rw, sh, sig.color, INK, PINK);
-    // 신호등 불 셋(켜진 것만 밝게)
-    ['green', 'yellow', 'red'].forEach(function (k, i) {
-      var lx = rx + 5 * U + i * 9 * U, ly = sy + 4 * U;
-      box(ctx, lx, ly, 7 * U, 7 * U, INK);
-      box(ctx, lx + U, ly + U, 5 * U, 5 * U, k === known ? SIGNALS[k].color : '#7a6670');
-      if (k === known) box(ctx, lx + 2 * U, ly + 2 * U, U, U, WHITE);
-    });
-    ctx.fillStyle = WHITE;
-    // 한 줄에 48로 들어가면 한 줄, 아니면 띄어쓰기에서 두 줄
-    var lines = [sig.line], lsz = 54;
-    ctx.font = font(lsz);
-    if (ctx.measureText(sig.line).width > rw - 10 * U) {
-      lines = split2(sig.line); lsz = 54;
-      lines.forEach(function (l) { lsz = Math.min(lsz, fit(ctx, l, rw - 10 * U, 54, 30)); });
-    }
-    ctx.font = font(lsz);
-    lines.forEach(function (l, i) { ctx.fillText(l, rx + 5 * U, sy + 150 + (i - (lines.length - 1) / 2) * (lsz + 12)); });
-
-    // 아래 — 산책 등급 게이지
-    var by = 1080, L = 54, R = W - 54;
-    ctx.fillStyle = LABEL; ctx.font = font(36); ctx.fillText('산책 등급', L, by + 30);
-    ctx.fillStyle = INK; ctx.font = font(48); ctx.fillText(data.rankName || '산책 입문자', L + 32 * U, by + 34);
-    var frac = Math.max(0, Math.min(1, data.rankFrac == null ? 0.3 : data.rankFrac));
-    var on = frac >= 1 ? 10 : Math.min(9, Math.max(frac > 0 ? 1 : 0, Math.round(frac * 10)));
-    var gw = 12 * U;
-    for (var gi = 0; gi < 10; gi++) {
-      var gx = L + gi * (gw + 2 * U);
-      box(ctx, gx, by + 66, gw, 8 * U, INK);
-      box(ctx, gx + U, by + 66 + U, gw - 2 * U, 6 * U, gi < on ? PINK : WHITE);
-    }
-
-    // WALSON 알약 + 문구 · QR(나도 만들기 — 원래 주민증과 같은 주소)
+    // 제목 — 발바닥 · WALSON · 발바닥(9px 사이), 아래 WALKING PASS
     var B = (window.WALSON_CONFIG && window.WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
-    var qs = 246, qx = R - qs, qy = 1200;
-    stepBox(ctx, L, 1236, 474, 108, PINK, INK, PINK_D);
-    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.font = font(66);
-    ctx.fillText(B.name || 'WALSON', L + 237, 1312);
-    ctx.textAlign = 'left'; ctx.font = font(fit(ctx, B.tagline || '', qx - L - 6 * U, 36, 24));
-    ctx.fillText(B.tagline || '', L, 1410);
-    stepBox(ctx, qx - U, qy - U, qs + 2 * U, qs + 2 * U, WHITE, INK);
-    drawQr(ctx, data.qr, qx + U, qy + U, qs - 2 * U);
-    ctx.textAlign = 'left';
+    ctx.fillStyle = DARK; ctx.textBaseline = 'middle';
+    ctx.font = sans(900, 24);
+    var t1 = 'WALSON', w1 = spacedWidth(ctx, t1, 2.5), gw = 24 + 9 + w1 + 9 + 24, gx = CX - gw / 2, ty = CASE.y + 53 + 13.2;
+    paw(ctx, gx + 12, ty, false);
+    ctx.fillStyle = DARK; spacedText(ctx, t1, gx + 33, ty, 2.5);
+    paw(ctx, gx + 33 + w1 + 9 + 12, ty, true);
+    ctx.fillStyle = DARK; ctx.font = sans(800, 18);
+    var t2 = 'WALKING PASS', w2 = spacedWidth(ctx, t2, 2.2);
+    spacedText(ctx, t2, CX - w2 / 2, CASE.y + 83.4 + 9.9, 2.2);
+
+    // 사진 틀 — 검정 계단 테두리 · 분홍 안쪽 선 4px · 흰 바탕 · 사진(93% 칸) · 네 귀퉁이 장식
+    var img = data.photo;
+    stepBox(ctx, PF.x, PF.y, PF.w, PF.h, function (x, y, w, h) {
+      ctx.fillStyle = FRAME_PINK; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 4, y + 4, w - 8, h - 8);
+      if (img) {
+        ctx.save(); ctx.beginPath(); ctx.rect(PIMG.x, PIMG.y, PIMG.w, PIMG.h); ctx.clip();
+        if (data.mode === 'dot') {
+          var small = dotPhoto(img, PHOTO.w, PHOTO.h, data.cols || 56, data.colors || 12, data.zoom, data.qx, data.qy, '#ffffff');
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(small, PIMG.x, PIMG.y, PIMG.w, PIMG.h);
+        } else {
+          ctx.imageSmoothingEnabled = true;
+          var sc = Math.max(PIMG.w / img.width, PIMG.h / img.height) * (data.zoom || 1), iw = img.width * sc, ih = img.height * sc;
+          ctx.drawImage(img, PIMG.x + (PIMG.w - iw) * (data.qx == null ? 0.5 : data.qx), PIMG.y + (PIMG.h - ih) * (data.qy == null ? 0.5 : data.qy), iw, ih);
+        }
+        ctx.restore();
+      } else {
+        // 사진이 없을 때 — 디자인의 빈 칸 안내(그림 + 도트 글씨)
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = "24px 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif";
+        ctx.fillText('🖼️', PI.x + PI.w / 2, PI.y + PI.h / 2 - 24);
+        ctx.fillStyle = GUIDE; ctx.font = '13px ' + PIX;
+        String(data.emptyText || '여기를 눌러\n강아지 사진 넣기').split('\n').forEach(function (l, i) { ctx.fillText(l, PI.x + PI.w / 2, PI.y + PI.h / 2 + 8 + i * 18); });
+      }
+      corner(ctx, PI.x + 4, PI.y + 4, 1, 1);
+      corner(ctx, PI.x + PI.w - 26, PI.y + 4, -1, 1);
+      corner(ctx, PI.x + 4, PI.y + PI.h - 26, 1, -1);
+      corner(ctx, PI.x + PI.w - 26, PI.y + PI.h - 26, -1, -1);
+    });
+
+    // 오른쪽 칸 — ID No. / NAME: / TYPE: (이름표 분홍 · 값 민트빛 흰색, 매끈한 굵은 글씨)
+    var idNo = data.idNo || String(data.cardNo || '').split('-').pop() || '0000';
+    var rows = [['ID No.', idNo], ['NAME:', data.name || '우리 강아지'], ['TYPE:', data.type || data.breed || 'DOG']];
+    rows.forEach(function (row, i) {
+      stepBox(ctx, INFO.x, INFO.y + i * 50, INFO.w, 43, function (x, y, w, h) {
+        ctx.font = sans(800, 15.5);
+        var lw = spacedWidth(ctx, row[0], 0.6) + 10 + 6;
+        ctx.fillStyle = LABEL_BG; ctx.fillRect(x, y, lw, h);
+        ctx.fillStyle = VALUE_BG; ctx.fillRect(x + lw, y, w - lw, h);
+        ctx.fillStyle = DARK; ctx.textBaseline = 'middle';
+        spacedText(ctx, row[0], x + 10, y + h / 2, 0.6);
+        var v = fitSpaced(ctx, String(row[1]), w - lw - 6 - 8, 800, 15.5, 11, 0.6);
+        ctx.fillStyle = DARK; spacedText(ctx, v, x + lw + 6, y + h / 2, 0.6);
+      });
+    });
+    // 분홍 점선
+    ctx.fillStyle = DASH;
+    for (var dx = 0; dx < INFO.w; dx += 11) ctx.fillRect(INFO.x + dx, INFO.y + 152, Math.min(11 * 0.62, INFO.w - dx), 3);
+    // WALSON 칸
+    stepBox(ctx, INFO.x, INFO.y + 164, INFO.w, 42, function (x, y, w, h) {
+      ctx.fillStyle = LABEL_BG; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = DARK; ctx.font = sans(900, 16); ctx.textBaseline = 'middle';
+      var nm = B.name || 'WALSON', bw = spacedWidth(ctx, nm, 2);
+      spacedText(ctx, nm, x + (w - bw) / 2, y + h / 2, 2);
+    });
+    // QR(흰 바탕 · 검정 테두리 2.5px · 안쪽 58px) — 나도 만들기 주소
+    var qx0 = INFO.x + 39.6, qy0 = INFO.y + 215;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(qx0, qy0, 68, 68);
+    ctx.lineWidth = 2.5; ctx.strokeStyle = DARK; ctx.strokeRect(qx0 + 1.25, qy0 + 1.25, 65.5, 65.5);
+    drawQr(ctx, data.qr, qx0 + 5.5, qy0 + 5.5, 58);
+
+    // 홍보물 문구(디자인과 다르게 더한 것) — 사진 틀 아래 빈 곳에 한 줄
+    if (B.tagline) {
+      var tgY = (PF.y + PF.h + INFO.y + INFO.h) / 2;
+      ctx.fillStyle = PAW_C; ctx.textBaseline = 'middle';
+      var tg = fitSpaced(ctx, B.tagline, PF.w - 6, 800, 10.5, 8, 0);
+      var tw = spacedWidth(ctx, tg, 0);
+      spacedText(ctx, tg, PF.x + (PF.w - tw) / 2, tgY, 0);
+    }
+    ctx.restore();
     return canvas;
   }
 
@@ -232,7 +306,11 @@
       st.textContent = "@font-face{font-family:'DungGeunMo';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');}";
       document.head.appendChild(st);
     }
-    return (document.fonts && document.fonts.load) ? document.fonts.load("48px 'DungGeunMo'", '워킹패스 WALSON').catch(function () {}) : Promise.resolve();
+    if (!(document.fonts && document.fonts.load)) return Promise.resolve();
+    return Promise.all([
+      document.fonts.load('900 24px Pretendard', 'WALSON'), document.fonts.load('800 18px Pretendard', 'WALKING PASS ID No. NAME: TYPE: 당신과 강아지'),
+      document.fonts.load("13px 'DungGeunMo'", '강아지 사진')
+    ]).catch(function () {});
   }
 
   // ── 사진 맞추기(2026-11-22) — 시안 화면(pass-pixel-sample.html)과 [워킹패스](my-card.html)가 같이 쓴다 ──
@@ -265,7 +343,7 @@
   }
   // 지금 맞춤에서 칸 가운데를 붙잡고 크기만 바꾸기(막대·[−][+] 버튼)
   function zoomCenter(photo, fit, z) { return fitMath(photo).zoomAround(fit, z, PHOTO.w / 2, PHOTO.h / 2); }
-  // o: { photo(): 지금 사진, get(): 지금 맞춤, set(fit): 바꾼 맞춤 }
+  // o: { photo(): 지금 사진, get(): 지금 맞춤, set(fit): 바꾼 맞춤, onEmpty(): 사진이 없을 때 사진 칸을 누르면(사진 넣기) }
   function bindFit(el, o) {
     el.style.left = (PHOTO.x / W * 100) + '%'; el.style.top = (PHOTO.y / H * 100) + '%';
     el.style.width = (PHOTO.w / W * 100) + '%'; el.style.height = (PHOTO.h / H * 100) + '%';
@@ -305,7 +383,10 @@
     function end(e) { if (!ptrs[e.pointerId]) return; delete ptrs[e.pointerId]; begin(); }
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
-    el.addEventListener('click', function (e) { e.stopPropagation(); });   // 밑의 카드(뒤집기 등)까지 눌리지 않게
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();   // 밑의 카드(뒤집기 등)까지 눌리지 않게
+      if (!o.photo() && o.onEmpty) o.onEmpty();   // 디자인의 "여기를 눌러 강아지 사진 넣기"
+    });
     el.addEventListener('wheel', function (e) {
       if (!o.photo()) return;
       e.preventDefault();   // 사진 칸 위에서만 휠이 확대·축소 — 다른 곳에서는 그대로 스크롤
