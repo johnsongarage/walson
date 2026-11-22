@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3D 키링 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 3D 키링 시안(2026-11-22 밤 가르시아 "실제로 이미지를 선택하면 키링을 3D로 모델링해 볼 수 있어?").
+     사진을 고르면 투명 아크릴 키링(두께·둥근 모서리·고리 구멍)으로 만들어 손가락으로 돌려 본다.
+     - 앞면 그림: 세로 워킹패스(pass-vertical.js, 성향 셋) 또는 사진 그대로. 그림은 아크릴 안쪽에 1.5mm 들여 인쇄한 것처럼(가장자리는 투명).
+     - 뒷면: 흰 인쇄 판 + 홍보 두 줄(site-config.js brand). 금속 고리(작은 고리 + 열쇠고리) 두 개.
+     - 3D는 three.js r160(vendor/three, MIT). 크기는 예시(50×80mm) — 인쇄 규격이 정해지면 맞춘다.
+     - 사진은 이 브라우저 안에서만 쓰고 어디로도 보내지 않는다(이 휴대폰 워킹패스 사진이 있으면 그것부터). 아무것도 저장하지 않는다. */
+  :root {
+    --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
+    --accent: #ff5c9d; --accent-tint: #ffe4ef; --hl: #ff5c9d; --hl-ink: #ffffff; --line: #2a2026; --shadow-rgb: 74, 40, 58;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 14px 14px calc(36px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 520px; margin: 0 auto; }
+  .kicker { display: inline-block; margin: 0; padding: 3px 8px; border-radius: 6px; background: var(--accent-tint); color: var(--accent); font-size: 12px; font-weight: 800; }
+  h1 { margin: 8px 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  .lead { margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
+  .stage { position: relative; border-radius: 18px; overflow: hidden; border: 1.5px solid var(--panel-border); background: var(--accent-tint); }
+  #c { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1.08; touch-action: none; cursor: grab; }
+  .hint3d { position: absolute; left: 0; right: 0; bottom: 8px; margin: 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-soft); pointer-events: none; }
+  .nogl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
+  .nogl[hidden] { display: none; }
+  .quick { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+  .quick button { min-height: 34px; padding: 0 11px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .quick button[aria-pressed="true"] { background: var(--line); color: var(--panel); }
+  .row { margin-top: 14px; }
+  .row-label { margin: 0 0 6px; font-size: 12px; font-weight: 800; color: var(--ink-soft); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 13px; border-radius: 999px; border: 1.5px solid var(--panel-border);
+    background: var(--panel); color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .chip[aria-pressed="true"] { border-color: var(--hl); background: var(--hl); color: var(--hl-ink); }
+  .chip i { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .btn-main { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin-top: 16px; border: 0; border-radius: 999px;
+    background: var(--hl); color: var(--hl-ink); font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+  .btn-sub { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 46px; margin-top: 8px; border: 1.5px solid var(--panel-border); border-radius: 999px;
+    background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+  #file { display: none; }
+  #shot-out { margin-top: 12px; }
+  #shot-out[hidden] { display: none; }
+  #shot-img { display: block; width: 100%; border-radius: 14px; border: 1.5px solid var(--panel-border); }
+  .note { margin: 10px 2px 0; font-size: 12px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
+  .note a { color: var(--accent); font-weight: 800; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="store.js?v=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="pass-vertical.js?v=2"></script>
+</head>
+<body>
+<main class="wrap">
+  <p class="kicker">시안 · 주소로만 열려요</p>
+  <h1>3D 키링 미리 보기</h1>
+  <p class="lead">사진을 고르면 투명 아크릴 키링으로 만들어 돌려 봐요. 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
+
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="3D 아크릴 키링"></canvas>
+    <div class="quick">
+      <button type="button" id="spin" aria-pressed="true">빙글빙글</button>
+      <button type="button" id="front">앞면</button>
+      <button type="button" id="back">뒷면</button>
+    </div>
+    <p class="hint3d" id="hint3d">끌어서 돌려 보세요</p>
+    <div class="nogl" id="nogl" hidden>이 휴대폰(브라우저)에서는 3D를 그릴 수 없어요. 크롬이나 사파리 최신판에서 열어 주세요.</div>
+  </div>
+
+  <button type="button" class="btn-main" id="pick">사진 고르기</button>
+  <input type="file" id="file" accept="image/*">
+
+  <div class="row">
+    <p class="row-label">앞면 그림</p>
+    <div class="chips" id="designs" role="group" aria-label="앞면 그림"></div>
+  </div>
+  <div class="row">
+    <p class="row-label">아크릴 두께</p>
+    <div class="chips" id="thick" role="group" aria-label="아크릴 두께"></div>
+  </div>
+
+  <button type="button" class="btn-sub" id="shot">이 각도로 사진 저장</button>
+  <div id="shot-out" hidden>
+    <img id="shot-img" alt="3D 키링 사진">
+    <p class="note">길게 눌러 저장하거나 <a id="dl" download="walson-keyring-3d.png" href="#">내려받기</a></p>
+  </div>
+  <p class="note">크기는 예시(50×80mm, 두께 3·5mm)예요 — 인쇄 규격이 정해지면 맞춰요. 실물은 그림을 아크릴 뒤쪽에 인쇄하고 흰색을 한 겹 더 깔아요.
+    사진은 이 휴대폰 안에서만 쓰고 어디로도 보내지 않아요. 다른 시안은 <a href="sian.html">시안 모음</a>에서.</p>
+</main>
+
+<script type="module">
+import * as THREE from './vendor/three/three.module.min.js';
+import { OrbitControls } from './vendor/three/OrbitControls.js';
+import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
+
+const $ = (id) => document.getElementById(id);
+const V = window.WalsonPassV;
+// ── 키링 치수(mm) — 예시: 50×80, 모서리 6, 고리 구멍 지름 3.8 ──
+const KW = 50, KH = 80, KR = 6, HOLE_R = 1.9;
+const PRINT_W = KW - 3, PRINT_H = PRINT_W * 1.6;                 // 인쇄는 1.5mm 안쪽, 그림 비율 5:8(pass-vertical 1000×1600)
+const PRINT_TOP = KH / 2 - (KH - PRINT_H) / 2;
+const HOLE_Y = PRINT_TOP - 78 / 1600 * PRINT_H;                    // 그림의 고리 구멍 자리(1600 중 78)에 맞춘다
+const DESIGNS = [['red', '워킹패스 · 빨강', '#d64545'], ['yellow', '워킹패스 · 노랑', '#e5b52c'], ['green', '워킹패스 · 초록', '#4f9d5d'], ['photo', '사진 그대로', null]];
+const state = { design: 'red', thick: 3, photo: null };
+
+// ── 앞면 그림(캔버스) ──
+const art = document.createElement('canvas'); art.width = 1000; art.height = 1600;
+function profile() { try { return (window.WalsonStore && WalsonStore.profile()) || {}; } catch (e) { return {}; } }
+function drawArt() {
+  const p = profile(), g = art.getContext('2d');
+  if (state.design === 'photo' || !V) {
+    g.clearRect(0, 0, art.width, art.height);
+    g.save(); roundRect(g, 0, 0, art.width, art.height, 40); g.clip();
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, art.width, art.height);
+    if (state.photo) {   // 칸을 꽉 채우게(가운데 맞춤)
+      const im = state.photo, k = Math.max(art.width / im.width, art.height / im.height);
+      g.drawImage(im, (art.width - im.width * k) / 2, (art.height - im.height * k) / 2, im.width * k, im.height * k);
+    }
+    g.restore();
+  } else {
+    V.draw(art, { signal: state.design, photo: state.photo, name: p.name || '보리', nameEn: '', breed: p.breed || '', level: 1, rankName: '산책 입문자',
+      place: '남양주 다산동', cardNo: p.cardNo || 'DASAN-0001', qr: 'https://johnsongarage.co.kr/walson/start.html' });
+  }
+  artTex.needsUpdate = true;
+}
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+// 뒷면 — 흰 인쇄 판 + 홍보 두 줄(키링도 밖에 나가는 굿즈라 CLAUDE.md 규칙대로 site-config.js brand에서)
+const backArt = document.createElement('canvas'); backArt.width = 1000; backArt.height = 1600;
+function drawBack() {
+  const g = backArt.getContext('2d'), B = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1000, 1600);
+  g.fillStyle = '#2a2026'; g.textAlign = 'center'; g.font = '800 92px Pretendard, sans-serif'; g.fillText(B.name, 500, 1390);
+  g.fillStyle = '#6f6168'; g.font = '600 46px Pretendard, sans-serif'; g.fillText(B.tagline, 500, 1470);
+  backTex.needsUpdate = true;
+}
+
+// ── 3D ──
+const canvas = $('c');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); }
+catch (e) { $('nogl').hidden = false; $('hint3d').hidden = true; throw e; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+function bgColor() { const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-tint').trim(); return v || '#ffe4ef'; }
+scene.background = new THREE.Color(bgColor());   // 투명 아크릴이 바탕을 비춰 보이게(바탕이 없으면 테두리가 검게 보임)
+// 키링(판 80mm + 고리) 위아래로 1cm쯤 여유가 남게: 화각 32°, 거리 215mm
+const camera = new THREE.PerspectiveCamera(32, 1, 1, 2000);
+camera.position.set(0, 12, 215);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 11, 0);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.enablePan = false; controls.minDistance = 110; controls.maxDistance = 380;
+controls.autoRotate = true; controls.autoRotateSpeed = 2.4;
+controls.addEventListener('start', () => { $('hint3d').style.opacity = 0; });
+
+const artTex = new THREE.CanvasTexture(art); artTex.colorSpace = THREE.SRGBColorSpace; artTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const backTex = new THREE.CanvasTexture(backArt); backTex.colorSpace = THREE.SRGBColorSpace; backTex.anisotropy = artTex.anisotropy;
+
+function rrShape(w, h, r) {
+  const s = new THREE.Shape(), x0 = -w / 2, y0 = -h / 2, x1 = w / 2, y1 = h / 2;
+  s.moveTo(x0 + r, y0);
+  s.lineTo(x1 - r, y0); s.absarc(x1 - r, y0 + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x1, y1 - r); s.absarc(x1 - r, y1 - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x0 + r, y1); s.absarc(x0 + r, y1 - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x0, y0 + r); s.absarc(x0 + r, y0 + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+function withHole(s, r) { const h = new THREE.Path(); h.absarc(0, HOLE_Y, r, 0, Math.PI * 2, true); s.holes.push(h); return s; }
+const keyring = new THREE.Group(); scene.add(keyring);
+const acrylic = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0.03, transmission: 1, thickness: 3, ior: 1.49,
+  clearcoat: 1, clearcoatRoughness: 0.02, attenuationColor: new THREE.Color(0xe4f4ff), attenuationDistance: 90, envMapIntensity: 1.25 });
+let slab = null;
+function buildSlab() {
+  if (slab) { keyring.remove(slab); slab.geometry.dispose(); }
+  const t = state.thick;
+  const geo = new THREE.ExtrudeGeometry(withHole(rrShape(KW, KH, KR), HOLE_R), { depth: t, bevelEnabled: true, bevelThickness: 0.35, bevelSize: 0.35, bevelSegments: 3, curveSegments: 32 });
+  geo.translate(0, 0, -t / 2);
+  acrylic.thickness = t;
+  slab = new THREE.Mesh(geo, acrylic);
+  keyring.add(slab);
+}
+// 아크릴 안쪽 인쇄: 앞 그림(앞을 봄) + 흰 판(뒤를 봄). UV는 인쇄 판 크기에 맞춰 0~1(그림이 판에 딱 맞게)
+const printGeo = (() => {
+  const geo = new THREE.ShapeGeometry(withHole(rrShape(PRINT_W, PRINT_H, KR - 1.5), HOLE_R + 1.1), 32);
+  geo.translate(0, PRINT_TOP - PRINT_H / 2, 0);
+  const pos = geo.attributes.position, uv = geo.attributes.uv, y0 = PRINT_TOP - PRINT_H;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + PRINT_W / 2) / PRINT_W, (pos.getY(i) - y0) / PRINT_H);
+  uv.needsUpdate = true;
+  return geo;
+})();
+const front = new THREE.Mesh(printGeo, new THREE.MeshStandardMaterial({ map: artTex, roughness: 0.6, metalness: 0 }));
+front.position.z = 0.06; keyring.add(front);
+const backGeo = printGeo.clone();
+// 뒤에서 보면 좌우가 뒤집히므로 UV의 u를 뒤집어 글자가 바로 읽히게
+(() => { const uv = backGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i)); uv.needsUpdate = true; })();
+// 흰 판은 뒤에서 조명을 덜 받아 회색으로 보여서 스스로 조금 밝게(emissive)
+const back = new THREE.Mesh(backGeo, new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.7, metalness: 0, side: THREE.BackSide,
+  emissive: 0xffffff, emissiveMap: backTex, emissiveIntensity: 0.45 }));
+back.position.z = -0.06; keyring.add(back);
+
+// 금속 고리 — 구멍을 지나는 작은 고리(판과 직각) + 열쇠고리(두 바퀴)
+const metal = new THREE.MeshStandardMaterial({ color: 0xe7e7ec, metalness: 1, roughness: 0.22, envMapIntensity: 1.1 });
+const JR = 3.6, SR = 12;
+const jump = new THREE.Mesh(new THREE.TorusGeometry(JR, 0.6, 18, 64), metal);
+jump.rotation.y = Math.PI / 2; jump.position.set(0, HOLE_Y + JR - 0.7, 0); keyring.add(jump);
+const ringY = HOLE_Y + JR * 2 - 1.4 + SR - 1.0;
+[-0.55, 0.55].forEach((dz) => {
+  const r = new THREE.Mesh(new THREE.TorusGeometry(SR, 0.85, 18, 120), metal);
+  r.position.set(0, ringY, dz); keyring.add(r);
+});
+// 바닥 그림자(흐린 타원) — 떠 있는 느낌
+const shadowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(60,30,45,0.28)'); gr.addColorStop(1, 'rgba(60,30,45,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c); })();
+const shadow = new THREE.Mesh(new THREE.PlaneGeometry(70, 22), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = -KH / 2 - 14; scene.add(shadow);
+
+// ── 화면 크기 ──
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+function loop() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); }
+
+// ── 고르는 칸 ──
+function chip(label, on, fn, dot) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (dot) { const i = document.createElement('i'); i.style.background = dot; b.appendChild(i); }
+  b.appendChild(document.createTextNode(label)); b.addEventListener('click', fn); return b;
+}
+function paintChips() {
+  const d = $('designs'); d.innerHTML = '';
+  DESIGNS.forEach(([id, label, dot]) => d.appendChild(chip(label, state.design === id, () => { state.design = id; paintChips(); drawArt(); }, dot)));
+  const t = $('thick'); t.innerHTML = '';
+  [3, 5].forEach((mm) => t.appendChild(chip(mm + 'mm', state.thick === mm, () => { state.thick = mm; paintChips(); buildSlab(); })));
+}
+$('pick').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', () => {
+  const f = $('file').files && $('file').files[0]; if (!f) return;
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => { state.photo = im; drawArt(); };
+  im.src = url;
+});
+function view(back) {   // 앞면·뒷면으로 돌리기(빙글빙글은 멈춤)
+  setSpin(false);
+  const d = camera.position.distanceTo(controls.target);
+  camera.position.set(0, controls.target.y + 4, back ? -d : d);
+  controls.update();
+}
+function setSpin(on) { controls.autoRotate = on; $('spin').setAttribute('aria-pressed', on ? 'true' : 'false'); }
+$('spin').addEventListener('click', () => setSpin(!controls.autoRotate));
+$('front').addEventListener('click', () => view(false));
+$('back').addEventListener('click', () => view(true));
+$('shot').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL('image/png');
+  $('shot-img').src = url; $('dl').href = url; $('shot-out').hidden = false;
+  $('shot-out').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+// ── 시작: 이 휴대폰 워킹패스 사진이 있으면 그것, 없으면 샘플 강아지 ──
+paintChips(); buildSlab(); drawBack();
+const start = new Image();
+start.onload = () => { state.photo = start; drawArt(); };
+start.onerror = () => drawArt();
+start.src = profile().photo || 'icons/sample-walson.jpg';
+drawArt();
+loop();
+window.__keyring3d = { state, scene, renderer, camera, controls };   // 자동 시험용
+</script>
+</body>
+</html>
