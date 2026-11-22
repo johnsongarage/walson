@@ -22,7 +22,9 @@
      같은 날 밤 가르시아 "산책 아지트 B안을 도트 강아지 시안(sian.html#mini-dog)에 있는 강아지들로 채워 줘" →
      강아지를 코드로 그리던 32칸 강아지(dog-pixel.js) 대신 받은 도트 강아지 그림 8마리(icons/dot-dogs/*.webp — 도트 강아지 시안과 같은 그림)로.
      내 강아지 = 포메(내 소품 칸에서 8마리 중에 고름), 만난 친구 7명 = 나머지 일곱 마리(위 '만난 친구' 줄을 누르면 그 집으로 마실).
-     방·소품은 그대로 도트 칸이고, 강아지만 화면 픽셀 배율(R)로 다시 그려 또렷하게 — 방 그림도 R배로 키워 칸이 흐려지지 않는다. */
+     방·소품은 그대로 도트 칸이고, 강아지만 화면 픽셀 배율(R)로 다시 그려 또렷하게 — 방 그림도 R배로 키워 칸이 흐려지지 않는다.
+     11/23 가르시아 "너무 고퀄이라 도트가 덜 튀는 것 같네" → 강아지도 방 한 칸에 한 점으로 다시 찍어(키 32점 + 방 소품과 같은 바깥 테두리) 방과 같은 굵기로.
+     내 소품 칸의 '강아지 도트'에서 굵게(기본)·중간(반 칸에 한 점)·그림(앞 버전)을 바꿔 볼 수 있다. */
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
   :root { --line: #2a2026; }
   * { box-sizing: border-box; }
@@ -130,6 +132,8 @@
   <div class="box" id="mine-box">
     <div class="box-title"><span>내 강아지</span><small>도트 강아지 8마리 중에 고르기</small></div>
     <div class="dogs" id="dogs"></div>
+    <div class="box-title" style="margin-top:12px;"><span>강아지 도트</span><small>굵게 = 방 한 칸에 한 점</small></div>
+    <div class="walls" id="dotmode"></div>
     <div class="box-title" style="margin-top:12px;"><span>내 소품</span><small>산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
     <div class="tray" id="tray"></div>
     <div class="box-title" style="margin-top:12px;"><span>머리 위 장식</span><small>등급·꾸준함으로 생겨요</small></div>
@@ -345,34 +349,167 @@
     canvas.width = CW * R; canvas.height = CH * R;    // 강아지 그림은 이 해상도로 그려 또렷하게
     canvas.style.width = CW * K + 'px'; canvas.style.height = CH * K + 'px';
   }
-  // 도트 강아지 — 키 DOG_H칸(방 칸 단위). 받은 그림(키 800px)을 지금 해상도(R)에 맞게 반씩 줄여 곱게 한 번만 만든다
-  var DOG_H = 34, dogCache = {};
+  // 도트 강아지 — 키 DOG_H칸(방 칸 단위). 강아지 점 굵기 세 가지(11/23 가르시아 "너무 고퀄이라 도트가 덜 튀는 것 같네"):
+  //   굵게(기본) = 방 한 칸에 강아지 한 점 — 받은 그림(점 하나 ≈ 8.5px)을 키 32점으로 다시 찍고, 방 소품처럼 바깥 1점 테두리(OUT)
+  //   중간 = 반 칸에 한 점(키 64점) · 그림 = 받은 그림을 지금 해상도(R)에 맞게 곱게 줄인 것(앞 버전)
+  var DOT_MODES = [{ id: 'big', name: '굵게', n: 32, u: 1 }, { id: 'mid', name: '중간', n: 64, u: 0.5 }, { id: 'pic', name: '그림' }];
+  var dotMode = 'big', DOG_H = 34, dogCache = {};
+  function modeOf(id) { return DOT_MODES.filter(function (m) { return m.id === id; })[0]; }
   function dogBitmap(id) {
-    var key = id + '@' + R;
-    if (dogCache[key]) return dogCache[key];
+    var key = id + '@' + dotMode + (dotMode === 'pic' ? R : '');
+    if (key in dogCache) return dogCache[key];
     var im = DOG_IMG[id];
     if (!im || !im.naturalWidth) return null;
+    if (dotMode !== 'pic') {
+      var dd = null;
+      try { dd = dotDog(im, modeOf(dotMode).n); } catch (e) { dd = null; }   // 그림을 못 읽는 곳(파일로 연 화면 등)이면 아래 '그림'으로
+      if (dd) return (dogCache[key] = dd);
+    }
     var h = Math.round(DOG_H * R), w = Math.round(im.naturalWidth * h / im.naturalHeight), src = im, sw = im.naturalWidth, sh = im.naturalHeight;
     while (sw / 2 >= w * 1.5) {
       var t = document.createElement('canvas'); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
       var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(src, 0, 0, t.width, t.height);
       src = t; sw = t.width; sh = t.height;
     }
-    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var c = document.createElement('canvas'); c.width = w; c.height = h; c.pic = true;
     var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, w, h);
     return (dogCache[key] = c);
+  }
+  // 받은 그림 → 키 n점 도트 + 바깥 테두리 1점(캔버스 한 픽셀 = 한 점).
+  //   칸 모양: 원래 그림의 불투명한 곳이 칸의 절반 넘게 차면 칠한다.
+  //   칸 색: 그림을 12색으로 줄인 팔레트에서 칸 안 다수결 — 가장자리 검은 선(≈ 10px)은 표에서 뺀다(테두리는 따로 두르니까).
+  //   홀로 튀는 칸 정리 → 눈·코처럼 작고 아주 어두운 덩어리는 가운데 칸을 꼭 그 색으로 → 바깥 테두리.
+  //   기준 크기는 강아지 키 768px(_dev/dot-dog-cutout.py가 맞춘 키) — 다른 키면 비율대로.
+  function dotDog(im, n) {
+    var W0 = im.naturalWidth, H0 = im.naturalHeight, x, y, p, q, i, j;
+    var c0 = document.createElement('canvas'); c0.width = W0; c0.height = H0;
+    var g0 = c0.getContext('2d'); g0.drawImage(im, 0, 0);
+    var d0 = g0.getImageData(0, 0, W0, H0).data;
+    var x0 = W0, y0 = H0, x1 = -1, y1 = -1;
+    for (y = 0; y < H0; y++) for (x = 0; x < W0; x++) if (d0[(y * W0 + x) * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    var w = x1 - x0 + 1, h = y1 - y0 + 1, sc = h / 768, NP = w * h;
+    var cr = new Uint8Array(NP), cg = new Uint8Array(NP), cb = new Uint8Array(NP), op = new Uint8Array(NP), lum = new Float32Array(NP);
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      var s = ((y + y0) * W0 + x + x0) * 4; p = y * w + x;
+      cr[p] = d0[s]; cg[p] = d0[s + 1]; cb[p] = d0[s + 2]; op[p] = d0[s + 3] > 127 ? 1 : 0;
+      lum[p] = 0.299 * d0[s] + 0.587 * d0[s + 1] + 0.114 * d0[s + 2];
+    }
+    // 가장자리에서 얼마나 안쪽인지(3-4 챔퍼 거리, 3 = 1px) → 안쪽 = 가장자리 검은 선을 뺀 곳
+    var D = new Int32Array(NP);
+    for (p = 0; p < NP; p++) D[p] = op[p] ? 1e8 : 0;
+    function dv(xx, yy) { return (xx < 0 || yy < 0 || xx >= w || yy >= h) ? 0 : D[yy * w + xx]; }
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) { p = y * w + x; if (D[p]) D[p] = Math.min(D[p], dv(x - 1, y) + 3, dv(x, y - 1) + 3, dv(x - 1, y - 1) + 4, dv(x + 1, y - 1) + 4); }
+    for (y = h - 1; y >= 0; y--) for (x = w - 1; x >= 0; x--) { p = y * w + x; if (D[p]) D[p] = Math.min(D[p], dv(x + 1, y) + 3, dv(x, y + 1) + 3, dv(x + 1, y + 1) + 4, dv(x - 1, y + 1) + 4); }
+    var inner = new Uint8Array(NP), rim = 10 * sc * 3;
+    for (p = 0; p < NP; p++) inner[p] = D[p] > rim ? 1 : 0;
+    // 팔레트 12색 — 안쪽 점 다섯에 하나를 골라 k-평균(처음 중심은 밝기 순으로 고르게)
+    var smp = [], k = 0;
+    for (p = 0; p < NP; p++) if (inner[p]) { if (k % 5 === 0) smp.push(p); k++; }
+    if (smp.length < 12) { smp = []; for (p = 0; p < NP; p++) if (op[p]) smp.push(p); }
+    var M = smp.length, NC = Math.min(12, M);
+    if (!NC) return null;
+    var srt = smp.slice().sort(function (a, b) { return lum[a] - lum[b]; });
+    var pr = new Float64Array(NC), pgr = new Float64Array(NC), pbl = new Float64Array(NC);
+    for (q = 0; q < NC; q++) { var o = srt[Math.floor(q * (M - 1) / Math.max(1, NC - 1))]; pr[q] = cr[o]; pgr[q] = cg[o]; pbl[q] = cb[o]; }
+    function near(pp) {
+      var best = 0, bd = Infinity;
+      for (var t = 0; t < NC; t++) { var a = cr[pp] - pr[t], b = cg[pp] - pgr[t], c = cb[pp] - pbl[t], dd = a * a + b * b + c * c; if (dd < bd) { bd = dd; best = t; } }
+      return best;
+    }
+    for (var it = 0; it < 12; it++) {
+      var sr = new Float64Array(NC), sg = new Float64Array(NC), sb = new Float64Array(NC), cnt = new Int32Array(NC);
+      for (var m = 0; m < M; m++) { o = smp[m]; q = near(o); sr[q] += cr[o]; sg[q] += cg[o]; sb[q] += cb[o]; cnt[q]++; }
+      for (q = 0; q < NC; q++) if (cnt[q]) { pr[q] = sr[q] / cnt[q]; pgr[q] = sg[q] / cnt[q]; pbl[q] = sb[q] / cnt[q]; }
+    }
+    var lab = new Uint8Array(NP);
+    for (p = 0; p < NP; p++) if (op[p]) lab[p] = near(p);
+    // 칸마다 다수결
+    var hn = n, wn = Math.max(1, Math.round(w * n / h)), idx = new Int16Array(hn * wn).fill(-1);
+    var vin = new Int32Array(NC), vall = new Int32Array(NC);
+    for (j = 0; j < hn; j++) for (i = 0; i < wn; i++) {
+      var ya = Math.round(j * h / hn), yb = Math.round((j + 1) * h / hn), xa = Math.round(i * w / wn), xb = Math.round((i + 1) * w / wn);
+      var area = (yb - ya) * (xb - xa), no = 0, ni = 0;
+      vin.fill(0); vall.fill(0);
+      for (y = ya; y < yb; y++) for (x = xa; x < xb; x++) { p = y * w + x; if (!op[p]) continue; no++; vall[lab[p]]++; if (inner[p]) { ni++; vin[lab[p]]++; } }
+      if (!area || no < 0.5 * area) continue;
+      var v = ni >= 0.15 * area ? vin : vall, bq = 0;
+      for (q = 1; q < NC; q++) if (v[q] > v[bq]) bq = q;
+      idx[j * wn + i] = bq;
+    }
+    // 홀로 튀는 칸: 이웃 8칸에 같은 색이 없고, 한 색이 5칸 넘게 둘러싸면 그 색으로
+    var nx = idx.slice(), nb = new Int32Array(NC);
+    for (j = 0; j < hn; j++) for (i = 0; i < wn; i++) {
+      var me = idx[j * wn + i]; if (me < 0) continue;
+      nb.fill(0); var any = false, same = false;
+      for (y = Math.max(0, j - 1); y <= Math.min(hn - 1, j + 1); y++) for (x = Math.max(0, i - 1); x <= Math.min(wn - 1, i + 1); x++) {
+        if (y === j && x === i) continue; var e = idx[y * wn + x]; if (e < 0) continue;
+        any = true; if (e === me) same = true; nb[e]++;
+      }
+      if (!any || same) continue;
+      var tq = 0; for (q = 1; q < NC; q++) if (nb[q] > nb[tq]) tq = q;
+      if (nb[tq] >= 5) nx[j * wn + i] = tq;
+    }
+    idx = nx;
+    var col = [];
+    for (p = 0; p < hn * wn; p++) col.push(idx[p] < 0 ? null : [Math.round(pr[idx[p]]), Math.round(pgr[idx[p]]), Math.round(pbl[idx[p]])]);
+    // 눈·코: 안쪽의 아주 어두운(밝기 50 아래) 작은 덩어리(4방향으로 이어진 것) → 가운데 칸을 그 덩어리 가운데 색으로. 가는 선은 빼고
+    var seen = new Uint8Array(NP), stack = [];
+    for (p = 0; p < NP; p++) {
+      if (seen[p] || !inner[p] || lum[p] >= 50) continue;
+      var comp = [p]; seen[p] = 1; stack.push(p);
+      while (stack.length) {
+        var u0 = stack.pop(), ux = u0 % w, uy = (u0 - ux) / w;
+        [[ux - 1, uy], [ux + 1, uy], [ux, uy - 1], [ux, uy + 1]].forEach(function (z) {
+          if (z[0] < 0 || z[1] < 0 || z[0] >= w || z[1] >= h) return;
+          var zz = z[1] * w + z[0];
+          if (seen[zz] || !inner[zz] || lum[zz] >= 50) return;
+          seen[zz] = 1; stack.push(zz); comp.push(zz);
+        });
+      }
+      var ar = comp.length;
+      if (ar < 120 * sc * sc || ar > 2600 * sc * sc) continue;
+      var bx0 = w, bx1 = 0, by0 = h, by1 = 0, sx = 0, sy = 0;
+      comp.forEach(function (zz) { var zx = zz % w, zy = (zz - zx) / w; sx += zx; sy += zy; if (zx < bx0) bx0 = zx; if (zx > bx1) bx1 = zx; if (zy < by0) by0 = zy; if (zy > by1) by1 = zy; });
+      var bw = bx1 - bx0 + 1, bh = by1 - by0 + 1;
+      if (Math.max(bw, bh) > 3 * Math.min(bw, bh) + 8 * sc) continue;
+      var cj = Math.min(hn - 1, Math.floor(sy / ar * hn / h)), ci = Math.min(wn - 1, Math.floor(sx / ar * wn / w));
+      if (!col[cj * wn + ci]) continue;
+      var med = function (arr) { var a = comp.map(function (zz) { return arr[zz]; }).sort(function (s1, s2) { return s1 - s2; }); return a[a.length >> 1]; };
+      col[cj * wn + ci] = [med(cr), med(cg), med(cb)];
+    }
+    // 캔버스로 + 바깥 테두리(4방향 — 방 소품과 같은 OUT 색)
+    var out = document.createElement('canvas'); out.width = wn + 2; out.height = hn + 2;
+    var og = out.getContext('2d'), img = og.createImageData(wn + 2, hn + 2), od = img.data, ink = hex(OUT);
+    function filled(xx, yy) { return xx >= 0 && yy >= 0 && xx < wn && yy < hn && !!col[yy * wn + xx]; }
+    for (y = 0; y < hn + 2; y++) for (x = 0; x < wn + 2; x++) {
+      var c3 = filled(x - 1, y - 1) ? col[(y - 1) * wn + x - 1] : (filled(x - 2, y - 1) || filled(x, y - 1) || filled(x - 1, y - 2) || filled(x - 1, y)) ? ink : null;
+      if (!c3) continue;
+      var a4 = (y * (wn + 2) + x) * 4; od[a4] = c3[0]; od[a4 + 1] = c3[1]; od[a4 + 2] = c3[2]; od[a4 + 3] = 255;
+    }
+    og.putImageData(img, 0, 0);
+    return out;
   }
   // 바닥 (px, py)에 발을 딛고 서 있는 강아지 — 걸으면 한 칸씩 통통, 쉴 땐 가끔 한 번. 발밑에 그림자
   function drawDog(d, dogId, px, py) {
     var b = dogBitmap(dogId);
     if (!b) return py - DOG_H;
-    var w = b.width / R, h = b.height / R, hop = (d.frame === 1 || d.frame === 3) ? 1 : 0, top = py - h + 1 - hop;
+    var hop = (d.frame === 1 || d.frame === 3) ? 1 : 0, w, h, x, top;
     ctx.fillStyle = 'rgba(42, 32, 38, 0.18)';
-    ctx.beginPath(); ctx.ellipse(px, py + 0.5, w * 0.34, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+    if (b.pic) {
+      w = b.width / R; h = b.height / R; x = px - w / 2; top = py - h + 1 - hop;
+      ctx.beginPath(); ctx.ellipse(px, py + 0.5, w * 0.34, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+    } else {
+      var u = modeOf(dotMode).u;                   // 강아지 한 점 = 방 u칸
+      w = b.width * u; h = b.height * u;
+      x = Math.round(px - w / 2); top = Math.round(py - h + 1) - hop;   // 방 칸에 딱 맞게
+      var sw = Math.max(6, Math.round(w * 0.66)), sx = Math.round(px - sw / 2), sy = Math.round(py);   // 그림자도 칸으로
+      ctx.fillRect(sx + 2, sy - 1, sw - 4, 1); ctx.fillRect(sx, sy, sw, 2); ctx.fillRect(sx + 2, sy + 2, sw - 4, 1);
+    }
     ctx.save();
-    ctx.imageSmoothingEnabled = true;
-    if (d.flip) { ctx.translate(px * 2, 0); ctx.scale(-1, 1); }
-    ctx.drawImage(b, px - w / 2, top, w, h);
+    ctx.imageSmoothingEnabled = !!b.pic;
+    if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(b, x, top, w, h);
     ctx.restore();
     return top;
   }
@@ -435,6 +572,13 @@
       b.appendChild(document.createTextNode(d.breed));
       b.addEventListener('click', function () { ME.dog = d.id; ui(); });
       t.appendChild(b);
+    });
+    var dm = $('dotmode'); dm.innerHTML = '';
+    DOT_MODES.forEach(function (m) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'slot'; b.textContent = m.name;
+      b.setAttribute('aria-pressed', dotMode === m.id ? 'true' : 'false');
+      b.addEventListener('click', function () { dotMode = m.id; ui(); });
+      dm.appendChild(b);
     });
   }
   function ui() {
@@ -568,8 +712,11 @@
   window.addEventListener('resize', fit);
   Promise.all([dogsReady, document.fonts && document.fonts.load ? document.fonts.load("13px 'DungGeunMo'").catch(function () {}) : null]).then(function () {
     fit(); ui(); requestAnimationFrame(step);
+    // 굵은 도트는 강아지마다 처음 그릴 때 한 번 계산(0.05초 남짓) — 나머지 강아지도 미리 조금씩
+    DOGS.forEach(function (d, n) { setTimeout(function () { if (dotMode !== 'pic') dogBitmap(d.id); }, 300 + n * 80); });
   });
-  window.__azit = { goTo: goTo, state: function () { return { view: view, me: ME.dog, host: owner().dog, R: R, K: K }; } };   // 시험용
+  window.__azit = { goTo: goTo, state: function () { return { view: view, me: ME.dog, host: owner().dog, R: R, K: K, dot: dotMode }; },
+    sprite: function (id) { var b = dogBitmap(id); if (!b) return null; var url = ''; try { url = b.toDataURL(); } catch (e) {} return { w: b.width, h: b.height, pic: !!b.pic, url: url }; } };   // 시험용
 })();
 </script>
 </body>
