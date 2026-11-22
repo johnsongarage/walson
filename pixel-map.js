@@ -7,6 +7,7 @@
 // 쓰는 법 (Leaflet 다음에 불러온다):
 //   var layer = PixelMap.createLayer({ pixelSize: 4 });       // L.tileLayer 대신
 //   var route = PixelMap.createRoute(map, { color: '#b8563a' }); route.setLines([...]); route.setEnabled(true)
+//   var labels = PixelMap.createLabels(map); labels.setEnabled(true)   // 길·하천·공원·동네 이름 층
 //   PixelMap.getStyle() / setStyle('pixel'|'basic')            // 화면 간에 공유되는 선택 (localStorage)
 //
 // 위치 데이터는 이 파일 안에서만 그려지고 어디로도 보내지 않는다. 받는 건 OSM 타일 이미지뿐.
@@ -175,6 +176,108 @@
     };
   }
 
+  // ───── 이름표 층(2026-11-22): 도트 지도 위에 길·하천·공원·동네 이름만 얹는다 ─────
+  // [동네] 벡터 지도와 같은 OpenFreeMap 데이터(가입·키 없음)에서 글자 층만 남기고 바탕·길·건물은 뺀 투명 층.
+  // 지도 엔진(MapLibre, 약 800KB)은 이름표를 처음 켤 때만 불러온다. 받는 건 지도 데이터뿐, 위치는 보내지 않는다.
+  var LABEL_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+  var LABEL_KEY = 'walson_map_labels';
+  var LABEL_LAYERS = {
+    'waterway_line_label': 1, 'water_name_point_label': 1, 'water_name_line_label': 1,
+    'highway-name-path': 1, 'highway-name-minor': 1, 'highway-name-major': 1,
+    'label_village': 1, 'label_town': 1, 'label_city': 1
+  };
+  var TEXT = '#3c2f26', HALO = '#fff8e7', TEXT_WATER = '#1f5f99', TEXT_PARK = '#2f5a1f';
+  var NAME = ['coalesce', ['get', 'name:ko'], ['get', 'name']];
+
+  function loadScript(src) {
+    return new Promise(function (ok, fail) {
+      var el = document.createElement('script');
+      el.src = src; el.onload = ok; el.onerror = fail;
+      document.head.appendChild(el);
+    });
+  }
+  var engineReady = null;
+  function loadEngine() {
+    if (engineReady) return engineReady;
+    if (!document.querySelector('link[href*="maplibre-gl.css"]')) {
+      var css = document.createElement('link');
+      css.rel = 'stylesheet'; css.href = 'vendor/maplibre/maplibre-gl.css?v=4.7.1';
+      document.head.appendChild(css);
+    }
+    // 한글 이름표를 도트 글꼴(둥근모꼴, OFL)로 — 못 받으면 기본 글꼴로 그려진다
+    if (!document.getElementById('dunggeunmo-face')) {
+      var st = document.createElement('style');
+      st.id = 'dunggeunmo-face';
+      st.textContent = "@font-face{font-family:'DungGeunMo';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');}";
+      document.head.appendChild(st);
+    }
+    var font = (document.fonts && document.fonts.load) ? document.fonts.load("16px 'DungGeunMo'").catch(function () {}) : Promise.resolve();
+    engineReady = Promise.all([
+      font,
+      (window.maplibregl ? Promise.resolve() : loadScript('vendor/maplibre/maplibre-gl.js?v=4.7.1'))
+        .then(function () { return (L.maplibreGL ? null : loadScript('vendor/maplibre/leaflet-maplibre-gl.js?v=0.1.4')); })
+    ]);
+    return engineReady;
+  }
+
+  function labelStyle(style) {
+    var src = 'openmaptiles';
+    var layers = style.layers.filter(function (l) { return LABEL_LAYERS[l.id]; }).map(function (l) {
+      var sl = l['source-layer'];
+      l.layout = l.layout || {};
+      l.layout['text-field'] = NAME;
+      l.paint = {
+        'text-color': (sl === 'water_name' || sl === 'waterway') ? TEXT_WATER : TEXT,
+        'text-halo-color': HALO, 'text-halo-width': 2, 'text-halo-blur': 0
+      };
+      return l;
+    });
+    // 공원 이름: 원래 스타일엔 poi(가게 등)와 섞여 있어서 공원만 따로 뽑는다
+    layers.push({
+      id: 'walson-park-name', type: 'symbol', source: src, 'source-layer': 'poi', minzoom: 14,
+      filter: ['==', ['get', 'class'], 'park'],
+      layout: { 'text-field': NAME, 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-max-width': 8 },
+      paint: { 'text-color': TEXT_PARK, 'text-halo-color': HALO, 'text-halo-width': 2, 'text-halo-blur': 0 }
+    });
+    var sources = {}; sources[src] = style.sources[src];
+    return { version: 8, glyphs: style.glyphs, sources: sources, layers: layers };
+  }
+
+  // createLabels(map).setEnabled(true|false) — 처음 켤 때 엔진·스타일을 받는다. 실패하면 조용히 이름표 없이.
+  function createLabels(map) {
+    var layer = null, enabled = false, loading = null;
+    var pane = map.getPane('pixelLabels') || map.createPane('pixelLabels');
+    pane.style.zIndex = 460;                   // 도트 경로(450) 위, 마커(600) 아래
+    pane.style.pointerEvents = 'none';
+
+    function build() {
+      if (loading) return loading;
+      loading = loadEngine().then(function () {
+        if (!window.maplibregl || !L.maplibreGL) throw new Error('지도 엔진을 못 불러옴');
+        return fetch(LABEL_STYLE_URL).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+      }).then(function (style) {
+        layer = L.maplibreGL({
+          style: labelStyle(style), pane: 'pixelLabels', interactive: false,
+          localIdeographFontFamily: "'DungGeunMo', sans-serif",
+          attribution: '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>'
+        });
+        return layer;
+      }).catch(function (e) { loading = null; throw e; });
+      return loading;
+    }
+    function setEnabled(on) {
+      enabled = !!on;
+      if (!enabled) { if (layer && map.hasLayer(layer)) map.removeLayer(layer); return Promise.resolve(false); }
+      return build().then(function () {
+        if (enabled && !map.hasLayer(layer)) layer.addTo(map);
+        return true;
+      });
+    }
+    return { setEnabled: setEnabled };
+  }
+  function getLabels() { try { return localStorage.getItem(LABEL_KEY) === 'on'; } catch (e) { return false; } }
+  function setLabels(on) { try { localStorage.setItem(LABEL_KEY, on ? 'on' : 'off'); } catch (e) { /* 이번 화면에선 적용 */ } }
+
   function getStyle() {
     // 기본은 기존 지도. 사용자가 버튼으로 도트를 고른 경우에만 도트로 연다.
     try { return localStorage.getItem(STYLE_KEY) === 'pixel' ? 'pixel' : 'basic'; } catch (e) { return 'basic'; }
@@ -186,6 +289,9 @@
   window.PixelMap = {
     createLayer: function (opts) { return new PixelLayer(opts); },
     createRoute: createRoute,
+    createLabels: createLabels,
+    getLabels: getLabels,
+    setLabels: setLabels,
     getStyle: getStyle,
     setStyle: setStyle,
     classify: classify
