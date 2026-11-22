@@ -348,6 +348,34 @@
       return (offsetX + (p[1] - minLng) * scale).toFixed(1) + ',' + (offsetY + (maxLat - p[0]) * scale).toFixed(1);
     }).join(' ');
   }
+  // 도트 썸네일(2026-11-22): [산책]·[동네]에서 도트 지도를 골랐으면(localStorage walson_map_style) 길 모양도 칸으로.
+  // 지도 바탕은 없다(위치가 화면에 안 드러나게, 외부 요청 없음). grid×grid 칸에 맞춰 브레젠험으로 빈칸 없이 잇는다.
+  function pixelThumbs() { try { return localStorage.getItem('walson_map_style') === 'pixel'; } catch (e) { return false; } }
+  function routeThumbnailPixels(route, grid) {
+    if (!route || route.length < 2) return null;
+    var pts = routeThumbnailPoints(route, grid);
+    if (!pts) return null;
+    var cells = {}, rects = '', last = null;
+    function put(x, y) {
+      if (x < 0 || y < 0 || x >= grid || y >= grid || cells[x + ',' + y]) return;
+      cells[x + ',' + y] = 1;
+      rects += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>';
+    }
+    pts.split(' ').forEach(function (pt) {
+      var xy = pt.split(','), cur = { x: Math.min(grid - 1, Math.floor(+xy[0])), y: Math.min(grid - 1, Math.floor(+xy[1])) };
+      if (!last) { put(cur.x, cur.y); last = cur; return; }
+      var dx = Math.abs(cur.x - last.x), dy = -Math.abs(cur.y - last.y);
+      var sx = last.x < cur.x ? 1 : -1, sy = last.y < cur.y ? 1 : -1, err = dx + dy, x = last.x, y = last.y;
+      while (x !== cur.x || y !== cur.y) {
+        var e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x += sx; }
+        if (e2 <= dx) { err += dx; y += sy; }
+        put(x, y);
+      }
+      last = cur;
+    });
+    return '<svg viewBox="0 0 ' + grid + ' ' + grid + '" shape-rendering="crispEdges" style="color:var(--accent)" fill="currentColor">' + rects + '</svg>';
+  }
   function pace(distanceKm, durationMin) {
     if (!distanceKm) return '-';
     var minPerKm = durationMin / distanceKm, m = Math.floor(minPerKm), s = Math.round((minPerKm - m) * 60);
@@ -644,7 +672,8 @@
     card.setAttribute('tabindex', '0');
     card.setAttribute('data-i', String(i));
     var points = routeThumbnailPoints(w.route, 38);
-    var thumbInner = points
+    var pixelSvg = points && pixelThumbs() ? routeThumbnailPixels(w.route, 13) : null;
+    var thumbInner = pixelSvg ? pixelSvg : points
       ? '<svg viewBox="0 0 38 38" fill="none" stroke="currentColor" style="color:var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="' + points + '"/></svg>'
       : '<span class="no-route">' + (w.mode === 'time' ? (w.logged === 'after' ? '다녀와서<br>적음' : '시간만') : '기록<br>없음') + '</span>';
     var feelText = w.feel === 'enough' ? '충분했어요' : w.feel === 'short' ? '조금 아쉬워요' : '';
