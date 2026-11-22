@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 아지트 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 산책 아지트 시안(2026-11-22 밤 가르시아 "아지트 시안 한 장 만들어 봐").
+     출발: 가르시아가 보여 준 도트 미니룸 시안(싸이월드 감성) → 검토 hq notes/petwalk-pixel-room-review.md(제안, 결정 아님)의 1단계 + 2단계 미리 보기.
+     - 방에 놓이는 건 "산 것"이 아니라 "한 것": 산책 등급 → 벽 액자, 발도장 → 엽서, 꾸준함 → 트로피, 가게 QR → 그 가게 소품. 포인트로 사지 않는다(포인트는 젤리 하나).
+     - 강아지는 dog-pixel.js(11/22 도트 강아지 — 미니홈피 "느낌"만 빌리고 그림은 새로). 가구·소품도 여기서 새로 그린 도트(이모지 X).
+     - 싸이월드 고유 이름·배치(미니룸·파도타기·일촌평·TODAY IS)는 쓰지 않는다. 아지트·마실·킁킁 한마디·오늘 기분은 예시 이름.
+     - 주소로만 여는 시안 — 실제 화면은 그대로. 샘플 기록으로 채웠고, 아무것도 저장하거나 보내지 않는다(공유 그림도 이 휴대폰 안에서만 그림).
+     - 방은 176×132칸 도트를 화면 배율에 맞춘 정수 배로 그려서 PC·휴대폰 모두 칸이 또렷하다(CLAUDE.md 캔버스 규칙의 취지). */
+  @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
+  :root {
+    --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
+    --accent: #ff5c9d; --accent-tint: #ffe4ef; --hl: #ff5c9d; --hl-ink: #ffffff; --line: #2a2026; --shadow-rgb: 74, 40, 58;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink); background: var(--bg); }
+  body { padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)); }   /* 양옆 12px — 아이폰(390)에서 방이 한 단계 크게(한 칸 = 정수 픽셀) */
+  .wrap { max-width: 460px; margin: 0 auto; }
+  .px { font-family: 'DungGeunMo', 'Galmuri11', monospace; letter-spacing: 0; }
+  .kicker { display: inline-block; margin: 0; padding: 3px 8px; border-radius: 6px; background: var(--accent-tint); color: var(--accent); font-size: 12px; font-weight: 800; }
+  h1 { margin: 8px 0 6px; font-size: 24px; line-height: 1.3; font-weight: 400; }
+  h2 { margin: 0 0 10px; font-size: 16px; font-weight: 800; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  h2 small { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .lead { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: var(--ink-soft); word-break: keep-all; }
+  /* .card는 theme.js가 종이 카드 모양으로 덮어써서(둥근 모서리·연한 선) 도트 칸은 이름을 따로 */
+  .pcard { background: var(--panel); border: 2px solid var(--line); border-radius: 4px; box-shadow: 4px 4px 0 var(--line); padding: 14px; margin-top: 18px; }
+
+  /* 방 */
+  .room-box { margin-top: 4px; }
+  .room-frame { width: fit-content; margin: 0 auto; border: 3px solid var(--line); box-shadow: 4px 4px 0 var(--line); background: var(--line); line-height: 0; }
+  #room { display: block; image-rendering: pixelated; touch-action: manipulation; cursor: pointer; }
+  .room-hint { margin: 10px 0 0; font-size: 12px; color: var(--ink-soft); text-align: center; }
+  .visit { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding: 10px 12px; border: 2px dashed var(--accent); border-radius: 4px; background: var(--accent-tint); }
+  .visit[hidden] { display: none; }
+  .visit p { margin: 0; flex: 1; font-size: 13px; line-height: 1.5; word-break: keep-all; }
+  .visit b { display: block; font-size: 14px; }
+
+  /* 칩 */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px; border: 2px solid var(--line); border-radius: 4px;
+    background: var(--panel); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--line); color: var(--hl-ink); box-shadow: 2px 2px 0 var(--line); }
+  .chip canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+  .chips.dogs .chip { flex-direction: column; gap: 2px; padding: 6px 8px; min-width: 64px; font-size: 12px; }
+  .chips.dogs .chip canvas { width: 44px; height: 44px; }
+  .swatch { width: 18px; height: 18px; border: 2px solid var(--line); border-radius: 2px; }
+  .row-label { margin: 12px 0 6px; font-size: 12px; font-weight: 800; color: var(--ink-soft); }
+  .row-label:first-of-type { margin-top: 0; }
+
+  /* 방에 놓인 것 */
+  .items { list-style: none; margin: 0; padding: 0; }
+  .items li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px dashed var(--panel-border); }
+  .items li:first-child { border-top: 0; padding-top: 2px; }
+  .items canvas { flex-shrink: 0; width: 40px; height: 40px; image-rendering: pixelated; background: var(--accent-tint); border: 2px solid var(--line); border-radius: 2px; }
+  .items .t { flex: 1; min-width: 0; }
+  .items .t b { display: block; font-size: 14px; }
+  .items .t span { display: block; font-size: 12px; line-height: 1.45; color: var(--ink-soft); word-break: keep-all; }
+  .items .st { flex-shrink: 0; font-size: 12px; padding: 3px 7px; border: 2px solid var(--line); border-radius: 2px; }
+  .items .st.on { background: var(--accent); color: var(--hl-ink); }
+  .items li.is-locked .t b { color: var(--ink-soft); }
+
+  /* 저장 */
+  .btn-main { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; border: 2px solid var(--line); border-radius: 4px;
+    background: var(--hl); color: var(--hl-ink); box-shadow: 4px 4px 0 var(--line); font-family: 'DungGeunMo', 'Galmuri11', monospace; font-size: 18px; cursor: pointer; }
+  .btn-main:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--line); }
+  .btn-sub { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 2px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink);
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; }
+  #share-out { margin-top: 12px; }
+  #share-out[hidden] { display: none; }
+  #share-img { display: block; width: 100%; height: auto; border: 2px solid var(--line); }
+  .hint { margin: 8px 0 0; font-size: 12px; line-height: 1.55; color: var(--ink-soft); word-break: keep-all; }
+
+  /* 만난 친구 */
+  .friends { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .friend { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; border: 2px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; }
+  .friend canvas { width: 56px; height: 56px; image-rendering: pixelated; }
+  .friend b { font-size: 16px; font-weight: 400; }
+  .friend span { font-size: 12px; color: var(--ink-soft); }
+  .later { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--ink-soft); }
+  .later li + li { margin-top: 6px; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="dog-pixel.js?v=2"></script>
+</head>
+<body>
+<main class="wrap">
+  <p class="kicker">시안 · 주소로만 열려요</p>
+  <h1 class="px" id="title">보리네 산책 아지트</h1>
+  <p class="lead" id="lead">산책할수록 방이 채워져요. 방에 놓이는 건 산 게 아니라 <b>한 것</b> — 산책 등급·발도장·꾸준함·가게 QR. 샘플 기록으로 채운 그림이고, 이 화면은 아무것도 저장하거나 보내지 않아요.</p>
+
+  <section class="room-box" id="room-box">
+    <div class="visit" id="visit" hidden>
+      <p><b class="px" id="visit-title"></b><span id="visit-sub"></span></p>
+      <button type="button" class="btn-sub" id="visit-back">내 아지트로</button>
+    </div>
+    <div class="room-frame" id="room-frame"><canvas id="room" role="img" aria-label="도트로 그린 강아지 방"></canvas></div>
+    <p class="room-hint" id="room-hint">방을 누르면 보리가 그쪽으로 걸어가요. 창밖은 지금 시각대로 낮·밤이에요.</p>
+  </section>
+
+  <section class="pcard mine">
+    <h2>오늘 기분 <small>강아지 말풍선에 나와요</small></h2>
+    <div class="chips" id="moods" role="group" aria-label="오늘 기분"></div>
+  </section>
+
+  <section class="pcard mine">
+    <h2>방에 놓인 것 <small>산책으로 생겨요 · 사는 게 아니에요</small></h2>
+    <ul class="items" id="items"></ul>
+  </section>
+
+  <section class="pcard mine">
+    <h2>꾸미기</h2>
+    <p class="row-label">우리 강아지</p>
+    <div class="chips dogs" id="dogs" role="group" aria-label="강아지 모습"></div>
+    <p class="row-label">벽지</p>
+    <div class="chips" id="walls" role="group" aria-label="벽지"></div>
+  </section>
+
+  <section class="pcard mine">
+    <h2>공유 그림 <small>인스타·카톡용 4:5</small></h2>
+    <button type="button" class="btn-main" id="save">아지트 그림 만들기</button>
+    <div id="share-out" hidden>
+      <img id="share-img" alt="산책 아지트 공유 그림">
+      <p class="hint">길게 눌러 저장하거나 <a class="btn-sub" id="dl" download="walson-azit.png" href="#">내려받기</a> · 공유 그림엔 장소 이름이 안 들어가요(발도장은 몇 곳인지만).</p>
+    </div>
+  </section>
+
+  <section class="pcard mine">
+    <h2>만난 친구 아지트 <small>2단계 미리 보기</small></h2>
+    <p class="lead" style="margin-bottom:10px;">도감 QR을 교환할 때 방 모양도 같이 받아 둬요. 직접 만난 강아지만, 교환한 날 모습으로 구경해요 — 낯선 사람은 못 봐요. 서버 없이 돼요.</p>
+    <div class="friends" id="friends"></div>
+  </section>
+
+  <section class="pcard mine">
+    <h2>아직 안 넣은 것</h2>
+    <ul class="later">
+      <li>동네 아무 아지트나 구경하기(마실)·방명록(킁킁 한마디) — 서버·로그인·신고/차단이 생길 때. 장소·시간이 든 글은 막아요.</li>
+      <li>젤리로 사는 꾸미기 — 젤리 상점이 열릴 때(포인트는 젤리 하나).</li>
+      <li>아지트·마실·킁킁 한마디·오늘 기분은 예시 이름이에요.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var D = window.WalsonDogPixel;
+  var W = 176, H = 132, WALL_H = 78;              // 방 = 176×132칸, 위 78칸이 벽
+  var OUT = '#3a2b2e';                            // 도트 테두리(dog-pixel.js와 같은 색)
+  var FONT = "'DungGeunMo', 'Galmuri11', monospace";
+  function preset(id) { var p = D.PRESETS.filter(function (x) { return x.id === id; })[0]; return Object.assign({}, p); }
+
+  // ── 샘플 기록 ── 실제로 넣으면 이 휴대폰 기록(산책 등급·발도장·꾸준함 도장·가게 방문)으로 채운다
+  var RANKS = { '산책 입문자': '#8fcf9c', '산책 러버': '#ff9cc0', '프로 산책러': '#7fb0ff', '핑크 앰배서더': '#ff5c9d' };
+  var ME = {
+    name: '보리', dog: 'pom', wall: 'jelly', rank: '산책 러버', walks: 12, toAmbassador: 18, missionsLeft: 3, steady: 3,
+    cards: ['다산 중앙공원', '아울렛'], shop: '샘플 펫카페', trait: '배달 오토바이 레이더',
+    items: ['frame', 'card0', 'card1', 'trophy', 'cushion', 'bowl', 'ball', 'plant', 'lockPink', 'lockFlag']
+  };
+  var FRIENDS = [
+    { name: '콩이', dog: 'malt', wall: 'lilac', rank: '산책 입문자', met: '11/18', line: '간식 주면 친구 할게', items: ['frame', 'card0', 'bowl', 'plant'] },
+    { name: '두부', dog: 'bichon', wall: 'night', rank: '프로 산책러', met: '11/20', line: '밤산책 최고야', items: ['frame', 'card0', 'card1', 'card2', 'trophy', 'cushion', 'ball'] }
+  ];
+  var MOODS = [['', '특기 자랑'], ['신나요', '신나요'], ['간식 생각', '간식 생각'], ['산책 가고 싶어', '산책 가고 싶어'], ['졸려요', '졸려요']];
+  var WALLS = {
+    jelly: { name: '젤리 핑크', wall: '#ffe6ef', dot: '#ffc2d8', base: '#ffffff', baseLine: '#f4b7cc', floor: '#f0c49b', seam: '#d9a77a', lock: '#d9b8c6' },
+    lilac: { name: '라일락 체크', wall: '#efe9ff', dot: '#ddd2fb', base: '#ffffff', baseLine: '#cdbff2', floor: '#fff6ee', seam: '#efe1f3', lock: '#c9bce8' },
+    night: { name: '밤 블랙 핑크', wall: '#2a2331', dot: '#ff4d94', base: '#463b52', baseLine: '#5f4f6d', floor: '#3a3142', seam: '#2c2432', lock: '#6b5a78' }
+  };
+  var state = { view: -1, mood: '', x: 70, tx: 70, frame: 0 };   // view -1 = 내 아지트, 0·1 = 친구
+  function room() {
+    if (state.view < 0) return { name: ME.name, dog: preset(ME.dog), wall: ME.wall, rank: ME.rank, items: ME.items,
+      line: state.mood ? '오늘 기분: ' + state.mood + '!' : '특기: ' + ME.trait };
+    var f = FRIENDS[state.view];
+    return { name: f.name, dog: preset(f.dog), wall: f.wall, rank: f.rank, items: f.items, line: f.line };
+  }
+
+  // ── 도트 그리기 도우미 ── s = 한 칸이 몇 픽셀인지(정수)
+  function makePainter(ctx, s) {
+    function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, w * s, h * s); }
+    // 글자 지도로 그린 작은 그림 + 둘레에 자동 테두리(dog-pixel.js와 같은 방식)
+    function sprite(rows, map, ox, oy, outline) {
+      var hh = rows.length, ww = rows[0].length, y, x;
+      if (outline !== false) {
+        for (y = -1; y <= hh; y++) for (x = -1; x <= ww; x++) {
+          var me = rows[y] && map[rows[y][x]];
+          if (me) continue;
+          var near = [[0, 1], [0, -1], [1, 0], [-1, 0]].some(function (d) { var r = rows[y + d[1]]; return r && map[r[x + d[0]]]; });
+          if (near) rect(ox + x, oy + y, 1, 1, outline || OUT);
+        }
+      }
+      for (y = 0; y < hh; y++) for (x = 0; x < ww; x++) { var c = map[rows[y][x]]; if (c) rect(ox + x, oy + y, 1, 1, c); }
+    }
+    function box(x, y, w, h, fill) { rect(x - 1, y - 1, w + 2, h + 2, OUT); rect(x, y, w, h, fill); }
+    return { rect: rect, sprite: sprite, box: box, s: s };
+  }
+
+  var PAW = ['..XX.XX..', '..XX.XX..', 'XX.....XX', 'XX.XXX.XX', '..XXXXX..', '.XXXXXXX.', '.XXXXXXX.', '..XX.XX..'];
+  var TROPHY = ['XXXXXXXXXX', 'XhXXXXXXdX', 'XhXXXXXXdX', '.XhXXXXdX.', '..XXXXXX..', '...XXXX...', '....XX....', '....XX....', '...XXXX...', '..BBBBBB..', '..BBBBBB..'];
+  var LOCK = ['..XXX..', '.X...X.', '.X...X.', 'XXXXXXX', 'XXX.XXX', 'XXX.XXX', 'XXXXXXX'];
+  var FLAG = ['XGGGGGG', 'XGGGGGGG', 'XGGGGGG', 'X', 'X', 'X', 'X', 'X', 'X', 'X'];
+  var LEAVES = ['......L.........', '....LLLL..L.....', '...LLDLLLLLL....', '..LLLDDLLDLLL...', '.LLLLLDLDLLLLL..', '..LLDLLDDLLDLLL.', '.LLLDDLLDLLDDLL.', '..LLLLDLDLLLLL..', '...LLLLDDLLLL...', '.....LLDDLL.....'];
+
+  // 벽지·바닥·창문 — 바뀔 때만 다시(배경 캔버스)
+  function drawBackground(P, r, t) {
+    var C = WALLS[r.wall], x, y;
+    P.rect(0, 0, W, WALL_H, C.wall);
+    for (y = 3; y < WALL_H - 4; y += 8) for (x = (y % 16 === 3 ? 3 : 7); x < W; x += 8) P.rect(x, y, r.wall === 'night' ? 1 : 2, r.wall === 'night' ? 1 : 2, C.dot);
+    if (r.wall === 'lilac') { for (y = 0; y < WALL_H; y += 8) P.rect(0, y, W, 1, C.dot); for (x = 0; x < W; x += 8) P.rect(x, 0, 1, WALL_H, C.dot); }
+    // 바닥
+    P.rect(0, WALL_H, W, H - WALL_H, C.floor);
+    if (r.wall === 'lilac') { for (y = WALL_H; y < H; y += 8) for (x = ((y - WALL_H) / 8) % 2 ? 8 : 0; x < W; x += 16) P.rect(x, y, 8, 8, C.seam); }
+    else { for (y = WALL_H + 6; y < H; y += 7) { P.rect(0, y, W, 1, C.seam); for (x = (y % 14) * 3 + 10; x < W; x += 44) P.rect(x, y - 6, 1, 6, C.seam); } }
+    P.rect(0, WALL_H - 3, W, 3, C.base); P.rect(0, WALL_H, W, 1, C.baseLine);
+    // 창문 — 지금 시각대로 낮·밤
+    var night = t.getHours() >= 19 || t.getHours() < 6;
+    P.box(10, 10, 30, 30, '#ffffff');
+    P.rect(12, 12, 26, 26, night ? '#2b2d5c' : '#bfe3ff');
+    if (night) { P.rect(26, 16, 5, 5, '#ffe9a8'); P.rect(29, 16, 2, 2, '#2b2d5c'); [[15, 15], [19, 28], [33, 31], [14, 33], [23, 22]].forEach(function (q) { P.rect(q[0], q[1], 1, 1, '#ffffff'); }); }
+    else { P.rect(14, 28, 10, 3, '#ffffff'); P.rect(16, 26, 6, 2, '#ffffff'); P.rect(27, 18, 8, 2, '#ffffff'); P.rect(29, 16, 4, 2, '#ffffff'); }
+    P.rect(24, 12, 2, 26, '#ffffff'); P.rect(12, 24, 26, 2, '#ffffff');
+  }
+
+  // 방에 놓이는 것 — 그리는 법과 자리(칸)
+  var ITEMS = {
+    frame: { name: function (r) { return r.rank + ' 액자'; }, how: '산책 등급이 오르면 액자가 바뀌어요', draw: function (P, r) {
+      P.box(52, 12, 22, 22, '#f2c14e'); P.rect(54, 14, 18, 18, '#fff6e8');
+      P.sprite(PAW, { X: RANKS[r.rank] || '#ff9cc0' }, 56, 19, false);
+      P.box(56, 37, 14, 3, '#f2c14e');
+    } },
+    card0: { name: function () { return ME.cards[0] + ' 엽서'; }, how: '발도장 받은 곳마다 한 장(공개된 공원·가게 이름만)', draw: function (P) { postcard(P, 82, 16, 0); } },
+    card1: { name: function () { return ME.cards[1] + ' 엽서'; }, how: '발도장 받은 곳마다 한 장', draw: function (P) { postcard(P, 102, 20, 1); } },
+    card2: { name: function () { return '엽서'; }, how: '', draw: function (P) { postcard(P, 92, 38, 2); } },
+    trophy: { name: function () { return '꾸준함 트로피'; }, how: '한 주에 3일 산책한 주가 3번(꾸준함 도장)', draw: function (P) {
+      P.sprite(TROPHY, { X: '#f2c14e', h: '#fff3c4', d: '#d99a2b', B: '#8a5a3c' }, 138, 36);
+    } },
+    cushion: { name: function () { return ME.shop + ' 방석'; }, how: '지킴이 가게 카운터 QR을 찍으면 그 가게 소품', draw: function (P) {
+      P.box(12, 106, 32, 9, '#ff9cc0'); P.rect(12, 106, 32, 2, '#ffd0e2'); P.rect(12, 112, 32, 3, '#e9789f');
+      P.box(38, 101, 7, 6, '#ffffff'); P.rect(40, 103, 3, 2, '#7fb0ff');
+    } },
+    bowl: { name: function () { return '밥그릇'; }, how: '처음부터 있어요', draw: function (P) {
+      P.box(126, 116, 14, 5, '#5aa9e6'); P.rect(126, 119, 14, 2, '#3f86c4'); P.rect(128, 115, 10, 1, '#c98a4a'); P.rect(129, 114, 3, 1, '#c98a4a'); P.rect(134, 114, 3, 1, '#c98a4a');
+    } },
+    ball: { name: function () { return '공'; }, how: '처음부터 있어요', draw: function (P) {
+      P.box(146, 120, 6, 6, '#ffd23f'); P.rect(146, 122, 6, 2, '#ff7a59');
+    } },
+    plant: { name: function () { return '화분'; }, how: '처음부터 있어요', draw: function (P) {
+      P.sprite(LEAVES, { L: '#6fbf73', D: '#4e9d57' }, 154, 76);
+      P.box(157, 86, 10, 10, '#d98c5f'); P.rect(156, 86, 12, 2, '#e9a77c'); P.rect(157, 93, 10, 3, '#b96f46');
+    } },
+    lockPink: { name: function () { return '핑크 앰배서더 액자'; }, how: '산책 30회면 생겨요', locked: function () { return ME.toAmbassador + '회 남음'; }, draw: function (P, r, C) { locked(P, 124, 12, 22, 26, C); } },
+    lockFlag: { name: function () { return '미션 완주 깃발'; }, how: '미션 5곳을 다 가면 생겨요', locked: function () { return ME.missionsLeft + '곳 남음'; }, draw: function (P, r, C) { locked(P, 154, 30, 14, 18, C); } }
+  };
+  function postcard(P, x, y, k) {
+    P.box(x, y, 16, 12, '#ffffff');
+    P.rect(x + 1, y + 1, 14, 6, ['#cfeaff', '#ffe7c7', '#e6dcff'][k]);
+    if (k === 0) { P.rect(x + 1, y + 7, 14, 4, '#8cc58a'); P.rect(x + 9, y + 3, 3, 3, '#ffd23f'); P.rect(x + 3, y + 4, 2, 3, '#4e9d57'); }
+    else if (k === 1) { P.rect(x + 1, y + 7, 14, 4, '#e8d7c8'); P.rect(x + 4, y + 3, 8, 6, '#f6b4a0'); P.rect(x + 6, y + 5, 1, 1, '#ffffff'); P.rect(x + 9, y + 5, 1, 1, '#ffffff'); }
+    else { P.rect(x + 1, y + 7, 14, 4, '#7fb0ff'); P.rect(x + 3, y + 3, 4, 4, '#ffffff'); }
+    P.rect(x + 6, y - 2, 4, 3, '#ff9cc0');   // 마스킹 테이프
+  }
+  function locked(P, x, y, w, h, C) {
+    for (var i = 0; i < w; i += 2) { P.rect(x + i, y, 1, 1, C.lock); P.rect(x + i, y + h - 1, 1, 1, C.lock); }
+    for (var j = 0; j < h; j += 2) { P.rect(x, y + j, 1, 1, C.lock); P.rect(x + w - 1, y + j, 1, 1, C.lock); }
+    P.sprite(LOCK, { X: C.lock }, x + Math.floor((w - 7) / 2), y + Math.floor((h - 7) / 2), false);
+  }
+  function drawItems(P, r) {
+    var C = WALLS[r.wall];
+    var order = ['frame', 'card0', 'card1', 'card2', 'lockPink', 'trophy', 'lockFlag', 'plant', 'cushion', 'bowl', 'ball'];
+    if (r.items.indexOf('trophy') >= 0 || r.items.indexOf('lockFlag') >= 0) { P.box(132, 48, 38, 2, '#c48a5e'); P.rect(136, 51, 2, 3, '#9a6a45'); P.rect(164, 51, 2, 3, '#9a6a45'); }   // 선반
+    // 깔개(강아지 자리)
+    for (var y = 0; y < 14; y++) for (var x = 0; x < 76; x++) {
+      var dx = (x + 0.5 - 38) / 38, dy = (y + 0.5 - 7) / 7, d = dx * dx + dy * dy;
+      if (d <= 1) P.rect(50 + x, 112 + y, 1, 1, d > 0.7 ? '#ff9cc0' : '#ffd6e6');
+    }
+    order.forEach(function (id) { if (r.items.indexOf(id) >= 0) ITEMS[id].draw(P, r, C); });
+  }
+  // 말풍선 — 글자는 화면 픽셀로(도트 칸보다 잘게) 그려서 또렷하게
+  function drawBubble(ctx, s, text, dogX) {
+    var fs = Math.max(10, Math.round(s * 6));
+    ctx.font = fs + 'px ' + FONT;
+    var tw = Math.ceil(ctx.measureText(text).width), padX = Math.round(s * 3), bw = tw + padX * 2, bh = Math.round(fs + s * 5);
+    var cx = (dogX + 16) * s, by = Math.round(84 * s) - bh, bx = Math.round(Math.max(2 * s, Math.min(W * s - bw - 2 * s, cx - bw / 2)));
+    ctx.fillStyle = OUT; ctx.fillRect(bx - s, by - s, bw + 2 * s, bh + 2 * s);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(bx, by, bw, bh);
+    // 꼬리
+    var tx = Math.round(Math.max(bx + 2 * s, Math.min(bx + bw - 5 * s, cx - 2 * s)) / s) * s;
+    ctx.fillStyle = OUT; ctx.fillRect(tx - s, by + bh, 5 * s, 2 * s); ctx.fillRect(tx, by + bh + 2 * s, 3 * s, s);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(tx, by + bh - s, 3 * s, 2 * s); ctx.fillRect(tx + s, by + bh + s, s, s);
+    ctx.fillStyle = '#2a2026'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText(text, bx + padX, by + bh / 2 + Math.round(s * 0.5));
+  }
+  // 방 한 장 — 배경(벽지·바닥·창·소품)은 미리 그려 두고, 강아지·말풍선만 매번
+  function drawRoom(ctx, s, r, bg) {
+    if (bg) ctx.drawImage(bg, 0, 0);
+    else { var P = makePainter(ctx, s); drawBackground(P, r, new Date()); drawItems(P, r); }
+    D.draw(ctx, r.dog, state.frame, Math.round(state.x) * s, 92 * s, s);
+    drawBubble(ctx, s, r.line, Math.round(state.x));
+  }
+
+  // ── 화면 ──
+  var cv = $('room'), ctx = cv.getContext('2d'), scale = 2, bgCanvas = null;
+  function fit() {
+    // 쓸 수 있는 폭(틀 테두리 6px·그림자 4px 빼고) 안에서 한 칸 = 정수 픽셀이 되게
+    var dpr = window.devicePixelRatio || 1, avail = $('room-box').clientWidth - 10;
+    scale = Math.max(1, Math.floor(avail * dpr / W));
+    cv.width = W * scale; cv.height = H * scale;
+    cv.style.width = (W * scale / dpr) + 'px'; cv.style.height = (H * scale / dpr) + 'px';
+    rebuild();
+  }
+  function rebuild() {
+    var r = room();
+    bgCanvas = document.createElement('canvas'); bgCanvas.width = W * scale; bgCanvas.height = H * scale;
+    var P = makePainter(bgCanvas.getContext('2d'), scale);
+    drawBackground(P, r, new Date()); drawItems(P, r);
+    paint();
+  }
+  function paint() { ctx.clearRect(0, 0, cv.width, cv.height); drawRoom(ctx, scale, room(), bgCanvas); }
+
+  // 걷기·눈 깜빡 — 움직일 때만 다시 그린다
+  var lastStep = 0, lastBlink = performance.now();
+  function tick(t) {
+    var moving = Math.abs(state.tx - state.x) > 0.4, before = state.frame, bx = state.x;
+    if (moving) {
+      state.x += Math.sign(state.tx - state.x) * Math.min(Math.abs(state.tx - state.x), 0.5);
+      if (t - lastStep > 170) { state.frame = state.frame === 1 ? 0 : 1; lastStep = t; }
+    } else if (t - lastBlink > 3200) { state.frame = 3; if (t - lastBlink > 3350) { state.frame = 0; lastBlink = t; } }
+    else state.frame = 0;
+    if (state.frame !== before || bx !== state.x) paint();
+    requestAnimationFrame(tick);
+  }
+  cv.addEventListener('click', function (e) {
+    var b = cv.getBoundingClientRect(), x = (e.clientX - b.left) / b.width * W;
+    state.tx = Math.max(4, Math.min(W - 36, Math.round(x - 16)));
+  });
+
+  // 칩들
+  function chip(label, on, fn, extra) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (extra) b.appendChild(extra);
+    b.appendChild(document.createTextNode(label));
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function dogIcon(p, size) {
+    var c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    D.draw(c.getContext('2d'), p, 0, 0, 0, 1);
+    if (size) { c.style.width = size + 'px'; c.style.height = size + 'px'; }
+    return c;
+  }
+  function paintMoods() {
+    var box = $('moods'); box.innerHTML = '';
+    MOODS.forEach(function (m) { box.appendChild(chip(m[1], state.mood === m[0], function () { state.mood = m[0]; paintMoods(); paint(); })); });
+  }
+  function paintDogs() {
+    var box = $('dogs'); box.innerHTML = '';
+    D.PRESETS.forEach(function (p) { var c = chip(p.name, ME.dog === p.id, function () { ME.dog = p.id; paintDogs(); paintItems(); paint(); }, dogIcon(p)); c.classList.add('px'); box.appendChild(c); });
+  }
+  function paintWalls() {
+    var box = $('walls'); box.innerHTML = '';
+    Object.keys(WALLS).forEach(function (k) {
+      var sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = 'linear-gradient(180deg,' + WALLS[k].wall + ' 55%,' + WALLS[k].floor + ' 55%)';
+      box.appendChild(chip(WALLS[k].name, ME.wall === k, function () { ME.wall = k; paintWalls(); rebuild(); }, sw));
+    });
+  }
+  // 방에 놓인 것 목록 — 그림은 그 소품만 작게
+  function itemIcon(id) {
+    var c = document.createElement('canvas'); c.width = 80; c.height = 80;   // 화면에선 40×40(2배)
+    var g = c.getContext('2d'), r = room();
+    var at = { frame: [52, 12, 22, 28], card0: [82, 14, 16, 14], card1: [102, 18, 16, 14], trophy: [138, 36, 10, 11], cushion: [12, 101, 33, 14],
+      bowl: [126, 114, 14, 7], ball: [146, 120, 6, 6], plant: [154, 76, 16, 20], lockPink: [124, 12, 22, 26], lockFlag: [154, 30, 14, 18] }[id];
+    var p = Math.max(1, Math.floor(Math.min(72 / (at[2] + 2), 72 / (at[3] + 2))));   // 한 칸 = 정수 픽셀(도트가 흐려지지 않게)
+    g.translate(Math.round((80 - at[2] * p) / 2 - at[0] * p), Math.round((80 - at[3] * p) / 2 - at[1] * p));
+    ITEMS[id].draw(makePainter(g, p), r, WALLS[ME.wall]);
+    return c;
+  }
+  function paintItems() {
+    var ul = $('items'); ul.innerHTML = '';
+    ['frame', 'card0', 'card1', 'trophy', 'cushion', 'lockPink', 'lockFlag', 'plant', 'bowl'].forEach(function (id) {
+      var it = ITEMS[id], isLocked = !!it.locked, li = document.createElement('li');
+      if (isLocked) li.className = 'is-locked';
+      li.appendChild(itemIcon(id));
+      var t = document.createElement('div'); t.className = 't';
+      var b = document.createElement('b'); b.textContent = it.name(room()); t.appendChild(b);
+      var sp = document.createElement('span');
+      sp.textContent = id === 'frame' ? it.how + ' · 지금 산책 ' + ME.walks + '회' : it.how;
+      t.appendChild(sp); li.appendChild(t);
+      var st = document.createElement('span'); st.className = 'st px' + (isLocked ? '' : ' on'); st.textContent = isLocked ? it.locked() : '있어요';
+      li.appendChild(st);
+      ul.appendChild(li);
+    });
+  }
+  function paintFriends() {
+    var box = $('friends'); box.innerHTML = '';
+    FRIENDS.forEach(function (f, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'friend';
+      b.appendChild(dogIcon(preset(f.dog)));
+      var n = document.createElement('b'); n.className = 'px'; n.textContent = f.name; b.appendChild(n);
+      var m = document.createElement('span'); m.textContent = f.met + ' QR 교환 · 구경하기'; b.appendChild(m);
+      b.addEventListener('click', function () { visit(i); });
+      box.appendChild(b);
+    });
+  }
+  // 친구 아지트 구경(읽기만) — 교환한 날 모습
+  function visit(i) {
+    state.view = i; state.x = state.tx = 70;
+    var f = FRIENDS[i];
+    $('visit').hidden = false;
+    $('visit-title').textContent = f.name + '네 아지트';
+    $('visit-sub').textContent = f.met + ' QR 교환한 날 모습이에요 · 구경만 해요';
+    $('title').textContent = f.name + '네 산책 아지트';
+    $('room-hint').textContent = '친구 방은 바꿀 수 없어요. 방을 누르면 ' + f.name + '가 걸어가요.';
+    document.querySelectorAll('.mine').forEach(function (el) { el.hidden = true; });
+    rebuild();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  $('visit-back').addEventListener('click', function () {
+    state.view = -1; state.x = state.tx = 70;
+    $('visit').hidden = true; $('title').textContent = ME.name + '네 산책 아지트';
+    $('room-hint').textContent = '방을 누르면 ' + ME.name + '가 그쪽으로 걸어가요. 창밖은 지금 시각대로 낮·밤이에요.';
+    document.querySelectorAll('.mine').forEach(function (el) { el.hidden = false; });
+    rebuild();
+  });
+
+  // ── 공유 그림(1080×1350) — 방을 6배로, 장소 이름 없이 숫자만 ──
+  $('save').addEventListener('click', function () {
+    var OW = 1080, OH = 1350, k = 6, c = document.createElement('canvas'); c.width = OW; c.height = OH;
+    var g = c.getContext('2d'), r = room();
+    g.fillStyle = '#fff3f8'; g.fillRect(0, 0, OW, OH);
+    for (var y = 0; y < OH; y += 24) for (var x = (y / 24) % 2 ? 12 : 0; x < OW; x += 24) { g.fillStyle = '#ffe2ee'; g.fillRect(x, y, 6, 6); }
+    g.fillStyle = '#2a2026'; g.fillRect(0, 0, OW, 12); g.fillRect(0, OH - 12, OW, 12); g.fillRect(0, 0, 12, OH); g.fillRect(OW - 12, 0, 12, OH);
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = '#2a2026'; g.font = '64px ' + FONT; g.fillText(r.name + '네 산책 아지트', OW / 2, 140);
+    var rc = document.createElement('canvas'); rc.width = W * k; rc.height = H * k;
+    drawRoom(rc.getContext('2d'), k, r, null);
+    g.fillStyle = '#2a2026'; g.fillRect(OW / 2 - W * k / 2 - 9, 186 - 9, W * k + 18, H * k + 18);
+    g.drawImage(rc, OW / 2 - W * k / 2, 186);
+    g.font = '42px ' + FONT; g.fillStyle = '#2a2026';
+    g.fillText('산책 ' + ME.walks + '회 · 발도장 ' + ME.cards.length + '곳 · 꾸준함 ' + ME.steady + '주', OW / 2, 1074);
+    g.font = '38px ' + FONT; g.fillStyle = '#e0457f'; g.fillText('지금 ' + r.rank, OW / 2, 1134);
+    var B = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
+    g.fillStyle = '#2a2026'; g.font = '46px ' + FONT; g.fillText(B.name, OW / 2, 1238);
+    g.fillStyle = '#6f6168'; g.font = '600 28px Pretendard, sans-serif'; g.fillText(B.tagline, OW / 2, 1286);
+    var url = c.toDataURL('image/png');
+    $('share-img').src = url; $('dl').href = url; $('share-out').hidden = false;
+    $('share-out').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  // ── 시작 ──
+  paintMoods(); paintDogs(); paintWalls(); paintItems(); paintFriends();
+  fit();
+  window.addEventListener('resize', function () { clearTimeout(fit.t); fit.t = setTimeout(fit, 120); });
+  // 도트 글꼴이 오면 말풍선·목록 다시(못 받으면 기기 글꼴로)
+  if (document.fonts && document.fonts.load) document.fonts.load("16px 'DungGeunMo'").then(paint, function () {});
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
