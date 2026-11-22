@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도트 워킹패스 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 도트 워킹패스 시안(2026-11-22 가르시아 "키링이야. 주민증도 이런 느낌 어떨까?" → "샘플 만들어줘").
+     사진 하나를 넣으면 원래 사진 / 굵은 도트 / 가는 도트 세 장을 같이 그려, 사진이 자동으로 도트가 되면 어떻게 보이는지 본다. 그림은 pass-pixel.js.
+     이 화면은 아무것도 저장하지 않고 어디로도 보내지 않는다(사진도 이 브라우저 안에서만 그림). */
+  body { margin: 0; font-family: Pretendard, sans-serif; background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  main { max-width: 1100px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 22px; margin: 6px 0 4px; }
+  .lead { color: var(--ink-soft, #6b6b70); font-size: 14px; margin: 0 0 14px; line-height: 1.5; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--panel, #fff);
+    border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; }
+  label { font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); display: block; margin-bottom: 4px; }
+  input, select { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  .photo-row { grid-column: 1 / -1; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6b6b70); margin-top: 4px; line-height: 1.5; }
+  .passes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px; }
+  .pass h2 { font-size: 15px; margin: 0 0 8px; }
+  .pass canvas { width: 100%; aspect-ratio: 4 / 5; display: block; }
+  .pass button { margin-top: 8px; width: 100%; font: inherit; font-size: 14px; font-weight: 700; padding: 10px; border-radius: 12px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--panel, #fff); color: var(--ink, #121215); cursor: pointer; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="canvas-view.js?v=1"></script>
+<script src="pass-pixel.js?v=3"></script>
+</head>
+<body>
+<main>
+  <h1>도트 워킹패스 시안</h1>
+  <p class="lead">키링 그림을 워킹패스 틀로 옮겨 봤어요. 강아지 사진을 넣으면 원래 사진 · 굵은 도트 · 가는 도트 세 장으로 그려요.
+    사진은 이 브라우저 안에서만 그리고 어디로도 보내지 않아요.</p>
+  <div class="form">
+    <div class="photo-row">
+      <label for="f-photo">강아지 사진</label>
+      <input type="file" id="f-photo" accept="image/*">
+      <div class="hint">처음엔 왈슨 그림으로 보여요. 실제 강아지 사진을 넣어 봐야 도트로 바뀐 모습을 제대로 볼 수 있어요.</div>
+    </div>
+    <div><label for="f-name">이름</label><input id="f-name" value="콩이"></div>
+    <div><label for="f-breed">견종</label><input id="f-breed" value="포메라니안"></div>
+    <div><label for="f-sex">성별</label><select id="f-sex"><option value="female">암컷</option><option value="male">수컷</option><option value="">안 적음</option></select></div>
+    <div><label for="f-signal">성향</label><select id="f-signal">
+      <option value="green">다가와도 좋아요</option><option value="yellow">천천히 인사해요</option><option value="red">눈으로만 예뻐해 주세요</option></select></div>
+    <div><label for="f-rank">산책 등급</label><select id="f-rank">
+      <option>산책 입문자</option><option selected>산책 러버</option><option>프로 산책러</option><option>핑크 앰배서더</option></select></div>
+    <div><label for="f-no">번호</label><input id="f-no" value="0427"></div>
+    <div><label for="f-colors">도트 색 수</label><select id="f-colors"><option>6</option><option>8</option><option selected>12</option><option>16</option></select></div>
+  </div>
+  <div class="passes">
+    <div class="pass"><h2>원래 사진</h2><canvas id="v-photo"></canvas><button data-k="photo">PNG로 저장</button></div>
+    <div class="pass"><h2>굵은 도트 (가로 32칸)</h2><canvas id="v-coarse"></canvas><button data-k="coarse">PNG로 저장</button></div>
+    <div class="pass"><h2>가는 도트 (가로 56칸)</h2><canvas id="v-fine"></canvas><button data-k="fine">PNG로 저장</button></div>
+  </div>
+</main>
+<script>
+  (function () {
+    var KINDS = { photo: { mode: 'photo' }, coarse: { mode: 'dot', cols: 32 }, fine: { mode: 'dot', cols: 56 } };
+    var big = {}, photo = null;
+    Object.keys(KINDS).forEach(function (k) { big[k] = document.createElement('canvas'); });
+    function val(id) { return document.getElementById(id).value; }
+    function render() {
+      var rank = val('f-rank');
+      var data = {
+        name: val('f-name'), breed: val('f-breed'), sex: val('f-sex'), signal: val('f-signal'),
+        rankName: rank, rankFrac: { '산책 입문자': 0.4, '산책 러버': 0.3, '프로 산책러': 0.2, '핑크 앰배서더': 1 }[rank],
+        cardNo: val('f-no'), photo: photo, colors: Number(val('f-colors')), qr: 'https://johnsongarage.co.kr/walson/start.html'
+      };
+      Object.keys(KINDS).forEach(function (k) {
+        var d = Object.assign({}, data, KINDS[k]);
+        WalsonPassPixel.draw(big[k], d);
+        WalsonView.show(document.getElementById('v-' + k), big[k]);
+      });
+    }
+    document.querySelectorAll('.form input:not([type=file]), .form select').forEach(function (el) { el.addEventListener('input', render); });
+    document.getElementById('f-photo').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      var url = URL.createObjectURL(f), im = new Image();
+      im.onload = function () { photo = im; render(); };
+      im.src = url;
+    });
+    document.querySelectorAll('.pass button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var a = document.createElement('a');
+        a.download = 'walson-pass-dot-' + b.dataset.k + '.png';
+        a.href = big[b.dataset.k].toDataURL('image/png');
+        a.click();
+      });
+    });
+    var first = new Image();
+    first.onload = function () { photo = first; WalsonPassPixel.fontsReady().then(render); };
+    first.onerror = function () { WalsonPassPixel.fontsReady().then(render); };
+    first.src = 'icons/sample-walson.jpg';
+  })();
+</script>
+</body>
+</html>
