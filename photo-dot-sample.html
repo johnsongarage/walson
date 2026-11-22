@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사진 도트 강아지 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 사진 속 강아지만 도트로 바꾸는 시안(2026-11-22 가르시아 참고 그림 4장 "이 느낌을 잘 봐 봐 참고해 봐"). 그림은 photo-dot.js.
+     사진은 이 브라우저 안에서만 다루고 어디로도 보내지 않는다(강아지 찾는 모델 파일만 받아 옴). 아무것도 저장하지 않는다. */
+  body { margin: 0; font-family: Pretendard, sans-serif; background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  main { max-width: 1000px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 22px; margin: 6px 0 4px; }
+  .lead { color: var(--ink-soft, #6b6b70); font-size: 14px; margin: 0 0 14px; line-height: 1.55; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--panel, #fff);
+    border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; }
+  .photo-row { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); display: block; margin-bottom: 4px; }
+  input, select { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  .hint { font-size: 12px; color: var(--ink-soft, #6b6b70); margin-top: 4px; line-height: 1.5; }
+  #status { margin: 12px 0 0; font-size: 14px; font-weight: 700; }
+  .out { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 14px; }
+  .out figure { margin: 0; background: var(--panel, #fff); border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 10px; }
+  .out figcaption { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .out canvas { width: 100%; height: auto; display: block; border-radius: 10px; image-rendering: pixelated; }
+  .checker { background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  button { font: inherit; font-size: 14px; font-weight: 700; padding: 10px; border-radius: 12px; margin-top: 8px; width: 100%;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--panel, #fff); color: var(--ink, #121215); cursor: pointer; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="photo-dot.js?v=2"></script>
+</head>
+<body>
+<main>
+  <h1>사진 도트 강아지 시안</h1>
+  <p class="lead">우리 강아지 사진을 넣으면 <b>강아지만</b> 도트로 바꾸고 검은 칸 테두리를 둘러요. 털 무늬·옷·자세는 사진 그대로 남아요.
+    사진은 이 휴대폰 안에서만 다루고 어디로도 보내지 않아요(처음 한 번 강아지를 찾는 모델 파일 약 3MB만 받아 와요).</p>
+  <div class="form">
+    <div class="photo-row">
+      <label for="f-photo">강아지 사진</label>
+      <input type="file" id="f-photo" accept="image/*">
+      <div class="hint">강아지가 크게, 몸 전체가 나온 사진이 잘 돼요. 휴대폰 사진 앱에서 강아지만 오려 낸 사진(배경 지운 PNG)을 넣으면 가장 정확해요.</div>
+    </div>
+    <div><label for="f-cols">칸 수(강아지 몸 가로)</label><select id="f-cols"><option value="24">24 · 굵게</option><option value="32" selected>32</option><option value="44">44</option><option value="60">60 · 곱게</option></select></div>
+    <div><label for="f-colors">색 수</label><select id="f-colors"><option>8</option><option>12</option><option selected>16</option><option>24</option></select></div>
+  </div>
+  <p id="status">사진을 넣어 주세요.</p>
+  <div class="out" id="out" hidden>
+    <figure><figcaption>사진 위에 도트</figcaption><canvas id="c-photo"></canvas><button data-k="photo">PNG로 저장</button></figure>
+    <figure><figcaption>배경 흐리게</figcaption><canvas id="c-blur"></canvas><button data-k="blur">PNG로 저장</button></figure>
+    <figure><figcaption>스티커(바탕 투명 — 카드·키링용)</figcaption><canvas id="c-sticker" class="checker"></canvas><button data-k="sticker">PNG로 저장</button></figure>
+  </div>
+</main>
+<script>
+  (function () {
+    var P = window.WalsonPhotoDot, img = null, mask = null, made = {};
+    function $(id) { return document.getElementById(id); }
+    function say(t) { $('status').textContent = t; }
+    function copyTo(id, src) { var c = $(id); c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0); }
+    function render() {
+      if (!img || !mask) return;
+      var o = { cols: Number($('f-cols').value), colors: Number($('f-colors').value), width: 1000 };
+      made.photo = P.render(img, mask, Object.assign({ bg: 'photo' }, o));
+      made.blur = P.render(img, mask, Object.assign({ bg: 'blur' }, o));
+      made.sticker = P.sticker(P.render(img, mask, Object.assign({ bg: 'none' }, o)));
+      copyTo('c-photo', made.photo); copyTo('c-blur', made.blur);
+      if (made.sticker) copyTo('c-sticker', made.sticker);
+      $('out').hidden = false;
+    }
+    $('f-cols').addEventListener('input', render);
+    $('f-colors').addEventListener('input', render);
+    $('f-photo').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) load(URL.createObjectURL(f));
+    });
+    function load(url) {
+      var im = new Image();
+      im.onload = function () {
+        img = im; mask = null;
+        say('강아지를 찾고 있어요… (처음엔 몇 초 걸려요)');
+        P.findDog(im).then(function (m) {
+          mask = m;
+          if (m.source === 'none') { say('사진에서 강아지를 못 찾았어요. 강아지가 더 크게 나온 사진이나, 배경을 지운 사진으로 해 봐 주세요.'); $('out').hidden = true; return; }
+          say(m.source === 'alpha' ? '배경을 지운 사진이라 그대로 썼어요.' : '사진에서 강아지를 찾았어요. 칸 수·색 수를 바꿔 보세요.');
+          render();
+        }).catch(function (err) {
+          console.warn(err);
+          say('강아지 찾는 모델을 못 불러왔어요. 배경을 지운 PNG를 넣으면 모델 없이도 돼요.');
+        });
+      };
+      im.src = url;
+    }
+    document.querySelectorAll('.out button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var c = made[b.dataset.k]; if (!c) return;
+        var a = document.createElement('a'); a.download = 'walson-dot-' + b.dataset.k + '.png'; a.href = c.toDataURL('image/png'); a.click();
+      });
+    });
+    window._photoDotLoad = load;   // 시험용(개발 중 확인)
+  })();
+</script>
+</body>
+</html>

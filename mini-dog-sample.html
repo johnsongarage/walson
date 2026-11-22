@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도트 강아지 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 도트 강아지 캐릭터 시안(2026-11-22 가르시아 "미니미 느낌으로 강아지 도트 캐릭터 샘플 만들어줘"). 그림은 dog-pixel.js.
+     견종 6종 견본 + 꾸미기(색·귀·털결·소품) + 산책 장면. 이 화면은 아무것도 저장하지 않고 어디로도 보내지 않는다. */
+  @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
+  body { margin: 0; font-family: Pretendard, sans-serif; background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 22px; margin: 6px 0 4px; }
+  h2 { font-size: 16px; margin: 26px 0 10px; }
+  .lead { color: var(--ink-soft, #6b6b70); font-size: 14px; margin: 0 0 8px; line-height: 1.5; }
+  canvas { image-rendering: pixelated; display: block; }
+  .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .chip { background: var(--panel, #fff); border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 10px 8px 8px;
+    text-align: center; cursor: pointer; font: inherit; color: inherit; }
+  .chip canvas { width: 96px; height: 96px; margin: 0 auto 4px; }
+  .chip span { font-family: 'DungGeunMo', monospace; font-size: 15px; }
+  .chip[aria-pressed="true"] { border-color: var(--accent, #e9568b); box-shadow: 0 0 0 2px var(--accent, #e9568b) inset; }
+  .maker { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 640px) { .maker { grid-template-columns: 1fr; } }
+  .stage { background: var(--panel, #fff); border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; text-align: center; }
+  .stage canvas { width: 256px; height: 256px; margin: 0 auto; max-width: 100%; }
+  .stage .nm { font-family: 'DungGeunMo', monospace; font-size: 20px; margin-top: 6px; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; background: var(--panel, #fff);
+    border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; }
+  label { font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); display: block; margin-bottom: 4px; }
+  input, select { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  input[type=color] { height: 40px; padding: 3px; }
+  button.save { font: inherit; font-size: 14px; font-weight: 700; padding: 10px; border-radius: 12px; margin-top: 10px; width: 100%;
+    border: 1px solid var(--panel-border, #f0d6e2); background: var(--panel, #fff); color: var(--ink, #121215); cursor: pointer; }
+  .scene { border-radius: 16px; overflow: hidden; border: 1px solid var(--panel-border, #f0d6e2); }
+  .scene canvas { width: 100%; height: auto; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="dog-pixel.js?v=2"></script>
+</head>
+<body>
+<main>
+  <h1>도트 강아지 시안</h1>
+  <p class="lead">큰 머리 · 작은 몸의 2등신 도트 강아지예요. 견종은 귀 모양 · 털결 · 색 · 소품을 섞어서 만들어요(그림은 모두 새로 그린 것).
+    견본을 누르면 아래 꾸미기로 옮겨져요.</p>
+
+  <h2>견종 견본</h2>
+  <div class="roster" id="roster"></div>
+
+  <h2>꾸미기</h2>
+  <div class="maker">
+    <div class="stage">
+      <canvas id="big" width="32" height="32"></canvas>
+      <div class="nm" id="big-name">콩이</div>
+      <button class="save" id="save">PNG로 저장(512×512, 바탕 투명)</button>
+    </div>
+    <div class="form">
+      <div><label for="f-name">이름</label><input id="f-name" value="콩이" maxlength="8"></div>
+      <div><label for="f-fur">털 색</label><input type="color" id="f-fur" value="#f6e3c4"></div>
+      <div><label for="f-ear">귀</label><select id="f-ear"><option value="point">뾰족 귀</option><option value="flop">늘어진 귀</option><option value="round">동그란 귀</option></select></div>
+      <div><label for="f-coat">털결</label><select id="f-coat"><option value="plain">보통</option><option value="fluffy">풍성</option><option value="curly">곱슬</option></select></div>
+      <div><label for="f-tail">꼬리</label><select id="f-tail"><option value="curl">말린 꼬리</option><option value="puff">동그란 꼬리</option><option value="thin">가는 꼬리</option></select></div>
+      <div><label for="f-acc">소품</label><select id="f-acc"><option value="none">없음</option><option value="harness">분홍 하네스</option><option value="ribbon">리본</option><option value="bandana">반다나</option></select></div>
+      <div><label for="f-muzzle">입 주변 흰 털</label><select id="f-muzzle"><option value="">없음</option><option value="#fff4e6">있음</option></select></div>
+    </div>
+  </div>
+
+  <h2>산책 장면</h2>
+  <div class="scene"><canvas id="scene" width="192" height="72"></canvas></div>
+</main>
+<script>
+  (function () {
+    var D = window.WalsonDogPixel, N = D.N, frame = 0, tick = 0;
+    var cur = Object.assign({}, D.PRESETS[0]), chips = [];
+
+    D.PRESETS.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button';
+      var c = document.createElement('canvas'); c.width = N; c.height = N;
+      var s = document.createElement('span'); s.textContent = p.name;
+      b.appendChild(c); b.appendChild(s);
+      b.addEventListener('click', function () { pick(p); });
+      document.getElementById('roster').appendChild(b);
+      chips.push({ p: p, c: c, b: b });
+    });
+
+    function $(id) { return document.getElementById(id); }
+    function pick(p) {
+      cur = Object.assign({}, p);
+      $('f-fur').value = p.fur; $('f-ear').value = p.ear; $('f-coat').value = p.coat; $('f-tail').value = p.tail;
+      $('f-acc').value = p.acc; $('f-muzzle').value = p.muzzle || '';
+      chips.forEach(function (ch) { ch.b.setAttribute('aria-pressed', ch.p === p ? 'true' : 'false'); });
+      paint();
+    }
+    function readForm() {
+      cur.fur = $('f-fur').value; cur.ear = $('f-ear').value; cur.coat = $('f-coat').value; cur.tail = $('f-tail').value;
+      cur.acc = $('f-acc').value; cur.muzzle = $('f-muzzle').value || undefined;
+      if (cur.earColor && cur.ear !== 'flop') cur.earColor = undefined;
+      $('big-name').textContent = $('f-name').value || '우리 강아지';
+      chips.forEach(function (ch) { ch.b.setAttribute('aria-pressed', 'false'); });
+      paint();
+    }
+    document.querySelectorAll('.form input, .form select').forEach(function (el) { el.addEventListener('input', readForm); });
+
+    // 산책 장면 — 192×72칸: 하늘 · 나무 · 길 · 도트 발자국
+    function scene(f, t) {
+      var c = $('scene'), g = c.getContext('2d'), W = c.width, H = c.height;
+      g.fillStyle = '#fde8ef'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#ffffff';   // 구름
+      [[20, 10], [110, 6], [160, 14]].forEach(function (q, i) {
+        var x = Math.round((q[0] - t * 0.1 * (i + 1)) % (W + 30) + W + 30) % (W + 30) - 30;
+        g.fillRect(x, q[1], 18, 4); g.fillRect(x + 4, q[1] - 3, 9, 3);
+      });
+      for (var i = 0; i < 4; i++) {   // 나무
+        var tx = ((i * 56 - t * 0.5) % (W + 40) + W + 40) % (W + 40) - 20;
+        g.fillStyle = '#9c6b4a'; g.fillRect(Math.round(tx) + 6, 34, 4, 14);
+        g.fillStyle = '#8cc58a'; g.fillRect(Math.round(tx), 22, 16, 14); g.fillRect(Math.round(tx) + 3, 18, 10, 4);
+        g.fillStyle = '#6aa868'; g.fillRect(Math.round(tx) + 10, 30, 6, 6);
+      }
+      g.fillStyle = '#b5d99c'; g.fillRect(0, 48, W, 4);
+      g.fillStyle = '#f3d9b8'; g.fillRect(0, 52, W, 20);
+      g.fillStyle = '#e6c49c';
+      for (var x = -(t % 12); x < W; x += 12) g.fillRect(x, 60, 4, 2);   // 길 무늬가 뒤로 흘러 걷는 것처럼
+      D.draw(g, cur, f, 78, 52 - 30 + (f % 2), 1);
+    }
+
+    function paint() {
+      chips.forEach(function (ch) { var g = ch.c.getContext('2d'); g.clearRect(0, 0, N, N); D.draw(g, ch.p, frame, 0, 0, 1); });
+      var g = $('big').getContext('2d'); g.clearRect(0, 0, N, N); D.draw(g, cur, frame, 0, 0, 1);
+      scene(frame, tick);
+    }
+    $('save').addEventListener('click', function () {
+      var c = document.createElement('canvas'); c.width = c.height = 512;
+      D.draw(c.getContext('2d'), cur, 0, 0, 0, 16);
+      var a = document.createElement('a'); a.download = 'walson-dog-' + ($('f-name').value || 'dog') + '.png'; a.href = c.toDataURL('image/png'); a.click();
+    });
+
+    pick(D.PRESETS[0]);
+    var last = 0;
+    function loop(ts) {
+      if (ts - last > 280) {
+        last = ts; tick += 3;
+        frame = (Math.random() < 0.06) ? 3 : (frame === 0 ? 1 : 0);
+        paint();
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+</script>
+</body>
+</html>
