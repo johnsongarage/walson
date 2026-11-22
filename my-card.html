@@ -100,6 +100,12 @@
     border: 1px dashed #c9b8a3; color: #a8977f;
   }
   .places span.got { border: 1px solid #e2b45a; background: #fff3d6; color: var(--ink); }
+  /* 도트 모드(2026-11-22 — [산책]·[동네]에서 [도트]를 고른 사람만): 등급 막대는 10칸 게이지, 발도장 칩은 각진 도트 칸.
+     워킹패스 카드 그림(저장·인쇄·키링)은 그대로 둔다 */
+  body.is-pixel .bar.cells { display: flex; gap: 3px; height: 12px; background: none; border-radius: 0; overflow: visible; }
+  body.is-pixel .bar.cells b { flex: 1; background: var(--panel-border); box-shadow: inset -2px -2px 0 rgba(0,0,0,0.12); }
+  body.is-pixel .bar.cells b.on { background: var(--accent); box-shadow: inset -2px -2px 0 rgba(0,0,0,0.25); }
+  body.is-pixel .places span { border-radius: 0; border-style: solid; border-width: 2px; box-shadow: 2px 2px 0 rgba(0,0,0,0.15); }
 
   /* 특기·특이 사항 */
   .trait + .trait { border-top: 1px solid var(--panel-border); margin-top: 12px; padding-top: 12px; }
@@ -334,6 +340,11 @@
     view.setAttribute('aria-label', '강아지 워킹패스 ' + (side === 'front' ? '앞면' : '뒷면'));
   }
 
+  // 도트 모드: [산책]·[동네] 지도에서 [도트]를 고른 사람만(localStorage walson_map_style, pixel-map.js와 같은 값)
+  var pixelOn = false;
+  try { pixelOn = localStorage.getItem('walson_map_style') === 'pixel'; } catch (e) { /* 기본 모양 */ }
+  if (pixelOn) document.body.classList.add('is-pixel');
+
   // ── 진행도 ──
   function renderSummary() {
     var p = progress;
@@ -343,7 +354,17 @@
     $('rank-label').textContent = next ? rank.name + ' → ' + next.name : '핑크 앰배서더예요';
     $('rank-left').textContent = next ? (next.minWalks - p.walks) + '회 남음' : '';
     var frac = next ? (p.walks - rank.minWalks) / (next.minWalks - rank.minWalks) : 1;
-    $('rank-bar').style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%';
+    frac = Math.max(0, Math.min(1, frac));
+    $('rank-bar').style.width = Math.round(frac * 100) + '%';
+    if (pixelOn) {
+      // 도트 게이지: 10칸 중 몇 칸이 찼는지(조금이라도 걸었으면 한 칸은 켠다)
+      var barEl = $('rank-bar').parentNode;
+      barEl.classList.add('cells');
+      barEl.innerHTML = '';
+      var on = frac >= 1 ? 10 : Math.min(9, Math.max(frac > 0 ? 1 : 0, Math.round(frac * 10)));
+      for (var ci = 0; ci < 10; ci++) { var cell = document.createElement('b'); if (ci < on) cell.className = 'on'; barEl.appendChild(cell); }
+      var keep = document.createElement('i'); keep.id = 'rank-bar'; keep.hidden = true; barEl.appendChild(keep);
+    }
     var placesEl = $('places');
     placesEl.innerHTML = '';
     RR.PLACES.filter(function (pl) { return !pl.pending; }).forEach(function (pl) {
