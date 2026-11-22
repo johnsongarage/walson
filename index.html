@@ -115,6 +115,14 @@
   .week .lbl { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
   .week .day.is-today .lbl { color: var(--accent); }
   .week-sum { font-size: 13px; color: var(--ink-soft); margin: 12px 0 0; }
+  /* 도트 모드(2026-11-22 — [산책]·[동네]에서 [도트]를 고른 사람만): 막대 대신 한 칸씩 쌓는 블록, 사진 없으면 도트 강아지 */
+  .week.is-pixel .day { gap: 6px; }
+  .week.is-pixel .stack { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; width: 100%; }
+  .week.is-pixel .blk { width: 100%; max-width: 20px; height: 8px; background: var(--accent); opacity: 0.45;
+    box-shadow: inset -2px -2px 0 rgba(0,0,0,0.18); }
+  .week.is-pixel .day.is-today .blk { opacity: 1; }
+  .week.is-pixel .day.is-empty .blk { height: 4px; background: var(--panel-border); box-shadow: none; opacity: 1; }
+  .face img.face-pixel { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
 
   /* 다녀왔어요(2026-11-16): 산책 뒤에 몇 분이었는지만 골라 적는다 */
   .btn-sub {
@@ -360,10 +368,29 @@
   // ── 강아지 ──
   var profile = WalsonStore.profile() || {};
   if (profile.name) document.getElementById('who-name').textContent = profile.name;
+  // 도트 모드: [산책]·[동네] 지도에서 [도트]를 고른 사람만(localStorage walson_map_style, pixel-map.js와 같은 값)
+  var pixelOn = false;
+  try { pixelOn = localStorage.getItem('walson_map_style') === 'pixel'; } catch (e) { /* 기본 모양 */ }
   if (profile.photo) {
     var img = document.getElementById('face-img');
     img.src = profile.photo;
     img.hidden = false;
+    document.getElementById('face-paw').style.display = 'none';
+  } else if (pixelOn) {
+    // 사진이 없으면 발바닥 대신 16×16 도트 강아지(map-pixel-sample.html과 같은 그림)
+    var DOG = ['................', '..kk........kk..', '.kwck......kcwk.', '.kwwckkkkkkcwwk.', 'kwwwwwwwwwwwwwwk', 'kwwwwwwwwwwwwwwk',
+      'kwwekwwwwwwekwwk', 'kwweewwwwwweewwk', 'kcwwwwwkkwwwwwck', '.kcwwwwppwwwwck.', '.kkbbbbbbbbbbkk.', '.kbllbbbbbbllbk.',
+      '.kbbbbbbbbbbbbk.', '..kwwk....kwwk..', '..kkkk....kkkk..', '................'];
+    var DOG_COLORS = { k: '#221c18', w: '#ffffff', c: '#efe2c8', e: '#1a1a1a', p: '#ff7b9c', b: '#2b6cb0', l: '#63b3ed' };
+    var cv = document.createElement('canvas'); cv.width = 16; cv.height = 16;
+    var cx = cv.getContext('2d');
+    DOG.forEach(function (row, y) {
+      for (var x = 0; x < 16; x++) { var col = DOG_COLORS[row[x]]; if (col) { cx.fillStyle = col; cx.fillRect(x, y, 1, 1); } }
+    });
+    var dogImg = document.getElementById('face-img');
+    dogImg.src = cv.toDataURL();
+    dogImg.className = 'face-pixel';
+    dogImg.hidden = false;
     document.getElementById('face-paw').style.display = 'none';
   }
   var sig = SIGNALS[profile.signal];
@@ -446,6 +473,10 @@
     days.push({ label: DAY_NAMES[d.getDay()], min: rec ? rec.min : 0, isToday: i === 0 });
   }
   var maxMin = Math.max.apply(null, days.map(function (x) { return x.min; }).concat([30]));
+  // 도트 모드: 10분 = 한 칸. 가장 긴 날이 7칸(70분)을 넘으면 한 칸을 20분·30분…으로 키운다
+  var MAX_BLOCKS = 7;
+  var unit = Math.max(10, Math.ceil(maxMin / MAX_BLOCKS / 10) * 10);
+  if (pixelOn) weekEl.classList.add('is-pixel');
   var weekTotal = 0, weekDays = 0;
   days.forEach(function (x) {
     weekTotal += x.min;
@@ -454,8 +485,14 @@
     col.className = 'day' + (x.isToday ? ' is-today' : '') + (x.min ? '' : ' is-empty');
     col.title = x.label + '요일 ' + x.min + '분';
     var bar = document.createElement('div');
-    bar.className = 'bar';
-    bar.style.height = x.min ? Math.max(8, Math.round(x.min / maxMin * 100)) + '%' : '4px';
+    if (pixelOn) {
+      bar.className = 'stack';
+      var n = x.min ? Math.min(MAX_BLOCKS, Math.max(1, Math.round(x.min / unit))) : 1;
+      for (var b = 0; b < n; b++) { var blk = document.createElement('div'); blk.className = 'blk'; bar.appendChild(blk); }
+    } else {
+      bar.className = 'bar';
+      bar.style.height = x.min ? Math.max(8, Math.round(x.min / maxMin * 100)) + '%' : '4px';
+    }
     var lbl = document.createElement('div');
     lbl.className = 'lbl';
     lbl.textContent = x.isToday ? '오늘' : x.label;
@@ -464,7 +501,7 @@
     weekEl.appendChild(col);
   });
   document.getElementById('week-sum').textContent = weekDays
-    ? '7일 중 ' + weekDays + '일 산책 · 모두 ' + weekTotal + '분'
+    ? '7일 중 ' + weekDays + '일 산책 · 모두 ' + weekTotal + '분' + (pixelOn ? ' · 한 칸 ' + unit + '분' : '')
     : '최근 7일 동안 기록이 없어요.';
 
   // ── 꾸준함 도장(2026-11-15) — 모든 산책(5분 이상)을 한 주 단위로 센다 ──
