@@ -4,7 +4,7 @@
 // 담는 것: 이 사이트의 왈슨 기록(petwalk_*, walson_*)과 산책 사진(오늘의 한 장).
 // 빼는 것: 운영자 토큰·스팟 편집 초안(운영자 기기 정보), 샘플 모드 자료(지어낸 기록), 통계 대기열.
 (function () {
-  var SKIP = /^(petwalk_admin_token|petwalk_spot_draft|petwalk_sample_.*|walson_track_queue)$/;
+  var SKIP = /^(petwalk_admin_token|petwalk_spot_draft|petwalk_sample_.*|walson_track_queue|walson_cloud)$/;   // walson_cloud = 서버 백업 복구 코드(파일·주소에 넣지 않음, 11/23)
   var ARRAY_MERGE = {   // 합치기 때 겹침을 가리는 기준
     // loggedAt(다녀왔어요)·endedAt(길 기록)이 있으면 넣어서, 같은 날 같은 분 수의 다른 산책이 하나로 합쳐지지 않게(2026-11-16)
     petwalk_walks: function (w) { return [w.date, w.durationMin, w.distanceKm || 0, w.photoKey || '', w.loggedAt || w.endedAt || ''].join('|'); },

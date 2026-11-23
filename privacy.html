@@ -49,7 +49,7 @@
 </style>
 <script src="store.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
-<script src="site-config.js?v=10"></script>
+<script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
@@ -114,6 +114,20 @@
     </ul>
   </section>
 
+  <section id="cloud" hidden>
+    <h2>서버 백업 (켠 사람만 · 동의 후)</h2>
+    <ul>
+      <li><strong>왜</strong>: 휴대폰을 바꾸거나 기록이 지워졌을 때 복구 코드로 되찾기 위해서예요. 회원 가입은 없어요.</li>
+      <li><strong>언제</strong>: [프로필]에서 직접 켜고 동의한 사람만이에요. 켜지 않으면 아무것도 보내지 않아요. 켠 뒤엔 앱을 열 때 바뀐 기록을 다시 올려요(끌 수 있어요).</li>
+      <li><strong>보내는 것</strong>: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·남긴 답·특이 사항), 앱 설정. 휴대폰에서 복구 코드로 잠가서 보내므로 운영자도 내용을 읽을 수 없어요. 접속 주소(IP)는 서버 기록에 남을 수 있어요.</li>
+      <li><strong>보내지 않는 것</strong>: 걸은 길·좌표·발도장 장소·내 핀·가게 방문 도장 같은 위치 정보, 사진, 이름·전화번호.</li>
+      <li><strong>맡기는 곳(처리 위탁)</strong>: Supabase(서울 지역 서버).</li>
+      <li><strong>보관</strong>: 1년 동안 백업도 되찾기도 없으면 지워요. [프로필 → 서버 백업 지우기]로 언제든 바로 지울 수 있어요.</li>
+      <li>2026년 11월 23일에 생긴 기능이에요(바뀐 내용에도 적어요).</li>
+      <li>만 14세 이상만 켤 수 있어요. 복구 코드를 잃어버리면 운영자도 찾아 드릴 수 없고, 코드를 아는 사람은 기록을 가져갈 수 있으니 혼자만 보관해 주세요.</li>
+    </ul>
+  </section>
+
   <section id="stats">
     <h2>사용 통계 (자동 수집 · 끌 수 있음)</h2>
     <ul>
@@ -144,7 +158,7 @@
       <li>내가 찍은 핀은 지도에서 눌러 하나씩 지울 수 있습니다.</li>
       <li>산책 기록을 하나씩 지우는 기능은 아직 없습니다.</li>
       <li>전부 지우려면 브라우저 설정에서 이 사이트의 데이터를 삭제하면 됩니다. 홈 화면에 추가했다면 앱을 지워도 됩니다.</li>
-      <li>휴대폰을 바꾸거나 사이트 데이터를 지우면 기록은 되살릴 수 없습니다.</li>
+      <li>휴대폰을 바꾸거나 사이트 데이터를 지우면 기록은 되살릴 수 없습니다. 서버 백업을 켰다면 복구 코드로 되찾을 수 있어요(사진·위치 빼고).</li>
     </ul>
   </section>
 
@@ -207,6 +221,10 @@
   document.getElementById('consent-no').addEventListener('click', function () { if (T) { T.setConsent('no'); paint(); } });
   paint();
 })();
+</script>
+<script>
+// 서버 백업 안내는 서버가 준비된 뒤에만 보인다(site-config.js cloudBackup)
+(function () { var c = window.WALSON_CONFIG && WALSON_CONFIG.cloudBackup; if (c && c.url && c.anonKey) document.getElementById('cloud').hidden = false; })();
 </script>
 </body>
 </html>

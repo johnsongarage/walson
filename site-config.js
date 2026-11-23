@@ -18,6 +18,9 @@ window.WALSON_CONFIG = {
   kakaoChannel: 'https://pf.kakao.com/_IxocNX',   // 2026-11-17 채널 '왈슨' 개설(비즈니스 심사 중). 1:1 채팅은 이 주소 + /chat
   // 사용 통계를 받을 Apps Script 웹 앱 주소(docs/TRACKING.md). 비어 있으면 통계를 보내지 않는다(track.js).
   trackUrl: 'https://script.google.com/macros/s/AKfycbyok_QqmfxYkBO48P7YciODmE7awhL52LzIc_x3bG-oU6T0nz9oNo-hoF4Hf76VNo7P/exec',
+  // 서버 백업(복구 코드, 2026-11-23 — cloud-backup.js, docs/supabase-backup.sql). Supabase 프로젝트 주소와 공개(anon/publishable) 키.
+  // 비어 있으면 서버 백업 화면이 안 보이고 아무것도 보내지 않는다. service_role(secret) 키는 절대 여기에 넣지 않는다.
+  cloudBackup: { url: 'https://dioklspwkjsnluncguxn.supabase.co', anonKey: 'sb_publishable_uakDQXKJpSt73z1gt_cYEQ_e0npsccT' },   // 2026-11-23 가르시아 프로젝트(서울)
   // 지도 그림(타일)을 받아 오는 곳(2026-11-16 한곳에 모음). 지도 화면([산책]·[동네]·스팟 편집)이 모두 이 값을 쓴다.
   // 지금: OpenStreetMap 공용 서버 — 가입·키·요금 없음. 대신 사용량이 많아지면 차단될 수 있고(이용 정책), 속도·가동 보장이 없고,
   //       한국 지도는 네이버·카카오보다 덜 자세하다. 출처 표시(© OpenStreetMap)는 의무라 지우지 않는다.

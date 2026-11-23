@@ -57,6 +57,13 @@
     font-size: 13px; border: 2px solid var(--panel);
   }
   #photo-input { display: none; }
+  /* 서버 백업(11/23) */
+  .cl-list { margin: 0 0 10px; padding-left: 18px; font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); }
+  .cl-list b { color: var(--ink); }
+  .cl-check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink); margin: 6px 0; }
+  .cl-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .cl-codebox { margin-top: 10px; padding: 12px; border-radius: 14px; border: 1.5px dashed var(--panel-border); background: var(--bg); }
+  .cl-code { margin: 0 0 10px; font: 800 19px ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.04em; text-align: center; color: var(--ink); word-break: break-all; user-select: all; }
   .photo-acts { display: flex; gap: 8px; }
   .photo-act { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--panel-border); background: #fff; color: var(--ink);
     font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
@@ -110,7 +117,7 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
-<script src="site-config.js?v=10"></script>
+<script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
@@ -119,7 +126,8 @@
 <script src="canvas-view.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="backup.js?v=8"></script>
+<script src="backup.js?v=9"></script>
+<script src="cloud-backup.js?v=1"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="sample-data.js?v=6"></script>
 <script src="dog-tags.js?v=1"></script>
@@ -238,6 +246,46 @@
     <input type="file" id="backup-file" accept=".txt,.json,text/plain,application/json" hidden>
     <p class="sub" id="backup-msg" style="margin:10px 0 0;font-weight:700;"></p>
     <p class="sub" style="margin:6px 0 0;font-size:11px;">파일은 이 휴대폰에서 만들고 어디로도 올리지 않아요. 파일 안에 강아지 사진과 산책 기록(길 기록을 켰다면 걸은 길)이 들어 있으니 아무에게나 보내지 마세요.</p>
+  </div>
+
+  <!-- 서버 백업(복구 코드, 2026-11-23 — cloud-backup.js). site-config.js cloudBackup이 비어 있으면 숨는다 -->
+  <div class="card theme-card" id="cloud" hidden>
+    <h2>서버에 백업</h2>
+    <p class="sub" id="cl-lead">폰을 바꾸거나 기록이 지워져도 복구 코드로 되찾을 수 있어요. 회원 가입은 없어요.</p>
+    <div id="cl-off">
+      <button type="button" class="theme-opt" id="cl-start" style="width:100%;"><span class="name">서버에 백업하기</span><span class="desc">무엇을 보내는지 먼저 보여 드려요</span></button>
+      <div id="cl-consent" hidden style="margin-top:12px;">
+        <ul class="cl-list">
+          <li><b>보내는 것</b>: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·남긴 답·특이 사항), 앱 설정</li>
+          <li><b>보내지 않는 것</b>: 걸은 길·좌표·발도장 장소·내 핀 같은 위치, 사진, 이름·전화번호. 그래서 되찾으면 발도장 장소 기록은 비어요.</li>
+          <li><b>왜</b>: 폰을 바꾸거나 기록이 지워졌을 때 되찾기 위해서</li>
+          <li><b>어떻게</b>: 이 휴대폰에서 복구 코드로 잠가서 보내요. 서버에서는 운영자도 내용을 읽을 수 없어요.</li>
+          <li><b>어디에</b>: Supabase(서울 지역 서버)에 맡겨요(처리 위탁).</li>
+          <li><b>얼마나</b>: 1년 동안 백업도 되찾기도 없으면 지워요. 아래 [서버 백업 지우기]로 언제든 바로 지울 수 있어요.</li>
+          <li><b>자동</b>: 켠 뒤엔 앱을 열 때 바뀐 기록이 있으면 알아서 다시 올려요(끌 수 있어요).</li>
+          <li>동의하지 않아도 앱은 그대로 쓸 수 있고, 위 [내보내기] 파일 저장도 그대로 돼요.</li>
+        </ul>
+        <label class="cl-check"><input type="checkbox" id="cl-age"> 만 14세 이상이에요</label>
+        <label class="cl-check"><input type="checkbox" id="cl-agree"> 위 내용을 읽고 서버 백업에 동의해요</label>
+        <button type="button" class="theme-opt" id="cl-go" disabled style="width:100%;margin-top:8px;"><span class="name">동의하고 백업</span><span class="desc">복구 코드를 만들어 드려요</span></button>
+      </div>
+    </div>
+    <div id="cl-on" hidden>
+      <p class="sub" id="cl-when" style="font-weight:700;"></p>
+      <div class="cl-codebox" id="cl-codebox" hidden>
+        <p class="sub" style="margin:0 0 6px;">복구 코드 — <b>꼭 캡처하거나 카톡 '나에게 보내기'로 보관하세요.</b> 잃어버리면 저희도 찾아 드릴 수 없고, 남이 알면 기록을 가져갈 수 있어요.</p>
+        <p class="cl-code" id="cl-code"></p>
+        <button type="button" class="theme-opt" id="cl-copy" style="width:100%;"><span class="name">코드 복사 · 보내기</span><span class="desc">나에게 보내 두면 안전해요</span></button>
+      </div>
+      <div class="theme-opts" style="margin-top:10px;">
+        <button type="button" class="theme-opt" id="cl-now"><span class="name">지금 백업</span><span class="desc">바로 올리기</span></button>
+        <button type="button" class="theme-opt" id="cl-show"><span class="name">복구 코드 보기</span><span class="desc">다시 확인하기</span></button>
+      </div>
+      <label class="cl-check" style="margin-top:10px;"><input type="checkbox" id="cl-auto"> 앱을 열 때 바뀐 기록 자동 백업</label>
+      <button type="button" class="theme-opt" id="cl-del" style="width:100%;margin-top:8px;"><span class="name">서버 백업 지우기</span><span class="desc">서버에서 지우고 끄기 · 이 폰 기록은 그대로</span></button>
+    </div>
+    <button type="button" class="theme-opt" id="cl-restore" style="width:100%;margin-top:10px;"><span class="name">복구 코드로 되찾기</span><span class="desc">새 폰이거나 기록이 지워졌을 때</span></button>
+    <p class="sub" id="cl-msg" style="margin:10px 0 0;font-weight:700;"></p>
   </div>
 
   <p class="hint">
@@ -567,6 +615,76 @@
     if (done) done.textContent = '✓ ' + nm + ro + ' 바꿨어요 · 저장됐어요';
   });
   paint();
+})();
+</script>
+
+<script>
+// 서버 백업(복구 코드) — cloud-backup.js
+(function () {
+  var C = window.WalsonCloud, B = window.WalsonBackup;
+  if (!C || !C.available()) return;
+  function $(id) { return document.getElementById(id); }
+  var msg = $('cl-msg');
+  $('cloud').hidden = false;
+  function when(iso) { if (!iso) return '아직 올린 적 없어요'; var d = new Date(iso); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function paint(showCode) {
+    var s = C.state(), on = !!(s && s.code);
+    $('cl-off').hidden = on; $('cl-on').hidden = !on;
+    if (!on) return;
+    $('cl-when').textContent = '켜짐 · 마지막 백업 ' + when(s.at);
+    $('cl-auto').checked = s.auto !== false;
+    $('cl-code').textContent = s.code;
+    if (showCode) $('cl-codebox').hidden = false;
+  }
+  function busy(t) { msg.textContent = t; }
+  $('cl-start').addEventListener('click', function () { $('cl-consent').hidden = false; $('cl-start').hidden = true; });
+  function check() { $('cl-go').disabled = !($('cl-age').checked && $('cl-agree').checked); }
+  $('cl-age').addEventListener('change', check); $('cl-agree').addEventListener('change', check);
+  $('cl-go').addEventListener('click', function () {
+    $('cl-go').disabled = true; busy('잠가서 올리는 중…');
+    C.enable().then(function (r) {
+      busy('백업했어요(산책 ' + r.walks + '개). 아래 복구 코드를 꼭 보관해 주세요.');
+      paint(true);
+    }).catch(function (e) { busy(e.message); check(); });
+  });
+  $('cl-now').addEventListener('click', function () {
+    busy('올리는 중…');
+    C.backupNow().then(function (r) { busy('백업했어요(산책 ' + r.walks + '개).'); paint(false); }).catch(function (e) { busy(e.message); });
+  });
+  $('cl-show').addEventListener('click', function () { $('cl-codebox').hidden = !$('cl-codebox').hidden; });
+  $('cl-copy').addEventListener('click', function () {
+    var code = (C.state() || {}).code; if (!code) return;
+    var text = '왈슨 복구 코드: ' + code + '\n(새 폰에서 왈슨 → 프로필 → 복구 코드로 되찾기)';
+    if (navigator.share) { navigator.share({ text: text }).catch(function () {}); return; }
+    (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { busy('복사했어요. 카톡 나에게 보내기에 붙여 넣어 두세요.'); },
+      function () { prompt('아래 코드를 길게 눌러 복사해 두세요', code); });
+  });
+  $('cl-auto').addEventListener('change', function () { C.setAuto(this.checked); });
+  $('cl-del').addEventListener('click', function () {
+    if (!confirm('서버에 맡긴 백업을 지우고 서버 백업을 끌까요?\n이 휴대폰의 기록은 그대로예요.')) return;
+    busy('지우는 중…');
+    C.disable().then(function () { busy('서버 백업을 지웠어요.'); $('cl-consent').hidden = true; $('cl-start').hidden = false; $('cl-codebox').hidden = true; paint(false); })
+      .catch(function (e) { busy(e.message); });
+  });
+  $('cl-restore').addEventListener('click', function () {
+    var raw = prompt('복구 코드를 넣어 주세요 (WALSON-XXXX-XXXX-XXXX-XXXX)');
+    if (!raw) return;
+    busy('찾는 중…');
+    C.fetchByCode(raw).then(function (r) {
+      if (!confirm((r.at ? r.at.slice(0, 10) + '에 맡긴 ' : '') + '백업이에요' + (r.name ? ' (' + r.name + ')' : '') + '.\n산책 ' + r.walks + '개를 되찾을까요?\n(사진·발도장 장소는 서버에 없어서 비어요)')) { busy(''); return; }
+      var mine = WalsonStore.walks(), merge = false;
+      if (mine.length && localStorage.getItem('petwalk_sample_mode') !== '1') {
+        merge = confirm('이 기기에도 산책 ' + mine.length + '개가 있어요.\n\n확인: 둘을 합치기(겹치는 건 하나로)\n취소: 이 기기 기록을 지우고 백업으로 바꾸기');
+        if (!merge && !confirm('이 기기의 산책 ' + mine.length + '개가 지워져요. 계속할까요?')) { busy(''); return; }
+      }
+      return B.importAll(r.obj, merge).then(function () {
+        C.adopt(r.code);
+        alert('되찾았어요. 앞으로도 이 복구 코드로 백업해요. 처음 화면으로 갈게요.');
+        location.replace('index.html');
+      });
+    }).catch(function (e) { busy(e.message); });
+  });
+  paint(false);
 })();
 </script>
 </body>
