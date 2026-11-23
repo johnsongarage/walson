@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 아지트 C안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 산책 아지트 C안 — 새 방 그림(2026-11-23 가르시아 "아지트 시안 강화" → 받은 방·소품 그림(Gemini 시트)을 잘라 방 크기에 맞춘 뒤
+     "여기 있던 강아지는 빼, 내가 따로 만든 강아지들 그대로 유지하자. 그 상태로 아지트 다시 세팅해보자").
+     방·소품: icons/azit-room — _dev/azit-sheet-slice.py로 시트를 원래 점으로 되돌리고 _dev/azit-fit.py로 방 크기에 맞춘 것
+       (방 한 점 = 소품 한 점, 분홍 방 394×220 점 · 벽 높이 98점 ≈ 2.5m). 붙박이 창은 지우고 창(낮·밤·비·눈)을 바꿔 끼운다.
+     강아지: 지금 [아지트]와 같은 도트 강아지 8마리(icons/dot-dogs/px) — 그리는 법도 같다(화면 픽셀에 맞춰 키울 땐 가장 가까운 점,
+       줄일 땐 곱게). 방 점에 맞춰 다시 찍지 않는다(11/23 "강아지가 배치되니까 뭉개지는데 그대로 못 살리냐").
+     Gemini 시트의 강아지·고양이·토끼는 쓰지 않는다. 주소로만 여는 시안 — 실제 [아지트]는 그대로. 아무것도 보내지 않고,
+     고른 것(꾸밈·창·강아지·크기)만 이 브라우저에 기억한다. */
+  @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-display: swap; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink, #2a2026);
+    background: var(--bg, #fffdfd); padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-family: 'DungGeunMo', monospace; font-weight: normal; font-size: 21px; color: var(--accent, #ff5c9d); margin: 0 0 4px; }
+  .lead { font-size: 13px; line-height: 1.55; color: var(--ink-soft, #6f6168); margin: 0 0 12px; word-break: keep-all; }
+  .lead b { color: var(--ink, #2a2026); }
+  /* 방은 화면 끝까지(양옆 여백 없이) — 방 한 점을 화면 점 2·3개로 딱 맞게 그리려고(정수 배가 아니면 점이 들쭉날쭉해진다) */
+  .frame { margin: 0 -12px; border-top: 2px solid var(--line, #2a2026); border-bottom: 2px solid var(--line, #2a2026);
+    background: var(--panel, #fff); line-height: 0; display: flex; justify-content: center; overflow: hidden; }
+  #room { display: block; image-rendering: pixelated; touch-action: manipulation; cursor: pointer; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6f6168); margin: 8px 0 14px; line-height: 1.5; word-break: keep-all; }
+  .ctrl { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .row > span { font-size: 12px; color: var(--ink-soft, #6f6168); min-width: 64px; }
+  .chip { font: inherit; font-size: 12.5px; color: var(--ink, #2a2026); background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    padding: 5px 9px; cursor: pointer; box-shadow: 2px 2px 0 var(--line, #2a2026); line-height: 1.2; }
+  .chip[aria-pressed="true"] { background: var(--accent, #ff5c9d); color: var(--hl-ink, #fff); }
+  .dogs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 4px 6px 2px; flex: 1 1 0; min-width: 0; }
+  .dogs::-webkit-scrollbar { display: none; }
+  .dog { flex: none; width: 58px; padding: 4px 2px 3px; font-size: 11px; text-align: center; }
+  .dog img { display: block; height: 34px; width: auto; margin: 0 auto 2px; }
+  .dog.none { display: flex; align-items: center; justify-content: center; }
+  .foot { font-size: 12px; color: var(--ink-soft, #6f6168); line-height: 1.6; margin: 16px 0 0; word-break: keep-all; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=3"><script src="theme.js?v=14"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>산책 아지트 C안</h1>
+  <p class="lead">새로 받은 <b>방·소품 그림</b>을 방 크기에 맞춰 놓고, 강아지는 <b>내 도트 강아지 8마리</b>를 그대로 데려왔어요.</p>
+  <div class="frame"><canvas id="room" role="img" aria-label="도트 강아지가 노는 분홍 방"></canvas></div>
+  <p class="hint">바닥을 누르면 내 강아지가 걸어가요. 방석·소파를 누르면 올라가 앉아요.</p>
+
+  <div class="ctrl">
+    <div class="row"><span>꾸밈</span>
+      <button class="chip" data-k="layout" data-v="one">꾸밈 1 · 러그 거실</button>
+      <button class="chip" data-k="layout" data-v="two">꾸밈 2 · 카페 방석</button></div>
+    <div class="row"><span>창밖</span>
+      <button class="chip" data-k="win" data-v="now">지금 시각대로</button>
+      <button class="chip" data-k="win" data-v="day">낮</button>
+      <button class="chip" data-k="win" data-v="night">밤</button>
+      <button class="chip" data-k="win" data-v="rain">비</button>
+      <button class="chip" data-k="win" data-v="snow">눈</button></div>
+    <div class="row"><span>내 강아지</span><div class="dogs" id="hostDogs"></div></div>
+    <div class="row"><span>놀러 온 친구</span><div class="dogs" id="guestDogs"></div></div>
+    <div class="row"><span>강아지 크기</span>
+      <button class="chip" data-k="size" data-v="38">작게</button>
+      <button class="chip" data-k="size" data-v="44">보통</button>
+      <button class="chip" data-k="size" data-v="50">크게</button></div>
+  </div>
+  <p class="foot">방·소품은 방 한 점 = 그림 한 점으로 맞췄어요(크게 키운 것 없음). 받은 그림의 강아지·고양이·토끼는 쓰지 않았어요.
+    주소로만 여는 시안이에요 — 실제 [아지트]는 그대로예요.</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var BASE = 'icons/azit-room/';
+  var RW = 394, RH = 220;              // 방 원래 점
+  var KEY = 'walson_azit_c_sian';
+  var st = { layout: 'one', win: 'now', host: 'pom', guest: 'maltese', size: '44' };
+  try { var sv = JSON.parse(localStorage.getItem(KEY) || 'null'); if (sv) for (var k in st) if (sv[k]) st[k] = sv[k]; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+  // 도트 강아지 8마리 — azit-room.js DOGS와 같은 그림·이름(시안이라 따로 적음)
+  var DOGS = [['pom', '포메'], ['poodle', '푸들'], ['maltese', '말티즈'], ['knit', '파란 니트'],
+              ['chihuahua', '치와와'], ['dachs', '닥스훈트'], ['jindo', '진돗개'], ['shiba', '시바']];
+  function dogSrc(id) { return 'icons/dot-dogs/px/' + id + '.png?v=1'; }
+
+  // 바닥 위치: 두 벽이 만나는 모서리(199,74)에서 오른쪽 벽 따라 i, 왼쪽 벽 따라 j(한 칸 = 가로 2점·세로 1점 — 2:1)
+  function P(i, j) { return { x: 199 + 2 * (i - j), y: 74 + i + j }; }
+  function unP(x, y) { var a = (x - 199) / 2, b = y - 74; return { i: (a + b) / 2, j: (b - a) / 2 }; }
+  function clampFloor(q) {                                     // 강아지가 서 있을 수 있는 바닥(계단·화면 밖 빼고)
+    var i = Math.max(5, Math.min(97, q.i)), j = Math.max(5, Math.min(80, q.j));
+    if (i + j > 138) { var s = (i + j - 138) / 2; i -= s; j -= s; }
+    if (i - j < -68) { var t = (-68 - (i - j)) / 2; i += t; j -= t; }
+    return { i: i, j: j };
+  }
+  function onFloor(q) { return q.i >= 0 && q.j >= 0 && q.i <= 101 && q.j <= 86 && q.i + q.j <= 146; }
+
+  // 꾸밈 — [이름, x, y, 종류, 옵션] x·y = 그림 아래 가운데(방 원래 점). 종류 wall(벽·선반·천장) · decal(러그) · floor.
+  // seats = 강아지가 올라가 앉는 곳(방석·소파 윗면) — z는 그 방석보다 뒤에 그리게. spots = 혼자 돌아다닐 때 가는 빈 바닥.
+  function at(i, j) { var p = P(i, j); return [p.x, p.y]; }
+  var LAYOUTS = {
+    one: {
+      items: [
+        ['garland_bunting', 199, 30, 'wall'], ['trophy_shelf', 258, 73, 'wall'], ['frame_jelly_pink', 371, 112, 'wall', { flip: true }],
+        ['frame_gold', 80, 96, 'wall'], ['plant_hanging', 54, 66, 'wall'], ['plant_cactus', 113, 64, 'wall'], ['plant_daisy', 170, 42, 'wall'],
+        ['rug_pattern'].concat(at(76, 60), 'decal'),
+        ['plant_pot'].concat(at(3, 3), 'floor'), ['basket_wicker_carrot'].concat(at(16, 5), 'floor'),
+        ['plant_cherry_blossom'].concat(at(4, 22), 'floor'), ['feeder_wood_2bowl'].concat(at(7, 40), 'floor'),
+        ['water_bowl_blue'].concat(at(6, 56), 'floor'), ['sofa_bed'].concat(at(64, 16), 'floor', { shadow: false }),
+        ['cushion_yellow'].concat(at(40, 58), 'floor'), ['toy_bone'].concat(at(75, 47), 'floor'),
+        ['ball_tennis'].concat(at(80, 32), 'floor'), ['ball_watermelon'].concat(at(56, 70), 'floor'),
+        ['toy_rope_blue'].concat(at(38, 77), 'floor'), ['cushion_blue'].concat(at(93, 8), 'floor'),
+        ['cushion_pink'].concat(at(88, 26), 'floor')
+      ],
+      seats: [{ x: 163, y: 163, z: 173 }, { x: 294, y: 142, z: 155 }, { x: 369, y: 167, z: 176 }, { x: 323, y: 177, z: 189 }],
+      spots: [[30, 30], [50, 40], [58, 54], [44, 66], [78, 42], [26, 46], [70, 30], [86, 44]],
+      host: [55, 46], guest: [72, 36]
+    },
+    two: {
+      items: [
+        ['banner_flag_blue', 371, 116, 'wall'], ['frame_dog', 222, 46, 'wall'], ['board_postcard', 71, 98, 'wall', { flip: true }],
+        ['postcard_paw', 115, 47, 'wall'], ['ball_yellow', 113, 63, 'wall'], ['plant_cactus', 170, 42, 'wall'],
+        ['plant_cherry_blossom'].concat(at(3, 3), 'floor'), ['basket_blue_carrot'].concat(at(22, 4), 'floor'),
+        ['feeder_blue_2bowl'].concat(at(4, 26), 'floor'), ['water_bowl_blue'].concat(at(4, 42), 'floor'),
+        ['cushion_cafe_beige'].concat(at(38, 52), 'floor'), ['cushion_cafe_mint'].concat(at(70, 20), 'floor'),
+        ['plant_daisy'].concat(at(92, 4), 'floor'), ['ball_pastel'].concat(at(50, 66), 'floor'),
+        ['ball_spiky_pink_1'].concat(at(70, 62), 'floor'), ['ball_spiky_pink_2'].concat(at(97, 46), 'floor'),
+        ['toy_rope_blue'].concat(at(30, 70), 'floor'), ['toy_bone'].concat(at(66, 38), 'floor')
+      ],
+      seats: [{ x: 171, y: 157, z: 165 }, { x: 299, y: 155, z: 165 }],
+      spots: [[30, 30], [55, 40], [62, 54], [48, 24], [80, 40], [22, 58], [84, 24], [40, 70]],
+      host: [56, 44], guest: [46, 28]
+    }
+  };
+  var WIN_AT = [316, 121];                                     // 창 아래 가운데(붙박이 창이 있던 자리)
+
+  // ── 그림 불러오기 ──
+  var img = {};
+  function load(name, src) {
+    return new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () { img[name] = im; res(); };
+      im.onerror = function () { res(); };
+      im.src = src;
+    });
+  }
+  var names = { room: 1, window_day: 1, window_night: 1, window_rain: 1, window_snow: 1 };
+  Object.keys(LAYOUTS).forEach(function (k) { LAYOUTS[k].items.forEach(function (t) { names[t[0]] = 1; }); });
+  var ready = Promise.all(Object.keys(names).map(function (n) { return load(n, BASE + n + '.png?v=1'); })
+    .concat(DOGS.map(function (d) { return load('dog:' + d[0], dogSrc(d[0])); })));
+
+  var flipCache = {};
+  function sprite(name, flip) {
+    var im = img[name]; if (!im) return null;
+    if (!flip) return im;
+    if (flipCache[name]) return flipCache[name];
+    var c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    var g = c.getContext('2d'); g.translate(im.width, 0); g.scale(-1, 1); g.drawImage(im, 0, 0);
+    return (flipCache[name] = c);
+  }
+  function put(g, s, x, y) { g.drawImage(s, Math.round(x - s.width / 2), Math.round(y - s.height + 1)); }
+
+  // 발밑 그림자 — 바닥을 조금 어둡게(번지지 않게 점으로). 소품은 바탕에 한 번만, 강아지는 매번
+  function shadowRows(w) {
+    w = Math.max(6, Math.min(44, Math.round(w)));
+    var h = Math.max(3, Math.floor(w / 3)), rows = [];
+    for (var yy = 0; yy < h; yy++) {
+      var dy = (yy + 0.5 - h / 2) / (h / 2), half = Math.floor((w / 2) * Math.sqrt(Math.max(0, 1 - dy * dy)));
+      if (half > 0) rows.push([yy - h + 1, half]);
+    }
+    return rows;
+  }
+  function shadowOn(g, x, y, w, alpha) {
+    g.fillStyle = 'rgba(70, 25, 10, ' + alpha + ')';
+    shadowRows(w).forEach(function (r) { g.fillRect(Math.round(x) - r[1], Math.round(y) + r[0], r[1] * 2, 1); });
+  }
+
+  // ── 바탕 층(방·창·벽 소품·러그·소품 그림자) — 꾸밈·창이 바뀔 때만 ──
+  function windowName() {
+    if (st.win !== 'now') return 'window_' + st.win;
+    var hr = new Date().getHours();
+    return (hr >= 6 && hr < 19) ? 'window_day' : 'window_night';
+  }
+  var baseKey = '', base = null;
+  function buildBase() {
+    var key = st.layout + '|' + windowName();
+    if (key === baseKey && base) return;
+    var c = document.createElement('canvas'); c.width = RW; c.height = RH;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    if (img.room) g.drawImage(img.room, 0, 0);
+    var w = sprite(windowName()); if (w) put(g, w, WIN_AT[0], WIN_AT[1]);
+    var L = LAYOUTS[st.layout];
+    L.items.forEach(function (t) { var o = t[4] || {}, s = sprite(t[0], o.flip); if (s && t[3] === 'wall') put(g, s, t[1], t[2]); });
+    L.items.forEach(function (t) { var o = t[4] || {}, s = sprite(t[0], o.flip); if (s && t[3] === 'decal') put(g, s, t[1], t[2]); });
+    L.items.forEach(function (t) {
+      var o = t[4] || {}, s = sprite(t[0]);
+      if (s && t[3] === 'floor' && o.shadow !== false) shadowOn(g, t[1], t[2], s.width * 0.7, 0.2);
+    });
+    base = c; baseKey = key;
+  }
+
+  // ── 화면 크기 — 방 한 점 = 화면 점 R개(정수)로 딱 맞게. 화면에 다시 늘리거나 줄이지 않는다(그러면 점이 들쭉날쭉).
+  //    폭이 모자라면 왼쪽(계단 쪽)부터 잘라 보여 준다(최대 60점 — 더 잘라야 하면 한 단계 작게) ──
+  var canvas = $('room'), ctx = canvas.getContext('2d'), R = 3, VW = RW, OX = 0, CROP_MAX = 60;
+  function fit() {
+    var avail = canvas.parentElement.clientWidth, dpr = window.devicePixelRatio || 1;
+    if (avail <= 0) return;
+    var dev = Math.floor(avail * dpr), r = Math.max(1, Math.round(dev / RW));
+    if (RW * r > dev && RW - Math.floor(dev / r) > CROP_MAX) r = Math.max(1, r - 1);
+    if (r !== R) dogCache = {};
+    R = r; VW = Math.min(RW, Math.floor(dev / r)); OX = RW - VW;
+    canvas.width = VW * R; canvas.height = RH * R;
+    canvas.style.width = (VW * R / dpr) + 'px'; canvas.style.height = (RH * R / dpr) + 'px';
+  }
+
+  // ── 도트 강아지 — 지금 [아지트] 그리는 법 그대로(원래 점 그림을 화면 픽셀에 맞춰: 키울 땐 가장 가까운 점, 줄일 땐 곱게) ──
+  var dogCache = {};
+  function smallCopy(src, w, h) {   // 한 번에 많이 줄이면 거칠어져서 반씩 줄여 간다
+    var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+    while (sw / 2 >= w * 1.5) {
+      var t = document.createElement('canvas'); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
+      var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(src, 0, 0, t.width, t.height);
+      src = t; sw = t.width; sh = t.height;
+    }
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, w, h);
+    return c;
+  }
+  function dogBitmap(id) {
+    var vis = Number(st.size), key = id + '@' + R + '@' + vis;
+    if (dogCache[key]) return dogCache[key];
+    var im = img['dog:' + id]; if (!im) return null;
+    var hd = Math.round(vis * R), wd = Math.round(im.naturalWidth * hd / im.naturalHeight), c;
+    if (hd >= im.naturalHeight) {
+      c = document.createElement('canvas'); c.width = wd; c.height = hd;
+      var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hd);
+    } else c = smallCopy(im, wd, hd);
+    return (dogCache[key] = c);
+  }
+
+  // ── 강아지 둘(내 강아지·놀러 온 친구) ──
+  function makeDog(ij, flip, phase) { return { i: ij[0], j: ij[1], ti: ij[0], tj: ij[1], flip: flip, frame: 0, phase: phase, seat: null, goSeat: null, rest: 0 }; }
+  var host, guest;
+  function placeDogs() {
+    var L = LAYOUTS[st.layout];
+    host = makeDog(L.host, false, 0); guest = makeDog(L.guest, true, 2.1);
+    host.rest = 3 + Math.random() * 3; guest.rest = 5 + Math.random() * 4;
+  }
+  function footOf(d) {
+    if (d.seat) return { x: d.seat.x, y: d.seat.y, z: d.seat.z };
+    var p = P(d.i, d.j), s = d.goSeat;
+    // 방석·소파에 다가가는 중이면 바로 앞에서부터는 그 받침보다 앞에(뒤로 숨었다가 튀어나오지 않게)
+    var near = s && Math.abs(p.x - s.x) < 24 && p.y > s.y - 4;
+    return { x: p.x, y: p.y, z: near ? Math.max(p.y, s.z) : p.y };
+  }
+  function drawDog(d, id) {
+    var b = dogBitmap(id); if (!b) return;
+    var f = footOf(d), hop = (d.frame === 1 || d.frame === 3) ? 1 : 0;
+    var w = b.width / R, h = b.height / R;
+    if (!d.seat) shadowOn(ctx, f.x, f.y + 1, w * 0.62, 0.22);
+    var x = Math.round((f.x - w / 2) * R) / R, top = Math.round((f.y - h + 1) * R) / R - hop;   // 화면 픽셀에 딱 맞게
+    ctx.save();
+    if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(b, x, top, w, h);
+    ctx.restore();
+  }
+
+  function render() {
+    buildBase();
+    ctx.setTransform(R, 0, 0, R, -OX * R, 0); // 아래는 모두 방 점 단위로(왼쪽 OX점은 잘려 안 보임)
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, RW, RH);
+    ctx.drawImage(base, 0, 0);
+    var things = [];
+    LAYOUTS[st.layout].items.forEach(function (t) { if (t[3] === 'floor') things.push({ z: t[2], x: t[1], t: t }); });
+    var fh = footOf(host); things.push({ z: fh.z + 0.5, x: fh.x, dog: host, id: st.host });
+    if (st.guest !== 'none') { var fg = footOf(guest); things.push({ z: fg.z + 0.5, x: fg.x, dog: guest, id: st.guest }); }
+    things.sort(function (a, b) { return a.z - b.z || a.x - b.x; });
+    things.forEach(function (o) {
+      if (o.dog) { drawDog(o.dog, o.id); return; }
+      var opt = o.t[4] || {}, s = sprite(o.t[0], opt.flip); if (s) put(ctx, s, o.t[1], o.t[2]);
+    });
+  }
+
+  // ── 움직임 — 움직일 때만 매 화면, 쉬는 동안은 천천히 · 다른 앱에 가 있으면 멈춤 ──
+  var SPEED = 15;                              // 1초에 바닥 칸(가로 2점·세로 1점) 몇 개
+  function moving(d) { var di = d.ti - d.i, dj = d.tj - d.j; return di * di + dj * dj > 0.04; }
+  function goTo(d, q, seat) {
+    var c = clampFloor(q);
+    d.seat = null; d.goSeat = seat || null; d.ti = c.i; d.tj = c.j;
+  }
+  function wander(d) {
+    var L = LAYOUTS[st.layout];
+    if (Math.random() < 0.3 && L.seats.length) {
+      var free = L.seats.filter(function (s) { return [host, guest].every(function (o) { return o === d || (o.seat !== s && o.goSeat !== s); }); });
+      if (free.length) { var s = free[Math.floor(Math.random() * free.length)]; goTo(d, unP(s.x, s.y + 7), s); return; }
+    }
+    var p = L.spots[Math.floor(Math.random() * L.spots.length)];
+    goTo(d, { i: p[0] + (Math.random() * 6 - 3), j: p[1] + (Math.random() * 6 - 3) });
+  }
+  var raf = 0, idle = 0, last = 0;
+  function step(ts) {
+    raf = 0;
+    var now = ts / 1000, dt = last ? Math.min(0.05, now - last) : 0; last = now;
+    [host, guest].forEach(function (d) {
+      if (d === guest && st.guest === 'none') return;
+      var di = d.ti - d.i, dj = d.tj - d.j, dist = Math.sqrt(di * di + dj * dj);
+      if (dist > 0.2) {
+        var sp = Math.min(dist, SPEED * dt);
+        d.i += di / dist * sp; d.j += dj / dist * sp;
+        if (Math.abs(di - dj) > 0.3) d.flip = (di - dj) < 0;   // 화면 왼쪽으로 가면 뒤집기
+        d.frame = Math.floor(now * 6) % 2;
+      } else {
+        if (d.goSeat) { d.seat = d.goSeat; d.goSeat = null; d.rest = 6 + Math.random() * 6; }
+        d.frame = ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;            // 쉴 땐 4초쯤마다 한 번 통통
+        d.rest -= dt || 0.15;
+        if (d.rest <= 0) { d.rest = 5 + Math.random() * 6; wander(d); }
+      }
+    });
+    render();
+    schedule();
+  }
+  function schedule() {
+    if (raf || idle || document.hidden) return;
+    if (moving(host) || (st.guest !== 'none' && moving(guest))) raf = requestAnimationFrame(step);
+    else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
+  }
+  function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (raf) cancelAnimationFrame(raf); if (idle) clearTimeout(idle); raf = 0; idle = 0; last = 0; }
+    else kick();
+  });
+
+  // 누르기 — 방석·소파 윗면이면 올라가 앉고, 바닥이면 걸어간다(벽은 그대로)
+  canvas.addEventListener('click', function (e) {
+    var r = canvas.getBoundingClientRect(), x = OX + (e.clientX - r.left) / r.width * VW, y = (e.clientY - r.top) / r.height * RH;
+    var seat = null;
+    LAYOUTS[st.layout].seats.forEach(function (s) { if (Math.abs(x - s.x) < 22 && y > s.y - 16 && y < s.y + 12) seat = s; });
+    if (seat) {
+      if (guest.seat === seat || guest.goSeat === seat) { guest.seat = null; guest.goSeat = null; wander(guest); }
+      goTo(host, unP(seat.x, seat.y + 7), seat);
+    } else {
+      var q = unP(x, y);
+      if (!onFloor(q)) return;
+      goTo(host, q);
+    }
+    host.rest = 8 + Math.random() * 4;
+    kick();
+  });
+
+  // ── 고르기 ──
+  function dogChips(boxId, key, withNone) {
+    var box = $(boxId);
+    if (withNone) {
+      var n = document.createElement('button'); n.className = 'chip dog none'; n.dataset.k = key; n.dataset.v = 'none'; n.textContent = '없음';
+      box.appendChild(n);
+    }
+    DOGS.forEach(function (d) {
+      var b = document.createElement('button'); b.className = 'chip dog'; b.dataset.k = key; b.dataset.v = d[0];
+      var im = document.createElement('img'); im.src = dogSrc(d[0]); im.alt = '';
+      b.appendChild(im); b.appendChild(document.createTextNode(d[1]));
+      box.appendChild(b);
+    });
+  }
+  dogChips('hostDogs', 'host', false);
+  dogChips('guestDogs', 'guest', true);
+  function syncChips() {
+    document.querySelectorAll('.chip').forEach(function (b) { b.setAttribute('aria-pressed', String(st[b.dataset.k] === b.dataset.v)); });
+  }
+  document.querySelector('.ctrl').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    var k = b.dataset.k, v = b.dataset.v;
+    if (st[k] === v) return;
+    st[k] = v; save(); syncChips();
+    if (k === 'layout') placeDogs();
+    if (k === 'guest' && v !== 'none') { var L = LAYOUTS[st.layout]; guest = makeDog(L.guest, true, 2.1); guest.rest = 4; }
+    render(); kick();
+  });
+  setInterval(function () { if (st.win === 'now' && baseKey && baseKey.split('|')[1] !== windowName()) { render(); } }, 60000);   // 지금 시각대로면 낮·밤이 바뀔 때
+
+  syncChips();
+  fit(); placeDogs();
+  var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { fit(); render(); }, 120); });
+  ready.then(function () { fit(); baseKey = ''; render(); kick(); });
+})();
+</script>
+</body>
+</html>
