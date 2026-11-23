@@ -127,7 +127,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="backup.js?v=9"></script>
-<script src="cloud-backup.js?v=2"></script>
+<script src="cloud-backup.js?v=3"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="sample-data.js?v=6"></script>
 <script src="dog-tags.js?v=1"></script>
@@ -256,8 +256,8 @@
       <button type="button" class="theme-opt" id="cl-start" style="width:100%;"><span class="name">서버에 백업하기</span><span class="desc">무엇을 보내는지 먼저 보여 드려요</span></button>
       <div id="cl-consent" hidden style="margin-top:12px;">
         <ul class="cl-list">
-          <li><b>보내는 것</b>: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·남긴 답·특이 사항), 앱 설정</li>
-          <li><b>보내지 않는 것</b>: 걸은 길·좌표·발도장 장소·내 핀 같은 위치, 사진, 이름·전화번호. 그래서 되찾으면 발도장 장소 기록은 비어요.</li>
+          <li><b>보내는 것</b>: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·남긴 답·특이 사항), 산책마다 받은 발도장 장소, 앱 설정</li>
+          <li><b>보내지 않는 것</b>: 걸은 길·실제 좌표·내 핀·가게 방문 도장, 사진, 이름·전화번호</li>
           <li><b>왜</b>: 폰을 바꾸거나 기록이 지워졌을 때 되찾기 위해서</li>
           <li><b>어떻게</b>: 이 휴대폰에서 복구 코드로 잠가서 보내요. 서버에서는 운영자도 내용을 읽을 수 없어요.</li>
           <li><b>어디에</b>: Supabase(서울 지역 서버)에 맡겨요(처리 위탁).</li>
@@ -674,7 +674,7 @@
     if (!raw) return;
     busy('찾는 중…');
     C.fetchByCode(raw).then(function (r) {
-      if (!confirm((r.at ? r.at.slice(0, 10) + '에 맡긴 ' : '') + '백업이에요' + (r.name ? ' (' + r.name + ')' : '') + '.\n산책 ' + r.walks + '개를 되찾을까요?\n(사진·발도장 장소는 서버에 없어서 비어요)')) { busy(''); return; }
+      if (!confirm((r.at ? r.at.slice(0, 10) + '에 맡긴 ' : '') + '백업이에요' + (r.name ? ' (' + r.name + ')' : '') + '.\n산책 ' + r.walks + '개를 되찾을까요?\n(사진은 서버에 없어서 비어요)')) { busy(''); return; }
       var mine = WalsonStore.walks(), merge = false;
       if (mine.length && localStorage.getItem('petwalk_sample_mode') !== '1') {
         merge = confirm('이 기기에도 산책 ' + mine.length + '개가 있어요.\n\n확인: 둘을 합치기(겹치는 건 하나로)\n취소: 이 기기 기록을 지우고 백업으로 바꾸기');

@@ -3,9 +3,10 @@
 //   기기 번호로 묶는 백업은 기기 번호도 같이 사라져서 못 쓴다 → 사용자가 따로 보관하는 "복구 코드"로 묶는다. 회원 가입은 없다.
 // 흐름: 사용자가 직접 켠다(동의 화면) → 복구 코드를 만들어 보여 줌 → 기록을 이 휴대폰에서 코드로 잠가(AES-GCM) Supabase에 올림.
 //   켠 뒤엔 화면을 열 때 바뀐 게 있으면 자동으로 다시 올린다(끌 수 있음). 새 폰에선 코드를 넣어 내려받아 푼다.
-// 올리는 것: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·답·특이 사항 — 경로·발도장 판정 점·사진 열쇠 빼고), 키링·꾸준함 등 앱 설정.
-// 올리지 않는 것: 위치(경로·좌표·내 핀·가게 방문 도장·진행 중 산책), 사진, 운영자 토큰, 샘플·통계 대기열, 이 복구 코드.
-//   (위치를 서버에 두면 위치정보법 신고 대상이 될 수 있어 뺀다 — PLATFORM_PLAN 5절. 그래서 되살리면 발도장 장소 기록은 빈다.)
+// 올리는 것: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·답·특이 사항), 산책마다 발도장을 받은 장소(지도에 공개된 발도장 장소의 가운데 점 —
+//   backup.js 옮기기 주소와 같은 방식, 걸은 길·실제 좌표는 아님), 키링·꾸준함 등 앱 설정.
+// 올리지 않는 것: 걸은 길·실제 좌표·내 핀·가게 방문 도장·진행 중 산책, 사진, 운영자 토큰, 샘플·통계 대기열, 이 복구 코드.
+//   발도장 장소: 2026-11-23 위치정보지원센터에 가르시아가 물어봄 — "폰에서 잠가 운영자가 못 푸는, 이름·연락처 없는 백업이면 신고 필요 없다".
 // 받는 곳: site-config.js cloudBackup { url, anonKey } — 비어 있으면 이 기능은 화면에 안 보이고 아무것도 보내지 않는다.
 // 서버 쪽: docs/supabase-backup.sql(함수 셋 — 넣기·꺼내기·지우기, 표는 직접 못 읽음).
 (function () {
@@ -60,9 +61,22 @@
       if (/^(petwalk_|walson_)/.test(k) && !SKIP.test(k)) data[k] = localStorage.getItem(k);
     }
     if (data.petwalk_walks) {
+      // 발도장 장소를 알아야 하므로 장소 목록(reward-rules.js)이 없는 화면에서는 올리지 않는다(발도장 없는 백업으로 덮어쓰지 않게)
+      var places = window.RewardRules && RewardRules.PLACES;
+      if (!places || !places.length) return null;
       try {
         data.petwalk_walks = JSON.stringify((JSON.parse(data.petwalk_walks) || []).map(function (w) {
           var o = {}; Object.keys(w || {}).forEach(function (f) { if (f !== 'route' && f !== 'stampRoute' && f !== 'photoKey') o[f] = w[f]; });
+          // 걸은 점 대신 '받은 발도장 장소의 가운데 점'만(되살리면 reward-rules.js가 같은 발도장으로 판정한다)
+          var hit = [];
+          (w && (w.stampRoute || w.route) || []).forEach(function (pt) {
+            places.forEach(function (pl) {
+              if (pl.pending || !pl.center || hit.indexOf(pl) >= 0) return;
+              var dLat = (pt[0] - pl.center[0]) * 111.32, dLng = (pt[1] - pl.center[1]) * 111.32 * Math.cos(pl.center[0] * Math.PI / 180);
+              if (Math.sqrt(dLat * dLat + dLng * dLng) <= pl.radiusKm) hit.push(pl);
+            });
+          });
+          if (hit.length) o.stampRoute = hit.map(function (pl) { return [pl.center[0], pl.center[1]]; });
           return o;
         }));
       } catch (e) { delete data.petwalk_walks; }
@@ -91,7 +105,9 @@
 
   function upload(code) {
     if (localStorage.getItem('petwalk_sample_mode') === '1') return Promise.reject(new Error('샘플 기록을 보는 중이라 백업하지 않았어요. 샘플을 끄고 다시 해 주세요.'));
-    var data = payload(), sum = summaryOf(data);
+    var data = payload();
+    if (!data) return Promise.reject(new Error('잠시 뒤 다시 해 주세요(발도장 장소를 아직 못 읽었어요).'));
+    var sum = summaryOf(data);
     var obj = { app: 'walson', kind: 'cloud', v: 1, at: new Date().toISOString(), data: data };
     return Promise.all([idOf(code), lock(code, JSON.stringify(obj))]).then(function (a) {
       return rpc('walson_backup_save', { p_id: a[0], p_data: a[1] });
@@ -157,7 +173,8 @@
       if (localStorage.getItem('petwalk_sample_mode') === '1') return;
       var last = Number(sessionStorage.getItem('walson_cloud_try') || 0);
       if (Date.now() - last < 10 * 60 * 1000) return;
-      if (summaryOf(payload()) === s.sum) return;
+      var pl = payload();
+      if (!pl || summaryOf(pl) === s.sum) return;
       try { sessionStorage.setItem('walson_cloud_try', String(Date.now())); } catch (e) { /* 그대로 */ }
       upload(s.code).catch(function () { /* 다음에 다시 */ });
     }
