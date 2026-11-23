@@ -21,20 +21,20 @@
   canvas { width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
 </style>
 <script src="../../site-config.js?v=10"></script>
-<script src="../../walk-receipt.js?v=8"></script>
+<script src="../../walk-receipt.js?v=9"></script>
 <script src="../../canvas-view.js?v=1"></script>
 <script src="drafts.js"></script>
 </head>
 <body>
 <h1>영수증 개편 시안</h1>
-<p>지금 영수증과 시안 셋을 같은 산책(지어낸 기록)으로 그려요. 내 강아지 사진을 골라도 이 휴대폰 안에서만 그려요.</p>
+<p>11/23 가르시아가 시안 2를 골라 앱에 넣었어요(숫자 크게, 분·km 작게). 맨 앞이 지금 앱 영수증이에요. 시안 셋은 같은 산책(지어낸 기록)으로 그려요. 내 강아지 사진을 골라도 이 휴대폰 안에서만 그려요.</p>
 <div class="tools">
   <label>내 사진으로 보기<input type="file" id="pick" accept="image/*" hidden></label>
   <button type="button" id="time">시간만 잰 산책</button>
   <input type="text" id="note" maxlength="28" placeholder="특이 사항 바꿔 보기">
 </div>
 <div class="grid">
-  <figure><figcaption>지금</figcaption><canvas id="cur"></canvas></figure>
+  <figure><figcaption>지금 앱 (11/23 시안 2 + 숫자 크게·단위 작게)</figcaption><canvas id="cur"></canvas></figure>
   <figure><figcaption>시안 1 · 정리한 영수증</figcaption><canvas id="a"></canvas></figure>
   <figure><figcaption>시안 2 · 사진이 주인공</figcaption><canvas id="b"></canvas></figure>
   <figure><figcaption>시안 3 · 젤리 핑크 카드</figcaption><canvas id="c"></canvas></figure>
