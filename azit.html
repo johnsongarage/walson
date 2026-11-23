@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 아지트</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="왈슨">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* [아지트] 탭 — 산책 아지트(2026-11-23 개방명록 2단계, 가르시아 "아지트는 탭 하나 더 두던가 해야 할 거야" → "2단계로 가자").
+     시안 azit-sian-b.html(모서리 뷰 미니룸, 11/22~23)을 앱 화면으로 옮겼다:
+     - 내 방 = 이 휴대폰 산책 기록으로 생긴 소품(azit-room.js — 첫 산책 뼈다귀, 산책 러버 등급 액자, 발도장 엽서, 가게 QR 방석, 꾸준함 트로피 …).
+       포인트로 사는 상점 X. 소품은 끌어서 옮기고, 눌러서 넣고 빼고, 고른 것은 이 휴대폰에만(petwalk_azit).
+     - 만난 친구 줄 = 진짜 도감(petwalk_dex). 단짝이 그 자리에서 띄운 화면 QR에 실려 온 방 모습(r)으로 그 친구 방에 마실 —
+       방 모습이 없으면(발자국·예전에 넣은 단짝) 그 친구 강아지만 서 있는 빈 방 + 어떻게 열리는지 안내.
+     - 킁킁 방명록 = 도감에 쌓인 만난 날 기록(받은 한마디·단짝 만남·발자국). 직접 쓰는 글 X(한마디는 고르기만 — 11/23).
+       내 방 바닥에는 최근에 만난 친구 발자국이 그 친구 털색으로 찍힌다.
+     - 시안에서 뺀 것: 강아지 도트 굵기 고르기(원본 하나로), 직접 쓰는 한마디 칸, 예시 친구 7명.
+     색은 모두 화면 색 변수(theme.js) — 방 그림·소품·벽지 견본만 그림 색. */
+  @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-display: swap; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink); background-color: var(--bg);
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 0; }
+  .px { font-family: 'DungGeunMo', 'Galmuri11', monospace; font-weight: normal; font-synthesis: none; }
+  .wrap { max-width: 470px; margin: 0 auto; }
+
+  /* 홈 틀 */
+  .shell { background: var(--panel); border: 3px solid var(--line); box-shadow: 5px 5px 0 var(--line); padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .pbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
+    padding: 6px 9px; background: var(--panel); font-size: 13px; }
+  .pbar label { display: flex; align-items: center; gap: 6px; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
+  .pbar select { font: inherit; font-size: 13px; border: 2px solid var(--line); background: var(--accent-tint); color: var(--ink); padding: 3px 4px;
+    flex: 0 1 150px; min-width: 0; max-width: 150px; }
+  .pbar select:disabled { opacity: .5; }
+  .count { flex: none; background: var(--accent-tint); border: 2px solid var(--line); padding: 3px 7px; white-space: nowrap; }
+  .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .head-txt { min-width: 0; }
+  .title { font-size: 19px; color: var(--accent); margin: 0; line-height: 1.25; word-break: keep-all; }
+  .sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; word-break: keep-all; }
+  .pbtn { font: inherit; font-family: 'DungGeunMo', 'Galmuri11', monospace; font-weight: normal; font-synthesis: none; font-size: 13px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; text-align: center;
+    border: 3px solid var(--line); box-shadow: 2px 2px 0 var(--line); padding: 7px 10px; background: var(--panel); color: var(--ink); white-space: nowrap; }
+  .pbtn.main { background: var(--hl); color: var(--hl-ink); }
+  .pbtn:active { transform: translate(2px, 2px); box-shadow: none; }
+  .pbtn[hidden] { display: none; }
+
+  /* 만난 친구 줄 */
+  .friends { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px; margin: -4px -2px 0; }
+  .friends::-webkit-scrollbar { display: none; }
+  .fr { flex: none; width: 60px; font: inherit; font-size: 11px; color: var(--ink); background: var(--panel); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
+    padding: 4px 2px 3px; text-align: center; cursor: pointer; line-height: 1.2; position: relative; }
+  .fr .pic, .dogpick .pic { height: 38px; display: flex; align-items: flex-end; justify-content: center; }
+  .fr img, .dogpick img { height: 100%; width: auto; display: block; }
+  .fr .nm { display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fr .tg { display: block; font-size: 9px; color: var(--ink-soft); margin-top: 1px; }
+  .fr.foot { border-style: dashed; box-shadow: none; }
+  .fr.foot img { opacity: .75; }
+  .fr[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl), 2px 2px 0 var(--line); }
+  .fr.me .nm { color: var(--accent); }
+  .fr-hint { font-size: 12px; color: var(--ink-soft); margin: -6px 0 0; line-height: 1.5; word-break: keep-all; }
+
+  /* 방 */
+  .stage { position: relative; border: 3px solid var(--line); box-shadow: 3px 3px 0 var(--line); overflow: hidden;
+    background-color: var(--accent-tint);
+    background-image: radial-gradient(rgba(var(--shadow-rgb), .07) 1px, transparent 1.5px); background-size: 12px 12px;
+    display: flex; justify-content: center; padding: 10px 0 6px; user-select: none; -webkit-user-select: none; }
+  .stage::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px;
+    background: radial-gradient(circle at 8px -2px, var(--panel) 7px, transparent 7.5px) 0 0 / 16px 8px repeat-x; }   /* 위 구름 띠 */
+  .roomwrap { position: relative; line-height: 0; }
+  #room { display: block; image-rendering: pixelated; touch-action: none; cursor: pointer; }
+  .sign { position: absolute; left: 8px; top: 14px; max-width: 46%; background: var(--panel); color: var(--ink); border: 2px solid var(--line);
+    padding: 3px 6px; font-size: 11px; line-height: 1.3; z-index: 2; word-break: keep-all; }
+  .bubble { position: absolute; transform: translate(-50%, -100%); background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
+    padding: 3px 7px; font-size: 11px; line-height: 1.3; width: max-content; max-width: 78%; text-align: center; word-break: keep-all;
+    pointer-events: none; z-index: 3; display: flex; align-items: center; gap: 4px; }
+  .bubble[hidden] { display: none; }
+  .bubble .stamp, .gb-list .stamp { display: inline-block; width: 12px; height: 12px; flex: none; color: var(--accent); }
+  .bubble .stamp svg, .gb-list .stamp svg { display: block; width: 100%; height: 100%; }
+  .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
+    padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
+  .closed[hidden] { display: none; }
+  .hint { font-size: 12px; color: var(--ink-soft); text-align: center; margin: -4px 0 0; }
+
+  /* 내 방 꾸미기 */
+  .box { border: 3px solid var(--line); padding: 10px; background: var(--panel); color: var(--ink); }
+  .box[hidden] { display: none; }
+  .box-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; font-size: 13px; margin: 12px 0 8px; }
+  .box-title:first-child { margin-top: 0; }
+  .box-title span { flex: none; }
+  .box-title small { flex: 1 1 150px; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 11px; color: var(--ink-soft); text-align: right; word-break: keep-all; }
+  .dogs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .dogpick { font: inherit; font-size: 11px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 5px 3px 4px; text-align: center; cursor: pointer; line-height: 1.3; }
+  .dogpick[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
+  .tray { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .slot { font: inherit; font-size: 11px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 6px 3px 5px; text-align: center; cursor: pointer; line-height: 1.3; }
+  .slot canvas { display: block; margin: 0 auto 3px; image-rendering: pixelated; height: 30px; width: auto; }
+  .slot[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
+  .slot[disabled] { opacity: .5; cursor: not-allowed; }
+  .slot .why { display: block; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 10px; color: var(--ink-soft); }
+  .accs, .walls { display: flex; gap: 6px; flex-wrap: wrap; }
+  .accs .slot { flex: 1; min-width: 64px; }
+  .walls .slot { flex: 1; min-width: 70px; padding: 8px 3px; }
+
+  /* 킁킁 방명록 */
+  .gb-title { font-size: 14px; color: var(--accent); margin-bottom: 8px; }
+  .gb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .gb-list li { margin: 0; }
+  .gb-row { width: 100%; display: flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; color: var(--ink); text-align: left;
+    background: var(--bg); padding: 6px 8px; border: 0; border-left: 3px solid var(--hl); cursor: pointer; }
+  .gb-row.foot { border-left-style: dashed; border-left-color: var(--ink-soft); }
+  .gb-row .day { flex: none; font-size: 11px; color: var(--ink-soft); min-width: 46px; }
+  .gb-row .who { flex: none; font-family: 'DungGeunMo', 'Galmuri11', monospace; font-synthesis: none; color: var(--accent); }
+  .gb-row .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gb-row .soft { color: var(--ink-soft); }
+  .gb-empty { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
+  .gb-empty[hidden] { display: none; }
+  .more { display: block; margin: 8px auto 0; font: inherit; font-size: 12px; color: var(--ink); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+  .more[hidden] { display: none; }
+
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .acts .pbtn { white-space: normal; line-height: 1.3; padding: 9px 6px; }
+  .foot-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
+  .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h, 58px) + 18px); transform: translateX(-50%); z-index: 1200; max-width: calc(100vw - 32px);
+    background: var(--ink); color: var(--bg); padding: 10px 14px; font-size: 13px; line-height: 1.45; border-radius: 10px; word-break: keep-all; text-align: center;
+    box-shadow: 0 6px 18px rgba(var(--shadow-rgb), .25); }
+</style>
+<script src="store.js?v=2"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="inapp.js?v=4"></script>
+<script src="install.js?v=1"></script>
+<script src="track.js?v=10"></script>
+</head>
+<body>
+<main class="wrap">
+  <div class="shell">
+    <div class="pbar px">
+      <label>오늘 기분 <select id="mood" class="px" aria-label="오늘 기분"></select></label>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div class="head">
+      <div class="head-txt"><div class="title px" id="title" role="heading" aria-level="1"></div><div class="sub" id="sub"></div></div>
+      <button type="button" class="pbtn" id="visit" hidden>마실 가기 ▶</button>
+    </div>
+    <div class="friends px" id="friends" role="group" aria-label="내 아지트와 만난 친구"></div>
+    <p class="fr-hint" id="fr-hint" hidden></p>
+
+    <div class="stage" id="stage">
+      <div class="sign px" id="sign"></div>
+      <div class="roomwrap" id="roomwrap">
+        <canvas id="room" width="184" height="150" role="img" aria-label="모서리에서 내려다본 도트 강아지 방"></canvas>
+        <div class="bubble px" id="bubble" hidden></div>
+      </div>
+      <div class="closed" id="closed" hidden></div>
+    </div>
+    <p class="hint" id="hint"></p>
+
+    <div class="box px" id="mine-box">
+      <div class="box-title"><span>우리 개 도트 강아지</span><small id="dog-note"></small></div>
+      <div class="dogs" id="dogs"></div>
+      <div class="box-title"><span>내 소품</span><small>산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
+      <div class="tray" id="tray"></div>
+      <div class="box-title"><span>머리 위 장식</span><small>등급·꾸준함으로 생겨요</small></div>
+      <div class="accs" id="accs"></div>
+      <div class="box-title"><span>벽지</span></div>
+      <div class="walls" id="walls"></div>
+    </div>
+
+    <div class="box">
+      <div class="gb-title px" id="gb-title">킁킁 방명록</div>
+      <ul class="gb-list" id="gb-list"></ul>
+      <button type="button" class="more" id="gb-more" hidden>더 보기</button>
+      <p class="gb-empty" id="gb-empty" hidden></p>
+    </div>
+
+    <div class="acts" id="acts"></div>
+    <p class="foot-note">아지트는 이 휴대폰에만 있어요. 내 카드(화면 QR)를 그 자리에서 찍은 단짝 휴대폰에는 방 모습 —
+      도트 강아지·벽지·놓은 소품·머리 장식·산책 등급만 가요. 놓은 자리·산책 횟수·장소는 가지 않아요.</p>
+  </div>
+</main>
+
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=11"></script>
+<script src="dex-card.js?v=3"></script>
+<script src="azit-room.js?v=1"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var AZ = window.WalsonAzit, DC = window.WalsonDexCard;
+  var OUT = '#3a2b2e';   // 방 소품·강아지 바깥 테두리(그림 색)
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function batchim(s) { s = String(s); var c = s.charCodeAt(s.length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 > 0; }
+  function ga(s) { return s + (batchim(s) ? '이' : '가'); }
+  function dayLabel(k) { return k ? Number(k.slice(5, 7)) + '월 ' + Number(k.slice(8, 10)) + '일' : ''; }
+  function toast(msg) {
+    var t = el('div', 'toast', msg); t.setAttribute('role', 'status');
+    document.body.appendChild(t); setTimeout(function () { t.parentNode && t.parentNode.removeChild(t); }, 3200);
+  }
+  function msgText(m) { return DC.MSGS[m] ? DC.MSGS[m].t : ''; }
+  function stampEl(m) { var s = el('span', 'stamp'); s.innerHTML = DC.stampSvg(DC.MSGS[m] ? DC.MSGS[m].s : 'paw'); return s; }   // 우리 코드가 만든 그림만
+
+  // ── 모서리 방 모양(시안 B안 그대로) ── 바닥 8×8칸(마름모), 한 칸 = 가로 20 · 세로 10 도트. 벽 높이 56.
+  var CW = 184, CH = 150, N = 8, HW = 56, OX = 92, OY = HW + 8, SLAB = 4;
+  function P(i, j) { return { x: OX + (i - j) * 10, y: OY + (i + j) * 5 }; }            // 바닥 칸 → 그림 위치
+  function unP(x, y) { var a = (x - OX) / 10, b = (y - OY) / 5; return { i: (a + b) / 2, j: (b - a) / 2 }; }
+  // 벽 위 한 점: 오른쪽 벽(side 'R')은 i축, 왼쪽 벽('L')은 j축을 따라 u칸, 바닥에서 h도트 위
+  function W(side, u, h) { var p = side === 'R' ? P(u, 0) : P(0, u); return { x: p.x, y: p.y - h }; }
+
+  // 벽지(방 그림 색) — 이름·순서는 azit-room.js THEMES
+  var ROOM = {
+    jelly: { name: '크림 무늬', paper: '#fbf0dc', paper2: '#f4e5cc', motif: ['#f2a3b5', '#8fc9e8', '#f6c56b', '#a5d6a7'],
+      wains: '#e8b07a', wains2: '#dca36d', stripe: '#cf9058', rail: '#c47e48', cap: '#f6d2a8', floorA: '#d9955a', floorB: '#cd8a50', seam: '#a8663a', slab: '#a9653a', edge: '#6b3f24' },
+    lilac: { name: '라일락', paper: '#f1ebff', paper2: '#e6defb', motif: ['#c6b4f5', '#ffb3cf', '#c6b4f5', '#9fd8ef'],
+      wains: '#fff6f1', wains2: '#f3e6ea', stripe: '#e3cfd8', rail: '#d7b8c7', cap: '#ffffff', floorA: '#f6e9df', floorB: '#efdfd4', seam: '#d6bfb2', slab: '#cdb3a6', edge: '#6b5560' },
+    night: { name: '밤 블랙 핑크', paper: '#2e2636', paper2: '#271f2e', motif: ['#ff4d94', '#ff4d94', '#8a6cff', '#ff4d94'],
+      wains: '#3d3247', wains2: '#352b3e', stripe: '#2b2233', rail: '#ff4d94', cap: '#4a3d56', floorA: '#3a3142', floorB: '#332a3b', seam: '#241d2a', slab: '#221b28', edge: '#120d16' }
+  };
+
+  // 방 바탕(벽·바닥) — 칸마다 어느 면인지 계산해서 칠한다. 벽지마다 한 번만
+  function hex(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
+  var bgCache = {};
+  function roomBg(theme) {
+    if (bgCache[theme]) return bgCache[theme];
+    var T = ROOM[theme] || ROOM.jelly;
+    var c = document.createElement('canvas'); c.width = CW; c.height = CH;
+    var g = c.getContext('2d'), img = g.createImageData(CW, CH), d = img.data, reg = new Int8Array(CW * CH), x, y;
+    var col = new Array(CW * CH);
+    function wallPx(side, u, h) {
+      var paper = side === 'L' ? T.paper : T.paper2, wains = side === 'L' ? T.wains : T.wains2, uu = Math.floor(u * 10);
+      if (h >= HW) return T.cap;
+      if (h < 16) return (uu % 4 === 0) ? T.stripe : wains;                     // 아래 징두리 판(세로 줄)
+      if (h < 18) return T.rail;                                                  // 판 위 몰딩
+      var mx = ((uu % 12) + 12) % 12, my = (h - 18) % 12, k = (Math.floor(uu / 12) + Math.floor((h - 18) / 12)) % 4;
+      if ((mx === 5 && (my === 5 || my === 6)) || (my === 5 && (mx === 4 || mx === 6)) || (my === 6 && mx === 5)) return T.motif[(k + 4) % 4];
+      return paper;
+    }
+    for (y = 0; y < CH; y++) for (x = 0; x < CW; x++) {
+      var q = unP(x + 0.5, y + 0.5), r = 0, cc = null;
+      if (q.i >= 0 && q.j >= 0 && q.i < N && q.j < N) {                            // 바닥
+        r = 1;
+        var plank = Math.floor(q.j * 2), fj = q.j * 2 - plank, fi = (q.i + plank * 1.37) / 2.6;
+        cc = fj < 0.14 ? T.seam : ((fi - Math.floor(fi)) < 0.035 ? T.seam : (plank % 2 ? T.floorA : T.floorB));
+      } else if (x >= OX && x < OX + N * 10) {                                     // 오른쪽 벽
+        var u = (x + 0.5 - OX) / 10, h = Math.floor(OY + u * 5 - (y + 0.5));
+        if (h >= 0 && h < HW + 3) { r = 2; cc = wallPx('R', u, h); }
+      } else if (x < OX && x >= OX - N * 10) {                                     // 왼쪽 벽
+        var u2 = (OX - x - 0.5) / 10, h2 = Math.floor(OY + u2 * 5 - (y + 0.5));
+        if (h2 >= 0 && h2 < HW + 3) { r = 3; cc = wallPx('L', u2, h2); }
+      }
+      if (!r) {                                                                    // 앞쪽 바닥 두께
+        for (var k2 = 1; k2 <= SLAB; k2++) {
+          if (y - k2 < 0) break;
+          var q2 = unP(x + 0.5, y - k2 + 0.5);
+          if (q2.i >= 0 && q2.j >= 0 && q2.i < N && q2.j < N) { r = 4; cc = k2 === SLAB ? T.edge : T.slab; break; }
+        }
+      }
+      reg[y * CW + x] = r; col[y * CW + x] = cc;
+    }
+    // 선: 벽과 바닥이 만나는 줄 · 벽 모서리 줄 · 바깥 테두리
+    function inside(k) { return reg[k] > 0 && reg[k] < 9; }
+    for (y = 0; y < CH; y++) for (x = 0; x < CW; x++) {
+      var idx = y * CW + x, rr = reg[idx];
+      if (rr === 1 && y > 0 && (reg[idx - CW] === 2 || reg[idx - CW] === 3)) col[idx] = T.edge;
+      if ((rr === 2 && x === OX) || (rr === 3 && x === OX - 1)) col[idx] = T.edge;
+      if (rr === 0) {   // 바깥 테두리 — 방 칸(1~4) 바로 옆만(테두리 칸끼리 번지지 않게)
+        var near = (x > 0 && inside(idx - 1)) || (x < CW - 1 && inside(idx + 1)) || (y > 0 && inside(idx - CW)) || (y < CH - 1 && inside(idx + CW));
+        if (near) { reg[idx] = 9; col[idx] = OUT; }
+      }
+    }
+    for (var n = 0; n < CW * CH; n++) if (col[n]) { var v = hex(col[n]); d[n * 4] = v[0]; d[n * 4 + 1] = v[1]; d[n * 4 + 2] = v[2]; d[n * 4 + 3] = 255; }
+    g.putImageData(img, 0, 0);
+    return (bgCache[theme] = c);
+  }
+
+  // ── 도트 소품(글자 지도 → 캔버스, 둘레 자동 테두리) ──
+  var SPR = {
+    frame:   { map: ['yyyyyyyyyy', 'ywwwwwwwwy', 'ywwpwwpwwy', 'ywwwppwwwy', 'ywwppppwwy', 'ywwwwwwwwy', 'yrrrrrrrry', 'yyyyyyyyyy'],
+               col: { y: '#e9b949', w: '#fff8ea', p: '#ff9cc0', r: '#ff5c9d' } },
+    card:    { map: ['cccccccc', 'csssssts', 'csssssss', 'csswwsss', 'cssssggs', 'cgggsggg', 'cccccccc'],
+               col: { c: '#fffaf0', s: '#bfe3ff', t: '#ff5c9d', w: '#ffffff', g: '#7cc47f' } },
+    trophy:  { map: ['gggggggg', 'gHgggggg', 'gHggggdg', '.gggggg.', '..gggg..', '...gg...', '...gg...', '..bbbb..', '.bbbbbb.'],
+               col: { g: '#f5c542', H: '#fff3c4', d: '#d99a2b', b: '#8a5a3c' } },
+    bed:     { map: ['....bbbbbbbbbb....', '..bbBBBBBBBBBBbb..', 'bbBBccccccccccBBbb', 'bBBccccccccccccBBb', 'bBccccccccccccccBb', 'bBBccccccccccccBBb', 'bbBBBBBBBBBBBBBBbb', '.bbbbbbbbbbbbbbbb.', '...bbbbbbbbbbbb...'],
+               col: { b: '#d9a06b', B: '#f2c79a', c: '#fbe6cf' } },
+    bowl:    { map: ['..ffffff..', '.ffffffff.', 'rrrrrrrrrr', '.rRRRRRRr.', '..rrrrrr..'], col: { f: '#b07842', r: '#3f86c4', R: '#7fb6f0' } },
+    bone:    { map: ['ww......ww', 'wwwwwwwwww', 'wwwwwwwwww', 'ww......ww'], col: { w: '#fbf3e6' } },
+    carrot:  { map: ['.....gg', '....g.g', '...oo..', '..ooo..', '.ooo...', 'oo.....'], col: { o: '#f08a3c', g: '#5fb36a' } },
+    ball:    { map: ['.yyyy.', 'yyyyyy', 'oooooo', 'yyyyyy', '.yyyy.'], col: { y: '#ffd23f', o: '#ff7a59' } },
+    plant:   { map: ['..g..g...', '.gg.ggg..', 'gGgggGgg.', '.ggGgggGg', 'gGggGgg..', '..gggg...', '...gg....', '.ttttttt.', '.tTTTTTt.', '.tTTTTTt.', '..ttttt..'],
+               col: { g: '#6fbf73', G: '#3f8f4c', t: '#c9714a', T: '#e08a5e' } },
+    flag:    { map: ['kffffff', 'kfFFFFf', 'kffffff', 'k......', 'k......', 'k......', 'k......', 'kk.....'], col: { k: '#8a6a52', f: '#ff5c9d', F: '#ffffff' } },
+    ribbon:  { map: ['pp.pp', 'ppcpp', 'pp.pp'], col: { p: '#ff5c9d', c: '#b8336a' } },
+    crown:   { map: ['y.y.y', 'yyyyy', 'yryby'], col: { y: '#f5c542', r: '#ff5c9d', b: '#5aa0e6' } },
+    cap:     { map: ['..bbbb..', '.bbwwbb.', 'bbbbbbbbbb'], col: { b: '#5aa0e6', w: '#ffffff' } },
+    // 친구 발자국 — 내 방 바닥에 그 친구 털색으로(색은 그릴 때 바꿔 끼운다)
+    paw:     { map: ['.#.#.', '#...#', '.###.', '.###.'], col: { '#': '#ffffff' } }
+  };
+  var sprCache = {};
+  function sprite(id, dim, tint) {
+    var key = id + (dim ? '-dim' : '') + (tint ? '-' + tint : '');
+    if (sprCache[key]) return sprCache[key];
+    var s = SPR[id], rows = s.map, h = rows.length, w = 0, x, y;
+    rows.forEach(function (r) { w = Math.max(w, r.length); });
+    var c = document.createElement('canvas'); c.width = w + 2; c.height = h + 2;
+    var g = c.getContext('2d');
+    function on(xx, yy) { var r = rows[yy]; return !!(r && s.col[r[xx]]); }
+    for (y = -1; y <= h; y++) for (x = -1; x <= w; x++) {
+      if (on(x, y)) continue;
+      if (on(x + 1, y) || on(x - 1, y) || on(x, y + 1) || on(x, y - 1)) { g.fillStyle = OUT; g.fillRect(x + 1, y + 1, 1, 1); }
+    }
+    for (y = 0; y < h; y++) for (x = 0; x < rows[y].length; x++) {
+      var cc = s.col[rows[y][x]];
+      if (cc) { g.fillStyle = dim ? '#cfc3c8' : (tint || cc); g.fillRect(x + 1, y + 1, 1, 1); }
+    }
+    return (sprCache[key] = c);
+  }
+  // 창문(지금 시각대로 낮·밤) — 벽에 비스듬히 붙는 그림
+  function isNight() { var hr = new Date().getHours(); return hr >= 19 || hr < 6; }
+  function windowSprite(night) {
+    var key = night ? 'win-n' : 'win-d';
+    if (sprCache[key]) return sprCache[key];
+    var c = document.createElement('canvas'); c.width = 16; c.height = 14; var g = c.getContext('2d');
+    g.fillStyle = '#8a5a3c'; g.fillRect(0, 0, 16, 14);
+    g.fillStyle = night ? '#2b2d5c' : '#bfe3ff'; g.fillRect(2, 2, 12, 10);
+    g.fillStyle = night ? '#ffe9a8' : '#ffffff';
+    if (night) { g.fillRect(9, 3, 2, 2); g.fillRect(4, 8, 1, 1); g.fillRect(11, 9, 1, 1); } else { g.fillRect(3, 8, 5, 2); g.fillRect(9, 4, 4, 1); }
+    g.fillStyle = '#8a5a3c'; g.fillRect(7, 2, 2, 10); g.fillRect(2, 6, 12, 2);
+    return (sprCache[key] = c);
+  }
+  // 벽에 붙이기 — 오른쪽 벽은 오른쪽으로 갈수록 반 칸씩 내려가고, 왼쪽 벽은 왼쪽으로 갈수록 내려간다
+  function pixelsOf(spr) {
+    if (spr._px) return spr._px;
+    var sd = spr.getContext('2d').getImageData(0, 0, spr.width, spr.height).data, out = [], x, y;
+    for (y = 0; y < spr.height; y++) for (x = 0; x < spr.width; x++) {
+      var o = (y * spr.width + x) * 4; if (sd[o + 3] < 128) continue;
+      out.push([x, y, 'rgb(' + sd[o] + ',' + sd[o + 1] + ',' + sd[o + 2] + ')']);
+    }
+    return (spr._px = out);
+  }
+  function drawOnWall(g, spr, side, u, h) {
+    var base = W(side, u, h);
+    pixelsOf(spr).forEach(function (q) {
+      var x = q[0], y = q[1];
+      g.fillStyle = q[2];
+      var sx = side === 'R' ? base.x + x : base.x - spr.width + x;
+      var sy = base.y - spr.height + y + (side === 'R' ? Math.floor(x / 2) : Math.floor((spr.width - x) / 2));
+      g.fillRect(sx, sy, 1, 1);
+    });
+  }
+
+  // ── 도트 강아지(받은 그림의 점 그대로 — 시안 B안 '원본') ──
+  // 원래 점 격자로 되돌린 그림(icons/dot-dogs/px, 점 하나 = 한 픽셀)을 지금 화면 픽셀(R)에 맞춰 가장 가까운 점으로 키운다.
+  // 화면 픽셀이 점보다 적을 때(PC 등)만 곱게 줄인다. 점 그림을 못 받으면 받은 그림(webp)을 곱게 줄여서.
+  var DOG_VIS = 32.6, dogSrc = {}, dogCache = {};
+  function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
+  var dogsReady = Promise.all(AZ.DOGS.map(function (d) {
+    return loadImg(AZ.dogPxSrc(d.id)).then(function (im) {
+      if (im && im.naturalWidth) { dogSrc[d.id] = { im: im, px: true }; return null; }
+      return loadImg(AZ.dogSrc(d.id)).then(function (im2) { if (im2 && im2.naturalWidth) dogSrc[d.id] = { im: im2, px: false }; });
+    });
+  }));
+  function smallCopy(src, w, h) {   // 곱게 줄이기 — 한 번에 많이 줄이면 거칠어져서 반씩 줄여 간다
+    var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+    while (sw / 2 >= w * 1.5) {
+      var t = document.createElement('canvas'); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
+      var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(src, 0, 0, t.width, t.height);
+      src = t; sw = t.width; sh = t.height;
+    }
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, w, h);
+    return c;
+  }
+  function dogBitmap(id) {
+    var key = id + '@' + R;
+    if (key in dogCache) return dogCache[key];
+    var s = dogSrc[id];
+    if (!s) return null;
+    var im = s.im, hd = Math.round(DOG_VIS * R), wd = Math.round(im.naturalWidth * hd / im.naturalHeight), c;
+    if (s.px && hd >= im.naturalHeight) {
+      c = document.createElement('canvas'); c.width = wd; c.height = hd;
+      var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hd);
+    } else c = smallCopy(im, wd, hd);
+    return (dogCache[key] = c);
+  }
+  // 바닥 (px, py)에 발을 딛고 서 있는 강아지 — 걸으면 한 칸씩 통통, 쉴 땐 가끔 한 번. 발밑에 그림자(칸으로)
+  function drawDog(d, dogId, px, py) {
+    var b = dogBitmap(dogId);
+    if (!b) return py - DOG_VIS;
+    var hop = (d.frame === 1 || d.frame === 3) ? 1 : 0;
+    var w = b.width / R, h = b.height / R;
+    var x = Math.round((px - w / 2) * R) / R, top = Math.round((py - h + 1) * R) / R - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
+    ctx.fillStyle = 'rgba(42, 32, 38, 0.18)';
+    var sw = Math.max(6, Math.round(w * 0.66)), sx = Math.round(px - sw / 2), sy = Math.round(py);
+    ctx.fillRect(sx + 2, sy - 1, sw - 4, 1); ctx.fillRect(sx, sy, sw, 2); ctx.fillRect(sx + 2, sy + 2, sw - 4, 1);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(b, x, top, w, h);
+    ctx.restore();
+    return top;
+  }
+
+  // ── 내 기록 · 만난 친구 ──
+  var profile = WalsonStore.profile() || {};
+  var myName = profile.name ? String(profile.name).slice(0, 12) : '';
+  var state = AZ.loadState(), prog = AZ.progress();
+  function byLast(a, b) { return (b.last || '') < (a.last || '') ? -1 : (b.last || '') > (a.last || '') ? 1 : 0; }
+  var friends = WalsonStore.dex().filter(function (e) {
+    return e && /^[a-z0-9]{8}$/.test(e.i) && typeof e.n === 'string' && e.n.trim();
+  });
+  // 샘플 모드(견주에게 보여 줄 때 — sample-data.js)면 예시 친구를 더 보여 준다. 도감에 저장하지 않고 이 화면에서만
+  // (도감을 샘플로 바꾸면 샘플을 보는 중에 진짜로 찍은 친구가 샘플을 끌 때 같이 지워질 수 있어서). 이름·기록은 시안 B안의 예시(지어낸 것).
+  function ago(n) { var d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  if (WalsonStore.sampleOn()) {
+    var SAMPLE_FRIENDS = [
+      { i: 'sample01', n: '누리', s: 'l', g: 'y', c: '#f0e6d6', pal: 1, room: '6n336ff', roomAt: ago(0), first: ago(4), last: ago(0), days: 2,
+        log: [{ d: ago(4), k: 'l', m: 4 }, { d: ago(0), k: 'l', m: 1 }] },
+      { i: 'sample02', n: '초코', s: 's', g: 'g', c: '#a75c31', pal: 1, room: '1n32bf', roomAt: ago(1), first: ago(1), last: ago(1), days: 1,
+        log: [{ d: ago(1), k: 'l', m: 3 }] },
+      { i: 'sample03', n: '감자', s: 'm', g: 'g', c: '#8a4a1c', first: ago(1), last: ago(1), days: 1, log: [{ d: ago(1), k: 'f' }] },
+      { i: 'sample04', n: '콩이', s: 's', g: 'g', c: '#e8e6df', pal: 1, room: '2l11263', roomAt: ago(2), first: ago(6), last: ago(2), days: 2,
+        log: [{ d: ago(6), k: 'f' }, { d: ago(2), k: 'l', m: 0 }] },
+      { i: 'sample05', n: '몽이', s: 's', g: 'r', c: '#d6a874', pal: 1, room: '4l01d5', roomAt: ago(3), first: ago(3), last: ago(3), days: 1,
+        log: [{ d: ago(3), k: 'l', m: 6 }] },
+      { i: 'sample06', n: '하루', s: 'm', g: 'g', c: '#e2a464', pal: 1, room: '7j21229', roomAt: ago(5), first: ago(5), last: ago(5), days: 1,
+        log: [{ d: ago(5), k: 'l', m: 5 }] }
+    ];
+    var have = {}; friends.forEach(function (e) { have[e.i] = 1; });
+    friends = friends.concat(SAMPLE_FRIENDS.filter(function (e) { return !have[e.i]; }));
+  }
+  friends.sort(byLast);
+  function hexOk(c) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#e8b77a'; }
+  if (!state.dog) { state.dog = AZ.myDog(state, null); state.dogAuto = true; }   // 처음 — 견종 → 크기로 골라 두고 아래에서 털색으로 한 번 더
+  function save() { if (!AZ.saveState(state)) toast('저장하지 못했어요. 저장 공간을 확인해 주세요.'); }
+
+  var view = -1, cur = null;   // view: -1 내 방, 0~ 친구(friends 순서)
+  function meModel() {
+    return { me: true, name: myName || '우리 개', dog: state.dog, theme: state.theme, acc: AZ.accOn(state, prog),
+      level: prog.level, rank: prog.rank, items: AZ.placedItems(state, prog), open: true };
+  }
+  function friendModel(e) {
+    var r = e.room ? AZ.parseRoom(e.room) : null;
+    return { me: false, entry: e, name: e.n.trim(), dog: (r && r.dog) || AZ.guessDog(e.s, e.c), theme: r ? r.theme : 'jelly', acc: r ? r.acc : '',
+      level: r ? r.level : 0, rank: r ? AZ.rankName(r.level) : '', items: r ? r.items : [], open: !!r };
+  }
+  function refreshModel() { cur = view < 0 ? meModel() : friendModel(friends[view]); staticDirty = true; }
+  function posOf(o, it) {
+    var p = o.me ? state.pos[it.id] : null;
+    if (p) return p;
+    return it.wall ? { wall: it.wall, u: it.u, h: it.h } : { i: it.i, j: it.j };
+  }
+
+  // ── 그리기 ──
+  var canvas = $('room'), ctx = canvas.getContext('2d');
+  var K = 2, R = 2;
+  // 방 크기 — 그림은 정수 배 R로 그리고(칸이 흐려지지 않게, 강아지는 이 해상도로 또렷하게), 화면엔 칸 폭에 꽉 차게(모자라거나 남는 몇 %만 가장 가까운 점으로)
+  function fit() {
+    var avail = $('roomwrap').parentElement.clientWidth - 8, dpr = window.devicePixelRatio || 1;
+    if (avail <= 0) return;
+    R = Math.max(1, Math.round(avail * dpr / CW));
+    K = avail / CW;
+    canvas.width = CW * R; canvas.height = CH * R;
+    canvas.style.width = CW * K + 'px'; canvas.style.height = CH * K + 'px';
+  }
+  // 벽·벽 소품·창문·발자국은 바뀔 때만 다시 그려 두고(staticLayer), 바닥 소품·강아지는 앞뒤 순서대로 매번
+  var staticDirty = true, staticLayer = null, staticNight = null, wallHits = [], sprites = [];
+  var host = { i: 4.6, j: 5.2, ti: 4.6, tj: 5.2, flip: false, frame: 0, phase: 0 }, guest = { i: 5.6, j: 6.4, ti: 5.6, tj: 6.4, flip: true, frame: 0, phase: 2.1 };
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
+  function buildStatic() {
+    var o = cur, c = document.createElement('canvas'); c.width = CW; c.height = CH;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(roomBg(o.theme), 0, 0);
+    staticNight = isNight();
+    drawOnWall(g, windowSprite(staticNight), 'L', 2.4, 44);
+    wallHits = [];
+    o.items.forEach(function (id) {
+      var it = AZ.byId(AZ.ITEMS, id); if (!it || !it.wall) return;
+      var p = posOf(o, it), s = sprite(it.spr);
+      drawOnWall(g, s, p.wall, p.u, p.h);
+      var b = W(p.wall, p.u, p.h);
+      wallHits.push({ id: id, x: p.wall === 'R' ? b.x : b.x - s.width, y: b.y - s.height, w: s.width, h: s.height + s.width / 2 });
+    });
+    // 내 방 바닥 — 최근에 만난 친구 발자국(그 친구 털색, 자리는 번호로 정해져 늘 같은 곳)
+    if (o.me) friends.slice(0, 8).forEach(function (e) {
+      var hh = hash(e.i), i = 0.9 + (hh % 997) / 997 * 6.2, j = 0.9 + ((hh >>> 10) % 991) / 991 * 6.2, p = P(i, j), s = sprite('paw', false, hexOk(e.c));
+      g.drawImage(s, Math.round(p.x - s.width / 2), Math.round(p.y - s.height / 2));
+    });
+    staticLayer = c; staticDirty = false;
+  }
+  function render() {
+    var o = cur;
+    if (!o) return;
+    if (staticDirty || !staticLayer || staticNight !== isNight()) buildStatic();
+    ctx.setTransform(R, 0, 0, R, 0, 0);   // 아래는 모두 방 칸 단위로 그린다
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, CW, CH); ctx.drawImage(staticLayer, 0, 0);
+    sprites = wallHits.slice();
+    var things = [];
+    o.items.forEach(function (id) {
+      var it = AZ.byId(AZ.ITEMS, id); if (!it || it.wall) return;
+      var p = posOf(o, it); things.push({ id: id, i: p.i, j: p.j, spr: sprite(it.spr) });
+    });
+    things.push({ dog: host, i: host.i, j: host.j, dogId: o.dog, acc: o.acc });
+    if (view >= 0) { var me = meModel(); things.push({ dog: guest, i: guest.i, j: guest.j, dogId: me.dog, acc: me.acc }); }
+    things.sort(function (a, b) { return (a.i + a.j) - (b.i + b.j); });   // 뒤에서 앞으로
+    things.forEach(function (t) {
+      var p = P(t.i, t.j);
+      if (t.dog) {
+        var top = drawDog(t.dog, t.dogId, p.x, p.y + 1);
+        ctx.imageSmoothingEnabled = false;
+        if (t.acc && SPR[t.acc]) { var a = sprite(t.acc); ctx.drawImage(a, Math.round(p.x - a.width / 2), Math.round(top) + 3 - a.height); }
+        if (t.dog === host) placeBubble(p.x, top + 2);
+        return;
+      }
+      var x = Math.round(p.x - t.spr.width / 2), y = Math.round(p.y - t.spr.height + 1);
+      ctx.drawImage(t.spr, x, y);
+      sprites.push({ id: t.id, x: x, y: y, w: t.spr.width, h: t.spr.height });
+    });
+  }
+  // 말풍선 — 강아지 머리 위, 방 가장자리에 걸리면 방 안쪽으로(폭은 글자가 바뀔 때·크기가 바뀔 때만 잰다)
+  var bubbleW = 0;
+  function measureBubble() { var b = $('bubble'); bubbleW = b.hidden ? 0 : b.offsetWidth; }
+  function placeBubble(x, y) {
+    var b = $('bubble'); if (b.hidden) return;
+    var rw = CW * K, half = bubbleW / 2, left = Math.max(half + 2, Math.min(rw - half - 2, x * K));
+    b.style.left = left + 'px'; b.style.top = (y - 6) * K + 'px';
+  }
+
+  // ── 화면 글자 ──
+  function dogThumb(id) { var im = document.createElement('img'); im.src = AZ.dogSrc(id); im.alt = ''; im.decoding = 'async'; return im; }
+  function friendsRow() {
+    var f = $('friends'); f.innerHTML = '';
+    var all = [{ v: -1 }].concat(friends.map(function (e, n) { return { v: n, e: e }; }));
+    all.forEach(function (x) {
+      var b = el('button', 'fr' + (x.v < 0 ? ' me' : (x.e.pal ? ' pal' : ' foot'))); b.type = 'button';
+      b.setAttribute('aria-pressed', view === x.v ? 'true' : 'false');
+      var m = x.v < 0 ? meModel() : friendModel(x.e);
+      b.setAttribute('aria-label', x.v < 0 ? '내 아지트' : m.name + '네 아지트' + (m.open ? '로 마실' : '') + (x.e.pal ? ' — 단짝' : ' — 발자국'));
+      var pic = el('div', 'pic'); pic.appendChild(dogThumb(m.dog)); b.appendChild(pic);
+      b.appendChild(el('span', 'nm', x.v < 0 ? '내 방' : m.name));
+      if (x.v >= 0) b.appendChild(el('span', 'tg', x.e.pal ? (m.open ? '마실' : '단짝') : '발자국'));
+      b.addEventListener('click', function () { goTo(x.v); });
+      f.appendChild(b);
+    });
+    var open = friends.filter(function (e) { return !!AZ.parseRoom(e.room); }).length, hint = $('fr-hint');
+    if (!friends.length) hint.textContent = '공원에서 만난 강아지와 도감 QR을 찍으면 여기 친구가 생겨요. 그 자리에서 서로 화면 QR을 찍은 단짝의 방에는 마실 갈 수 있어요.';
+    else if (!open) hint.textContent = '단짝과 그 자리에서 서로 화면 QR을 찍으면 그 친구 방 모습이 와서 마실 갈 수 있어요.';
+    else hint.textContent = '';
+    hint.hidden = !hint.textContent;
+    $('visit').hidden = !open;
+  }
+  function nextOpen() {   // 마실 가기 ▶ — 방이 열린 친구만 차례대로, 끝나면 내 방
+    for (var n = view + 1; n < friends.length; n++) if (AZ.parseRoom(friends[n].room)) return n;
+    return -1;
+  }
+  function dogPicker() {
+    var t = $('dogs'); t.innerHTML = '';
+    AZ.DOGS.forEach(function (d) {
+      var b = el('button', 'dogpick'); b.type = 'button';
+      b.setAttribute('aria-pressed', state.dog === d.id ? 'true' : 'false');
+      var pic = el('div', 'pic'); pic.appendChild(dogThumb(d.id)); b.appendChild(pic);
+      b.appendChild(document.createTextNode(d.breed));
+      b.addEventListener('click', function () { state.dog = d.id; state.dogAuto = false; save(); ui(); });
+      t.appendChild(b);
+    });
+    $('dog-note').textContent = state.dogAuto ? '견종·털색으로 골라 뒀어요 — 닮은 강아지로 바꿔 주세요' : '단짝 휴대폰에도 이 강아지로 보여요';
+  }
+  function slotCanvas(sprId, dim) { var s = sprite(sprId, dim), c = s.cloneNode(true); c.getContext('2d').drawImage(s, 0, 0); return c; }
+  function tray() {
+    var t = $('tray'); t.innerHTML = '';
+    AZ.ITEMS.forEach(function (it) {
+      var ok = AZ.met(it.need, prog), on = ok && state.hidden.indexOf(it.id) < 0;
+      var b = el('button', 'slot'); b.type = 'button';
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (!ok) b.disabled = true;
+      b.appendChild(slotCanvas(it.spr, !ok));
+      b.appendChild(document.createTextNode(it.name));
+      b.appendChild(el('span', 'why', AZ.needText(it.need, prog)));
+      b.addEventListener('click', function () {
+        var i = state.hidden.indexOf(it.id);
+        if (i >= 0) state.hidden.splice(i, 1); else state.hidden.push(it.id);
+        save(); refreshModel(); ui();
+      });
+      t.appendChild(b);
+    });
+    var a = $('accs'); a.innerHTML = '';
+    [{ id: '', name: '없음', need: {} }].concat(AZ.ACCS).forEach(function (ac) {
+      var ok = AZ.met(ac.need, prog);
+      var b = el('button', 'slot'); b.type = 'button';
+      b.setAttribute('aria-pressed', AZ.accOn(state, prog) === ac.id ? 'true' : 'false');
+      if (!ok) b.disabled = true;
+      if (ac.id) b.appendChild(slotCanvas(ac.id, !ok));
+      b.appendChild(document.createTextNode(ac.name));
+      if (ac.id) b.appendChild(el('span', 'why', AZ.needText(ac.need, prog)));
+      b.addEventListener('click', function () { state.acc = ac.id; save(); refreshModel(); ui(); });
+      a.appendChild(b);
+    });
+    var wl = $('walls'); wl.innerHTML = '';
+    AZ.THEMES.forEach(function (k) {
+      var b = el('button', 'slot', ROOM[k].name); b.type = 'button';
+      b.style.background = ROOM[k].paper; b.style.color = k === 'night' ? '#ffffff' : '#2a2026';   // 벽지 견본(그림 색) — 글자도 견본에 맞춰
+      b.setAttribute('aria-pressed', state.theme === k ? 'true' : 'false');
+      b.addEventListener('click', function () { state.theme = k; save(); refreshModel(); ui(); });
+      wl.appendChild(b);
+    });
+  }
+  // 방명록 줄 — 도감의 만난 날 기록(log). 11/23 전에 넣은 강아지는 기록이 없어 처음 만난 날 한 줄로
+  function linesOf(e, idx) {
+    var log = Array.isArray(e.log) && e.log.length ? e.log : [{ d: e.first || e.last, k: e.pal ? 'l' : 'f' }];
+    return log.filter(function (x) { return x && /^\d{4}-\d{2}-\d{2}$/.test(x.d || ''); }).map(function (x) {
+      return { d: x.d, k: x.k === 'l' ? 'l' : 'f', m: DC.MSGS[x.m] ? x.m : null, name: e.n.trim(), v: idx };
+    });
+  }
+  var gbShown = 12;
+  function guestbook() {
+    var o = cur, lines = [];
+    if (o.me) friends.forEach(function (e, n) { lines = lines.concat(linesOf(e, n)); });
+    else lines = linesOf(o.entry, view);
+    lines.sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; });
+    $('gb-title').textContent = o.me ? '킁킁 방명록' : ga(o.name) + ' 남긴 것';
+    var list = $('gb-list'); list.innerHTML = '';
+    lines.slice(0, gbShown).forEach(function (x) {
+      var li = el('li'), b = el('button', 'gb-row' + (x.m == null && x.k === 'f' ? ' foot' : '')); b.type = 'button';
+      b.appendChild(el('span', 'day', dayLabel(x.d)));
+      if (o.me) b.appendChild(el('span', 'who', x.name));
+      if (x.m != null) { b.appendChild(stampEl(x.m)); b.appendChild(el('span', 'what', msgText(x.m))); }
+      else b.appendChild(el('span', 'what soft', x.k === 'l' ? '단짝으로 만났어요' : '발자국을 남겼어요'));
+      b.setAttribute('aria-label', dayLabel(x.d) + ' ' + x.name + ' — ' + (x.m != null ? msgText(x.m) : (x.k === 'l' ? '단짝으로 만남' : '발자국')) + (o.me ? ', ' + x.name + '네 아지트로' : ''));
+      b.addEventListener('click', function () { if (o.me) goTo(x.v); });
+      if (!o.me) b.style.cursor = 'default';
+      li.appendChild(b); list.appendChild(li);
+    });
+    $('gb-more').hidden = lines.length <= gbShown;
+    var empty = $('gb-empty');
+    empty.textContent = lines.length ? '' : (o.me ? '아직 비어 있어요. 공원에서 만난 강아지와 도감 QR을 서로 찍으면 받은 한마디와 발자국이 여기 쌓여요.' : '아직 받은 한마디가 없어요.');
+    empty.hidden = !!lines.length;
+  }
+  $('gb-more').addEventListener('click', function () { gbShown += 12; guestbook(); });
+  function lastMsg(e) {
+    var log = Array.isArray(e.log) ? e.log : [];
+    for (var i = log.length - 1; i >= 0; i--) if (log[i] && DC.MSGS[log[i].m]) return log[i].m;
+    return null;
+  }
+  function bubble() {
+    var b = $('bubble'), o = cur; b.innerHTML = '';
+    if (o.me) {
+      var rc = WalsonStore.rewardCard() || {}, RR = window.RewardRules;
+      // 특기는 워킹패스 뒷면 글 — 괄호 속 덧붙임("(방어력: +30)")은 말풍선엔 빼고
+      var skill = rc.skillT && prog.walks >= ((RR && RR.SLOT_RULES && RR.SLOT_RULES.skill) || 1) ? String(rc.skillT).replace(/\s*\([^)]*\)\s*$/, '') : '';
+      var line = state.mood ? '오늘 기분: ' + state.mood : (skill ? '특기: ' + skill : '');
+      if (line) b.appendChild(document.createTextNode(line));
+    } else {
+      var m = lastMsg(o.entry);   // 그 친구가 마지막으로 남긴 한마디(고른 말이라 우리 목록 글자만)
+      if (m != null) { b.appendChild(stampEl(m)); b.appendChild(document.createTextNode(msgText(m))); }
+    }
+    b.hidden = !b.childNodes.length;
+    measureBubble();
+  }
+  function acts() {
+    var a = $('acts'); a.innerHTML = '';
+    function link(text, href, main) { var x = el('a', 'pbtn' + (main ? ' main' : ''), text); x.href = href; a.appendChild(x); }
+    if (myName) link('내 카드 보여 주기', 'dex.html?show=me', true);
+    else link('워킹패스 만들기', 'start.html', true);
+    link('도감 · 상대 QR 찍기', 'dex.html', false);
+  }
+  function ui() {
+    var o = cur;
+    friendsRow();
+    $('title').textContent = o.me && !myName ? '우리 개 산책 아지트' : o.name + '네 산책 아지트';
+    $('sub').textContent = o.me ? (myName ? '내 아지트' : '워킹패스를 만들면 우리 개 이름이 붙어요') : '마실 중 · ' + ga(myName || '우리 개') + ' 손님으로 놀러 왔어요';
+    $('count').textContent = o.me ? '산책 ' + prog.walks + '번' : (o.entry.days || 1) + '번 만남';
+    var ra = o.me ? '' : (o.entry.roomAt || '');
+    $('sign').textContent = o.me ? prog.rank : (o.open ? o.rank + (ra ? ' · ' + Number(ra.slice(5, 7)) + '/' + Number(ra.slice(8, 10)) + ' 모습' : '') : '아직 방 구경 전');
+    var nx = nextOpen();
+    $('visit').textContent = view >= 0 && nx < 0 ? '내 아지트로 ◀' : '마실 가기 ▶';
+    $('mine-box').hidden = !o.me;
+    $('mood').disabled = !o.me;
+    $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 꾹 눌러 끌어요' : '바닥을 누르면 ' + ga(myName || '우리 개') + ' 걸어가요';
+    var closed = $('closed');
+    closed.textContent = o.open ? '' : (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
+      : '그 자리에서 서로 화면 QR을 찍어 단짝이 되면 ' + o.name + '네 방이 열려요.');
+    closed.hidden = o.open;
+    bubble(); guestbook(); acts();
+    if (o.me) { dogPicker(); tray(); }
+    kick();
+  }
+
+  // ── 누르기: 소품이면 끌기(내 방만), 아니면 강아지가 그 바닥 칸으로 ──
+  var drag = null, downAt = null;
+  function at(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / K, y: (e.clientY - r.top) / K }; }
+  canvas.addEventListener('pointerdown', function (e) {
+    var p = at(e); downAt = p; drag = null;   // 지난 끌기가 덜 끝났어도 새로 시작
+    if (view < 0) {
+      for (var n = sprites.length - 1; n >= 0; n--) {
+        var s = sprites[n];
+        if (p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h) {
+          drag = { id: s.id, moved: false };
+          try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
+          e.preventDefault(); kick(); return;
+        }
+      }
+    }
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var p = at(e), it = AZ.byId(AZ.ITEMS, drag.id);
+    if (!it) return;
+    if (it.wall) {
+      var side = p.x >= OX ? 'R' : 'L', u = side === 'R' ? (p.x - OX) / 10 : (OX - p.x) / 10;
+      u = Math.max(0.3, Math.min(N - 1, u));
+      var floorY = OY + u * 5, h = Math.round(floorY - p.y + 6);
+      state.pos[drag.id] = { wall: side, u: Math.round(u * 100) / 100, h: Math.max(26, Math.min(HW - 2, h)) };
+      staticDirty = true;
+    } else {
+      var q = unP(p.x, p.y + 4);
+      state.pos[drag.id] = { i: Math.round(Math.max(0.5, Math.min(N - 0.4, q.i)) * 100) / 100, j: Math.round(Math.max(0.5, Math.min(N - 0.4, q.j)) * 100) / 100 };
+    }
+    drag.moved = true; kick();
+  });
+  canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; });
+  canvas.addEventListener('pointerup', function (e) {
+    if (drag) { if (drag.moved) save(); drag = null; return; }
+    var p = at(e); if (!downAt) return; downAt = null;
+    var q = unP(p.x, p.y);
+    if (q.i < 0 || q.j < 0 || q.i > N || q.j > N) return;              // 바닥 밖(벽)을 누르면 그대로
+    var who = view < 0 ? host : guest;
+    who.ti = Math.max(0.7, Math.min(N - 0.5, q.i)); who.tj = Math.max(0.7, Math.min(N - 0.5, q.j));
+    kick();
+  });
+
+  // ── 움직임 ── 움직일 때만 매 화면, 쉬는 동안은 천천히(배터리) · 다른 앱에 가 있으면 멈춤
+  var raf = 0, idle = 0, last = 0;
+  function moving(d) { var di = d.ti - d.i, dj = d.tj - d.j; return di * di + dj * dj > 0.0025; }
+  function step(ts) {
+    raf = 0;
+    var now = ts / 1000, dt = last ? Math.min(0.05, now - last) : 0; last = now;
+    [host, guest].forEach(function (d) {
+      var di = d.ti - d.i, dj = d.tj - d.j, dist = Math.sqrt(di * di + dj * dj);
+      if (dist > 0.05) {
+        var sp = Math.min(dist, 2.2 * dt);
+        d.i += di / dist * sp; d.j += dj / dist * sp;
+        d.flip = (di - dj) < 0;                     // 화면 왼쪽으로 가면 뒤집기
+        d.frame = Math.floor(now * 6) % 2;
+      } else d.frame = ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;   // 쉴 땐 4초쯤마다 한 번 통통
+    });
+    render();
+    schedule();
+  }
+  function schedule() {
+    if (raf || idle || document.hidden) return;
+    if (moving(host) || (view >= 0 && moving(guest)) || drag) raf = requestAnimationFrame(step);
+    else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
+  }
+  function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (raf) cancelAnimationFrame(raf); if (idle) clearTimeout(idle); raf = 0; idle = 0; last = 0; }
+    else kick();
+  });
+
+  // ── 마실(방이 열린 친구 차례대로 → 다시 내 방) ──
+  function goTo(v) {
+    if (v >= friends.length) v = -1;
+    view = v; gbShown = 12;
+    host.i = host.ti = 3.6; host.j = host.tj = 4.8; host.flip = false;
+    guest.i = guest.ti = 6.2; guest.j = guest.tj = 4.2; guest.flip = true;
+    refreshModel(); ui();
+    var on = document.querySelector('#friends .fr[aria-pressed="true"]');   // 고른 친구가 줄 밖에 있으면 보이게
+    if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  $('visit').addEventListener('click', function () { goTo(nextOpen()); });
+
+  // ── 오늘 기분(이 휴대폰에만, 그날만) ──
+  $('mood').appendChild(new Option('고르기', ''));
+  AZ.MOODS.forEach(function (m) { $('mood').appendChild(new Option(m, m)); });
+  $('mood').value = state.mood;
+  $('mood').addEventListener('change', function () { state.mood = $('mood').value; state.moodDay = state.mood ? AZ.todayKey() : ''; save(); bubble(); });
+
+  // ── 도감에서 "아지트 구경"으로 들어온 경우(#v=번호) ──
+  function fromHash() {
+    var m = /[#&]v=([a-z0-9]{8})/.exec(location.hash);
+    if (!m) return false;
+    for (var n = 0; n < friends.length; n++) if (friends[n].i === m[1]) { goTo(n); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', fromHash);
+
+  // ── 처음 ── 새로 생긴 소품 알려 주기(처음 연 날은 그냥 보이기만)
+  var gotNow = AZ.unlockedItems(prog).concat(AZ.ACCS.filter(function (a) { return AZ.met(a.need, prog); }).map(function (a) { return a.id; }));
+  if (state.seen === null) { state.seen = gotNow; save(); }
+  else {
+    var fresh = gotNow.filter(function (id) { return state.seen.indexOf(id) < 0; });
+    if (fresh.length) {
+      state.seen = state.seen.concat(fresh); save();
+      toast('새로 생겼어요: ' + fresh.map(function (id) { var x = AZ.byId(AZ.ITEMS, id) || AZ.byId(AZ.ACCS, id); return x ? x.name : ''; }).filter(Boolean).join(' · '));
+    }
+  }
+  // 견종을 안 적었으면 프로필 사진 털색으로 한 번 더 골라 둔다(사용자가 고른 뒤엔 그대로)
+  if (state.dogAuto && !AZ.dogFromBreed(profile.breed) && DC.myCard) {
+    DC.myCard().then(function (card) {
+      if (!card || !state.dogAuto) return;
+      var d = AZ.guessDog(profile.size, card.c);
+      if (d && d !== state.dog) { state.dog = d; save(); refreshModel(); ui(); }
+    }).catch(function () { /* 그대로 */ });
+  }
+  save();
+
+  window.addEventListener('resize', function () { fit(); measureBubble(); kick(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureBubble(); kick(); });   // 도트 글꼴이 늦게 오면 폭이 바뀐다
+  fit(); refreshModel();
+  if (!fromHash()) ui();
+  dogsReady.then(function () { dogCache = {}; kick(); });
+  // 시험용 — 지금 보는 방·그리는 배율
+  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, friends: friends.length, me: state.dog }; } };
+})();
+</script>
+<script src="tabbar.js?v=11" data-tab="azit"></script>
+</body>
+</html>

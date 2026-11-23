@@ -109,11 +109,15 @@
   .book .soft { color: var(--ink-soft); font-weight: 600; }
 
 </style>
-<script src="store.js?v=1"></script>
+<script src="store.js?v=2"></script>
 <script src="device.js?v=1"></script>
 <script src="qr-scan.js?v=4"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
-<script src="dex-card.js?v=2"></script>
+<script src="dex-card.js?v=3"></script>
+<!-- 화면 QR에 싣는 내 아지트 방 모습(2026-11-23 개방명록 2단계) — 산책 기록으로 생긴 소품을 세려고 reward-rules.js(앞에 spots-data.js)까지 -->
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=11"></script>
+<script src="azit-room.js?v=1"></script>
 <!-- 사용 통계(2026-11-23 개방명록 1단계): 도감에 넣은 횟수를 QR 종류(화면·키링·지난 캡처)와 처음인지만으로 센다 — 강아지 이름·번호는 안 보냄 -->
 <script src="site-config.js?v=11"></script>
 <script src="track.js?v=10"></script>
@@ -136,7 +140,8 @@
   <div class="count"><b id="dex-count">0</b><span>마리를 만났어요</span></div>
   <div class="grid" id="grid"></div>
   <p class="note">QR에 담기는 것: 강아지 이름 · 크기 · 성향 · 털색(프로필 사진에서 뽑은 색 하나).
-  앱 화면에 띄운 QR에는 띄운 시각과 고른 한마디도 담겨요. 위치 · 사진 · 견주 정보는 담지 않아요.<br>
+  앱 화면에 띄운 QR에는 띄운 시각과 고른 한마디, 내 아지트 방 모습(도트 강아지 · 벽지 · 놓은 소품 · 머리 장식 · 산책 등급)도 담겨요.
+  위치 · 사진 · 견주 정보 · 산책 횟수는 담지 않아요.<br>
   화면 QR을 띄운 지 몇 분 안에 찍으면 단짝, 키링 QR이나 캡처해서 받은 QR은 발자국으로 남아요.
   서로 도감에 넣으려면 둘 다 찍어야 해요. 상대가 나중에 이름을 바꾸면 다시 찍어야 바뀌어요.</p>
 </div>
@@ -174,6 +179,7 @@
     <p class="sub" id="info-sub"></p>
     <!-- 만난 날마다 한 줄(최근이 위) — 받은 한마디 · 단짝 만남 · 발자국 -->
     <ul class="book" id="info-book"></ul>
+    <a class="btn btn-sub" id="info-azit" href="azit.html" style="margin-top:12px;">아지트 구경하기</a>
     <div class="row">
       <button type="button" class="btn btn-sub" id="info-remove">도감에서 빼기</button>
       <button type="button" class="btn btn-main" data-close>닫기</button>
@@ -224,7 +230,9 @@
       // 화면 QR(2026-11-23)이면 띄운 시각(분)·한마디 번호가 더 있다 — 모양이 이상하면 없는 걸로(발자국)
       var t = (typeof o.t === 'number' && o.t > 0 && o.t % 1 === 0) ? o.t : null;
       var m = (typeof o.m === 'number' && DC.MSGS[o.m]) ? o.m : null;
-      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase(), t: t, m: m };
+      // 아지트 방 모습(2026-11-23 2단계) — 몇 글자 모양이 맞을 때만(azit-room.js parseRoom), 아니면 없는 걸로
+      var r = (window.WalsonAzit && WalsonAzit.parseRoom(o.r)) ? o.r : null;
+      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase(), t: t, m: m, r: r };
     } catch (e) { return null; }
   }
   // 한마디 · 도장 그림
@@ -312,7 +320,8 @@
   // ── 내 카드(화면 QR) ── 2026-11-23: 고른 한마디 + 띄운 시각을 담고 30초마다 새로 그린다(캡처는 몇 분 뒤 발자국만).
   // 카드 주소 보내기(키링 신청용)는 예전 그대로 시각 없는 주소 — 키링 뒷면 QR·NFC에 들어가는 주소라서.
   var MSG_KEY = 'petwalk_dex_msg';   // 마지막으로 고른 한마디 번호(다음에 띄울 때 그대로)
-  var liveCard = null, liveTimer = null, pickedMsg = 0;
+  // liveRoom: 내 아지트 방 모습 몇 글자(azit-room.js) — 띄울 때 한 번 세어 QR에 같이 싣는다(그 자리에서 찍은 단짝이 마실 올 때 보이는 방)
+  var liveCard = null, liveTimer = null, pickedMsg = 0, liveRoom = null;
   function savedMsg() {
     var raw = WalsonStore.get(MSG_KEY), v = Number(raw);
     return (raw != null && raw !== '' && DC.MSGS[v]) ? v : 0;
@@ -321,7 +330,7 @@
     var box = $('my-qr');
     if (!liveCard) return;
     if (!window.qrcode) { box.textContent = 'QR을 그리지 못했어요(인터넷 연결 확인).'; return; }
-    var qr = qrcode(0, 'M'); qr.addData(DC.liveUrl(liveCard, pickedMsg)); qr.make();
+    var qr = qrcode(0, 'M'); qr.addData(DC.liveUrl(liveCard, pickedMsg, liveRoom)); qr.make();
     box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
   }
   function drawPick() {
@@ -361,6 +370,7 @@
       whoBlock($('my-who'), card);
       shareUrl = cardUrl(card); shareName = card.n;
       liveCard = card; pickedMsg = savedMsg();
+      liveRoom = window.WalsonAzit ? WalsonAzit.mySnapshot(card.c) : null;   // 못 세면 방 모습 없이(받은 쪽은 빈 방으로)
       $('my-msgs').hidden = true;
       drawPick(); drawLiveQr();
       liveTimer = setInterval(drawLiveQr, 30000);
@@ -401,7 +411,8 @@
       who.appendChild(bub);
     }
     var sub;
-    if (live) sub = (exist && exist.pal ? '단짝이에요. 오늘 만난 걸로 적을까요?' : '그 자리에서 찍은 화면 QR이라 단짝으로 적어요.') + ' 이 휴대폰에만 저장돼요.';
+    if (live) sub = (exist && exist.pal ? '단짝이에요. 오늘 만난 걸로 적을까요?' : '그 자리에서 찍은 화면 QR이라 단짝으로 적어요.') +
+      (dog.r ? ' 방 모습도 같이 와서 아지트에서 마실 갈 수 있어요.' : '') + ' 이 휴대폰에만 저장돼요.';
     else if (kind === 'stale') sub = '띄운 지 몇 분 지난 QR이라 발자국으로만 적어요. 그 자리에서 다시 띄워 달라고 하면 단짝이 되고 한마디도 남아요.';
     else sub = '키링이나 주소로 받은 QR이라 발자국으로 적어요. 상대 화면의 QR을 그 자리에서 찍으면 단짝이 되고 한마디도 남아요.';
     $('add-sub').textContent = sub;
@@ -438,6 +449,8 @@
       list.push(e);
     }
     if (live) e.pal = 1;   // 한 번 단짝이면 계속 단짝
+    // 방 모습은 그 자리에서 찍은 화면 QR에서만 받는다(새로 받으면 새 모습으로) — 날짜만 같이(시각·장소 X)
+    if (live && dog.r) { e.room = dog.r; e.roomAt = today; }
     logMeet(e, today, live ? 'l' : 'f', live ? dog.m : null);
     if (!saveDex(list)) return;
     // 통계: 어떤 QR이었는지와 처음인지만(강아지 이름·번호·한마디는 안 보냄)
@@ -454,6 +467,13 @@
     if (mine && mine.name) { show = el('button', 'btn btn-main', '내 카드 보여 주기'); show.type = 'button'; show.addEventListener('click', showMyCard); }
     else { show = el('a', 'btn btn-main', '우리 개 워킹패스 만들기'); show.href = 'start.html'; }
     row.appendChild(close); row.appendChild(show); acts.appendChild(row);
+    if (live && e.room) acts.appendChild(azitLink(e));
+  }
+  // [아지트] 탭의 그 친구 방으로(방 모습이 없으면 빈 방 + 어떻게 열리는지 안내)
+  function azitLink(d) {
+    var a = el('a', 'btn btn-sub', d.n + '네 아지트 구경하기');
+    a.href = 'azit.html#v=' + d.i; a.style.marginTop = '8px';
+    return a;
   }
 
   // ── 자세히 · 빼기 ──
@@ -476,6 +496,8 @@
       book.appendChild(li);
     });
     book.hidden = !book.children.length;
+    var go = $('info-azit');
+    go.textContent = d.n + '네 아지트 ' + (d.room ? '마실 가기' : '구경하기'); go.href = 'azit.html#v=' + d.i;
     open('info-sheet');
   }
   $('info-remove').addEventListener('click', function () {
@@ -527,6 +549,11 @@
 
   render();
   fromHash();
+  // [아지트] 탭의 "내 카드 보여 주기"로 들어온 경우(?show=me) — 바로 내 카드. 뒤로 가기·새로고침 때 또 뜨지 않게 주소에서 지운다
+  if (/[?&]show=me(&|$)/.test(location.search)) {
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* 무시 */ }
+    if (!/[#&]d=/.test(location.hash)) showMyCard();
+  }
 })();
 </script>
 
