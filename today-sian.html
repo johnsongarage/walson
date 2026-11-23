@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>[오늘] 다시 정리 시안</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* [오늘] 다시 정리 시안(2026-11-23 가르시아 "[오늘] 화면 시안 다시 정리해 봐. 텅 비어 있는 모습이네").
+     11/23 탭 정리로 [오늘] = "오늘 산책하면서 한 것"만 남기자 산책 전에는 오늘 칸 하나만 남아 화면이 비어 보였다.
+     정의는 그대로 두고 '오늘'로 화면을 채운다:
+       ① 오늘 링 — 큰 숫자 대신 목표(크기별 30·60·90분)를 채워 가는 링 + 가운데 강아지 얼굴 + 말풍선(시간대·상태별 한마디, 혼내지 않는 말)
+       ② 오늘의 산책 도장 6칸 — 산책·응가·킁킁·오늘의 한 장·발도장·친구. 산책 전엔 빈칸과 찍히는 법, 다녀오면 찍힘. 매일 새로, 보상 없음
+       ③ 이번 주 7칸 — 월~일 발바닥과 "오늘 나가면 n일째"(8주 도장판은 그대로 [기록])
+       ④ 다음 갈 곳 한 줄 — [동네] 미션(다음 발도장 장소)으로 가는 한 줄
+       ⑤ 오늘 영수증 — 다녀오면 진짜 영수증 미리 보기(walk-receipt.js), 산책 전엔 자리만
+     네 화면: 산책 전 · 산책 중 · 다녀온 뒤(예시 데이터 — 지어낸 날짜, 공원 가운데를 지나는 가짜 직선 길) + 지금 이 휴대폰 기록.
+     메뉴에 없고 주소로만 연다(sian.html 목록). 실제 [오늘](index.html)은 그대로. 화면 색 고르기는 이 시안 안에서만 바꿔 보고 저장하지 않는다.
+     색은 theme.js 변수 + [기록]과 같은 연한 칸·버터 색. 앱과 같은 칸 이름(.panel·.btn-main·.btn-sub·.today-num)이라 theme.js 꾸밈이 그대로 걸린다. */
+  :root {
+    --soft: #ede6e8; --gold-ring: #dcab3f; --butter: #fde8ad; --butter-ink: #5b4300; --paper: #fffaf0; --paper-ink: #2a2420;
+    --pat: none;
+  }
+  @supports (background: color-mix(in srgb, red 50%, blue)) {
+    :root { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); }
+  }
+  html[data-palette="black"] { --soft: #2a2a31; --butter: #3b311c; --butter-ink: #f3d27a; }
+  @supports (background: color-mix(in srgb, red 50%, blue)) {
+    html[data-palette="black"] { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink); }
+  body { padding: 0 0 40px; }
+  [hidden] { display: none !important; }
+
+  /* 위 띠 — 시안 설명 + 화면 색(이 시안 안에서만) */
+  .strip { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px;
+    background: var(--line); color: var(--bg); font-size: 13px; font-weight: 700; }
+  .strip b { font-size: 15px; font-weight: 900; }
+  .strip .pals { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .strip .pals button { font: inherit; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 999px; border: 1.5px solid var(--bg); background: transparent; color: var(--bg); cursor: pointer; }
+  .strip .pals button[aria-pressed="true"] { background: var(--hl); color: var(--hl-ink); border-color: var(--hl); }
+
+  .frames { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px 22px; padding: 22px 12px 8px; }
+  .frame { margin: 0; width: 390px; max-width: 100%; }
+  .frame figcaption { margin: 0 4px 8px; font-size: 15px; font-weight: 900; }
+  .frame figcaption small { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+
+  /* 휴대폰 한 대 — 바탕은 앱처럼 화면 색 + 치와와 무늬 */
+  .phone { position: relative; width: 390px; max-width: 100%; border-radius: 26px; overflow: hidden; padding: 0 16px 24px;
+    background-color: var(--bg); background-image: var(--pat); background-size: 320px 320px; box-shadow: 0 0 0 1.5px var(--panel-border), 0 8px 24px rgba(var(--shadow-rgb), 0.16); }
+  .sbar { display: flex; justify-content: space-between; align-items: center; height: 30px; padding: 0 6px; font-size: 13px; font-weight: 800; }
+  .sbar i { font-style: normal; letter-spacing: 2px; font-size: 11px; color: var(--ink-soft); }
+  /* 첫 화면 끝 — 390×844 휴대폰에서 탭 바(58px) 위까지 보이는 곳. 앱은 위 여백 18px인데 이 시안은 시계 줄(30px)이 더 있어 16px 내려 그었다 */
+  .fold { position: absolute; left: 0; right: 0; top: 802px; z-index: 5; height: 0; border-top: 2px dashed var(--line); pointer-events: none; }
+  .fold span { position: absolute; right: 8px; top: -11px; padding: 2px 8px; border-radius: 999px; background: var(--line); color: var(--bg); font-size: 10.5px; font-weight: 800; }
+  /* 탭 바 흉내(실제로는 화면 아래에 붙어 있다) */
+  .tb { display: flex; height: 58px; margin: 8px -16px -24px; background: var(--panel); border-top: 1.5px solid var(--panel-border); }
+  .tb span { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--ink-soft); position: relative; isolation: isolate; }
+  .tb span.on { color: var(--hl-ink); font-weight: 800; }
+  .tb span.on::before { content: ''; position: absolute; inset: 6px 6px; border-radius: 14px; background: var(--hl); z-index: -1; }
+
+  /* 머리 — [기록]·지금 [오늘]과 같은 머리 */
+  .who { display: flex; align-items: center; gap: 10px; margin: 4px 2px 12px; }
+  .face { flex: none; width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 2.5px solid var(--gold-ring); background: var(--soft); display: flex; align-items: center; justify-content: center; }
+  .face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .face svg { width: 40px; height: 40px; }
+  .who-nm { flex: 1; min-width: 0; }
+  .who-name { display: block; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; }
+  .pill-y { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 7px; background: var(--butter); color: var(--butter-ink); font-size: 12px; font-weight: 700; }
+  .gear { flex: none; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+  .gear svg { width: 25px; height: 25px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px; padding: 16px; margin-bottom: 12px; }
+  .panel > h2 { margin: 0 0 10px; font-size: 15px; font-weight: 800; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .panel > h2 small { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+
+  /* ① 오늘 링 */
+  .hero { padding: 14px 16px 16px; }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+  .hero-top .tod { padding: 2px 9px; border-radius: 999px; background: var(--soft); color: var(--ink); font-size: 12px; }
+  .hero-main { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .ringbox { position: relative; flex: none; width: 164px; height: 164px; }
+  .ringbox svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+  .ring .trk { fill: none; stroke: var(--soft); stroke-width: 14; }
+  .ring .val { fill: none; stroke: var(--hl); stroke-width: 14; stroke-linecap: round; }
+  .ring .edge { fill: none; stroke: var(--line); stroke-width: 2; opacity: 0.85; }
+  .ring .dot { fill: var(--line); }
+  .ring .dot.live { animation: beat 1.2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes beat { 50% { transform: scale(1.6); opacity: 0.6; } }
+  .ringbox .dog { position: absolute; left: 50%; top: 50%; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; overflow: hidden;
+    border: 3px solid var(--gold-ring); background: var(--soft); display: flex; align-items: center; justify-content: center; }
+  .ringbox .dog img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ringbox .dog svg { width: 92px; height: 92px; }
+  .seal-done { position: absolute; right: -10px; top: -4px; width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--line); background: var(--hl); color: var(--hl-ink);
+    display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; font-weight: 900; line-height: 1.15; transform: rotate(12deg); box-shadow: 0 2px 0 var(--line); }
+  .hero-side { flex: 1; min-width: 0; }
+  /* 말풍선 — 강아지가 하는 말(꼬리는 왼쪽 강아지 쪽) */
+  .bubble { position: relative; display: inline-block; padding: 8px 12px; border-radius: 14px; background: var(--butter); color: var(--butter-ink);
+    font-size: 14.5px; font-weight: 800; line-height: 1.35; word-break: keep-all; }
+  .bubble::before { content: ''; position: absolute; left: -8px; top: 50%; margin-top: -8px; border: 8px solid transparent; border-left: 0; border-right-color: var(--butter); }
+  .ring-num { margin-top: 10px; }
+  .ring-num .today-num { font-size: 44px; line-height: 1; }
+  .ring-num .today-num small { font-size: 16px; margin-left: 4px; }
+  .ring-sub { margin: 6px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); word-break: keep-all; }
+  .btn-main { display: block; width: 100%; margin-top: 14px; padding: 15px; border-radius: 999px; text-align: center; text-decoration: none; font-size: 17px; font-weight: 800; }
+  .btn-sub { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin-top: 9px; padding: 10px 8px; border-radius: 16px; border: 2px solid var(--panel-border);
+    background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; font-weight: 800; text-decoration: none; line-height: 1.2; }
+  .btn-sub small { font-size: 11px; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
+  /* 버튼 둘을 한 줄에 — [산책 나가기]가 넓게 */
+  .btn-row { display: grid; grid-template-columns: 1.55fr 1fr; gap: 8px; margin-top: 14px; align-items: stretch; }
+  .btn-row.even { grid-template-columns: 1fr 1fr; }
+  .btn-row .btn-main, .btn-row .btn-sub { margin-top: 0; }
+  .btn-row .btn-main { display: flex; align-items: center; justify-content: center; padding: 12px 8px; }
+
+  /* ② 오늘의 산책 도장 6칸 */
+  .got { list-style: none; margin: 0 0 12px; padding: 9px 12px; border-radius: 12px; background: var(--butter); color: var(--butter-ink); }
+  .got li { font-size: 13.5px; font-weight: 800; line-height: 1.55; word-break: keep-all; }
+  .got li::before { content: '✓ '; }
+  .st-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 6px; }
+  .st { text-align: center; min-width: 0; }
+  .st .sl { width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; border: 2px dashed var(--panel-border); display: flex; align-items: center; justify-content: center;
+    color: var(--ink-soft); background: transparent; }
+  .st .sl svg { width: 28px; height: 28px; opacity: 0.45; }
+  .st.on .sl { border: 2.5px solid var(--line); background: var(--accent-tint); color: var(--ink); transform: rotate(-8deg); box-shadow: 0 2px 0 var(--line); }
+  .st.on .sl svg { opacity: 1; }
+  .st.part .sl { border: 2.5px solid var(--hl); color: var(--ink); }
+  .st.part .sl svg { opacity: 0.9; }
+  .st b { display: block; margin-top: 7px; font-size: 13px; font-weight: 800; }
+  .st small { display: block; margin-top: 1px; font-size: 11px; line-height: 1.35; color: var(--ink-soft); word-break: keep-all; }
+  .st.on small { color: var(--ink); font-weight: 700; }
+  .st-note { margin: 12px 0 0; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+
+  /* ③ 이번 주 7칸 */
+  .wk { display: flex; justify-content: space-between; gap: 4px; }
+  .wk span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+  .wk i { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--panel-border); display: flex; align-items: center; justify-content: center; font-style: normal; }
+  .wk i svg { width: 15px; height: 15px; }
+  .wk .on i { border: none; background: var(--hl); color: var(--hl-ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .wk .today i { border: 2px solid var(--line); }
+  .wk .today { color: var(--ink); font-weight: 900; }
+  .wk-sum { margin: 10px 0 0; font-size: 13px; font-weight: 700; text-align: center; word-break: keep-all; }
+  .wk-sum b { color: var(--ink); }
+
+  /* ④ 다음 갈 곳 한 줄 */
+  .next { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+  .next .pin { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--soft); display: flex; align-items: center; justify-content: center; }
+  .next .pin svg { width: 24px; height: 24px; }
+  .next .tx { flex: 1; min-width: 0; }
+  .next .tx small { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .next .tx b { display: block; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .next .go { flex: none; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+
+  /* ⑤ 오늘 영수증 */
+  .rc { display: flex; gap: 14px; align-items: center; }
+  .rc-img { flex: none; width: 132px; }
+  .rc-img canvas { display: block; width: 132px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.18); }
+  .rc-tx { flex: 1; min-width: 0; }
+  .rc-tx b { display: block; font-size: 16px; font-weight: 900; }
+  .rc-tx small { display: block; margin-top: 4px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; word-break: keep-all; }
+  .rc-tx .btn-main { font-size: 14px; padding: 11px; margin-top: 10px; }
+  /* 산책 전 — 빈 영수증 자리(종이만) */
+  .rc-empty { flex: none; width: 104px; height: 128px; border-radius: 4px; background: var(--paper); transform: rotate(-5deg); position: relative; opacity: 0.75;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--paper-ink); }
+  .rc-empty::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 6px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23fffaf0'/%3E%3C/svg%3E") 0 0 / 10px 6px repeat-x; }
+  .rc-empty i { display: block; width: 64px; height: 6px; border-radius: 3px; background: rgba(42, 36, 32, 0.16); font-style: normal; }
+  .rc-empty i.s { width: 40px; }
+  .rc-empty em { font-style: normal; font-size: 22px; font-weight: 900; opacity: 0.35; }
+
+  /* 시안 설명 */
+  .notes { max-width: 860px; margin: 18px auto 0; padding: 18px 18px 6px; background: var(--panel); border: 1.5px solid var(--panel-border); border-radius: 16px; font-size: 14px; line-height: 1.65; }
+  .notes h2 { margin: 0 0 6px; font-size: 17px; font-weight: 900; }
+  .notes h3 { margin: 14px 0 4px; font-size: 14.5px; font-weight: 900; }
+  .notes ul { margin: 0; padding-left: 20px; }
+  .notes li { margin: 2px 0; word-break: keep-all; }
+  .notes .ex { color: var(--ink-soft); font-size: 12.5px; }
+  @media (max-width: 420px) { .frames { padding: 16px 0 8px; } .phone { border-radius: 0; } }
+</style>
+<script src="store.js?v=1"></script>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=11"></script>
+<script src="canvas-view.js?v=1"></script>
+</head>
+<body>
+<div class="strip" role="note">
+  <span><b>[오늘] 다시 정리 시안</b> · ①~③은 예시 데이터(지어낸 기록), ④는 이 휴대폰 기록 · 실제 [오늘]은 그대로</span>
+  <span class="pals" id="pals" role="group" aria-label="화면 색(이 시안에서만, 저장 안 함)"></span>
+</div>
+
+<main class="frames" id="frames"></main>
+
+<section class="notes" aria-label="시안 설명">
+  <h2>무엇을 바꿨나</h2>
+  <p class="ex">가르시아 "텅 비어 있는 모습이네" — 11/23 탭 정리로 [오늘]엔 오늘 것만 남겼더니, 산책 전엔 오늘 칸 하나만 남았다. 정의(오늘 산책하면서 한 것)는 그대로 두고 '오늘'로 화면을 채웠다.</p>
+  <h3>① 오늘 링 — 큰 숫자 대신</h3>
+  <ul>
+    <li>강아지 크기별 오늘 목표(소 30 · 중 60 · 대 90분)를 링으로 채운다. 가운데 우리 강아지 얼굴, 아래 말풍선.</li>
+    <li>말풍선은 시간대·상태별 한마디 — 아침 "아침 산책 갈까요?", 저녁 "저녁 산책 시간이에요!", 밤 "오늘은 푹 쉬고 내일 가요", 산책 중 "n분째 — 천천히 가요", 달성 "오늘 목표 달성! 고마워요", 덜 채워도 "오늘도 나가 줘서 좋았어요". 혼내는 말은 없음(11/16 원칙).</li>
+    <li>목표를 채우면 링 위에 '달성' 도장.</li>
+  </ul>
+  <h3>② 오늘의 산책 도장 6칸 — 예전 '오늘 한 것' 칩을 늘 보이는 판으로</h3>
+  <ul>
+    <li>산책 · 응가 · 킁킁 · 오늘의 한 장 · 발도장 · 친구. 산책 전엔 빈칸마다 어떻게 찍히는지 한 줄, 다녀오면 찍히고 그날 내용(35분 · 1번 치움 · 다산 중앙공원 …).</li>
+    <li>매일 새로 시작하고 보상은 없다 — "다 못 채워도 괜찮아요". 오늘 생긴 것(승급·처음 발도장·꾸준함 도장)은 판 위 버터색 줄로.</li>
+    <li>친구 칸은 오늘 도감 QR로 만난 강아지(오늘 것만) — 친구 목록·방명록은 그대로 [아지트].</li>
+  </ul>
+  <h3>③ 이번 주 7칸 · ④ 다음 갈 곳 · ⑤ 오늘 영수증</h3>
+  <ul>
+    <li>이번 주 월~일 발바닥 + "오늘 나가면 이번 주 n일째 · 3일 도장!" — 8주 도장판·통계는 그대로 [기록].</li>
+    <li>다음 갈 곳 한 줄 — [동네] 미션의 다음 발도장 장소, 누르면 지도.</li>
+    <li>다녀오면 진짜 오늘 영수증 미리 보기 + [꾸미고 저장]([기록] 그날 일기 창). 산책 전엔 빈 영수증 자리만.</li>
+  </ul>
+  <h3>그대로 · 안 넣은 것</h3>
+  <ul>
+    <li>그대로: 머리·톱니 판, [산책 나가기]·[다녀왔어요], 숫자·그래프는 [기록].</li>
+    <li>안 넣은 것: 날씨(위치를 밖으로 보내야 해서 — 개인정보 원칙상 따로 확인할 일), 어제 요약.</li>
+    <li>모두 이 휴대폰 기록으로만 그리고 어디로도 보내지 않는다.</li>
+  </ul>
+  <h3>정할 것</h3>
+  <ul>
+    <li>도장 6칸 구성 — 친구 칸을 넣을지(아직 만난 강아지가 없으면 늘 빈칸), 킁킁 대신 '충분했어요'를 넣을지.</li>
+    <li>말풍선 말투 — 강아지가 하는 말(반말·존댓말).</li>
+    <li>다음 갈 곳 한 줄을 [오늘]에 둘지([동네]와 겹침).</li>
+  </ul>
+</section>
+
+<script src="walk-photos.js?v=1"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=11"></script>
+<script src="walk-receipt.js?v=10"></script>
+<script>
+(function () {
+  var RR = window.RewardRules;
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  var SIGNAL_LINE = { green: '다가와도 좋아요', yellow: '천천히 인사해요', red: '눈으로만 예뻐해 주세요' };
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dk(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function shortPlace(n) { return String(n || '').replace(/_(상|하|동|서|남|북)$/, '').replace(/_/g, ' '); }
+
+  // ── 화면 색 — 이 시안 안에서만 바꿔 본다(저장 X: WalsonTheme.setPalette는 앱 설정을 바꾸므로 쓰지 않는다) ──
+  var T = window.WalsonTheme, root = document.documentElement;
+  function paintPal(k) {
+    root.setAttribute('data-palette', k);
+    root.style.colorScheme = T.palettes[k].dark ? 'dark' : 'light';
+    root.style.setProperty('--pat', 'url("icons/dog-pattern-' + k + '.svg?v=1")');
+    Array.prototype.forEach.call(document.querySelectorAll('#pals button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-k') === k)); });
+  }
+  if (T && T.palettes) {
+    Object.keys(T.palettes).forEach(function (k) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-k', k); b.textContent = T.palettes[k].label;
+      b.addEventListener('click', function () { paintPal(k); });
+      document.getElementById('pals').appendChild(b);
+    });
+    var q = /[?&]pal=(\w+)/.exec(location.search);
+    paintPal(q && T.palettes[q[1]] ? q[1] : (T.palette || 'jelly'));
+  }
+
+  // ── 그림 ──
+  var PAW = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="5.3" cy="10.3" rx="2.1" ry="2.6" transform="rotate(-25 5.3 10.3)"/><ellipse cx="9.4" cy="5.7" rx="2.2" ry="2.8" transform="rotate(-8 9.4 5.7)"/>' +
+    '<ellipse cx="14.6" cy="5.7" rx="2.2" ry="2.8" transform="rotate(8 14.6 5.7)"/><ellipse cx="18.7" cy="10.3" rx="2.1" ry="2.6" transform="rotate(25 18.7 10.3)"/>' +
+    '<path d="M12 11.2c-2.6 0-4.3 2.4-5.4 4.4-.9 1.6-1.6 2.6-1.6 3.7 0 1.6 1.3 2.7 3 2.7 1.4 0 2.4-.6 4-.6s2.6.6 4 .6c1.7 0 3-1.1 3-2.7 0-1.1-.7-2.1-1.6-3.7-1.1-2-2.8-4.4-5.4-4.4z"/></svg>';
+  var ICON = {
+    walk: PAW,
+    poop: '<svg viewBox="0 0 30 24" fill="currentColor" aria-hidden="true"><path d="M4 22c-3-1-2-5 1-5-1-3 1-6 5-5 0-4 4-6 7-4 2-3 7-2 7 2 3 0 5 3 3 6 3 1 3 5 0 6z"/></svg>',
+    sniff: '<svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12 5.5c-4.7 0-8.3 2.6-8.3 6.3 0 3.2 2.5 5.7 5.4 5.7 1 0 2-.3 2.9-.9.9.6 1.9.9 2.9.9 2.9 0 5.4-2.5 5.4-5.7 0-3.7-3.6-6.3-8.3-6.3zM8.6 12.6a1.5 2 0 1 0 .01 0zm6.8 0a1.5 2 0 1 0 .01 0z"/></svg>',
+    photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8.5 7l1.4-2.6h4.2L15.5 7"/><circle cx="12" cy="13.5" r="3.4"/></svg>',
+    stamp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.2s-6.8-6-6.8-11.4a6.8 6.8 0 0 1 13.6 0c0 5.4-6.8 11.4-6.8 11.4z"/><circle cx="12" cy="9.8" r="2.6"/></svg>',
+    friend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.2-4.5-7.2-10.1A4.1 4.1 0 0 1 12 7.4a4.1 4.1 0 0 1 7.2 2.5C19.2 15.5 12 20 12 20z"/></svg>'
+  };
+  var GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+  // 사진이 없을 때 그림 강아지 — [기록]·[오늘] 머리와 같은 얼굴
+  var PUP = '<svg viewBox="0 0 40 40" aria-hidden="true">' +
+    '<ellipse cx="9.5" cy="17" rx="5.2" ry="9" fill="#c98f55" transform="rotate(22 9.5 17)"/><ellipse cx="30.5" cy="17" rx="5.2" ry="9" fill="#c98f55" transform="rotate(-22 30.5 17)"/>' +
+    '<ellipse cx="20" cy="21.5" rx="11.5" ry="11" fill="#f2cf9b"/><ellipse cx="20" cy="26.5" rx="6.4" ry="4.6" fill="#fff6e6"/>' +
+    '<circle cx="15.2" cy="20" r="1.8" fill="#3a2a20"/><circle cx="24.8" cy="20" r="1.8" fill="#3a2a20"/><circle cx="15.8" cy="19.4" r="0.55" fill="#fff"/><circle cx="25.4" cy="19.4" r="0.55" fill="#fff"/>' +
+    '<ellipse cx="20" cy="24.4" rx="2.2" ry="1.6" fill="#3a2a20"/><path d="M20 26v1.2M17.8 27.4q2.2 1.6 4.4 0" stroke="#3a2a20" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="12.3" cy="24.2" r="1.6" fill="#f7a8b8" opacity="0.7"/><circle cx="27.7" cy="24.2" r="1.6" fill="#f7a8b8" opacity="0.7"/></svg>';
+
+  // ── 예시 데이터(지어낸 것) — "오늘" = 이번 주 목요일(이번 주 줄이 보이게). 길은 공원 가운데를 지나는 가짜 직선(실제 경로 아님) ──
+  var DAY0 = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 3); return d; })();
+  function at(h, m) { var d = new Date(DAY0); d.setHours(h, m, 0, 0); return d; }
+  function day(n) { var d = new Date(DAY0); d.setDate(d.getDate() + n); return dk(d); }
+  var TK = dk(DAY0);
+  function fakeLine(c, seed) { var p = []; for (var k = -8; k <= 8; k++) p.push([c[0] + k * 0.0003 + Math.sin(k + seed) * 0.00008, c[1] + k * 0.0002 + Math.cos(k * 1.3 + seed) * 0.00008]); return p; }
+  function tw(date, min, o) { var w = { date: date, durationMin: min, mode: 'time', rewardEligible: false, route: [] }; for (var k in o || {}) w[k] = o[k]; return w; }
+  // 지난 기록 — 센 산책(5분 이상) 14번: 오늘 산책이 15번째라 프로 산책러로 승급. 이번 주는 월·화에 걸음
+  var PAST = [day(-24), day(-23), day(-21), day(-20), day(-17), day(-16), day(-14), day(-13), day(-11), day(-10), day(-7), day(-6)]
+    .map(function (d, i) { return tw(d, 20 + (i * 7) % 25, i % 4 === 0 ? { poop: 1 } : null); })
+    .concat([tw(day(-3), 30, { feel: 'enough' }), tw(day(-2), 26, { logged: 'after' })]);
+  var CENTRAL = [37.62406, 127.16093];
+  var TODAY_WALK = { date: TK, durationMin: 35, mode: 'gps', distanceKm: 1.4, route: fakeLine(CENTRAL, 3), endedAt: at(18, 43).getTime(),
+    feel: 'enough', sniff: 4, poop: 1, photoKey: '__sian_photo' };
+  TODAY_WALK.stampRoute = TODAY_WALK.route;
+  var DEX = [{ i: 'aaaa1111', n: '보리', s: 'small', g: 'green', c: '#f2cf9b', first: day(-10), last: day(-3), days: 2, pal: true, log: [{ d: day(-3), k: 'l', m: 1 }] }];
+  var PROFILE = { name: '콩이', signal: 'yellow', size: 'small', photo: 'icons/sample-walson.jpg' };
+
+  var FRAMES = [
+    { id: 'before', cap: '① 산책 전', sub: '아침 8:10 · 오늘 아직 안 나감', now: at(8, 10), walks: PAST, active: null, profile: PROFILE, dex: DEX },
+    { id: 'during', cap: '② 산책 중', sub: '저녁 6:20 · 12분째 걷는 중', now: at(18, 20), walks: PAST, active: { startedAt: at(18, 8).getTime() }, profile: PROFILE, dex: DEX },
+    { id: 'after', cap: '③ 다녀온 뒤', sub: '저녁 7:30 · 35분 걸음(목표 30분)', now: at(19, 30), walks: PAST.concat([TODAY_WALK]), active: null, profile: PROFILE, dex: DEX, photo: 'icons/sample-walson.jpg' }
+  ];
+  // ④ 지금 이 휴대폰 기록(진짜) — 이 화면 안에서만 읽고 어디로도 안 보낸다
+  (function () {
+    var walks = (window.WalsonStore && WalsonStore.walks()) || [];
+    walks = walks.filter(function (w) { return w && typeof w.date === 'string'; });
+    var aw = WalsonStore.activeWalk && WalsonStore.activeWalk(), ar = WalsonStore.activeRoute && WalsonStore.activeRoute();
+    var active = aw && aw.startedAt ? aw : (ar && typeof ar.startedAt === 'number' ? ar : null);
+    FRAMES.push({ id: 'mine', cap: '④ 지금 이 휴대폰 기록', sub: '진짜 기록으로 그린 모습(이 화면 안에서만)', now: new Date(), walks: walks, active: active,
+      profile: WalsonStore.profile() || {}, dex: (WalsonStore.dex && WalsonStore.dex()) || [], mine: true });
+  })();
+
+  // ── 한 화면 셈 — 실제 [오늘]과 같은 규칙(reward-rules.js) ──
+  function compute(f) {
+    var tk = dk(f.now), walks = f.walks, todays = walks.filter(function (w) { return w.date === tk; });
+    var goal = RR.dayGoal(walks, tk, null, f.profile.size);
+    var activeMin = f.active ? Math.max(0, Math.floor((f.now.getTime() - f.active.startedAt) / 60000)) : 0;
+    var sum = goal.total, shown = sum + activeMin;
+    var st = RR.steady(walks, f.now).thisWeek;
+    var before = walks.filter(function (w) { return w.date < tk; });
+    var pb = RR.computeProgress(before), pa = RR.computeProgress(walks);
+    // 오늘 생긴 것 — 승급·특기 칸·처음 발도장·꾸준함 도장(실제 [오늘] '오늘 생긴 것'과 같은 셈)
+    var got = todays.length ? RR.newUnlocks(pb, pa).filter(function (t) { return !/발도장을 받았어요$/.test(t); }) : [];
+    var placesToday = [], seen = {};
+    RR.PLACES.forEach(function (pl) {
+      if (pl.pending) return;
+      var isNew = !!(pa.visited[pl.id] && !pb.visited[pl.id]);
+      var hit = isNew || todays.some(function (w) {
+        return w.rewardEligible !== false && (w.stampRoute || w.route || []).some(function (p) { return RR.distanceKm(p, pl.center) <= pl.radiusKm; });
+      });
+      if (!hit) return;
+      var nm = shortPlace(pl.name);
+      if (seen[nm]) return; seen[nm] = true;
+      placesToday.push(nm);
+      if (isNew) got.push(nm + ' 발도장을 처음 받았어요');
+    });
+    var lb = RR.steady(before, f.now).thisWeek.level;
+    if (todays.length && st.level > lb) got.push('이번 주 꾸준함 ' + ['', '3일', '5일', '7일'][st.level] + ' 도장을 받았어요');
+    // 도장 6칸
+    var feel = null, sniff = 0, poopAns = null, poopN = 0, poopMore = false, photo = false;
+    todays.forEach(function (w) {
+      if (w.feel) feel = w.feel;
+      if (w.sniff > sniff) sniff = w.sniff;
+      if (typeof w.poop === 'number') { poopAns = true; poopN += Math.min(2, w.poop); if (w.poop >= 2) poopMore = true; }
+      if (w.photoKey) photo = true;
+    });
+    var friends = [];
+    (f.dex || []).forEach(function (d) {
+      var t = (d.log || []).filter(function (x) { return x && x.d === tk; })[0];
+      if (t) friends.push({ name: d.n || '친구', pal: t.k === 'l' || d.pal });
+    });
+    var stamps = [
+      { id: 'walk', label: '산책', on: sum >= 5, part: !!f.active && sum < 5,
+        detail: f.active && sum < 5 ? activeMin + '분째 걷는 중' : sum + '분' + (goal.reached ? ' · 목표 달성' : ''), hint: '나가면 찍혀요' },
+      { id: 'poop', label: '응가', on: !!poopAns, detail: poopN ? poopN + '번' + (poopMore ? ' 이상' : '') + ' 치움' : '오늘은 안 쌌어요', hint: '끝 화면에서 답하면' },
+      { id: 'sniff', label: '킁킁', on: sniff > 0, detail: '킁킁 지수 ' + sniff, hint: '끝 화면에서 답하면' },
+      { id: 'photo', label: '오늘의 한 장', on: photo, detail: '사진 남김', hint: '끝 화면에서 한 장' },
+      { id: 'stamp', label: '발도장', on: placesToday.length > 0, detail: placesToday.slice(0, 1).join('') + (placesToday.length > 1 ? ' 외 ' + (placesToday.length - 1) : ''), hint: '길 기록하며 공원 지나면' },
+      { id: 'friend', label: '친구', on: friends.length > 0, detail: friends.length ? friends[0].name + (friends.length > 1 ? ' 외 ' + (friends.length - 1) : '') + (friends[0].pal ? ' · 단짝' : '') : '', hint: '공원에서 QR 찍으면' }
+    ];
+    var mission = RR.currentMission(pa), allPlaces = RR.missions(pa);
+    return { tk: tk, todays: todays, goal: goal, sum: sum, shown: shown, activeMin: activeMin, st: st, got: got, stamps: stamps, feel: feel,
+      mission: mission, placesGot: allPlaces.filter(function (m) { return m.done; }).length, placesAll: allPlaces.length };
+  }
+
+  function bubble(f, c) {
+    if (f.active) return c.activeMin + '분째 — 천천히 냄새 맡으며 가요';
+    if (c.todays.length && c.goal.reached) return '오늘 목표 달성! 고마워요';
+    if (c.todays.length) return '오늘도 나가 줘서 좋았어요';
+    var h = f.now.getHours();
+    if (h >= 5 && h < 10) return '아침 산책 갈까요?';
+    if (h >= 10 && h < 16) return '오늘은 언제 나가요?';
+    if (h >= 16 && h < 21) return '저녁 산책 시간이에요!';
+    return '오늘은 푹 쉬고 내일 가요';
+  }
+  function todLabel(h) { return h >= 5 && h < 10 ? '아침' : h >= 10 && h < 16 ? '낮' : h >= 16 && h < 21 ? '저녁' : '밤'; }
+  var SIZE_LABEL = { small: '소형견', medium: '중형견', large: '대형견' };
+
+  function ring(c, live) {
+    var R = 70, C = 2 * Math.PI * R, pct = Math.max(0, Math.min(1, c.goal.target ? c.shown / c.goal.target : 0));
+    var a = pct * 2 * Math.PI, cx = 82 + R * Math.cos(a), cy = 82 + R * Math.sin(a);
+    return '<svg class="ring" viewBox="0 0 164 164" aria-hidden="true"><circle class="trk" cx="82" cy="82" r="' + R + '"/>' +
+      (pct > 0 ? '<circle class="val" cx="82" cy="82" r="' + R + '" stroke-dasharray="' + (C * pct).toFixed(1) + ' ' + C.toFixed(1) + '"/>' : '') +
+      (pct > 0 && pct < 1 ? '<circle class="dot' + (live ? ' live' : '') + '" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="4.5"/>' : '') + '</svg>';
+  }
+
+  function frameHTML(f, i) {
+    var c = compute(f), p = f.profile || {}, now = f.now;
+    var face = p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : PUP;
+    var sig = SIGNAL_LINE[p.signal];
+    var h = '<div class="sbar"><span>' + now.getHours() + ':' + pad2(now.getMinutes()) + '</span><i>●●● ▮</i></div>';
+    h += '<div class="who"><span class="face">' + face + '</span><span class="who-nm"><span class="who-name">' + esc(p.name || '우리 아이') + '</span>' +
+      (sig ? '<span class="pill-y">' + esc(sig) + '</span>' : '') + '</span><span class="gear">' + GEAR + '</span></div>';
+    // ① 오늘 링
+    var reached = c.todays.length && c.goal.reached;
+    h += '<section class="panel hero"><div class="hero-top"><span>오늘 · ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일</span>' +
+      '<span class="tod">' + todLabel(now.getHours()) + '</span></div>' +
+      '<div class="hero-main"><div class="ringbox">' + ring(c, !!f.active) + '<span class="dog">' + face + '</span>' + (reached ? '<span class="seal-done">오늘<br>달성</span>' : '') + '</div>' +
+      '<div class="hero-side"><span class="bubble">' + esc(bubble(f, c)) + '</span>' +
+      '<div class="ring-num"><span class="today-num">' + c.shown + '<small>/ ' + c.goal.target + '분</small></span></div>';
+    var sub = f.active ? '다녀오면 끝 화면에서 오늘 도장을 찍어요'
+      : reached ? (c.sum > c.goal.target ? (c.sum - c.goal.target) + '분 더 걸었어요 · ' : '') + '산책 ' + c.todays.length + '번'
+      : c.todays.length ? '목표까지 ' + c.goal.left + '분 — 더 걸어도, 내일 해도 괜찮아요'
+      : '오늘 목표 · ' + (SIZE_LABEL[p.size] || '중형견') + ' 기준';
+    h += '<p class="ring-sub">' + esc(sub) + '</p></div></div>';
+    if (f.active) h += '<a class="btn-main" href="go.html">산책 화면으로 돌아가기</a>';
+    else if (c.todays.length) h += '<div class="btn-row even"><a class="btn-sub" href="go.html">한 번 더 나가기</a><span class="btn-sub">다녀왔어요<small>몇 분만 적기</small></span></div>';
+    else h += '<div class="btn-row"><a class="btn-main" href="go.html">산책 나가기</a><span class="btn-sub">다녀왔어요<small>몇 분만 적기</small></span></div>';
+    h += '</section>';
+    // ⑤ 오늘 영수증(다녀온 뒤엔 링 바로 아래 — 오늘 가장 큰 결과)
+    var rc = '';
+    if (c.todays.length) {
+      rc = '<section class="panel"><div class="rc"><div class="rc-img"><canvas data-rc="' + i + '" width="1080" height="1350" role="img" aria-label="오늘 영수증 미리 보기"></canvas></div>' +
+        '<div class="rc-tx"><b>오늘 영수증' + (c.todays.length > 1 ? ' ' + c.todays.length + '장' : '') + '</b><small>사진·특이 사항·글자를 꾸며 저장하거나 공유해요</small>' +
+        '<a class="btn-main" href="walk-history.html?day=' + c.tk + '">꾸미고 저장하기</a></div></div></section>';
+    } else {
+      rc = '<section class="panel"><div class="rc"><div class="rc-empty" aria-hidden="true"><em>?</em><i></i><i class="s"></i><i></i></div>' +
+        '<div class="rc-tx"><b>오늘 영수증</b><small>다녀와서 몇 분인지 적거나 산책을 끝내면 오늘 영수증이 여기 나와요.</small></div></div></section>';
+    }
+    if (c.todays.length) h += rc;
+    // ② 오늘의 산책 도장 6칸
+    var on = c.stamps.filter(function (s) { return s.on; }).length;
+    h += '<section class="panel"><h2>오늘의 산책 도장 <small>' + on + ' / 6</small></h2>';
+    if (c.got.length) h += '<ul class="got" aria-label="오늘 생긴 것">' + c.got.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
+    h += '<div class="st-grid">' + c.stamps.map(function (s) {
+      return '<div class="st' + (s.on ? ' on' : s.part ? ' part' : '') + '"><span class="sl">' + ICON[s.id] + '</span><b>' + esc(s.label) + '</b><small>' + esc(s.on || s.part ? s.detail : s.hint) + '</small></div>';
+    }).join('') + '</div><p class="st-note">매일 새로 시작해요 · 다 못 채워도 괜찮아요</p></section>';
+    // ③ 이번 주 7칸
+    var W = ['월', '화', '수', '목', '금', '토', '일'], t = c.st;
+    var walkedToday = !!t.walked[t.todayIndex];
+    var wsum = walkedToday
+      ? '이번 주 <b>' + t.days + '일째</b>' + (t.level ? ' · ' + ['', '3일', '5일', '7일'][t.level] + ' 도장 ✓' : ' · 도장까지 ' + t.left + '일')
+      : '오늘 나가면 이번 주 <b>' + (t.days + 1) + '일째</b>' + (RR.STEADY_STEPS.indexOf(t.days + 1) >= 0 ? ' · ' + (t.days + 1) + '일 도장!' : '');
+    h += '<section class="panel"><h2>이번 주 <small>꾸준함 도장판은 [기록]에</small></h2><div class="wk">' + W.map(function (d, k) {
+      return '<span class="' + (t.walked[k] ? 'on' : '') + (k === t.todayIndex ? ' today' : '') + '"><i>' + (t.walked[k] ? PAW : '') + '</i>' + (k === t.todayIndex ? '오늘' : d) + '</span>';
+    }).join('') + '</div><p class="wk-sum">' + wsum + '</p></section>';
+    // ④ 다음 갈 곳 한 줄
+    if (c.mission) {
+      h += '<section class="panel"><a class="next" href="town.html"><span class="pin">' + ICON.stamp + '</span><span class="tx"><small>다음 갈 곳 · 발도장 ' + c.placesGot + '/' + c.placesAll + '</small>' +
+        '<b>' + esc(shortPlace(c.mission.place.name)) + '</b></span><span class="go">지도 ›</span></a></section>';
+    }
+    if (!c.todays.length) h += rc;
+    return '<figure class="frame" id="f-' + f.id + '"><figcaption>' + esc(f.cap) + '<small>' + esc(f.sub) + '</small></figcaption>' +
+      '<div class="phone">' + h + '<div class="fold" aria-hidden="true"><span>↑ 첫 화면(탭 바 위)</span></div><div class="tb" aria-hidden="true">' +
+      ['동네', '오늘', '기록', '아지트', '워킹패스'].map(function (x) { return '<span class="' + (x === '오늘' ? 'on' : '') + '">' + x + '</span>'; }).join('') +
+      '</div></div></figure>';
+  }
+
+  var frames = document.getElementById('frames');
+  frames.innerHTML = FRAMES.map(frameHTML).join('');
+
+  // ── 오늘 영수증 미리 보기 — 진짜 영수증(walk-receipt.js, 피드 4:5)을 그려 작게(canvas-view.js) ──
+  function loadImage(src) { return new Promise(function (res) { if (!src) return res(null); var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
+  var logoP = loadImage('icons/walson-logo.webp');
+  FRAMES.forEach(function (f, i) {
+    var cv = document.querySelector('canvas[data-rc="' + i + '"]');
+    if (!cv || !window.WalkReceipt) return;
+    var walks = f.walks, c = compute(f), idx = -1;
+    walks.forEach(function (w, j) { if (w.date === c.tk) idx = j; });
+    if (idx < 0) return;
+    var w = walks[idx];
+    var places = RR.PLACES.filter(function (pl) { return !pl.pending; });
+    var hit = 0, fresh = 0, seenBefore = {};
+    walks.slice(0, idx).forEach(function (x) {
+      if (x.rewardEligible === false || x.mode === 'time') return;
+      places.forEach(function (pl) { if ((x.stampRoute || x.route || []).some(function (p) { return RR.distanceKm(p, pl.center) <= pl.radiusKm; })) seenBefore[pl.id] = true; });
+    });
+    if (w.rewardEligible !== false && w.mode !== 'time') places.forEach(function (pl) {
+      if ((w.stampRoute || w.route || []).some(function (p) { return RR.distanceKm(p, pl.center) <= pl.radiusKm; })) { hit++; if (!seenBefore[pl.id]) fresh++; }
+    });
+    var d = { no: idx + 1, date: w.date, demo: !!w.demo, mode: w.mode === 'time' ? 'time' : 'gps', after: w.logged === 'after', durationMin: w.durationMin || 0, distanceKm: w.distanceKm || 0,
+      feel: w.feel, sniff: w.sniff, poop: typeof w.poop === 'number' ? w.poop : undefined, stamps: w.mode === 'time' ? null : { hit: hit, fresh: fresh },
+      steady: { days: c.st.days, got: c.st.level > 0 }, note: f.mine ? '' : '전봇대마다 냄새 정독함', name: (f.profile || {}).name || '', goal: RR.dayGoal(walks, w.date, idx, (f.profile || {}).size) };
+    var photoP = f.photo ? loadImage(f.photo)
+      : (w.photoKey && window.WalkPhotos ? WalkPhotos.get(w.photoKey).then(function (b) { return b ? loadImage(URL.createObjectURL(b)) : null; }).catch(function () { return null; }) : Promise.resolve(null));
+    Promise.all([photoP, logoP, WalkReceipt.ensureFonts(WalkReceipt.textOf(d))]).then(function (a) {
+      var big = document.createElement('canvas');
+      WalkReceipt.draw(big, d, a[0], { fmt: 'feed', logo: a[1], photoY: 0.4, photoX: 0.5, photoZoom: 1 });
+      if (window.WalsonView) WalsonView.show(cv, big); else { cv.width = big.width; cv.height = big.height; cv.getContext('2d').drawImage(big, 0, 0); }
+    });
+  });
+  window.__todaySian = { compute: function (i) { return compute(FRAMES[i]); }, frames: FRAMES.length };   // 시험용
+})();
+</script>
+</body>
+</html>
