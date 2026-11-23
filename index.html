@@ -278,7 +278,7 @@
 <script src="cloud-backup.js?v=3" defer></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
-<script src="quick-set.js?v=3"></script>
+<script src="quick-set.js?v=4"></script>
 <script src="track.js?v=8"></script>
 </head>
 <body>
@@ -384,22 +384,13 @@
 </div>
 
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=7"></script>
+<script src="sample-data.js?v=8"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="receipt-info.js?v=1"></script>
 <script src="walk-receipt.js?v=10"></script>
 <script src="canvas-view.js?v=1"></script>
 <script src="backup.js?v=9"></script>
-<script>
-  // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
-  // 오늘의 한 장 사진이 저장되면 한 번 다시 열어 사진까지 보이게 한다. 시작 화면(2초)이 그동안을 가린다.
-  // 카톡에서 바깥 브라우저로 넘기는 중이거나(그 창엔 남기지 않음) 옮기기 주소로 막 열린 경우(옮겨 담기가 먼저)엔 켜지 않는다
-  var inappBusy = window.WalsonInApp && (WalsonInApp.escaped || WalsonInApp.receiving);
-  if (!inappBusy && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
-    PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('index.html'); });
-  }
-</script>
 <script>
   // 앱 안 브라우저 안내 + 카톡 → 크롬·사파리 옮기기, 그리고 옮기기 주소로 열렸을 때 받기(2026-11-15)
   (function () {
@@ -719,14 +710,20 @@
     });
   }
 
-  // ── 샘플 데이터(11/23 — 버튼은 톱니 판 '시연용'으로 옮김) ──
-  // 판의 "샘플 데이터로 둘러보기"는 index.html?sample=on, 판·탭 위 띠의 "샘플 끄기"는 index.html?sample=off 로 온다
+  // ── 샘플 데이터(11/23 밤 가르시아 "sample 링크로 다 몰아서 버튼 하나만" — 처음 온 사람에게 저절로 켜지 않는다) ──
+  // 켜는 길: 주소 johnsongarage.co.kr/walson/sample(sample/index.html)과 톱니 판 "샘플로 둘러보기" — 둘 다 index.html?sample=on으로 온다.
+  // 끄는 길: 탭 위 띠·톱니 판의 "샘플 끄기" → index.html?sample=off. 켜면 [오늘](링·도장·영수증이 찬 모습)에서 시작한다.
   function sampleOff() {
     if (!confirm('샘플 데이터를 지우고 원래 기록으로 돌아갈까요?\n샘플을 보는 동안 새로 한 산책도 같이 지워져요.')) return;
     PetwalkSample.turnOff().then(function () { location.replace('index.html'); });
   }
   function sampleOn() {
-    if (!confirm('샘플 데이터로 앱을 채울까요?\n지금 기록은 따로 보관했다가, "샘플 끄기"를 누르면 그대로 돌아와요.')) return;
+    // 카톡에서 바깥 브라우저로 넘기는 중이면 그 창(바깥 브라우저)이 같은 주소로 켠다 · 기록 옮기기 주소로 막 열린 때도 켜지 않는다
+    // (아이폰 홈 화면 앱의 기록 가져오기는 막지 않는다 — 샘플을 켠 뒤 가져오면 backup.js가 샘플부터 끈다)
+    if (window.WalsonInApp && (WalsonInApp.escaped || WalsonInApp.receiving)) return;
+    // 내 기록이 없는 휴대폰은 묻지 않고 바로(보관할 게 없다), 있으면 한 번 묻는다
+    if (PetwalkSample.hasOwnRecord() &&
+        !confirm('샘플 데이터로 앱을 채울까요?\n지금 기록은 따로 보관했다가, "샘플 끄기"를 누르면 그대로 돌아와요.')) return;
     PetwalkSample.turnOn().then(function () { location.replace('index.html'); })
       .catch(function (err) { alert('샘플을 넣지 못했어요: ' + err.message); });
   }

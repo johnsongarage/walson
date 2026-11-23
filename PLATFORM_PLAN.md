@@ -103,7 +103,7 @@ _처음 쓴 날: 2026-11-17 (11/16 가르시아 요청으로 예약해 둔 작�
 | `petwalk_infra_filter`·`petwalk_infra_shown`, `walson_receipt_fmt`, `petwalk_toon_name`·`petwalk_toon_eyes`·`petwalk_toon_recent`, `petwalk_dog_size`(예전 값) | 화면 설정·기억 | 아니오 | – |
 | `petwalk_location_explained`·`petwalk_camera_explained` | 한 번 본 안내 | 아니오 | – |
 | `petwalk_imported_at`·`petwalk_moved_at` | 기록을 불러온 날(키링 중복 막기) | 아니오 | 로그인으로 대체 |
-| `petwalk_sample_mode`·`petwalk_sample_backup`·`petwalk_sample_auto_done` | 샘플 보기. backup은 샘플을 켠 동안 진짜 기록 사본 | backup은 **예** | 보내지 않음 |
+| `petwalk_sample_mode`·`petwalk_sample_backup`·`petwalk_sample_auto_done` | 샘플 보기. backup은 샘플을 켠 동안 진짜 기록 사본. auto_done은 11/23 밤부터 안 씀(저절로 켜기 없앰) | backup은 **예** | 보내지 않음 |
 | `walson_device`·`walson_track_consent`·`walson_from_first`·`walson_from_last` | 통계 번호·거부 여부·들어온 길 | 아니오 | 지금도 시트로 감(번호·이벤트만) |
 | `petwalk_admin_token`·`petwalk_spot_draft` | 운영자 GitHub 토큰·스팟 초안 | 초안은 공공 장소뿐 | **절대 보내지 않음**(토큰) |
 | `petwalk_mock_server`·`petwalk_mock_db` | 스친 강아지 시험판(폰 안 가짜 서버) — slots `{date,place,bucket}` | **장소+시간대** | 진짜 서버로 가면 신고 대상(5절) |
@@ -151,7 +151,7 @@ _처음 쓴 날: 2026-11-17 (11/16 가르시아 요청으로 예약해 둔 작�
     설정·한 번 보는 안내 키(위치 사용·화면 켜 두기·안내 표시·응가 캐릭터 이름·눈매·최근 멘트·영수증 꾸미기·시설 거르기·예전 크기·불러온 날),
     샘플 보기 읽기(탭바·다녀왔어요·키링·방문·기록·프로필), 운영자 토큰·스팟 초안, 스친 강아지 시험판 키, 시연 모드 키. 서버·네이티브로 갈 때 핵심 기록만 바꾸면 되고, 이것들은 기기 설정으로 남는다.
 - **`walk-engine.js` → `window.WalkEngine`**: 길 기록 산책의 위치 추적(`watchPosition`·다시 열 때 한 번 읽기)·정확도와 흔들림 거르기·끊김 판정·이어 하기·바로 판정·분석·끝내기 저장·위치 거부 시 시간만으로 넘기기.
-  `walk.html`은 화면(시계·미션 카드·알림 띠·끝내기 두 번·지도·핀·화면 켜 두기·시연 모드 버튼)만 그리고 엔진의 알림(`onState`·`onFix`·`onStamp`·`onNotice`)을 받아 다시 그린다.
+  `walk.html`은 화면(시계·미션 카드·알림 띠·끝내기 두 번·지도·핀·화면 켜 두기 — 시연 모드 켜기는 11/23 밤 톱니 판으로 옮김)만 그리고 엔진의 알림(`onState`·`onFix`·`onStamp`·`onNotice`)을 받아 다시 그린다.
   walk.html 749줄 → 화면 432줄 + 엔진 451줄. 네이티브로 갈 때 위치를 바꾸는 곳은 엔진의 `watchPosition`·`getCurrentPosition` 두 군데(+ 동네 내 위치 `geo.js`).
   시연 모드(`demo-geo.js`가 위치 기능을 가로챔)·위치 거부 시 시간만·시연과 진짜 산책이 엇갈릴 때 묻기는 그대로. 시간만 재는 산책(`go.html`)은 따로 짧게 남아 있다.
 - **`device.js` → `window.WalsonDevice`**: `keepAwake.request()/release()/held()`(화면 켜 두기), `vibrate(pattern, {onlyAfterTap})`, `canShare(data)`·`share(data)`(공유 창), `isMobile()`·`isIOS()`.

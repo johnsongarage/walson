@@ -1,6 +1,11 @@
 // 샘플 데이터로 보기(2026-11-14 가르시아 요청) — 버튼 하나로 앱 전체를 "써 본 상태"로 채운다.
 // 공원에서 견주에게 보여 주거나, 기능을 한눈에 확인할 때 쓴다. 전역 window.PetwalkSample.
 //
+// 켜는 길은 둘뿐이다(2026-11-23 가르시아 "샘플 관련된 건 sample 링크로 다 몰아서 버튼 하나만" — 11/15 "샘플이 기본" 번복):
+//   ① 주소 johnsongarage.co.kr/walson/sample (sample/index.html → index.html?sample=on — [오늘]이 켠다)
+//   ② [오늘]·[기록] 톱니 판의 "샘플로 둘러보기"(같은 주소로 간다)
+// 처음 온 사람에게 저절로 켜지지 않는다. 끄는 길은 탭 위 "샘플 끄기" 띠(tabbar.js)와 톱니 판의 같은 줄.
+//
 // 넣는 것(전부 이 휴대폰 안에만, 서버로 보내지 않음):
 //   - 강아지 프로필: 왈슨(앱 그림 사진·빨강불·주민증 번호)
 //   - 최근 3주 산책 기록: 길 기록 산책(공원 둘레 가짜 경로) + 시간만 잰 산책, 끝 화면 답, 오늘의 한 장 사진
@@ -17,7 +22,7 @@
   var BACKUP = 'petwalk_sample_backup';
   var SPOTS = 'petwalk_sample_spots';    // 예전 샘플 가게 자리 — 이제 쓰지 않고, 남아 있으면 지운다
   // 샘플이 덮어쓰는 열쇠들 — 끌 때 이 값들을 되돌린다
-  // petwalk_azit(11/23): 샘플 동안 연 아지트 설정(왈슨 방·고른 강아지·본 소품)이 진짜 기록에 남지 않게 — 처음 온 사람은 샘플로 시작하니까
+  // petwalk_azit(11/23): 샘플 동안 연 아지트 설정(왈슨 방·고른 강아지·본 소품)이 진짜 기록에 남지 않게
   var KEYS = ['petwalk_walks', 'petwalk_profile', 'petwalk_pins', 'petwalk_reward_card',
               'petwalk_last_walk', 'petwalk_active_walk', 'petwalk_dog_size', 'petwalk_keyring', 'petwalk_azit'];
   var PHOTO_PREFIX = 'sample-';
@@ -137,23 +142,20 @@
     }).catch(function () { /* 사진 없이도 샘플은 그대로 */ });
   }
 
-  // 처음 온 사람(기록·프로필이 없음)은 샘플로 시작한다(2026-11-15 가르시아 "샘플로 보는걸 기본으로").
-  // 한 번 자동으로 켠 뒤(또는 직접 끈 뒤)에는 다시 켜지 않는다.
-  var AUTO = 'petwalk_sample_auto_done';
-  function shouldAutoStart() {
-    // 아이폰 홈 화면 앱을 처음 열어 사파리 기록을 가져오려는 중이면 샘플로 덮지 않는다(install.js, 2026-11-18)
-    if (window.WalsonInstall && WalsonInstall.pendingImport()) return false;
+  // 이 휴대폰에 내 기록이 있는지 — 샘플 주소로 왔을 때 기록이 없으면 묻지 않고 바로 켜고, 있으면 한 번 묻는다(2026-11-23).
+  // 샘플이 덮어쓰는 것(KEYS) 중 사람이 남긴 것만 본다. 강아지 크기(petwalk_dog_size)는 프로필에서 따라오는 값이라 뺀다.
+  // (예전 "처음 온 사람은 샘플로 시작"(11/15)의 shouldAutoStart·autoStart는 11/23에 뺐다)
+  function hasOwnRecord() {
+    if (isOn()) return false;   // 지금 보이는 건 샘플 — 내 기록은 따로 보관돼 있다
     try {
-      if (isOn() || localStorage.getItem(AUTO)) return false;
-      var walks = JSON.parse(localStorage.getItem('petwalk_walks') || '[]');
-      if (walks && walks.length) return false;
-      if (localStorage.getItem('petwalk_profile')) return false;
-      return true;
-    } catch (e) { return false; }
-  }
-  function autoStart() {
-    try { localStorage.setItem(AUTO, '1'); } catch (e) { return Promise.resolve(false); }
-    return turnOn().then(function () { return true; }, function () { return false; });
+      return KEYS.some(function (k) {
+        if (k === 'petwalk_dog_size') return false;
+        var v = localStorage.getItem(k);
+        if (v == null || v === '' || v === 'null') return false;
+        if (v.charAt(0) === '[') { try { return JSON.parse(v).length > 0; } catch (e) { return true; } }
+        return true;
+      });
+    } catch (e) { return true; }   // 모르면 있다고 보고 묻는다
   }
 
   function restoreKeys(backup) {
@@ -194,5 +196,5 @@
     return turnOff().then(function () { return true; }, function () { return true; });
   }
 
-  window.PetwalkSample = { isOn: isOn, turnOn: turnOn, turnOff: turnOff, leaveForRealRecord: leaveForRealRecord, shouldAutoStart: shouldAutoStart, autoStart: autoStart, SPOTS_KEY: SPOTS };
+  window.PetwalkSample = { isOn: isOn, turnOn: turnOn, turnOff: turnOff, leaveForRealRecord: leaveForRealRecord, hasOwnRecord: hasOwnRecord, SPOTS_KEY: SPOTS };
 })();

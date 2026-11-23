@@ -23,7 +23,7 @@
 <script src="qr-scan.js?v=4"></script>
 <script src="demo-geo.js?v=6"></script>
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=7"></script>
+<script src="sample-data.js?v=8"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="walk-screen.css?v=4">
 <style>
@@ -116,11 +116,8 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></svg>
           <span id="keep-screen-label">화면 켜 두기 · 꺼짐</span>
         </button>
-        <!-- 시연 모드(가짜 위치) — 시험·시연용. 데모 산책은 통계로 보내지 않고 키링 조건에서 뺀다(demo-geo.js) -->
-        <button type="button" id="demo-toggle" class="is-tool">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>
-          <span id="demo-toggle-label">시연 모드(가짜 위치) 켜기</span>
-        </button>
+        <!-- 시연 모드(가짜 위치) 켜기는 11/23 밤 [오늘]·[기록] 톱니 판 '시연용'으로 옮겼다(가르시아 "시연 모드도 옮겨", quick-set.js).
+             켜져 있으면 demo-geo.js 배지(배속·경로·끄기)가 이 화면에 그대로 뜬다 -->
       </div>
     </div>
   </header>
@@ -342,18 +339,7 @@
     $('qr-scan-link').addEventListener('click', function () { menuCtl.close(); WalkScreen.scanShop(showWalkNotice); });
   }
 
-  // ── 시연 모드 ──
-  (function () {
-    var t = $('demo-toggle'), label = $('demo-toggle-label');
-    if (!window.PetwalkDemoGeo) { t.hidden = true; return; }
-    label.textContent = E.isDemo() ? '시연 모드 끄기(진짜 위치로)' : '시연 모드(가짜 위치) 켜기';
-    t.addEventListener('click', function () {
-      if (E.state().walking && !confirm('산책 기록 중이에요. 시연 모드를 바꾸면 지금 산책은 저장되지 않아요. 계속할까요?')) return;
-      E.discard();   // 지금 산책은 저장하지 않고 멈춘다 — 진행 중 저장도 지워 다음에 열 때 이어 하지 않게(walk-engine.js discard)
-      // 켜면 가짜 위치로 바로 새 산책(시연하려고 켜는 것이므로), 끄면 산책 나가기로(산책 중이 아닌 화면은 거기)
-      if (E.isDemo()) PetwalkDemoGeo.disable(); else location.replace('walk.html?start=1&demo=1');
-    });
-  })();
+  // ── 시연 모드 ── 켜기는 [오늘]·[기록] 톱니 판 '시연용'(walk.html?start=1&demo=1로 온다, 11/23 밤). 끄기는 demo-geo.js 배지의 [끄기]
 
   // ── 끝내기 ── 두 번 눌러야 끝난다(walk-screen.js). 기록 저장·끝 화면으로 넘기기는 엔진이
   WalkScreen.twoTap($('walk-btn'), '끝내기', function () { E.stop(); });

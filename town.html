@@ -1766,19 +1766,11 @@
 })();
 </script>
 
-<!-- 첫 화면이 [동네](2026-11-16): 처음 온 사람은 샘플로 시작([오늘]과 같은 규칙 — 11/15 "샘플이 기본"), 그리고 [산책] 버튼(walk-fab.js) -->
+<!-- 첫 화면이 [동네](2026-11-16) — [산책] 버튼(walk-fab.js). 샘플은 처음 온 사람에게 저절로 켜지지 않는다(2026-11-23 밤 가르시아,
+     11/15 "샘플이 기본" 번복) — 켜는 길은 주소 sample/와 [오늘]·[기록] 톱니 판 한 줄뿐(sample-data.js 맨 위).
+     sample-data.js는 [다녀왔어요]가 샘플을 보는 중인지 물을 때 쓴다(walk-fab.js) -->
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=7"></script>
-<script>
-  (function () {
-    var inappBusy = window.WalsonInApp && (WalsonInApp.escaped || WalsonInApp.receiving);
-    // 수호견 예시 화면(?guardian_demo=1)은 샘플로 넘어가지 않는다 — 넘어가면 주소의 가게 이름이 사라진다
-    var guardianDemo = /[?&]guardian_demo=1/.test(location.search);
-    if (!inappBusy && !guardianDemo && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
-      PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('town.html'); });
-    }
-  })();
-</script>
+<script src="sample-data.js?v=8"></script>
 <script src="walk-fab.js?v=6"></script>
 </body>
 </html>

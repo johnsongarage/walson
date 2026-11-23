@@ -7,8 +7,12 @@
 //   - 지도 모양 [기본]·[도트]과 길·장소 이름 [끄기]·[켜기](도트 지도일 때만 — 기본 지도엔 이름이 원래 있다). 고른 것은 pixel-map.js가 기억하고 두 화면이 같이 쓴다.
 //   - (app: true일 때 — 2026-11-23 탭 정리, 가르시아 "복잡한 거 다 접어 버리고 싶어") 앱 링크:
 //     강아지 정보·프로필 · 기록 옮기기 · 홈 화면에 추가(둘 수 있을 때만, install.js) · 새 소식 받기(카톡 채널 — site-config.js에 주소가 있을 때만) ·
-//     산책 유형 테스트 · 왈슨 소개·개인정보 안내, 그리고 접힌 '시연용'(샘플 데이터 켜기·끄기 + 화면마다 넘긴 demo 항목).
-//     [오늘] 맨 아래 링크 줄·샘플 버튼과 [기록] 데모 기록 지우기를 여기로 모았다. 샘플 켜기·끄기는 [오늘] 주소(index.html?sample=on|off)가 처리한다.
+//     산책 유형 테스트 · 샘플로 둘러보기(샘플을 보는 중엔 "샘플 끄기") · 왈슨 소개·개인정보 안내,
+//     그리고 접힌 '시연용'(시연 모드(가짜 위치) + 화면마다 넘긴 demo 항목).
+//     [오늘] 맨 아래 링크 줄과 [기록] 데모 기록 지우기를 여기로 모았다.
+//     샘플(11/23 밤 가르시아 "sample 링크로 다 몰아서 버튼 하나만"): 이 줄은 주소 sample/(→ index.html?sample=on)로 가고, 끄기는 index.html?sample=off.
+//     시연 모드(11/23 밤 가르시아 "시연 모드도 옮겨" — 산책 중 메뉴에서 옮김): 켜기 = 가짜 위치로 바로 새 산책(walk.html?start=1&demo=1),
+//     끄기 = 이 창의 시연 표시(demo-geo.js의 sessionStorage)를 지운다.
 // 색은 모두 화면 색 변수라 블랙에서도 그대로 보인다(theme-black.css에 더할 것 없음).
 // 겹침 순서: 판은 10001 — 시연 모드 "가짜 위치" 배지(demo-geo.js 9999)보다 위, 미션 도착 알림(mission-alert.js 12000)보다 아래.
 //
@@ -62,7 +66,8 @@
     '.qs-demo>summary{cursor:pointer;font-size:12px;font-weight:800;color:var(--ink-soft);padding:4px 2px;}' +
     '.qs-dl{display:block;width:100%;margin-top:6px;padding:9px 10px;border:1px dashed var(--ink-soft);border-radius:999px;background:transparent;color:var(--ink-soft);' +
       'font:inherit;font-size:12.5px;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;box-sizing:border-box;}' +
-    '.qs-dl[hidden]{display:none;}';
+    '.qs-dl[hidden]{display:none;}' +
+    '.qs-note{margin:5px 4px 0;font-size:11.5px;font-weight:700;color:var(--ink-soft);text-align:center;word-break:keep-all;}';
   var cssDone = false;
   function addCss() {
     if (cssDone) return; cssDone = true;
@@ -162,19 +167,38 @@
         var ch = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel;
         if (ch) { var ca = link(ch, '새 소식 받기 · 카톡 채널'); ca.target = '_blank'; ca.rel = 'noopener'; }
         link('walk-type.html', '산책 유형 테스트');
+        // 샘플 — 앱 안에서 켜는 버튼은 이 한 줄뿐(주소 sample/와 같은 곳으로 간다)
+        var sOn = false;
+        try { sOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sOn = false; }
+        var sa = link(sOn ? 'index.html?sample=off' : 'sample/', sOn ? '샘플 끄기 · 내 기록으로' : '샘플로 둘러보기');
+        sa.id = 'qs-sample';
         box.appendChild(links);
         var foot = el('p', 'qs-foot');
         foot.innerHTML = '<a href="about.html">왈슨 소개</a> · <a href="privacy.html">개인정보 안내</a>';
         box.appendChild(foot);
-        // 시연용(접어 둠) — 공원에서 보여 줄 때만 쓰는 것
+        // 시연용(접어 둠) — 공원에서 보여 주거나 시험할 때만 쓰는 것
         var demo = el('details', 'qs-demo'), sum = el('summary', '', '시연용');
         demo.appendChild(sum);
-        var sOn = false;
-        try { sOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sOn = false; }
-        var sa = el('a', 'qs-dl', sOn ? '샘플 끄고 내 기록으로 돌아가기' : '샘플 데이터로 둘러보기');
-        sa.href = 'index.html?sample=' + (sOn ? 'off' : 'on');
-        sa.id = 'qs-sample';
-        demo.appendChild(sa);
+        // 시연 모드(가짜 위치) — demo-geo.js가 이 창(탭)에만 켜 둔다(창을 닫으면 꺼짐). 시연 산책은 통계·키링 조건에서 빠진다
+        var DEMO_KEY = 'petwalk_demo_geo', DEMO_GO = 'walk.html?start=1&demo=1';
+        var dOn = false;
+        try { dOn = sessionStorage.getItem(DEMO_KEY) === '1'; } catch (e) { dOn = false; }
+        var dm = el('a', 'qs-dl', ''); dm.id = 'qs-demo-geo';
+        var dNote = el('p', 'qs-note', '');
+        var paintDemo = function () {
+          dm.textContent = dOn ? '시연 모드 끄기 · 진짜 위치로' : '시연 모드로 산책 · 가짜 위치';
+          dm.href = dOn ? '#' : DEMO_GO;
+          dNote.textContent = dOn ? '지금 이 창은 가짜 위치로 걸어요' : '누르면 가짜 위치로 바로 걸어요 · 창을 닫으면 꺼져요';
+        };
+        dm.addEventListener('click', function (e) {
+          if (!dOn) return;   // 켜기는 링크 그대로(산책 화면이 켜고 바로 시작)
+          e.preventDefault();
+          try { sessionStorage.removeItem(DEMO_KEY); } catch (err) { /* 무시 */ }
+          dOn = false; paintDemo();
+          dNote.textContent = '껐어요 · 이제 진짜 위치로 걸어요';
+        });
+        paintDemo();
+        demo.appendChild(dm); demo.appendChild(dNote);
         (opt.demo || []).forEach(function (d) {
           if (!d || !d.label) return;
           var b = el('button', 'qs-dl', d.label); b.type = 'button';
