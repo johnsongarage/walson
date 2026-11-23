@@ -13,8 +13,8 @@ window.PETWALK_SPOTS = [
   {"id":"osm-vet-1","cat":"vet","name":"부영동물병원","lat":37.60844,"lng":127.16264,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"osm-vet-2","cat":"vet","name":"폭시팻동물병원","lat":37.61297,"lng":127.14099,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"osm-vet-3","cat":"vet","name":"래플즈동물병원","lat":37.60969,"lng":127.13675,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
-  {"id":"field-1794704265889","cat":"park","name":"계단숲산책로_동","lat":37.6128,"lng":127.15608,"source":"field","verifiedAt":"2026-11-15"},
-  {"id":"field-1794704231850","cat":"park","name":"계단숲산책로_서","lat":37.61127,"lng":127.15381,"source":"field","verifiedAt":"2026-11-15"},
+  {"id":"field-1794704265889","cat":"park","name":"계단숲산책로 동쪽","lat":37.6128,"lng":127.15608,"source":"field","verifiedAt":"2026-11-15"},
+  {"id":"field-1794704231850","cat":"park","name":"계단숲산책로 서쪽","lat":37.61127,"lng":127.15381,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704450497","cat":"spot","name":"현대프리미엄아울렛","lat":37.61636,"lng":127.15352,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"강아지 동반가능"},
   {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"},
   {"id":"field-1794732698033","cat":"toilet","name":"공중화장실","lat":37.62016,"lng":127.16043,"source":"field","verifiedAt":"2026-11-15"},
@@ -29,9 +29,9 @@ window.PETWALK_SPOT_CATEGORIES = [
 window.PETWALK_STAMP_PLACES = [
   {"id":"campus","name":"프리미어캠퍼스","lat":37.61274,"lng":127.15246,"radiusM":150,"kind":"building"},
   {"id":"outlet","name":"아울렛","lat":37.61633,"lng":127.15268,"radiusM":150,"kind":"building"},
-  {"id":"central","name":"다산 중앙공원_상","lat":37.62406,"lng":127.16093,"radiusM":250,"kind":"park"},
+  {"id":"central","name":"다산 중앙공원 북쪽","lat":37.62406,"lng":127.16093,"radiusM":250,"kind":"park"},
   {"id":"waterside","name":"다산수변공원","lat":37.62396,"lng":127.14529,"radiusM":300,"kind":"water"},
-  {"id":"place-mwkfa5ut","name":"다산 중앙공원_하","lat":37.61957,"lng":127.16108,"radiusM":200,"kind":"park"}
+  {"id":"place-mwkfa5ut","name":"다산 중앙공원 남쪽","lat":37.61957,"lng":127.16108,"radiusM":200,"kind":"park"}
 ];
 // 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.
 window.PETWALK_MAP_GROUPS = [

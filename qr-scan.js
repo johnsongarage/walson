@@ -27,7 +27,8 @@
     noReader: 'QR 읽기 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'
   };
   function textOf(o, k) { return (o && o.texts && o.texts[k]) || TEXTS[k]; }
-  var JSQR_URL = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+  // QR 읽기(jsQR 1.4.0, Apache-2.0)는 앱 안에 둔다(2026-11-23 밤 출시 점검 — CDN을 못 받으면 공원에서 QR 교환이 멈춰서). vendor/jsqr/LICENSE
+  var JSQR_URL = 'vendor/jsqr/jsQR.js?v=1.4.0';
   // Phosphor Icons(MIT) QrCode regular — 앱의 다른 아이콘과 같은 묶음(@phosphor-icons/core 2.1.1)
   var QR_PATH = 'M104,40H56A16,16,0,0,0,40,56v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,104,40Zm0,64H56V56h48v48Zm0,32H56a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V152A16,16,0,0,0,104,136Zm0,64H56V152h48v48ZM200,40H152a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V56A16,16,0,0,0,200,40Zm0,64H152V56h48v48Zm-64,72V144a8,8,0,0,1,16,0v32a8,8,0,0,1-16,0Zm80-16a8,8,0,0,1-8,8H184v40a8,8,0,0,1-8,8H144a8,8,0,0,1,0-16h24V144a8,8,0,0,1,16,0v8h24A8,8,0,0,1,216,160Zm0,32v16a8,8,0,0,1-16,0V192a8,8,0,0,1,16,0Z';
   function icon(size) {

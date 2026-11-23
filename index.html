@@ -273,7 +273,7 @@
 <link rel="stylesheet" href="splash.css?v=2">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
-<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="cloud-backup.js?v=3" defer></script>
 <script src="inapp.js?v=4"></script>
@@ -511,7 +511,7 @@
     friend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.2-4.5-7.2-10.1A4.1 4.1 0 0 1 12 7.4a4.1 4.1 0 0 1 7.2 2.5C19.2 15.5 12 20 12 20z"/></svg>'
   };
   // 장소 이름은 [기록] 영수증 그림처럼 짧게(다산 중앙공원_상 → 다산 중앙공원)
-  function shortPlace(n) { return String(n || '발도장').replace(/_(상|하|동|서|남|북)$/, '').replace(/_/g, ' '); }
+  function shortPlace(n) { return String(n || '발도장').replace(/[ _](상|하|동|서|남|북|동쪽|서쪽|남쪽|북쪽)$/, '').replace(/_/g, ' '); }   // 11/23 밤 "… 북쪽" 이름도
   var LV = ['', '3일', '5일', '7일'];
 
   // 오늘 산책 — 5분·200m 미만 산책도 시간에는 넣는다(보상 횟수에서만 빠진다)

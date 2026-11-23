@@ -92,6 +92,10 @@
       '{font-family:Pretendard, -apple-system, \'Apple SD Gothic Neo\', \'Malgun Gothic\', sans-serif;}' +
     H + ' .today-num small,' + H + ' .ws-clock small{font-family:Pretendard, -apple-system, \'Apple SD Gothic Neo\', \'Malgun Gothic\', sans-serif !important;font-weight:700 !important;}' +
     H + ' h1{font-weight:800 !important;letter-spacing:-0.01em !important;}' +
+    // 입력칸 글씨 16px 이상(2026-11-23 밤 출시 점검) — 아이폰 사파리는 16px보다 작은 입력칸을 누르면 화면을 키우고 그대로 둔다.
+    // 손가락으로 쓰는 기기(pointer: coarse)에서만. 프로필 입력·[아지트] 오늘 기분 등 15px 이하 칸이 걸렸다
+    '@media (pointer:coarse){' + H + ' input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]):not([type=file]),' + H + ' select,' + H + ' textarea'
+      + '{font-size:max(16px,1em) !important;}}' +
     // 고른 것 — 버튼 색으로
     H + ' .opts button[aria-pressed="true"],' + H + ' .format button[aria-pressed="true"],' + H + ' .theme-opt[aria-pressed="true"]' +
       '{background:var(--hl) !important;color:var(--hl-ink) !important;border-color:var(--line) !important;}' +

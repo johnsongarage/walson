@@ -22,8 +22,8 @@
       '.ss-day.is-walked .ss-dot{' + 'border:none;background:var(--accent,#b8563a);color:#fff;' + '}' +   // 색은 화면 테마(theme.js)
       '.ss-day.is-today .ss-lbl{color:var(--accent,#b8563a);}' +
       '.ss-stamp{flex-shrink:0;width:58px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;transform:rotate(-8deg);' +
-        'font:900 15px/1 Pretendard,-apple-system,sans-serif;' + 'border-radius:50%;border:3px dashed var(--panel-border,#d8cbb8);color:rgba(var(--shadow-rgb,74,63,53),0.45);' + '}' +
-      '.ss-stamp small{display:block;font-size:9px;font-weight:800;margin-top:3px;}' +
+        'font:900 15px/1 Pretendard,-apple-system,sans-serif;' + 'border-radius:50%;border:3px dashed var(--panel-border,#d8cbb8);color:rgba(var(--shadow-rgb,74,63,53),0.72);' + '}' +   // 2026-11-23 밤 출시 점검: 0.45는 대비 3:1이라 진하게
+      '.ss-stamp small{display:block;font-size:10px;font-weight:800;margin-top:3px;}' +
       '.ss-sum{word-break:keep-all;font:13px/1.5 Pretendard,-apple-system,sans-serif;color:var(--ink-soft,#6b5d4e);margin:10px 0 0;}' +
       '.ss-sum b{color:var(--ink,#4a3f35);}' +
       '.ss-note{word-break:keep-all;font:11px/1.5 Pretendard,-apple-system,sans-serif;color:var(--ink-soft,#8a7a68);margin:2px 0 0;}' +

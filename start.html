@@ -105,6 +105,8 @@
     background: var(--panel); color: var(--ink); font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
   }
   .btn-sub[hidden] { display: none; }
+  .btn-qr { display: flex; align-items: center; justify-content: center; gap: 8px; border-color: var(--accent); color: var(--accent); }
+  .btn-qr svg { flex: none; }
   .btn-text[hidden], .foot[hidden] { display: none; }
   .btn-text {
     display: block; margin: 14px auto 0; background: none; border: none; padding: 6px 10px;
@@ -178,7 +180,7 @@
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
@@ -272,6 +274,8 @@
     <!-- 2026-11-16 한 화면 편집기: 모양(카드·정사각형·스토리)·사진 칸 끌기·글자 붙이기를 한 화면에서(image-editor.js, id-card.js openEditor) -->
     <button type="button" class="btn-main" id="save-btn">꾸미고 저장하기</button>
     <p class="save-hint">저장이 안 되면 카드를 길게 눌러 저장하세요.</p>
+    <!-- 공원에서 만든 그 자리의 다음 할 일 = 옆 강아지와 QR(첫 단짝 — 개방명록). 2026-11-23 밤 출시 점검, 가르시아 "추천대로" -->
+    <a class="btn-sub btn-qr" id="qr-link" href="dex.html"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2z"/></svg>공원에서 만난 강아지와 QR 찍기</a>
     <a class="btn-sub" href="town.html">동네 지도 보러 가기</a>
     <a class="btn-sub" id="channel-link" href="#" target="_blank" rel="noopener" hidden>새 소식 받기 (카카오톡 채널)</a>
     <p class="extra" id="keyring-note" hidden></p>
@@ -315,13 +319,13 @@
 
 <!-- 카드에 넣는 QR을 그리는 라이브러리(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다.
      못 받아오면(오프라인 등) QR 없이 주소 글자만 들어간다. -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
 
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=8"></script>
 <script src="spots-data.js"></script>
 <script src="infra-pins.js?v=28"></script>
-<script src="dog-tags.js?v=1"></script>
+<script src="dog-tags.js?v=2"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="id-card.js?v=14"></script>
 <script src="card-color.js?v=2"></script>
@@ -586,6 +590,7 @@
         cardIssued: (spot.verifiedAt || '').replace(/-/g, '. ') + (spot.verifiedAt ? '.' : '')
       };
       document.getElementById('redo-btn').hidden = true;
+      document.getElementById('qr-link').hidden = true;   // 가게 지킴이 카드는 내 카드가 아니라서
       document.querySelector('#step-3 .lead').textContent = g.line || '이 가게를 지키는 강아지예요.';
       document.querySelector('.foot').hidden = true;
       var disc = document.getElementById('keyring-note');   // 남는 안내 줄을 빌려 쓴다(키링 문구는 수호지킴이 카드에선 안 씀)

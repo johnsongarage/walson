@@ -220,7 +220,7 @@
 <script src="store.js?v=1"></script>
 <script src="dex-card.js?v=1"></script>
 <script src="device.js?v=1"></script>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
@@ -327,7 +327,7 @@
   </details>
   <!-- 실물로 뽑기·키링 파일 — 자주 안 쓰고 설명이 길어서 맨 아래에 접어 둔다(2026-11-18 밤 화면 정리) -->
   <details class="panel tools" id="save-panel" hidden>
-    <summary>실물로 뽑기 · 키링 파일</summary>
+    <summary>실물로 뽑기 · 인쇄용 파일</summary>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
     <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형, 11/18 양면 + NFC): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080.
          앞면은 QR 대신 브랜드 문구(site-config.js brand), 뒷면은 도감 카드 주소 QR + 연락처·예방접종·메모 손글씨 칸(id-card.js drawKeyringBack) -->
@@ -349,11 +349,11 @@
 <div id="print-sheet" aria-hidden="true"></div>
 
 <!-- 앞면 "나도 만들기" QR(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다. 못 받아오면 QR 없이. -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
 <script src="card-shared.js?v=12"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="dog-tags.js?v=1"></script>
+<script src="dog-tags.js?v=2"></script>
 <script src="id-card.js?v=14"></script>
 <script src="pass-pixel.js?v=6"></script>
 <script src="card-color.js?v=2"></script>

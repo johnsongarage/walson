@@ -63,7 +63,7 @@
     { id: 'basket',  spr: 'basket_blue_carrot', i: 16, j: 5, name: '장난감 바구니', need: { walks: 15 } },
     { id: 'house',   spr: 'sofa_bed', i: 64, j: 16, name: '강아지 소파', need: { walks: 20 } },   // 11/23 새 방부터 집 대신 소파
     { id: 'shelf',   spr: 'board_postcard', face: 'R', wall: 'R', u: 11.5, h: 52.5, name: '오늘의 한 장 게시판', need: { photos: 3 } },
-    { id: 'poopbag', spr: 'bag_dispenser', face: 'R', wall: 'L', u: 68.5, h: 47.5, name: '응가 봉투 걸이', need: { poop: 10 } },   // 11/23 밤 받은 디스펜서 그림으로
+    { id: 'poopbag', spr: 'bag_dispenser', face: 'L', wall: 'L', u: 68.5, h: 47.5, name: '응가 봉투 걸이', need: { poop: 10 } },   // 11/23 밤 받은 디스펜서 그림으로. 그림은 왼쪽 벽에 붙는 모양(벽 고리가 왼쪽 위, 몸통이 방 쪽으로 나옴) — face L(11/23 밤 가르시아 "풉백이 반대 방향으로 걸려")
     { id: 'keyhook', spr: 'keyhook_rail', face: 'R', wall: 'R', u: 92, h: 56, name: '키링 걸이', need: { keyring: 1 } },
     { id: 'lamp',    spr: 'lamp_stand', i: 5, j: 30, name: '스탠드 조명', need: { steady: 1 } },
     { id: 'mat',     spr: 'picnic_mat', i: 20, j: 56, decal: true, name: '피크닉 매트', need: { park: 1 } },

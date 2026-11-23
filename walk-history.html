@@ -119,11 +119,12 @@
   .rc-hint { display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
   .cal .m { display: flex; align-items: center; justify-content: center; gap: 2px; margin-bottom: 3px; }
   .cal .m b { font-size: 15px; font-weight: 900; min-width: 3.2em; text-align: center; }
-  .cal .m button { width: 28px; height: 28px; border: none; border-radius: 50%; background: transparent; color: var(--ink-soft); font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
+  .cal .m button { width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; color: var(--ink-soft); font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
   .cal .m button:disabled { opacity: 0.25; cursor: default; }
   .cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
   .cal .w { font-size: 9.5px; font-weight: 600; color: var(--ink-soft); opacity: 0.85; padding-bottom: 1px; }
-  .cal .d { position: relative; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 600; color: var(--ink);
+  /* 날짜 칸 25 → 30px, 화살표 28 → 36px(2026-11-23 밤 출시 점검 — 손가락으로 누르기 쉽게. 가로는 영수증 그림과 반씩 나눠 써서 그대로) */
+  .cal .d { position: relative; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 600; color: var(--ink);
     border: none; background: transparent; padding: 0; font-family: inherit; }
   .cal button.d { cursor: pointer; }
   .cal .d.walk::before { content: ''; position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: var(--soft-2); }
@@ -239,7 +240,7 @@
 </style>
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="cloud-backup.js?v=3" defer></script>
 <script src="inapp.js?v=4"></script>
@@ -363,7 +364,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="steady-stamp.js?v=4"></script>
+<script src="steady-stamp.js?v=5"></script>
 <script src="month-report.js?v=6"></script>
 <script src="receipt-info.js?v=1"></script>
 <script src="walk-receipt.js?v=10"></script>
@@ -455,7 +456,8 @@
     '<ellipse cx="14.6" cy="5.7" rx="2.2" ry="2.8" transform="rotate(8 14.6 5.7)"/><ellipse cx="18.7" cy="10.3" rx="2.1" ry="2.6" transform="rotate(25 18.7 10.3)"/>' +
     '<path d="M12 11.2c-2.6 0-4.3 2.4-5.4 4.4-.9 1.6-1.6 2.6-1.6 3.7 0 1.6 1.3 2.7 3 2.7 1.4 0 2.4-.6 4-.6s2.6.6 4 .6c1.7 0 3-1.1 3-2.7 0-1.1-.7-2.1-1.6-3.7-1.1-2-2.8-4.4-5.4-4.4z"/></svg>';
   // 장소 이름 — 영수증 그림엔 짧게(다산_중앙공원_상 → 다산 중앙공원, 받은 그림처럼)
-  function placeName(n) { return String(n || '').replace(/_(상|하|동|서|남|북)$/, '').replace(/_/g, ' '); }
+  // 11/23 밤 스팟 이름을 "다산 중앙공원 북쪽"처럼 바꿔서 끝의 방향 말(쪽)도 뺀다
+  function placeName(n) { return String(n || '').replace(/[ _](상|하|동|서|남|북|동쪽|서쪽|남쪽|북쪽)$/, '').replace(/_/g, ' '); }
 
   var sample = false;
   try { sample = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sample = false; }

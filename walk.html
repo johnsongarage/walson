@@ -20,7 +20,7 @@
 <script src="reward-rules.js?v=11"></script>
 <script src="infra-pins.js?v=28"></script>
 <script src="shop-visits.js?v=4"></script>
-<script src="qr-scan.js?v=4"></script>
+<script src="qr-scan.js?v=5"></script>
 <script src="demo-geo.js?v=6"></script>
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=8"></script>
@@ -85,7 +85,7 @@
   .ws-mlink { display: inline-block; margin-left: 4px; font-weight: 800; color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
   .pin-delete-btn { align-self: flex-start; border: none; background: none; padding: 2px 0; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #b3392b; }
 </style>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="quick-set.js?v=2"></script>
 <script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
@@ -193,7 +193,6 @@
   // (설정 petwalk_keep_screen_off = '1'), 산책 중일 때만 잡는다. 웹앱은 화면이 꺼지거나 다른 앱으로 가면 위치를 못 받는다.
   var KEEP_SCREEN_OFF_KEY = WalsonStore.KEYS.keepScreenOff;
   var keepAwake = WalsonDevice.keepAwake;
-  var START_TIP = '앱을 켜 둔 채 걸어야 길이 그려지고 발도장·미션이 찍혀요. 통화하거나 유튜브를 보면(다른 앱으로 가면) 그동안 기록이 끊길 수 있어요 — 끊긴 곳은 직선으로 이어요.';
   var POCKET_TIP = '화면을 끄면 그동안 길이 안 그려져요. 발도장 장소나 응가 자리에서 꺼내 "여기 찍기"를 누르면 그 사이는 직선으로 이어요.';
   var KEEP_TIP = '화면을 켜 둘게요 — 앱을 켜 둔 채 걸어야 길이 그려지고 발도장·미션이 찍혀요.';
   var kmText = E.kmText, pad2 = E.pad2;
@@ -529,7 +528,8 @@
         if (keepScreen()) keepAwake.request();
         paintSince();
         tick();
-        if (why === 'start') showWalkNotice(keepScreen() ? START_TIP : POCKET_TIP, 'info');
+        // 시작할 때 가운데 안내 상자는 띄우지 않는다 — 위 알약(#pocket-tip)이 같은 말을 늘 보여 줘서 두 번 나왔다(2026-11-23 밤 출시 점검).
+        // 화면 켜 두기를 바꿀 때의 안내(위 keep-screen 토글)는 그대로
       } else {
         keepAwake.release();
       }

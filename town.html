@@ -41,7 +41,7 @@
 <script src="reward-rules.js?v=11"></script>
 <script src="infra-pins.js?v=28"></script>
 <script src="shop-visits.js?v=4"></script>
-<script src="qr-scan.js?v=4"></script>
+<script src="qr-scan.js?v=5"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="demo-geo.js?v=6"></script>
 <style>
@@ -125,10 +125,11 @@
   .ls-warn strong { display: block; font-size: 14px; font-weight: 800; }
   .ls-warn a { display: inline-block; margin-top: 4px; font-weight: 800; color: var(--accent-ink, #9c4530); }
   .caveat {
-    align-self: stretch; margin: 0 0 4px 4px; pointer-events: none !important;
-    font-size: 11px; font-weight: 700; color: var(--ink-soft); pointer-events: none;
+    align-self: flex-start; max-width: 100%; margin: 0 0 4px 4px; pointer-events: none !important;
+    font-size: 11.5px; font-weight: 700; color: var(--ink-soft); pointer-events: none;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 6px var(--bg);
+    /* 2026-11-23 밤 출시 점검: 지도 그림 위에서 글씨가 묻혀서 반투명 바탕(11/17 기준 C4) */
+    background: color-mix(in srgb, var(--panel) 84%, transparent); border-radius: 8px; padding: 2px 7px;
   }
 
   .side { position: fixed; top: 14px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
@@ -208,6 +209,14 @@
   .ls-summary .more { flex: none; font-size: 12px; font-weight: 800; color: var(--accent); white-space: nowrap; }
   .list-sheet[data-state="peek"] .ls-close { display: none; }
   .ls-modes { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* 2026-11-23 밤 출시 점검: 키가 작은 폰(높이 720 이하)에선 아래 판이 지도를 3분의 1쯤 가려서 단추를 한 줄로(옆으로 밀기),
+     친구와 서로 찍는 QR 찍기를 맨 앞에. 오른쪽 끝이 흐려져 더 있다는 게 보이게 */
+  @media (max-height: 720px) {
+    .ls-modes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 0 14px 2px;
+      -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+    .ls-modes::-webkit-scrollbar { display: none; }
+    .ls-modes .is-act { order: -1; }
+  }
   .ls-mode {
     flex: none; display: flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px;
     border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font-family: inherit; font-size: 13px; font-weight: 800;
@@ -363,7 +372,7 @@
   @media (prefers-reduced-motion: reduce) { .deco-dog { animation: none; } }
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
-<link rel="stylesheet" href="theme-black.css?v=3"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=3"><script src="theme.js?v=15"></script>
 <script src="quick-set.js?v=2"></script>
 <script src="site-config.js?v=11"></script>
 <script src="cloud-backup.js?v=3" defer></script>
@@ -978,13 +987,14 @@
     qrLink.hidden = false;
     qrLink.addEventListener('click', function () {
       WalsonQR.scan({
-        title: '가게 QR 찍기',
-        hint: '가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 방문 도장이 이 앱에 남아요.',
+        // 2026-11-23 밤 출시 점검: 등록 가게가 아직 없어서 친구 QR(도감)을 먼저 말한다 — 가게 QR도 그대로 읽힌다
+        title: '친구 QR 찍기',
+        hint: '공원에서 만난 강아지의 화면 QR이나 키링 QR을 네모 안에 맞춰 주세요. 가게 QR도 찍혀요.',
         onText: function (text) {
           var dex = /dex\.html(#d=[A-Za-z0-9_-]+)/.exec(text);
           if (dex) { location.href = 'dex.html' + dex[1]; return true; }
           var id = ShopVisits.idFromQr(text);
-          if (!id) return '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
+          if (!id) return '왈슨 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';
           if (!ShopVisits.findShop(id)) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
           location.href = 'visit.html?s=' + encodeURIComponent(id);
           return true;

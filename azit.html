@@ -52,13 +52,14 @@
 
   /* 홈 틀 */
   .shell { background: var(--panel); border: 3px solid var(--line); box-shadow: 5px 5px 0 var(--line); padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-  .pbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
-    padding: 6px 9px; background: var(--panel); font-size: 13px; }
-  .pbar label { display: flex; align-items: center; gap: 6px; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
-  .pbar select { font: inherit; font-size: 13px; border: 2px solid var(--line); background: var(--accent-tint); color: var(--ink); padding: 3px 4px;
-    flex: 0 1 150px; min-width: 0; max-width: 150px; }
-  .pbar select:disabled { opacity: .5; }
-  .count { flex: none; background: var(--accent-tint); border: 2px solid var(--line); padding: 3px 7px; white-space: nowrap; }
+  /* 산책 횟수 — 제목 아래 줄 끝에(11/23 밤, 예전 맨 위 줄에서) */
+  .sub .count { white-space: nowrap; }
+  .sub .count:not(:empty)::before { content: ' · '; }
+  /* 오늘 기분 — 방 바로 아래(내 방에서만). 아이폰이 누를 때 화면을 키우지 않게 고르기 칸 글씨 16px */
+  .mood-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -4px 0 0; font-size: 13px; font-weight: 700; color: var(--ink); }
+  .mood-row[hidden] { display: none; }
+  .mood-row select { font-family: inherit; font-size: 16px; border: 2px solid var(--line); background: var(--accent-tint); color: var(--ink); padding: 4px 6px;
+    min-width: 0; max-width: 62%; }
   .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .head-txt { min-width: 0; }
   .title { font-size: 19px; color: var(--accent); margin: 0; line-height: 1.25; word-break: keep-all; }
@@ -73,12 +74,12 @@
   /* 만난 친구 줄 */
   .friends { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px; margin: -4px -2px 0; }
   .friends::-webkit-scrollbar { display: none; }
-  .fr { flex: none; width: 60px; font: inherit; font-size: 11px; color: var(--ink); background: var(--panel); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
+  .fr { flex: none; width: 60px; font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
     padding: 4px 2px 3px; text-align: center; cursor: pointer; line-height: 1.2; position: relative; }
   .fr .pic, .dogpick .pic { height: 38px; display: flex; align-items: flex-end; justify-content: center; }
   .fr img, .dogpick img { height: 100%; width: auto; display: block; }
   .fr .nm { display: block; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .fr .tg { display: block; font-size: 9px; color: var(--ink-soft); margin-top: 1px; }
+  .fr .tg { display: block; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 11px; font-weight: 700; color: var(--ink-soft); margin-top: 1px; }
   .fr.foot { border-style: dashed; box-shadow: none; }
   .fr.foot img { opacity: .75; }
   .fr[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl), 2px 2px 0 var(--line); }
@@ -101,16 +102,16 @@
      내 방 소품 위를 누를 때만 아래 스크립트(touchstart)가 막아서 끌기가 된다 */
   #room { display: block; image-rendering: pixelated; touch-action: pan-y; cursor: pointer; }
   .sign { position: absolute; left: 8px; top: 14px; max-width: 46%; background: var(--panel); color: var(--ink); border: 2px solid var(--line);
-    padding: 3px 6px; font-size: 11px; line-height: 1.3; z-index: 2; word-break: keep-all; }
+    padding: 3px 6px; font-size: 12px; line-height: 1.3; z-index: 2; word-break: keep-all; }
   .bubble { position: absolute; transform: translate(-50%, -100%); background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
-    padding: 3px 7px; font-size: 11px; line-height: 1.3; width: max-content; max-width: 78%; text-align: center; word-break: keep-all;
+    padding: 3px 7px; font-size: 12px; line-height: 1.3; width: max-content; max-width: 78%; text-align: center; word-break: keep-all;
     pointer-events: none; z-index: 3; display: flex; align-items: center; gap: 4px; }
   .bubble[hidden] { display: none; }
   .bubble .stamp, .gb-list .stamp { display: inline-block; width: 12px; height: 12px; flex: none; color: var(--accent); }
   .bubble .stamp svg, .gb-list .stamp svg { display: block; width: 100%; height: 100%; }
   /* 소품 안내(누르면 잠깐) — 말풍선과 구별되게 글자색·바탕색을 뒤집어서 */
   .tip { position: absolute; transform: translate(-50%, -100%); background: var(--ink); color: var(--bg); padding: 4px 8px; border-radius: 6px;
-    font-size: 11.5px; line-height: 1.4; width: max-content; max-width: 86%; text-align: center; word-break: keep-all; z-index: 4; pointer-events: none;
+    font-size: 12px; line-height: 1.4; width: max-content; max-width: 86%; text-align: center; word-break: keep-all; z-index: 4; pointer-events: none;
     box-shadow: 0 3px 10px rgba(var(--shadow-rgb), .25); }
   .tip[hidden] { display: none; }
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
@@ -121,27 +122,34 @@
   .show-bar { display: flex; flex-direction: column; gap: 8px; margin-top: -2px; }
   .show-bar[hidden] { display: none; }
   .rooms { display: flex; gap: 6px; flex-wrap: wrap; }
-  .room-chip { flex: 1 1 28%; min-width: 0;   /* 다섯 채(11/23 밤) — 한 줄에 셋 */ font: inherit; font-size: 11.5px; color: var(--ink); background: var(--panel); border: 2px solid var(--line);
+  .room-chip { flex: 1 1 28%; min-width: 0;   /* 다섯 채(11/23 밤) — 한 줄에 셋 */ font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 2px solid var(--line);
     padding: 6px 4px; cursor: pointer; line-height: 1.25; word-break: keep-all; }
   .room-chip[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
-  .show-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; margin: 0; word-break: keep-all; text-align: center; }
+  .show-note { font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin: 0; word-break: keep-all; text-align: center; }
   .undo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     font-size: 12px; color: var(--ink); background: var(--accent-tint); padding: 6px 8px; margin-bottom: 10px; }
   .undo-row[hidden] { display: none; }
   .undo-row .more { margin: 0; flex: none; }
 
-  /* 내 방 꾸미기 */
+  /* 내 방 꾸미기 — 한 줄로 접는다(11/23 밤) */
+  .deco-sum { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; cursor: pointer; list-style: none; font-size: 14px; color: var(--accent); }
+  .deco-sum::-webkit-details-marker { display: none; }
+  .deco-sum span::after { content: ' ▸'; color: var(--ink-soft); }
+  .deco[open] .deco-sum span::after { content: ' ▾'; }
+  .deco-sum small { flex: 1 1 160px; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 12px; color: var(--ink-soft); text-align: right; word-break: keep-all; }
+  .deco[open] .deco-sum { margin-bottom: 4px; }
+  .deco .box-title:first-of-type { margin-top: 10px; }
   .box { border: 3px solid var(--line); padding: 10px; background: var(--panel); color: var(--ink); }
   .box[hidden] { display: none; }
   .box-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; font-size: 13px; margin: 12px 0 8px; }
   .box-title:first-child { margin-top: 0; }
   .box-title span { flex: none; }
-  .box-title small { flex: 1 1 150px; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 11px; color: var(--ink-soft); text-align: right; word-break: keep-all; }
+  .box-title small { flex: 1 1 150px; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 12px; color: var(--ink-soft); text-align: right; word-break: keep-all; }
   .dogs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .dogpick { font: inherit; font-size: 11px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 5px 3px 4px; text-align: center; cursor: pointer; line-height: 1.3; }
+  .dogpick { font: inherit; font-size: 12px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 5px 3px 4px; text-align: center; cursor: pointer; line-height: 1.3; word-break: keep-all; }
   .dogpick[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
   .tray { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-  .slot { font: inherit; font-size: 11px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 6px 3px 5px; text-align: center; cursor: pointer; line-height: 1.3; }
+  .slot { font: inherit; font-size: 12px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 6px 3px 5px; text-align: center; cursor: pointer; line-height: 1.3; word-break: keep-all; }
   .slot canvas { display: block; margin: 0 auto 3px; image-rendering: pixelated; height: 30px; width: auto; max-width: 100%; object-fit: contain; }
   .slot[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
   .slot[disabled] { opacity: .5; cursor: not-allowed; }
@@ -149,7 +157,7 @@
   .tray-more[hidden] { display: none; }
   .tray-more summary { cursor: pointer; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 12px; color: var(--ink-soft); padding: 4px 0; }
   .tray-more .tray { margin-top: 6px; }
-  .slot .why { display: block; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 10px; color: var(--ink-soft); }
+  .slot .why { display: block; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 11.5px; color: color-mix(in srgb, var(--ink) 78%, var(--bg)); }
   .accs, .walls { display: flex; gap: 6px; flex-wrap: wrap; }
   .accs .slot { flex: 1; min-width: 64px; }
   .walls .slot { flex: 1; min-width: 70px; padding: 8px 3px; }
@@ -161,7 +169,7 @@
   .gb-row { width: 100%; display: flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; color: var(--ink); text-align: left;
     background: var(--bg); padding: 6px 8px; border: 0; border-left: 3px solid var(--hl); cursor: pointer; }
   .gb-row.foot { border-left-style: dashed; border-left-color: var(--ink-soft); }
-  .gb-row .day { flex: none; font-size: 11px; color: var(--ink-soft); min-width: 46px; }
+  .gb-row .day { flex: none; font-size: 12px; color: var(--ink-soft); min-width: 46px; }
   .gb-row .who { flex: none; font-family: 'DungGeunMo', 'Galmuri11', monospace; font-synthesis: none; color: var(--accent); }
   .gb-row .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gb-row .soft { color: var(--ink-soft); }
@@ -170,7 +178,7 @@
   .gb-row.show-row.have { border-left-style: solid; border-left-color: var(--hl); }
   .gb-row .spr { flex: none; height: 18px; width: auto; image-rendering: pixelated; }
   .gb-row.show-row .what { white-space: normal; word-break: keep-all; }
-  .gb-row .mine { flex: none; margin-left: auto; padding-left: 6px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .gb-row .mine { flex: none; margin-left: auto; padding-left: 6px; font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
   .gb-row.have .mine { color: var(--accent); font-weight: 700; }
   .gb-empty { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
   .gb-empty[hidden] { display: none; }
@@ -179,13 +187,13 @@
 
   .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .acts .pbtn { white-space: normal; line-height: 1.3; padding: 9px 6px; }
-  .foot-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
+  .foot-note { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
   .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h, 58px) + 18px); transform: translateX(-50%); z-index: 1200; max-width: calc(100vw - 32px);
     background: var(--ink); color: var(--bg); padding: 10px 14px; font-size: 13px; line-height: 1.45; border-radius: 10px; word-break: keep-all; text-align: center;
     box-shadow: 0 6px 18px rgba(var(--shadow-rgb), .25); }
 </style>
 <script src="store.js?v=2"></script>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
@@ -194,13 +202,11 @@
 <body>
 <main class="wrap">
   <div class="shell">
-    <div class="pbar px">
-      <label>오늘 기분 <select id="mood" class="px" aria-label="오늘 기분"></select></label>
-      <span class="count" id="count"></span>
-    </div>
-
+    <!-- 화면 순서(2026-11-23 밤 가르시아 "구성이 맞는지 점검 · 오늘 기분 고르는 게 먼저 나오는 게 맞는지"):
+         제목 → 친구 줄 → 방 → (내 방) 오늘 기분 → 킁킁 방명록 → 내 카드·QR 찍기 → 방 꾸미기(접기).
+         개방명록(만난 친구·방명록·QR)이 축이라 위로, 꾸미기(강아지·소품·장식·벽지)는 한 줄로 접는다. 산책 횟수는 제목 아래 줄로 -->
     <div class="head">
-      <div class="head-txt"><div class="title px" id="title" role="heading" aria-level="1"></div><div class="sub" id="sub"></div></div>
+      <div class="head-txt"><div class="title px" id="title" role="heading" aria-level="1"></div><div class="sub"><span id="sub"></span><span class="count" id="count"></span></div></div>
       <button type="button" class="pbtn" id="visit" hidden>마실 가기 ▶</button>
     </div>
     <div class="friends px" id="friends" role="group" aria-label="내 아지트와 만난 친구"></div>
@@ -216,25 +222,19 @@
       <div class="closed" id="closed" hidden></div>
     </div>
     <p class="hint" id="hint"></p>
+    <!-- 오늘 기분(내 방에서만, 그날만) — 고르면 방 강아지 머리 위에 그 말만 뜬다(11/23 밤 가르시아 "'오늘 기분:' 이건 빼 줘").
+         예전엔 화면 맨 위 줄이었는데 방에 뜨는 말이라 방 바로 아래로(가르시아 "고르는 게 먼저 나오는 게 맞는지") -->
+    <div class="mood-row" id="mood-row">
+      <label for="mood">오늘 기분</label>
+      <select id="mood"></select>
+    </div>
     <!-- 모델하우스에서만: 방 고르기 + [이 방처럼 놓기](11/23 2단계) -->
     <div class="show-bar" id="show-bar" hidden>
       <div class="rooms px" id="rooms" role="group" aria-label="모델하우스 방 고르기"></div>
       <button type="button" class="pbtn main" id="copy-room">이 방처럼 놓기</button>
       <p class="show-note" id="copy-note"></p>
     </div>
-
-    <div class="box px" id="mine-box">
-      <div class="undo-row" id="undo-row" hidden><span id="undo-text"></span><button type="button" class="more" id="undo-btn">되돌리기</button></div>
-      <div class="box-title"><span>우리 개 도트 강아지</span><small id="dog-note"></small></div>
-      <div class="dogs" id="dogs"></div>
-      <div class="box-title"><span>내 소품</span><small id="tray-note">산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
-      <div class="tray" id="tray"></div>
-      <details class="tray-more" id="tray-more" hidden><summary id="tray-more-sum"></summary><div class="tray" id="tray-locked"></div></details>
-      <div class="box-title"><span>머리 위 장식</span><small>등급·꾸준함으로 생겨요</small></div>
-      <div class="accs" id="accs"></div>
-      <div class="box-title"><span>벽지</span></div>
-      <div class="walls" id="walls"></div>
-    </div>
+    <div class="undo-row" id="undo-row" hidden><span id="undo-text"></span><button type="button" class="more" id="undo-btn">되돌리기</button></div>
 
     <div class="box">
       <div class="gb-title px" id="gb-title">킁킁 방명록</div>
@@ -244,6 +244,20 @@
     </div>
 
     <div class="acts" id="acts"></div>
+
+    <!-- 방 꾸미기(접기 — 연 상태는 이 휴대폰에 기억, 새 소품이 생기면 저절로 펼친다) -->
+    <details class="box px deco" id="mine-box">
+      <summary class="deco-sum"><span>방 꾸미기</span><small id="deco-note">강아지 · 소품 · 장식 · 벽지</small></summary>
+      <div class="box-title"><span>우리 개 도트 강아지</span><small id="dog-note"></small></div>
+      <div class="dogs" id="dogs"></div>
+      <div class="box-title"><span>내 소품</span><small id="tray-note">산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
+      <div class="tray" id="tray"></div>
+      <details class="tray-more" id="tray-more" hidden><summary id="tray-more-sum"></summary><div class="tray" id="tray-locked"></div></details>
+      <div class="box-title"><span>머리 위 장식</span><small>등급·꾸준함으로 생겨요</small></div>
+      <div class="accs" id="accs"></div>
+      <div class="box-title"><span>벽지</span></div>
+      <div class="walls" id="walls"></div>
+    </details>
     <p class="foot-note">아지트는 이 휴대폰에만 있어요. 내 카드(화면 QR)를 그 자리에서 찍은 단짝 휴대폰에는 방 모습 —
       도트 강아지·벽지·놓은 소품·머리 장식·산책 등급만 가요. 놓은 자리·산책 횟수·장소는 가지 않아요.</p>
   </div>
@@ -252,7 +266,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=6"></script>
+<script src="azit-room.js?v=7"></script>
 <script>
 (function () {
   'use strict';
@@ -795,7 +809,8 @@
       var rc = WalsonStore.rewardCard() || {}, RR = window.RewardRules;
       // 특기는 워킹패스 뒷면 글 — 괄호 속 덧붙임("(방어력: +30)")은 말풍선엔 빼고
       var skill = rc.skillT && prog.walks >= ((RR && RR.SLOT_RULES && RR.SLOT_RULES.skill) || 1) ? String(rc.skillT).replace(/\s*\([^)]*\)\s*$/, '') : '';
-      var line = state.mood ? '오늘 기분: ' + state.mood : (skill ? '특기: ' + skill : '');
+      // 오늘 기분은 고른 말만(11/23 밤 가르시아 "'오늘 기분:' 이건 빼 줘"), 안 골랐으면 특기
+      var line = state.mood ? state.mood : (skill ? '특기: ' + skill : '');
       if (line) b.appendChild(document.createTextNode(line));
     } else if (o.show) {
       // 예시 방은 말풍선 없이 — 꾸민 것(안쪽 트로피·깃발)이 가려지지 않게. 왈슨 말은 제목 아래 줄에
@@ -850,7 +865,7 @@
     if (o.show) {   // 왈슨 모델하우스 — 예시라는 게 늘 보이게
       $('title').textContent = '왈슨 모델하우스';
       $('sub').textContent = o.sr.name + ' · ' + o.sr.line + ' — 산책으로 생기는 소품만 놓은 예시예요';
-      $('count').textContent = '예시';
+      $('count').textContent = '';   // 아래 줄에 이미 "예시예요"
       $('sign').textContent = o.rank + ' · 예시 방';
     } else {
       $('title').textContent = o.me && !myName ? '우리 개 산책 아지트' : o.name + '네 산책 아지트';
@@ -863,6 +878,7 @@
     $('visit').textContent = view >= 0 && nx < 0 ? '내 아지트로 ◀' : '마실 가기 ▶';
     $('mine-box').hidden = !o.me;
     $('mood').disabled = !o.me;
+    $('mood-row').hidden = !o.me;
     $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 꾹 눌러 끌어요'
       : (o.open && o.items.length ? '소품을 누르면 어떻게 생기는지 보여요' : '바닥을 누르면 ' + walker + ' 걸어가요');
     var closed = $('closed');
@@ -1001,6 +1017,11 @@
   }
   $('visit').addEventListener('click', function () { goTo(nextOpen()); });
 
+  // ── 방 꾸미기(접기) — 연 상태는 이 휴대폰에 기억(11/23 밤) ──
+  var DECO_KEY = 'walson_fold_azit-deco';
+  try { $('mine-box').open = localStorage.getItem(DECO_KEY) === '1'; } catch (e) { /* 접힌 채로 */ }
+  $('mine-box').addEventListener('toggle', function () { try { localStorage.setItem(DECO_KEY, $('mine-box').open ? '1' : '0'); } catch (e) { /* 무시 */ } });
+
   // ── 오늘 기분(이 휴대폰에만, 그날만) ──
   $('mood').appendChild(new Option('고르기', ''));
   AZ.MOODS.forEach(function (m) { $('mood').appendChild(new Option(m, m)); });
@@ -1032,8 +1053,9 @@
       state.seen = state.seen.concat(fresh);
       var stashed = stashNew(fresh); save();
       var names = fresh.map(function (id) { var x = AZ.byId(AZ.ITEMS, id) || AZ.byId(AZ.ACCS, id); return x ? x.name : ''; }).filter(Boolean);
+      if (stashed) $('mine-box').open = true;   // 접혀 있어도 [내 소품]이 보이게
       toast('새로 생겼어요: ' + names.slice(0, 3).join(' · ') + (names.length > 3 ? ' 외 ' + (names.length - 3) + '개' : '') +
-        (stashed ? ' — [내 소품]에서 눌러 방에 놓아요' : ''));
+        (stashed ? ' — [방 꾸미기] [내 소품]에서 눌러 방에 놓아요' : ''));
     }
   }
   // 견종을 안 적었으면 프로필 사진 털색으로 한 번 더 골라 둔다(사용자가 고른 뒤엔 그대로)

@@ -69,6 +69,9 @@
   .avatar { flex-shrink: 0; width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 26px; border: 4px solid transparent; }
   .avatar.xl { width: 96px; height: 96px; font-size: 36px; border-width: 5px; }
   .note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin: 12px 2px 0; }
+  .note-fold { margin-top: 12px; }
+  .note-fold > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ink-soft); padding: 6px 2px; }
+  .note-fold .note { margin-top: 4px; }
 
   /* 겹쳐 뜨는 화면(내 카드 · 넣을까요 · 자세히). QR 찍기 판은 qr-scan.js(WalsonQR)가 같은 모양으로 만든다(sheet: true) */
   .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(40, 32, 26, 0.6); display: flex; align-items: flex-end; justify-content: center; }
@@ -111,13 +114,13 @@
 </style>
 <script src="store.js?v=2"></script>
 <script src="device.js?v=1"></script>
-<script src="qr-scan.js?v=4"></script>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="qr-scan.js?v=5"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="dex-card.js?v=3"></script>
 <!-- 화면 QR에 싣는 내 아지트 방 모습(2026-11-23 개방명록 2단계) — 산책 기록으로 생긴 소품을 세려고 reward-rules.js(앞에 spots-data.js)까지 -->
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="azit-room.js?v=6"></script>
+<script src="azit-room.js?v=7"></script>
 <!-- 사용 통계(2026-11-23 개방명록 1단계): 도감에 넣은 횟수를 QR 종류(화면·키링·지난 캡처)와 처음인지만으로 센다 — 강아지 이름·번호는 안 보냄 -->
 <script src="site-config.js?v=11"></script>
 <script src="track.js?v=10"></script>
@@ -129,8 +132,8 @@
     <a href="my-card.html" title="워킹패스로 돌아가기">←</a>
     <h1>강아지 도감</h1>
   </div>
-  <p class="subtitle">공원에서 만난 강아지와 그 자리에서 서로 화면 QR을 찍으면 단짝이 되고 한마디가 남아요.
-  키링 QR을 찍으면 발자국으로 남아요. 서버 없이 이 휴대폰에만 저장돼요.</p>
+  <!-- 위 설명은 한 줄로, 자세한 것은 아래 "QR에 담기는 것"에 접어 둔다(2026-11-23 밤 출시 점검) -->
+  <p class="subtitle">공원에서 만난 강아지와 서로 화면 QR을 찍으면 단짝이 돼요. 이 휴대폰에만 저장돼요.</p>
 
   <div class="acts">
     <button type="button" class="btn btn-main" id="show-btn">내 카드 보여 주기</button>
@@ -139,11 +142,12 @@
 
   <div class="count"><b id="dex-count">0</b><span>마리를 만났어요</span></div>
   <div class="grid" id="grid"></div>
+  <details class="note-fold"><summary>QR에 담기는 것 · 단짝과 발자국</summary>
   <p class="note">QR에 담기는 것: 강아지 이름 · 크기 · 성향 · 털색(프로필 사진에서 뽑은 색 하나).
   앱 화면에 띄운 QR에는 띄운 시각과 고른 한마디, 내 아지트 방 모습(도트 강아지 · 벽지 · 놓은 소품 · 머리 장식 · 산책 등급)도 담겨요.
   위치 · 사진 · 견주 정보 · 산책 횟수는 담지 않아요.<br>
   화면 QR을 띄운 지 몇 분 안에 찍으면 단짝, 키링 QR이나 캡처해서 받은 QR은 발자국으로 남아요.
-  서로 도감에 넣으려면 둘 다 찍어야 해요. 상대가 나중에 이름을 바꾸면 다시 찍어야 바뀌어요.</p>
+  서로 도감에 넣으려면 둘 다 찍어야 해요. 상대가 나중에 이름을 바꾸면 다시 찍어야 바뀌어요.</p></details>
 </div>
 
 <!-- 내 카드 -->
@@ -157,7 +161,7 @@
     <div class="qr" id="my-qr"></div>
     <p class="qr-note">이 QR은 30초마다 새로 바뀌어요. 그 자리에서 찍으면 단짝이 되고 한마디가 남아요 — 캡처해서 보내면 발자국만 남아요.</p>
     <!-- 카드 주소 보내기(2026-11-16 가르시아): 키링을 신청할 때 운영자에게 이 주소를 보낸다 — 키링 뒷면 QR·NFC에 그대로 들어간다 -->
-    <button type="button" class="btn btn-main" id="share-btn">카드 주소 보내기 · 키링 신청용</button>
+    <button type="button" class="btn btn-main" id="share-btn">카드 주소 보내기</button>
     <p class="sub" style="margin:8px 0 12px;">이 주소에는 강아지 이름·크기·성향·털색만 들어가요. 주소를 받은 사람은 누구나 열어 볼 수 있어요.</p>
     <button type="button" class="btn btn-sub" data-close>닫기</button>
   </div>
@@ -187,7 +191,7 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
 <script>
 (function () {
   // 도감(petwalk_dex)·내 번호(petwalk_dex_me)·주민증은 store.js(WalsonStore)로 읽고 쓴다
@@ -383,7 +387,7 @@
   $('share-btn').addEventListener('click', function () {
     if (!shareUrl) return;
     if (WalsonDevice.canShare()) {
-      WalsonDevice.share({ title: '왈슨 강아지 도감 카드', text: shareName + ' 도감 카드예요 (키링 신청)', url: shareUrl })
+      WalsonDevice.share({ title: '왈슨 강아지 도감 카드', text: shareName + ' 도감 카드예요', url: shareUrl })
         .catch(function (e) { if (!e || e.name !== 'AbortError') copyUrl(); });   // 공유 창을 그냥 닫은 건 그대로 둔다
       return;
     }

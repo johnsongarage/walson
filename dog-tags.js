@@ -9,8 +9,9 @@
     // 거리두기·주의 안내 — 빨강·노랑 신호등
     { id: 'big-dog',     group: 'caution',  text: '낯선 큰 개를 무서워해요. 멀리서 봐 주세요' },
     { id: 'eye-alarm',   group: 'caution',  text: '눈 마주치면 경보 발령 (3m 거리 유지 권장)' },
-    { id: 'people-only', group: 'caution',  text: '개친구 사절 (사람만 취급해요)' },
-    { id: 'boss',        group: 'caution',  text: '예민보스 출근 중 (지나갈 땐 모른 척해 주세요)' },
+    // redOnly: "눈으로만 예뻐해 주세요"(빨강)에만 — "천천히 인사해요"(노랑)와 말이 어긋나서(2026-11-23 밤 출시 점검, 가르시아 "추천대로")
+    { id: 'people-only', group: 'caution',  text: '개친구 사절 (사람만 취급해요)', redOnly: true },
+    { id: 'boss',        group: 'caution',  text: '예민보스 출근 중 (지나갈 땐 모른 척해 주세요)', redOnly: true },
     // 친화력·성격 어필 — 초록 신호등
     // 원안 "간식 주면 바로 배 깜" — 모르는 사람이 간식을 주게 만들 수 있어 "쓰다듬으면"으로 바꿈(11/16 가르시아 "괜찮아")
     { id: 'belly',       group: 'friendly', text: '쓰다듬으면 바로 배 깜 (순둥이)' },
@@ -29,14 +30,14 @@
   // 이 신호등에서 고를 수 있는 태그
   function forSignal(signal) {
     var g = groupOf(signal);
-    return TAGS.filter(function (t) { return t.group === g; });
+    return TAGS.filter(function (t) { return t.group === g && (!t.redOnly || signal === 'red'); });
   }
   // 프로필에 고른 태그가 지금 신호등에 맞으면 그 문구, 아니면 '' (카드는 기본 문구를 쓴다)
   function lineFor(profile) {
     if (!profile || !profile.tag) return '';
     var g = groupOf(profile.signal);
     for (var i = 0; i < TAGS.length; i++) {
-      if (TAGS[i].id === profile.tag && TAGS[i].group === g) return TAGS[i].text;
+      if (TAGS[i].id === profile.tag && TAGS[i].group === g && (!TAGS[i].redOnly || profile.signal === 'red')) return TAGS[i].text;
     }
     return '';
   }
