@@ -74,7 +74,9 @@
   .stage::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px;
     background: radial-gradient(circle at 8px -2px, var(--panel) 7px, transparent 7.5px) 0 0 / 16px 8px repeat-x; }   /* 위 구름 띠 */
   .roomwrap { position: relative; line-height: 0; }
-  #room { display: block; image-rendering: pixelated; touch-action: none; cursor: pointer; }
+  /* 휴대폰에서 방 위를 위아래로 밀면 화면이 내려간다(pan-y, 11/23 가르시아 "고쳐줘" — 시안은 none이라 방 위에선 안 내려갔음).
+     내 방 소품 위를 누를 때만 아래 스크립트(touchstart)가 막아서 끌기가 된다 */
+  #room { display: block; image-rendering: pixelated; touch-action: pan-y; cursor: pointer; }
   .sign { position: absolute; left: 8px; top: 14px; max-width: 46%; background: var(--panel); color: var(--ink); border: 2px solid var(--line);
     padding: 3px 6px; font-size: 11px; line-height: 1.3; z-index: 2; word-break: keep-all; }
   .bubble { position: absolute; transform: translate(-50%, -100%); background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
@@ -697,19 +699,28 @@
   // ── 누르기: 소품이면 끌기(내 방만), 아니면 강아지가 그 바닥 칸으로 ──
   var drag = null, downAt = null;
   function at(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / K, y: (e.clientY - r.top) / K }; }
+  // 그 자리에 놓인 소품(위에 그린 것부터) — 내 방에서만 끈다
+  function itemAt(p) {
+    if (view >= 0) return null;
+    for (var n = sprites.length - 1; n >= 0; n--) {
+      var s = sprites[n];
+      if (p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h) return s;
+    }
+    return null;
+  }
   canvas.addEventListener('pointerdown', function (e) {
-    var p = at(e); downAt = p; drag = null;   // 지난 끌기가 덜 끝났어도 새로 시작
-    if (view < 0) {
-      for (var n = sprites.length - 1; n >= 0; n--) {
-        var s = sprites[n];
-        if (p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h) {
-          drag = { id: s.id, moved: false };
-          try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
-          e.preventDefault(); kick(); return;
-        }
-      }
+    var p = at(e), s = itemAt(p); downAt = p; drag = null;   // 지난 끌기가 덜 끝났어도 새로 시작
+    if (s) {
+      drag = { id: s.id, moved: false };
+      try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
+      e.preventDefault(); kick();
     }
   });
+  // 휴대폰: 소품 위에서 시작한 손가락만 화면이 따라 움직이지 않게(끌기). 바닥에서 위아래로 밀면 화면이 내려가고
+  // 그때 브라우저가 보내는 pointercancel로 걷기도 취소된다. 그냥 톡 누르면 그 칸으로 걸어간다.
+  canvas.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 1 && itemAt(at(e.touches[0]))) e.preventDefault();
+  }, { passive: false });
   canvas.addEventListener('pointermove', function (e) {
     if (!drag) return;
     var p = at(e), it = AZ.byId(AZ.ITEMS, drag.id);
@@ -819,7 +830,8 @@
   if (!fromHash()) ui();
   dogsReady.then(function () { dogCache = {}; kick(); });
   // 시험용 — 지금 보는 방·그리는 배율
-  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, friends: friends.length, me: state.dog }; } };
+  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, friends: friends.length, me: state.dog,
+    to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; } };
 })();
 </script>
 <script src="tabbar.js?v=11" data-tab="azit"></script>
