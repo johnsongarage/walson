@@ -1,5 +1,5 @@
 // 산책 아지트 데이터(2026-11-23 개방명록 2단계 — 가르시아 "아지트는 탭 하나 더 두던가" → "2단계로 가자"). 전역 window.WalsonAzit.
-// [아지트] 탭(azit.html)과 도감 화면 QR(dex.html)이 같이 쓴다. 그리는 것은 azit.html(시안 azit-sian-b.html에서 옮김).
+// [아지트] 탭(azit.html)과 도감 화면 QR(dex.html)이 같이 쓴다. 그리는 것은 azit.html(시안 azit-sian-b.html에서 옮김 → 11/23 밤 새 방 azit-sian-c.html).
 //
 // - 내 방: 이 휴대폰 산책 기록으로 "생긴" 소품만 놓는다(포인트로 사는 상점 X — 9/24 보상 폐지 이후 원칙).
 //   고른 도트 강아지·벽지·머리 장식·빼 둔 소품·옮긴 자리·오늘 기분은 petwalk_azit(이 휴대폰에만).
@@ -38,36 +38,41 @@
   //   11/23 모델하우스 2단계에 더한 것: pass 워킹패스가 있음 · photos 오늘의 한 장 장수 · poop 산책 끝 "응가 치웠나요"에 답한 치운 횟수(1번·2번 이상)
   //       · keyring 키링을 받음 · park 공원 발도장 장소 수 · steady5 한 주에 5일 넘게 산책한 주 수. 모두 "산 것"이 아니라 "한 것".
   //       (교환 수 — 단짝 몇 마리 — 를 조건으로 거는 건 아직 정하지 않아서 넣지 않았다. 11/23 "교환 횟수엔 돈 되는 보상 X")
-  // 바닥 소품은 (i, j)칸, 벽 소품은 (벽 R·L, u칸, 높이 h) — 처음 자리(내 방은 옮길 수 있다, 친구 방은 늘 이 자리)
-  // decal: 바닥에 까는 것(러그·피크닉 매트)의 크기 [i칸, j칸] — 맨 아래 층에 그리고 끌지 않는다(바닥 누르기·화면 내리기를 가로막지 않게).
-  //   자리는 처음 자리 또는 모델하우스 [이 방처럼 놓기]로.
+  // 11/23 밤 새 방(가르시아 "탭에 넣기" — 산책 아지트 C안): 그림은 icons/azit-room(spr = 파일 이름, 받은 그림을 방 크기에 맞춘 것 +
+  // _dev/azit-extra.py로 그린 것). 방은 분홍 빈 방 394×220점 — 바닥 자리는 두 벽 모서리(199,74)에서 오른쪽 벽 따라 i, 왼쪽 벽 따라 j
+  // (한 칸 = 가로 2점·세로 1점, 바닥은 대략 i 0~100 · j 0~85), 벽 소품은 (벽 R·L, 모서리에서 u칸, 그림 가운데가 바닥 줄에서 h점 위).
+  // face: 벽 소품 그림이 어느 벽 방향으로 그려졌는지 — 다른 벽에 걸면 좌우로 뒤집는다. decal: 바닥에 까는 것(러그·매트, 자리는 그림 가운데).
+  // corner: 두 벽 모서리에 걸친 것(가랜드 — 끌지 않는다). 예전 8×8칸 자리는 POS_V가 달라 새 처음 자리로 놓인다.
+  // 처음 자리는 다 생긴 방을 그려 보며 손으로(붙박이 선반·창·계단을 피해서, 사진 액자는 왼쪽 선반 위·엽서는 선반 위 벽·트로피는 오른쪽 선반에).
+  // 내 방은 옮길 수 있다, 친구 방은 늘 이 자리.
   var ITEMS = [
-    { id: 'frame',  spr: 'frame',  wall: 'R', u: 2.6, h: 40, name: '등급 액자',     need: { level: 1 } },
-    { id: 'card0',  spr: 'card',   wall: 'R', u: 4.8, h: 38, name: '엽서',          need: { stamps: 1 } },
-    { id: 'card1',  spr: 'card',   wall: 'L', u: 5.6, h: 40, name: '엽서',          need: { stamps: 2 } },
-    { id: 'bed',    spr: 'bed',    i: 3.0, j: 1.2,           name: '가게 방석',     need: { shop: 1 } },
-    { id: 'trophy', spr: 'trophy', i: 0.9, j: 0.9,           name: '트로피',        need: { steady: 3 } },
-    { id: 'plant',  spr: 'plant',  i: 1.0, j: 6.4,           name: '화분',          need: { walks: 10 } },
-    { id: 'bowl',   spr: 'bowl',   i: 7.0, j: 2.6,           name: '밥그릇',        need: {} },
-    { id: 'bone',   spr: 'bone',   i: 5.6, j: 2.4,           name: '뼈다귀',        need: { walks: 1 } },
-    { id: 'carrot', spr: 'carrot', i: 6.4, j: 3.2,           name: '당근 인형',     need: { walks: 5 } },
-    { id: 'ball',   spr: 'ball',   i: 6.8, j: 6.6,           name: '공',            need: {} },
-    { id: 'flag',   spr: 'flag',   i: 1.6, j: 3.6,           name: '앰배서더 깃발', need: { level: 3 } },
+    { id: 'frame',  spr: 'frame_jelly_pink', face: 'L', wall: 'R', u: 80.5, h: 53.5, name: '등급 액자', need: { level: 1 } },
+    { id: 'card0',  spr: 'postcard_paw', face: 'L', wall: 'R', u: 79.5, h: 82.5, name: '엽서', need: { stamps: 1 } },
+    { id: 'card1',  spr: 'postcard_paw', face: 'L', wall: 'L', u: 15.5, h: 71.5, name: '엽서', need: { stamps: 2 } },
+    { id: 'bed',    spr: 'cushion_cafe_beige', i: 40, j: 58, name: '가게 방석', need: { shop: 1 } },
+    { id: 'trophy', spr: 'trophy_shelf', face: 'R', wall: 'R', u: 31.5, h: 56.5, name: '트로피', need: { steady: 3 } },
+    { id: 'plant',  spr: 'plant_pot', i: 4, j: 12, name: '화분', need: { walks: 10 } },
+    { id: 'bowl',   spr: 'feeder_wood_2bowl', i: 7, j: 48, name: '밥그릇', need: {} },
+    { id: 'bone',   spr: 'toy_bone', i: 75, j: 47, name: '뼈다귀', need: { walks: 1 } },
+    { id: 'carrot', spr: 'carrot_plush', i: 62, j: 66, name: '당근 인형', need: { walks: 5 } },
+    { id: 'ball',   spr: 'ball_yellow', i: 80, j: 32, name: '공', need: {} },
+    { id: 'flag',   spr: 'flag_stand', i: 36, j: 6, name: '앰배서더 깃발', need: { level: 3 } },
     // ── 11/23 모델하우스 2단계 ──
-    { id: 'rug',     spr: 'rug',     i: 4.2, j: 4.4, decal: [2.8, 2.0], name: '러그',           need: { walks: 3 } },
-    { id: 'photo',   spr: 'photo',   wall: 'L', u: 4.2, h: 42,         name: '우리 개 사진 액자', need: { pass: 1 } },
-    { id: 'basket',  spr: 'basket',  i: 2.4, j: 6.6,                   name: '장난감 바구니',  need: { walks: 15 } },
-    { id: 'house',   spr: 'house',   i: 6.4, j: 0.9,                   name: '강아지 집',      need: { walks: 20 } },
-    { id: 'shelf',   spr: 'shelf',   wall: 'R', u: 6.0, h: 30,         name: '오늘의 한 장 선반', need: { photos: 3 } },
-    { id: 'poopbag', spr: 'poopbag', wall: 'L', u: 6.6, h: 30,         name: '응가 봉투 걸이', need: { poop: 10 } },
-    { id: 'keyhook', spr: 'keyhook', wall: 'R', u: 1.0, h: 34,         name: '키링 걸이',      need: { keyring: 1 } },
-    { id: 'lamp',    spr: 'lamp',    i: 4.4, j: 0.7,                   name: '스탠드 조명',    need: { steady: 1 } },
-    { id: 'mat',     spr: 'mat',     i: 1.8, j: 6.2, decal: [2.0, 2.0], name: '피크닉 매트',  need: { park: 1 } },
-    { id: 'garland', spr: 'garland', wall: 'R', u: 2.0, h: 51,         name: '가랜드',         need: { steady5: 1 } },
-    // 단짝 액자(11/23 가르시아 "추천대로" — 교환 수 문턱 보상("단짝 3마리면 가랜드") 대신): 첫 단짝부터 걸리고 최근 단짝 세 마리 도트 얼굴이 들어간다.
+    { id: 'rug',     spr: 'rug_pattern', i: 55, j: 39, decal: true, name: '러그', need: { walks: 3 } },
+    { id: 'photo',   spr: 'frame_photo', face: 'L', wall: 'L', u: 42, h: 80, name: '우리 개 사진 액자', need: { pass: 1 } },
+    { id: 'basket',  spr: 'basket_blue_carrot', i: 16, j: 5, name: '장난감 바구니', need: { walks: 15 } },
+    { id: 'house',   spr: 'sofa_bed', i: 64, j: 16, name: '강아지 소파', need: { walks: 20 } },   // 11/23 새 방부터 집 대신 소파
+    { id: 'shelf',   spr: 'board_postcard', face: 'R', wall: 'R', u: 11.5, h: 52.5, name: '오늘의 한 장 게시판', need: { photos: 3 } },
+    { id: 'poopbag', spr: 'poopbag_holder', face: 'R', wall: 'L', u: 68.5, h: 47.5, name: '응가 봉투 걸이', need: { poop: 10 } },
+    { id: 'keyhook', spr: 'keyhook_rail', face: 'R', wall: 'R', u: 92, h: 56, name: '키링 걸이', need: { keyring: 1 } },
+    { id: 'lamp',    spr: 'lamp_stand', i: 5, j: 30, name: '스탠드 조명', need: { steady: 1 } },
+    { id: 'mat',     spr: 'picnic_mat', i: 20, j: 56, decal: true, name: '피크닉 매트', need: { park: 1 } },
+    { id: 'garland', spr: 'garland_bunting', corner: true, name: '가랜드', need: { steady5: 1 } },
+    // 단짝 액자(11/23 가르시아 "추천대로" — 교환 수 문턱 보상("단짝 3마리면 가랜드") 대신): 첫 단짝부터 걸리고 최근 단짝 도트 강아지가 들어간다.
     // 숫자를 채우는 보상이 아니라 방이 친구로 채워지는 것(11/23 결정 "방이 채워지는 것 자체가 보상"과 같은 결)
-    { id: 'palframe', spr: 'palframe', wall: 'L', u: 1.0, h: 27,      name: '단짝 액자',      need: { pals: 1 } }
+    { id: 'palframe', spr: 'frame_pal', face: 'R', wall: 'L', u: 59.5, h: 56.5, name: '단짝 액자', need: { pals: 1 } }
   ];
+  var POS_V = 2;   // 저장한 자리의 좌표 판 — 2 = 11/23 새 방(394×220점). 그 전(8×8칸) 자리는 읽지 않고 새 처음 자리로
   // 머리 위 장식 — 순서 고정(방 모습에 1부터 번호, 0 = 없음)
   var ACCS = [
     { id: 'ribbon', name: '리본',      need: {} },
@@ -137,7 +142,7 @@
     else if (need.keyring) how = '키링을 받으면 생겨요';
     else if (need.park) how = '공원 발도장을 받으면 생겨요';
     else if (need.steady5) how = '한 주에 5일 산책하면 생겨요';
-    else if (need.pals) how = '단짝이 생기면 걸려요 — 최근 단짝 얼굴이 들어가요';
+    else if (need.pals) how = '단짝이 생기면 걸려요 — 최근 단짝 강아지가 들어가요';
     else how = '처음부터 있어요';
     var once = need.shop || need.pass || need.keyring || need.park || need.pals;   // 한 번 하면 되는 것은 "아직 없어요"
     return { how: how, mine: met(need, p) ? '나도 있어요' : (once ? '나는 아직 없어요' : '나는 ' + needText(need, p)) };
@@ -189,34 +194,33 @@
   //    (트로피·깃발은 안쪽 구석, 방석 옆 밥그릇·뼈다귀, 창가 화분, 앞쪽 놀이 자리), 강아지가 다니는 가운데는 비운다.
   //    1단계(11/23)는 한 채, 2단계(같은 날 "2단계로 가자")에 새 소품 10개를 그리고 세 채로.
   //    방마다 그 방에 놓은 소품과 자리(pos) — 자리는 손으로 하나하나 화면에 띄워 보며 맞춘 것.
+  //    11/23 밤 새 방부터는 처음 자리(ITEMS)를 그대로 쓰고 방마다 몇 개만 옮긴다(over) — 세 채를 그려 보며 맞춘 자리.
+  //    벽지: 핑크 앰배서더 = 분홍 방, 밤산책 라운지 = 밤 블랙 핑크 방, 공원 피크닉 = 라일락 방.
+  function roomPos(ids, over) {
+    var pos = {};
+    ids.forEach(function (id) {
+      var it = byId(ITEMS, id), o = over && over[id];
+      if (o) pos[id] = o;
+      else if (it.corner) pos[id] = { corner: 1 };
+      else if (it.wall) pos[id] = { wall: it.wall, u: it.u, h: it.h };
+      else pos[id] = { i: it.i, j: it.j };
+    });
+    return pos;
+  }
   var SHOWROOMS = [
     { id: 'pink', name: '핑크 앰배서더의 방', owner: '왈슨', dog: 'chihuahua', theme: 'jelly', acc: 'crown', level: 3,
-      line: '산책 30번이면 이렇게 돼요',   // 등급·꾸준함 — 안쪽 구석 트로피·깃발, 벽엔 액자·엽서 갤러리와 가랜드, 창 아래 우리 개 사진
-      pos: {
-        garland: { wall: 'R', u: 1.2, h: 52 }, frame: { wall: 'R', u: 2.5, h: 41 }, card0: { wall: 'R', u: 4.4, h: 44 },
-        photo: { wall: 'L', u: 3.0, h: 29 }, card1: { wall: 'L', u: 4.9, h: 40 }, palframe: { wall: 'L', u: 4.6, h: 22 },
-        rug: { i: 3.8, j: 4.2 }, trophy: { i: 0.9, j: 0.9 }, flag: { i: 2.1, j: 0.7 },
-        bed: { i: 5.3, j: 1.3 }, bowl: { i: 7.1, j: 1.4 }, bone: { i: 6.0, j: 2.6 }, plant: { i: 0.8, j: 3.3 },
-        house: { i: 2.0, j: 6.6 }, ball: { i: 5.0, j: 6.4 }, carrot: { i: 5.8, j: 6.0 }
-      } },
+      line: '산책 30번이면 이렇게 돼요',   // 등급·꾸준함 — 오른쪽 선반에 트로피·옆에 깃발, 벽엔 액자·엽서와 모서리 가랜드, 왼쪽 선반에 우리 개 사진
+      pos: roomPos(['garland', 'frame', 'card0', 'photo', 'card1', 'palframe', 'rug', 'trophy', 'flag', 'bed', 'bowl', 'bone', 'plant', 'house', 'ball', 'carrot']) },
     { id: 'night', name: '밤산책 라운지', owner: '왈슨', dog: 'chihuahua', theme: 'night', acc: 'cap', level: 2,
-      line: '꾸준히 걸으면 이렇게 돼요',   // 꾸준함 — 스탠드 조명·러그, 오늘의 한 장 선반, 키링 걸이
-      dogs: { host: [5.0, 5.4], guest: [6.4, 4.0] },   // 강아지는 앞쪽에(창가 스탠드·트로피가 가려지지 않게)
-      pos: {
-        garland: { wall: 'R', u: 1.4, h: 52 }, frame: { wall: 'R', u: 2.4, h: 40 }, shelf: { wall: 'R', u: 4.4, h: 33 },
-        keyhook: { wall: 'R', u: 6.6, h: 36 }, photo: { wall: 'L', u: 4.2, h: 41 },
-        rug: { i: 4.0, j: 4.3 }, trophy: { i: 0.9, j: 0.9 }, lamp: { i: 1.0, j: 2.6 }, plant: { i: 0.8, j: 4.8 },
-        bed: { i: 5.6, j: 1.3 }, bowl: { i: 7.1, j: 1.6 }, basket: { i: 2.2, j: 6.4 }, ball: { i: 3.2, j: 6.8 }
-      } },
+      line: '꾸준히 걸으면 이렇게 돼요',   // 꾸준함 — 창가 방석 옆 스탠드 조명·러그, 오늘의 한 장 게시판, 키링 걸이
+      dogs: { host: [50, 48], guest: [40, 30] },   // 러그 위에(창가 방석·스탠드가 가려지지 않게)
+      pos: roomPos(['garland', 'frame', 'shelf', 'keyhook', 'photo', 'rug', 'trophy', 'lamp', 'plant', 'bed', 'bowl', 'basket', 'ball'],
+        { bed: { i: 66, j: 18 }, lamp: { i: 84, j: 8 } }) },
     { id: 'picnic', name: '공원 피크닉 방', owner: '왈슨', dog: 'chihuahua', theme: 'lilac', acc: 'ribbon', level: 1,
-      line: '공원 발도장을 모으면 이렇게 돼요',   // 공원 — 피크닉 매트에 바구니·공·당근, 벽엔 공원 엽서, 응가 봉투 걸이
-      dogs: { host: [3.0, 3.4], guest: [4.4, 2.6] },   // 매트 뒤에(앞쪽 매트 위 바구니·공이 가려지지 않게)
-      pos: {
-        garland: { wall: 'L', u: 5.0, h: 52 }, card0: { wall: 'R', u: 2.2, h: 42 }, card1: { wall: 'R', u: 3.6, h: 39 },
-        photo: { wall: 'R', u: 5.4, h: 41 }, poopbag: { wall: 'L', u: 6.8, h: 30 }, palframe: { wall: 'L', u: 2.2, h: 28 },
-        mat: { i: 5.0, j: 5.4 }, house: { i: 6.6, j: 0.9 }, bowl: { i: 4.8, j: 0.8 }, bone: { i: 6.0, j: 2.0 },
-        basket: { i: 4.4, j: 4.8 }, ball: { i: 5.4, j: 5.8 }, carrot: { i: 4.6, j: 6.0 }, plant: { i: 0.8, j: 3.2 }
-      } }
+      line: '공원 발도장을 모으면 이렇게 돼요',   // 공원 — 피크닉 매트에 바구니·공·당근, 벽엔 엽서, 응가 봉투 걸이
+      dogs: { host: [34, 30], guest: [44, 22] },   // 매트 뒤에(앞쪽 매트 위 바구니·공이 가려지지 않게)
+      pos: roomPos(['garland', 'card0', 'card1', 'photo', 'poopbag', 'palframe', 'mat', 'house', 'bowl', 'bone', 'basket', 'ball', 'carrot', 'plant'],
+        { mat: { i: 52, j: 50 }, basket: { i: 50, j: 60 }, ball: { i: 62, j: 60 }, carrot: { i: 58, j: 50 }, bone: { i: 74, j: 44 } }) }
   ];
   // 방마다 놓은 소품 = pos에 자리가 있는 것(소품 순서대로)
   SHOWROOMS.forEach(function (s) { s.items = ITEMS.filter(function (it) { return s.pos[it.id]; }).map(function (it) { return it.id; }); });
@@ -224,7 +228,7 @@
   // 샘플 모드의 내 방(공원 시연·처음 온 사람) — 샘플 강아지 왈슨이 지금 가진 소품을 1번 방과 같은 손 배치로. 벽지는 모델하우스와 다르게 라일락.
   // 1번 방에 없는 소품은 빼 둔 걸로(샘플 방이 흐트러지지 않게 — [내 소품]에서 넣을 수 있다).
   // 샘플을 끄면 원래대로(sample-data.js가 petwalk_azit을 보관했다 되돌린다). sample: true = 이 상태가 샘플용이라는 표시
-  var SAMPLE_V = 3;   // 샘플 방 모양 번호 — 소품·배치가 바뀌면 올린다(예전 샘플 방은 새로 만든다). 3 = 단짝 액자 더함(11/23)
+  var SAMPLE_V = 4;   // 샘플 방 모양 번호 — 소품·배치가 바뀌면 올린다(예전 샘플 방은 새로 만든다). 3 = 단짝 액자 더함(11/23), 4 = 새 방(11/23 밤)
   function sampleState() {
     var room = SHOWROOMS[0];
     var all = ITEMS.map(function (it) { return it.id; }).concat(ACCS.map(function (a) { return a.id; }));
@@ -240,7 +244,7 @@
     var pos = {};
     if (raw && typeof raw === 'object') Object.keys(raw).forEach(function (id) {
       var p = raw[id], it = byId(ITEMS, id);
-      if (!it || !p || typeof p !== 'object') return;
+      if (!it || !p || typeof p !== 'object' || it.corner) return;   // 모서리 가랜드는 자리가 없다
       if (it.wall && (p.wall === 'R' || p.wall === 'L') && isFinite(p.u) && isFinite(p.h)) pos[id] = { wall: p.wall, u: +p.u, h: +p.h };
       else if (!it.wall && isFinite(p.i) && isFinite(p.j)) pos[id] = { i: +p.i, j: +p.j };
     });
@@ -251,14 +255,15 @@
   function loadState() {
     var s = WalsonStore.object(KEY) || {};
     if (WalsonStore.sampleOn && WalsonStore.sampleOn() && (s.sample !== true || s.sampleV !== SAMPLE_V)) return sampleState();
-    var u = s.undo && typeof s.undo === 'object' ? s.undo : null;
+    var newPos = s.posV === POS_V;   // 예전 방(8×8칸) 자리·되돌리기는 새 방 좌표가 아니라서 읽지 않는다(새 처음 자리로)
+    var u = newPos && s.undo && typeof s.undo === 'object' ? s.undo : null;
     return {
       dog: byId(DOGS, s.dog) ? s.dog : null,
       dogAuto: s.dogAuto !== false,
       theme: THEMES.indexOf(s.theme) >= 0 ? s.theme : 'jelly',
       acc: cleanAcc(s.acc),
       hidden: cleanHidden(s.hidden),
-      pos: cleanPos(s.pos),
+      pos: newPos ? cleanPos(s.pos) : {},
       seen: Array.isArray(s.seen) ? s.seen.filter(function (id) { return !!byId(ITEMS, id) || !!byId(ACCS, id); }) : null,   // null = 아지트를 처음 연다
       mood: (s.moodDay === todayKey() && MOODS.indexOf(s.mood) >= 0) ? s.mood : '',   // 오늘 기분은 그날만
       moodDay: s.moodDay === todayKey() ? s.moodDay : '',
@@ -269,7 +274,7 @@
     };
   }
   function saveState(st) {
-    var o = { dog: st.dog, dogAuto: !!st.dogAuto, theme: st.theme, acc: st.acc, hidden: st.hidden, pos: st.pos, seen: st.seen || [], mood: st.mood, moodDay: st.moodDay };
+    var o = { dog: st.dog, dogAuto: !!st.dogAuto, theme: st.theme, acc: st.acc, hidden: st.hidden, pos: st.pos, posV: POS_V, seen: st.seen || [], mood: st.mood, moodDay: st.moodDay };
     if (st.sample) { o.sample = true; o.sampleV = st.sampleV; }
     if (st.undo) o.undo = st.undo;
     return WalsonStore.setJSON(KEY, o);
