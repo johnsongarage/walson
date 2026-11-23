@@ -347,11 +347,16 @@
 
   // ── 그리기 ──
   var canvas = $('room'), ctx = canvas.getContext('2d');
+  // 방 크기 — 11/23 가르시아 "방 화면 폭에 꽉 차게 키워줘": 전에는 방 한 칸 = 기기 픽셀 정수 개만 써서 390폭 휴대폰에서 방이
+  // 칸 폭 305px 중 245px뿐이었다. 이제 그림은 그대로 정수 배(R)로 그리고(칸이 흐려지지 않게, 강아지는 이 해상도로 또렷하게),
+  // 화면에 놓을 때 모자라거나 남는 몇 %만 브라우저가 가장 가까운 점으로 늘이거나 줄인다(#room image-rendering: pixelated).
+  // R은 가장 가까운 정수 — 휴대폰(R 4~5)은 늘이거나 줄이는 게 10% 안팎이고 그 차이가 기기 픽셀 1개라 눈에 안 띈다.
+  // PC(배율 1, R 2)는 15%쯤 늘여서 바닥 줄이 아주 조금 들쭉날쭉한 정도(나란히 찍어 비교해 보고 PC도 꽉 차게).
   function fit() {
     var avail = $('roomwrap').parentElement.clientWidth - 8, dpr = window.devicePixelRatio || 1;
-    R = Math.max(1, Math.floor(avail * dpr / CW));   // 방 한 칸 = 기기 픽셀 R개(정수라 칸이 흐려지지 않음)
-    K = R / dpr;
-    canvas.width = CW * R; canvas.height = CH * R;    // 강아지 그림은 이 해상도로 그려 또렷하게
+    R = Math.max(1, Math.round(avail * dpr / CW));   // 방 한 칸 = 기기 픽셀 R개(그리는 해상도)
+    K = avail / CW;                                  // 방 한 칸 = 화면 K px(놓는 크기)
+    canvas.width = CW * R; canvas.height = CH * R;
     canvas.style.width = CW * K + 'px'; canvas.style.height = CH * K + 'px';
   }
   // 도트 강아지 — 키 DOG_H칸(방 칸 단위). 그리는 법 세 가지:
@@ -744,7 +749,7 @@
   Promise.all([dogsReady, document.fonts && document.fonts.load ? document.fonts.load("13px 'DungGeunMo'").catch(function () {}) : null]).then(function () {
     fit(); ui(); requestAnimationFrame(step);
   });
-  window.__azit = { goTo: goTo, state: function () { return { view: view, me: ME.dog, host: owner().dog, R: R, K: K, dot: dotMode }; },
+  window.__azit = { goTo: goTo, state: function () { return { view: view, me: ME.dog, host: owner().dog, R: R, K: K, dot: dotMode, to: [host.ti, host.tj], gto: [guest.ti, guest.tj] }; },
     sprite: function (id) { var b = dogBitmap(id); if (!b) return null; var url = ''; try { url = b.toDataURL(); } catch (e) {} return { w: b.width, h: b.height, pic: !!b.pic, dev: !!b.dev, url: url }; } };   // 시험용
 })();
 </script>
