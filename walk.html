@@ -25,7 +25,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="sample-data.js?v=6"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-<link rel="stylesheet" href="walk-screen.css?v=3">
+<link rel="stylesheet" href="walk-screen.css?v=4">
 <style>
   /* 산책 중 화면 — 위치를 쓰는 산책(2026-11-16 2단계, 가르시아 "시안대로 2단계 바로 진행해줘", 시안 캔버스 ⑪·⑫).
      예전엔 지도가 바탕인 화면이었다. 이제 11/13 C안대로 큰 시간이 주인공이고, 위치를 쓰면 미션 카드·알림 띠가 더해진다.
@@ -47,11 +47,12 @@
   #map { position: absolute; inset: 0; z-index: 0; }
   /* 지도 컬러톤: 라벤더 파스텔(예전 산책 화면·[동네]와 같은 값) */
   .leaflet-tile-pane { filter: saturate(55%) hue-rotate(220deg) brightness(112%) contrast(92%); }
-  /* 도트 지도(2026-11-22, pixel-map.js) — 기본은 위 그림 지도, 위 [도트] 버튼으로 바꾼다. 라벤더 필터를 끄고 칸이 뭉개지지 않게 */
+  /* 도트 지도(2026-11-22, pixel-map.js) — 기본은 위 그림 지도, 위 톱니(설정 판)의 지도 모양에서 바꾼다. 라벤더 필터를 끄고 칸이 뭉개지지 않게 */
   body.map-pixel .leaflet-tile-pane { filter: none !important; image-rendering: pixelated; }   /* !important: 블랙 화면의 지도 뒤집기(theme-black.css)보다 앞서게 */
   .map-top-right { display: flex; align-items: center; gap: 8px; }
-  #map-style-btn, #map-label-btn { font-family: inherit; font-size: 13px; font-weight: 800; color: var(--ink); }
-  #map-label-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  /* 지도 위 설정(2026-11-23 가르시아 "산책 지도에도 달아줘" + "모아줘"): 위쪽 띠 톱니 → 설정 판(quick-set.js — [동네] 지도와 같이 씀)에서
+     화면 색·지도 모양([기본]/[도트])·길·장소 이름. 예전 [도트]·[이름] 버튼은 판으로 옮김. 열린 동안 톱니에 고리 */
+  #map-set-btn[aria-expanded="true"] { color: var(--accent); box-shadow: 0 0 0 2.5px var(--hl); }
   .map-top { position: absolute; z-index: 500; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; right: 16px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; }
   .map-top > * { pointer-events: auto; }
@@ -85,6 +86,7 @@
   .pin-delete-btn { align-self: flex-start; border: none; background: none; padding: 2px 0; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #b3392b; }
 </style>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="quick-set.js?v=1"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
@@ -160,8 +162,9 @@
   <div class="map-top">
     <div class="ws-chip is-dark"><span class="ws-dot" aria-hidden="true"></span><span id="map-chip-text">0분 · 길 기록 중</span></div>
     <div class="map-top-right">
-      <button type="button" class="ws-icon-btn" id="map-label-btn" aria-pressed="false" aria-label="길·장소 이름 보기" hidden>이름</button>
-      <button type="button" class="ws-icon-btn" id="map-style-btn" hidden>도트</button>
+      <button type="button" class="ws-icon-btn" id="map-set-btn" aria-label="설정 — 화면 색·지도 모양" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
       <button type="button" class="ws-icon-btn" id="map-close-x" aria-label="지도 닫기">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -361,13 +364,12 @@
   function initMap() {
     map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
     basicTiles = WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
-    // 도트 지도(2026-11-22): 기본은 위 그림 지도, [도트] 버튼으로 바꾸고 고른 것은 이 휴대폰에 기억한다.
+    // 도트 지도(2026-11-22): 기본은 위 그림 지도, 설정 판의 지도 모양으로 바꾸고 고른 것은 이 휴대폰에 기억한다([동네]와 같이 씀).
     // 도트 칸 색은 OpenStreetMap 그림 색을 기준으로 나누므로 pixel-map.js는 OSM 타일을 직접 받는다.
     if (window.PixelMap) {
       pixelTiles = PixelMap.createLayer({ pixelSize: 4 });
       pixelRoute = PixelMap.createRoute(map, { color: '#b8563a' });
-      pixelLabels = PixelMap.createLabels(map);   // 도트 지도 위 길·하천·공원 이름 — [이름] 버튼, 기본은 꺼짐
-      $('map-style-btn').hidden = false;
+      pixelLabels = PixelMap.createLabels(map);   // 도트 지도 위 길·하천·공원 이름 — 설정 판의 길·장소 이름, 기본은 꺼짐
       setMapStyle(PixelMap.getStyle());
     }
     routeLayer = L.layerGroup().addTo(map);
@@ -443,35 +445,28 @@
     else { map.removeLayer(pixelTiles); basicTiles.addTo(map); }
     document.body.classList.toggle('map-pixel', mapStyle === 'pixel');
     pixelRoute.setEnabled(mapStyle === 'pixel');
-    // [이름]은 도트 지도에서만(그림 지도엔 이름이 원래 있다)
-    $('map-label-btn').hidden = mapStyle !== 'pixel';
+    // 길·장소 이름은 도트 지도에서만(그림 지도엔 이름이 원래 있다)
     setLabels(mapStyle === 'pixel' && PixelMap.getLabels());
-    var btn = $('map-style-btn');
-    btn.textContent = mapStyle === 'pixel' ? '기본' : '도트';
-    btn.setAttribute('aria-label', mapStyle === 'pixel' ? '기본 지도로 보기' : '도트 지도로 보기');
   }
+  var labelsOn = false;
   function setLabels(on) {
-    var lb = $('map-label-btn');
-    lb.setAttribute('aria-pressed', on ? 'true' : 'false');
-    if (!pixelLabels) return;
-    pixelLabels.setEnabled(on).catch(function () {
-      // 지도 데이터를 못 받으면 이름 없이 도트 지도만 — 버튼만 꺼진 모양으로 돌린다
-      lb.setAttribute('aria-pressed', 'false');
-    });
+    labelsOn = on;
+    if (!pixelLabels) return null;
+    // 지도 데이터를 못 받으면 이름 없이 도트 지도만 — 꺼진 것으로 돌린다(설정 판도 다시 그림)
+    return pixelLabels.setEnabled(on).catch(function () { labelsOn = false; });
   }
-  $('map-label-btn').addEventListener('click', function () {
-    if (!map || !window.PixelMap) return;
-    var on = $('map-label-btn').getAttribute('aria-pressed') !== 'true';
-    PixelMap.setLabels(on);
-    setLabels(on);
-  });
-  $('map-style-btn').addEventListener('click', function () {
-    if (!map || !window.PixelMap) return;
-    setMapStyle(mapStyle === 'pixel' ? 'basic' : 'pixel');
-    PixelMap.setStyle(mapStyle);
-    drawMap(false);
-  });
-  function closeMap() { $('map-view').hidden = true; document.body.classList.remove('map-open'); mapOpen = false; }
+  // ── 지도 위 설정(2026-11-23 "산책 지도에도 달아줘" + "모아줘") — 톱니 → 설정 판(quick-set.js, [동네] 지도와 같이 씀):
+  // 화면 색(프로필 "화면 색"과 같은 설정 — 이 화면은 그림 지도라 색 변수·theme-black.css로 바로 바뀜) · 지도 모양 · 길·장소 이름
+  var quickSet = window.WalsonQuickSet ? WalsonQuickSet.attach($('map-set-btn'), {
+    side: 'below',
+    map: window.PixelMap ? {
+      get: function () { return mapStyle; },
+      set: function (v) { if (!map) return; setMapStyle(v); PixelMap.setStyle(mapStyle); drawMap(false); },
+      labels: function () { return labelsOn; },
+      setLabels: function (on) { if (!map) return null; PixelMap.setLabels(on); return setLabels(on); }
+    } : null
+  }) : null;
+  function closeMap() { $('map-view').hidden = true; document.body.classList.remove('map-open'); mapOpen = false; if (quickSet) quickSet.close(); }
   $('map-btn').addEventListener('click', openMap);
   $('map-close').addEventListener('click', closeMap);
   $('map-close-x').addEventListener('click', closeMap);

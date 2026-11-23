@@ -9,7 +9,8 @@
 .ws-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ws-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px; background: var(--panel, #fffaf3);
   border: 1px solid var(--panel-border, #e6d6c1); font-size: 13px; font-weight: 700; color: var(--ink, #4a3f35); }
-.ws-chip.is-dark { background: var(--ink, #4a3f35); border-color: var(--ink, #4a3f35); color: #fffaf3; box-shadow: 0 6px 16px rgba(74, 63, 53, 0.25); }
+/* 진한 칩 — 글씨는 화면 바탕색(블랙에선 --ink가 밝은색이라 #fffaf3 글씨가 안 보였음, 2026-11-23) */
+.ws-chip.is-dark { background: var(--ink, #4a3f35); border-color: var(--ink, #4a3f35); color: var(--bg, #fffaf3); box-shadow: 0 6px 16px rgba(74, 63, 53, 0.25); }
 .ws-dot { display: block; flex: none; width: 8px; height: 8px; border-radius: 999px; background: var(--accent, #b8563a); }
 .ws-chip.is-dark .ws-dot { background: #f2b6a0; }
 .ws-chip.is-time .ws-dot { background: #8a7a68; }

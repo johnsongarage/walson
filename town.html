@@ -67,8 +67,6 @@
   html.walson-vector-map .leaflet-tile-pane { filter: none !important; }
   /* 도트 지도(2026-11-22, pixel-map.js — [산책]과 같은 선택): 필터(파스텔·블랙 뒤집기) 없이, 칸이 뭉개지지 않게 */
   body.map-pixel .leaflet-tile-pane { filter: none !important; image-rendering: pixelated; }
-  .side button.map-text-btn { font-size: 12px; font-weight: 800; }
-  .side button.map-text-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
 
   .title-chip {
     position: fixed; top: 14px; left: 14px; z-index: 1000;
@@ -143,28 +141,10 @@
   /* 내 위치 찾는 중 — 아이콘이 천천히 돈다 */
   .side button.is-busy svg { animation: locate-spin 1s linear infinite; }
   @keyframes locate-spin { to { transform: rotate(360deg); } }
-  /* 지도 위 설정(2026-11-23 가르시아 "테마 변경을 좀 쉽게… 프로필에선 너무 찾기 힘들어… 지도에 설정 버튼 달아봐 거기서 하게 해"):
-     오른쪽 버튼 줄 맨 위 톱니 → 옆에 작은 판, 화면 색 다섯 가지를 바로 고른다(프로필 "화면 색"과 같은 설정 — theme.js, 이 기기에 저장).
-     색은 모두 화면 색 변수로(블랙에서도 그대로). 열린 동안 톱니에 고리 */
+  /* 지도 위 설정(2026-11-23 가르시아 "테마 변경을 좀 쉽게… 지도에 설정 버튼 달아봐" → "모아줘"): 오른쪽 버튼 줄 맨 위 톱니 →
+     설정 판(quick-set.js — [산책] 지도와 같이 씀)에서 화면 색·지도 모양([기본]/[도트])·길·장소 이름. 열린 동안 톱니에 고리 */
   .side .set-btn svg { width: 21px; height: 21px; }
   .side .set-btn[aria-expanded="true"] { color: var(--accent); box-shadow: 0 0 0 2.5px var(--hl), 0 4px 14px rgba(var(--shadow-rgb), 0.18); }
-  .quick-set {
-    position: fixed; top: 14px; right: 60px; z-index: 1001; width: min(272px, calc(100vw - 76px)); padding: 10px 12px 10px;
-    background: var(--panel); color: var(--ink); border: 1.5px solid var(--panel-border); border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.22);
-  }
-  .quick-set[hidden] { display: none; }
-  .qs-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 2px; }
-  .qs-head b { font-size: 15px; font-weight: 800; }
-  .qs-close { width: 30px; height: 30px; margin-right: -6px; border: none; border-radius: 50%; background: transparent; color: var(--ink-soft); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; }
-  .qs-label { margin: 0 0 7px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
-  .qs-pals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .qs-pal { font: inherit; padding: 5px 5px 6px; border-radius: 12px; border: 2px solid var(--panel-border); background: var(--panel); color: var(--ink); cursor: pointer; text-align: center; }
-  .qs-pal[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
-  .qs-pal .sw { position: relative; display: block; height: 36px; border-radius: 8px; border: 1.5px solid rgba(0, 0, 0, 0.14); background-size: 120px 120px; background-position: -12px -8px; }
-  .qs-pal .sw i { position: absolute; left: 5px; bottom: 5px; width: 24px; height: 11px; border-radius: 999px; border: 2px solid; box-sizing: border-box; }
-  .qs-pal .nm { display: block; margin-top: 5px; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .qs-done { margin: 8px 2px 0; min-height: 1.3em; font-size: 12px; font-weight: 800; color: var(--accent); word-break: keep-all; }
 
   /* 동네 스타 — 사진이 있는 동반 스팟(가게 수호지킴이)을 지도 아래에 줄 세워 먼저 보여 준다(2026-11-14) */
   .stars {
@@ -382,6 +362,7 @@
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="quick-set.js?v=1"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
@@ -414,23 +395,14 @@
   </a>
 </div>
 <div class="side">
-  <button type="button" class="set-btn" id="set-btn" aria-label="설정 — 화면 색 바꾸기" aria-expanded="false" aria-controls="quick-set">
+  <button type="button" class="set-btn" id="set-btn" aria-label="설정 — 화면 색·지도 모양" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
   <button type="button" id="zoom-in" aria-label="확대">+</button>
   <button type="button" id="zoom-out" aria-label="축소">−</button>
-  <button type="button" class="map-text-btn" id="map-style-btn" hidden>도트</button>
-  <button type="button" class="map-text-btn" id="map-label-btn" aria-pressed="false" aria-label="길·장소 이름 보기" hidden>이름</button>
   <button type="button" id="locate-btn" aria-label="내 위치 보기">
     <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232,120H215.63A88.13,88.13,0,0,0,136,40.37V24a8,8,0,0,0-16,0V40.37A88.13,88.13,0,0,0,40.37,120H24a8,8,0,0,0,0,16H40.37A88.13,88.13,0,0,0,120,215.63V232a8,8,0,0,0,16,0V215.63A88.13,88.13,0,0,0,215.63,136H232a8,8,0,0,0,0-16Zm-104,80a72,72,0,1,1,72-72A72.08,72.08,0,0,1,128,200Zm0-112a40,40,0,1,0,40,40A40,40,0,0,0,128,88Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,152Z"/></svg>
   </button>
-</div>
-<!-- 지도 위 설정(2026-11-23) — 톱니를 누르면 열린다. 화면 색은 프로필 "화면 색"과 같은 설정 -->
-<div class="quick-set" id="quick-set" role="dialog" aria-label="설정" hidden>
-  <div class="qs-head"><b>설정</b><button type="button" class="qs-close" id="qs-close" aria-label="설정 닫기">×</button></div>
-  <p class="qs-label">화면 색 · 누르면 바로 바뀌고 이 휴대폰에 저장돼요</p>
-  <div class="qs-pals" id="qs-pals" role="group" aria-label="화면 색"></div>
-  <p class="qs-done" id="qs-done" aria-live="polite"></p>
 </div>
 <div class="stars" id="stars" hidden aria-label="동네 스타"></div>
 <!-- 목록 시트(2026-11-18) — 지도 위에 끌어 올리는 목록. 접힘: 요약 줄 + 볼 것 버튼 + 미션 카드 / 반·펼침: 고른 것의 목록.
@@ -495,9 +467,10 @@
     });
   }
   // 시험: [동네] 지도만 벡터 지도(길·건물·글자 색을 따로 정함, map-vector.js). 못 받으면 원래 그림 지도로.
-  // 도트 지도(2026-11-22, pixel-map.js): [도트] 버튼으로 바꾸고, 고른 것은 [산책] 지도와 같이 쓴다(localStorage).
+  // 도트 지도(2026-11-22, pixel-map.js): 고른 것은 [산책] 지도와 같이 쓴다(localStorage). 11/23 "모아줘" — 지도 위 [도트]·[이름] 버튼을 빼고
+  // 설정 판(quick-set.js)의 지도 모양·길·장소 이름에서 바꾼다(mapCtl).
+  var mapCtl = null;
   (function () {
-    var styleBtn = document.getElementById('map-style-btn'), labelBtn = document.getElementById('map-label-btn');
     var fallbackTiles = null, vectorStarted = false;
     function startVector() {
       vectorStarted = true;
@@ -506,15 +479,16 @@
     if (!window.PixelMap) { startVector(); return; }
     var pixelTiles = PixelMap.createLayer({ pixelSize: 4 });
     var labels = PixelMap.createLabels(map);
-    var mode = 'basic';
+    var mode = 'basic', labelsOn = false;
     function baseLayers() { return [window.WalsonVectorLayer, fallbackTiles].filter(Boolean); }
     // 벡터 지도는 늦게 도착한다 — 그사이 도트로 바꿨으면 도착하는 대로 뺀다
     map.on('layeradd', function (e) {
       if (mode === 'pixel' && baseLayers().indexOf(e.layer) >= 0) map.removeLayer(e.layer);
     });
+    // 길·장소 이름 층 — 지도 데이터를 못 받으면 꺼진 것으로 돌린다(설정 판도 다시 그림)
     function setLabels(on) {
-      labelBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      labels.setEnabled(on).catch(function () { labelBtn.setAttribute('aria-pressed', 'false'); });
+      labelsOn = on;
+      return labels.setEnabled(on).catch(function () { labelsOn = false; });
     }
     function setMode(v) {
       mode = v === 'pixel' ? 'pixel' : 'basic';
@@ -528,76 +502,31 @@
         else if (!vectorStarted) startVector();
       }
       document.body.classList.toggle('map-pixel', mode === 'pixel');
-      labelBtn.hidden = mode !== 'pixel';   // 기본 지도엔 이름이 원래 있다
-      setLabels(mode === 'pixel' && PixelMap.getLabels());
-      styleBtn.textContent = mode === 'pixel' ? '기본' : '도트';
-      styleBtn.setAttribute('aria-label', mode === 'pixel' ? '기본 지도로 보기' : '도트 지도로 보기');
+      setLabels(mode === 'pixel' && PixelMap.getLabels());   // 기본 지도엔 이름이 원래 있다
     }
-    styleBtn.hidden = false;
-    styleBtn.addEventListener('click', function () {
-      setMode(mode === 'pixel' ? 'basic' : 'pixel');
-      PixelMap.setStyle(mode);
-    });
-    labelBtn.addEventListener('click', function () {
-      var on = labelBtn.getAttribute('aria-pressed') !== 'true';
-      PixelMap.setLabels(on);
-      setLabels(on);
-    });
     setMode(PixelMap.getStyle());
+    mapCtl = {
+      get: function () { return mode; },
+      set: function (v) { setMode(v); PixelMap.setStyle(mode); },
+      labels: function () { return labelsOn; },
+      setLabels: function (on) { PixelMap.setLabels(on); return setLabels(on); }
+    };
   })();
   // 지도 출처 표기는 왼쪽 아래로 — 오른쪽 아래엔 산책 버튼이 붙는다(목록 시트 위로 올리는 건 CSS --ls-h)
   if (map.attributionControl) map.attributionControl.setPosition('bottomleft');
   document.getElementById('zoom-in').addEventListener('click', function () { map.zoomIn(); });
   document.getElementById('zoom-out').addEventListener('click', function () { map.zoomOut(); });
 
-  // ── 지도 위 설정: 화면 색(2026-11-23 가르시아 "지도에 설정 버튼 달아봐 거기서 하게 해") ──
-  // 프로필 "화면 색"과 같은 설정(theme.js setPalette, 이 기기에 저장). 견본은 theme.js의 색 값으로 그린다(색을 고칠 땐 theme.js 한 곳만).
+  // ── 지도 위 설정(2026-11-23 가르시아 "지도에 설정 버튼 달아봐 거기서 하게 해" → "모아줘") ──
+  // 톱니 → 설정 판(quick-set.js, [산책] 지도와 같이 씀): 화면 색(프로필 "화면 색"과 같은 설정) · 지도 모양 · 길·장소 이름.
   // 화면은 색 변수라 바로 바뀌고, 벡터 지도는 밤(블랙)·낮 색이 따로라 블랙을 오갈 때 다시 칠한다(map-vector.js repaint). 도트·그림 지도는 그대로.
-  (function () {
-    var T = window.WalsonTheme, btn = document.getElementById('set-btn'), box = document.getElementById('quick-set');
-    var pals = document.getElementById('qs-pals'), done = document.getElementById('qs-done');
-    if (!T || !T.palettes || !T.setPalette) { btn.hidden = true; return; }
-    Object.keys(T.palettes).forEach(function (k) {
-      var p = T.palettes[k], b = document.createElement('button');
-      b.type = 'button'; b.className = 'qs-pal'; b.setAttribute('data-pal', k);
-      var sw = document.createElement('span'); sw.className = 'sw';
-      sw.style.backgroundColor = p.bg; sw.style.backgroundImage = 'url("icons/dog-pattern-' + k + '.svg?v=1")';
-      var chip = document.createElement('i'); chip.style.background = p.hl; chip.style.borderColor = p.line;
-      sw.appendChild(chip);
-      var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.label;
-      b.appendChild(sw); b.appendChild(nm);
-      pals.appendChild(b);
-    });
-    function paint() {
-      Array.prototype.forEach.call(pals.children, function (b) {
-        b.setAttribute('aria-pressed', b.getAttribute('data-pal') === T.palette ? 'true' : 'false');
-      });
-    }
-    function open(on) {
-      box.hidden = !on;
-      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
-      if (on) { paint(); done.textContent = ''; }
-    }
-    btn.addEventListener('click', function () { open(box.hidden); });
-    document.getElementById('qs-close').addEventListener('click', function () { open(false); btn.focus(); });
-    // 판 밖(지도 등)을 누르면 닫는다
-    document.addEventListener('pointerdown', function (e) {
-      if (!box.hidden && !box.contains(e.target) && !btn.contains(e.target)) open(false);
-    });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !box.hidden) { open(false); btn.focus(); } });
-    pals.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-pal]');
-      if (!b) return;
-      var was = T.palette, k = b.getAttribute('data-pal');
-      T.setPalette(k);
-      paint();
+  if (window.WalsonQuickSet) WalsonQuickSet.attach(document.getElementById('set-btn'), {
+    side: 'left',
+    map: mapCtl,
+    onPalette: function (was, k) {
       if ((was === 'black') !== (k === 'black') && window.WalsonVectorTiles && WalsonVectorTiles.repaint) WalsonVectorTiles.repaint();
-      // 저장 버튼이 없으니 바뀌었다는 걸 한 줄로(프로필과 같은 말)
-      var nm = T.palettes[k].label, last = nm.charCodeAt(nm.length - 1) - 0xAC00;
-      var ro = (last >= 0 && last < 11172 && last % 28 !== 0 && last % 28 !== 8) ? '으로' : '로';   // 받침 있으면 '으로'(ㄹ 받침은 '로')
-      done.textContent = '✓ ' + nm + ro + ' 바꿨어요 · 저장됐어요';
-    });
-  })();
+    }
+  });
 
   // ── 레이어: 시설 종류별 + 내 발도장 + 내 핀 + 그림 강아지 ──
   // 묶음·순서(우선순위)·보이는 확대 단계·처음엔 꺼 둠은 운영자가 스팟 편집에서 정한다(infra-pins.js layout).
