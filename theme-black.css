@@ -241,3 +241,8 @@ html[data-palette="black"][data-page="index"] { --soft: #2a2a31; --butter: #3b31
 @supports (background: color-mix(in srgb, red 50%, blue)) {
   html[data-palette="black"][data-page="index"] { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); }
 }
+
+/* town.html — 목록 모드 버튼의 눌린 칸(11/23 가르시아 "블랙테마일 때 검은 글씨 안 보이네"). 위 자동 줄(.ls-mode 바탕을 카드 색으로)이
+   눌린 칸까지 덮어서, 글씨를 바탕색 변수로 바꾼 뒤엔 어두운 칸에 어두운 글씨가 된다 → 눌린 칸은 밝은 테마처럼 뒤집어(흰 칸·어두운 글씨), 급할 때는 빨간 칸 그대로 */
+html[data-palette="black"][data-page="town"] .ls-mode[aria-pressed="true"] { background: var(--ink) !important; color: var(--bg) !important; border-color: var(--ink) !important; }
+html[data-palette="black"][data-page="town"] .ls-mode.is-sos[aria-pressed="true"] { background: #c2453f !important; color: #fff !important; border-color: #c2453f !important; }

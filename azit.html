@@ -237,7 +237,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=3"></script>
+<script src="azit-room.js?v=4"></script>
 <script>
 (function () {
   'use strict';
@@ -370,8 +370,35 @@
     photo:   { map: ['ffffffffff', 'fssssssssf', 'fssbsbsssf', 'fssbbbsssf', 'fsbbbbbbsf', 'fggbbbbggf', 'fggggggggf', 'ffffffffff'],
                col: { f: '#c47e48', s: '#bfe3ff', b: '#8a5a3c', g: '#7cc47f' } },
     rug:     { map: ['pppppppppp', 'pPPPPPPPPp', 'pqqqqqqqqp', 'pPPPPPPPPp', 'pppppppppp'], col: { p: '#b8336a', P: '#e98fb0', q: '#f6c2d4' } },
-    mat:     { map: ['rrwwrrwwrr', 'rrwwrrwwrr', 'wwrrwwrrww', 'wwrrwwrrww', 'rrwwrrwwrr', 'rrwwrrwwrr'], col: { r: '#e2574c', w: '#fdf6ec' } }
+    mat:     { map: ['rrwwrrwwrr', 'rrwwrrwwrr', 'wwrrwwrrww', 'wwrrwwrrww', 'rrwwrrwwrr', 'rrwwrrwwrr'], col: { r: '#e2574c', w: '#fdf6ec' } },
+    palframe: { map: ['ffffffffffffff', 'fwwwwwwwwwwwwf', 'fwbbwwccwwyywf', 'fwbbwwccwwyywf', 'fwwwwwwwwwwwwf', 'ffffffffffffff'],
+               col: { f: '#c47e48', w: '#fbf0dc', b: '#a75c31', c: '#e8e6df', y: '#e2a464' } }
   };
+  // 단짝 액자(11/23) — 세 칸에 도트 강아지(내 방 = 최근 단짝, 모델하우스 = 왈슨의 예시 친구, 친구 방 = 기본 얼굴 — 친구의 단짝 목록은 QR로 오지 않는다)
+  var palCache = {};
+  function palDogsOf(o) {
+    if (o.show) return ['maltese', 'poodle', 'jindo'];
+    if (!o.me) return ['pom', 'shiba', 'maltese'];
+    var ids = friends.filter(function (e) { return e.pal; }).slice(0, 3).map(function (e) { return friendModel(e).dog; });
+    return ids.length ? ids : ['pom'];
+  }
+  function palSprite(ids) {
+    var key = ids.join(',');
+    if (palCache[key]) return palCache[key];
+    if (!ids.every(function (id) { return dogSrc[id]; })) return sprite('palframe');   // 그림을 불러오는 동안
+    var W0 = 30, H0 = 13, c = document.createElement('canvas'); c.width = W0; c.height = H0;
+    var g = c.getContext('2d'), cellW = 8, cellH = H0 - 4, off = 2 + 1 + Math.round((3 - ids.length) * cellW / 2);
+    g.fillStyle = OUT; g.fillRect(0, 0, W0, H0);
+    g.fillStyle = '#c47e48'; g.fillRect(1, 1, W0 - 2, H0 - 2);
+    g.fillStyle = '#fbf0dc'; g.fillRect(2, 2, W0 - 4, H0 - 4);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    ids.forEach(function (id, n) {
+      var im = dogSrc[id].im, iw = im.naturalWidth, ih = im.naturalHeight, sc = Math.min(cellW / iw, cellH / ih);
+      var w = Math.max(1, Math.round(iw * sc)), h = Math.max(1, Math.round(ih * sc));
+      g.drawImage(im, off + n * cellW + Math.floor((cellW - w) / 2), 2 + cellH - h, w, h);
+    });
+    return (palCache[key] = c);
+  }
   // 바닥에 까는 것(러그·피크닉 매트) — 바닥 칸 방향대로 비스듬히, 맨 아래 층(벽 그림과 함께 바뀔 때만 그린다)
   var DECAL_COL = { rug: { edge: '#b8336a', a: '#e98fb0', b: '#f6c2d4' }, mat: { edge: '#c0392b', a: '#e2574c', b: '#fdf6ec' } };
   function drawDecal(g, it, p) {
@@ -551,6 +578,8 @@
     friends = friends.concat(SAMPLE_FRIENDS.filter(function (e) { return !have[e.i]; }));
   }
   friends.sort(byLast);
+  // 단짝 수는 이 화면 친구 줄 기준으로(샘플 모드면 예시 단짝까지 — 샘플 방에도 단짝 액자가 생기게)
+  prog.pals = Math.max(prog.pals || 0, friends.filter(function (e) { return e.pal; }).length);
   function hexOk(c) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#e8b77a'; }
   // 직접 고르기 전에는 열 때마다 견종 → (지난번 털색) → 크기로 다시 고르고, 아래에서 사진 털색으로 한 번 더(11/23 — 나중에 견종을 적어도 따라가게)
   if (!state.dog || state.dogAuto) { state.dog = AZ.myDog(state, null); state.dogAuto = true; }
@@ -610,7 +639,7 @@
     wallHits = [];
     o.items.forEach(function (id) {
       var it = AZ.byId(AZ.ITEMS, id); if (!it || !it.wall) return;
-      var p = posOf(o, it), s = it.id === 'photo' ? photoSprite(photoSrcOf(o)) : sprite(it.spr);
+      var p = posOf(o, it), s = it.id === 'photo' ? photoSprite(photoSrcOf(o)) : it.id === 'palframe' ? palSprite(palDogsOf(o)) : sprite(it.spr);
       drawOnWall(g, s, p.wall, p.u, p.h);
       var b = W(p.wall, p.u, p.h);
       wallHits.push({ id: id, x: p.wall === 'R' ? b.x : b.x - s.width, y: b.y - s.height, w: s.width, h: s.height + s.width / 2 });
@@ -1043,7 +1072,7 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureBubble(); kick(); });   // 도트 글꼴이 늦게 오면 폭이 바뀐다
   fit(); refreshModel();
   if (!fromHash()) ui();
-  dogsReady.then(function () { dogCache = {}; kick(); });
+  dogsReady.then(function () { dogCache = {}; staticDirty = true; kick(); });   // 단짝 액자도 강아지 그림으로 다시
   // 시험용 — 지금 보는 방·그리는 배율
   window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, friends: friends.length, me: state.dog,
     to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; } };

@@ -60,7 +60,7 @@
     border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
     padding: 7px 16px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
   }
-  .side-toggle button.active { background: var(--ink); color: #fff; }
+  .side-toggle button.active { background: var(--ink); color: var(--bg); }
 
   .canvas-holder { display: flex; justify-content: center; }
   /* 카드 모양(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘"): [기본 카드] [도트 카드]. 도트 카드는 pass-pixel.js(도트 워킹패스 시안과 같은 그림, 1200×1500).
@@ -177,7 +177,7 @@
     min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink-soft);
     font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; word-break: keep-all;
   }
-  .pick-tabs button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .pick-tabs button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
   .pick-note { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
 
   .format {
