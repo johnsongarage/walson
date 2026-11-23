@@ -1,0 +1,22 @@
+# 서버 백업(Supabase) 깨우기 — 2026-11-23. 무료 등급은 한동안 요청이 없으면 프로젝트를 멈춰서(데이터는 남음)
+# 그동안 백업·되찾기가 실패한다. 하루 한 번 "없는 번호" 백업을 꺼내 보는 요청만 보낸다 — 아무 데이터도 넣거나 바꾸지 않는다.
+# 주소·키는 site-config.js와 같은 공개(publishable) 키. 비밀 키는 쓰지 않는다.
+name: supabase-keepalive
+on:
+  schedule:
+    - cron: '23 18 * * *'   # 한국 새벽 3시 23분
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ping
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "https://dioklspwkjsnluncguxn.supabase.co/rest/v1/rpc/walson_backup_load" \
+            -H "apikey: sb_publishable_uakDQXKJpSt73z1gt_cYEQ_e0npsccT" \
+            -H "Content-Type: application/json" \
+            -d '{"p_id":"0000000000000000000000000000000000000000000000000000000000000000"}')
+          echo "응답 $code"
+          test "$code" = "200"

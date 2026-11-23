@@ -127,7 +127,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="backup.js?v=9"></script>
-<script src="cloud-backup.js?v=1"></script>
+<script src="cloud-backup.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="sample-data.js?v=6"></script>
 <script src="dog-tags.js?v=1"></script>
@@ -276,6 +276,7 @@
         <p class="sub" style="margin:0 0 6px;">복구 코드 — <b>꼭 캡처하거나 카톡 '나에게 보내기'로 보관하세요.</b> 잃어버리면 저희도 찾아 드릴 수 없고, 남이 알면 기록을 가져갈 수 있어요.</p>
         <p class="cl-code" id="cl-code"></p>
         <button type="button" class="theme-opt" id="cl-copy" style="width:100%;"><span class="name">코드 복사 · 보내기</span><span class="desc">나에게 보내 두면 안전해요</span></button>
+        <button type="button" class="theme-opt" id="cl-saved" style="width:100%;margin-top:8px;"><span class="name">코드 보관했어요</span><span class="desc">캡처·나에게 보내기를 했다면 눌러 주세요</span></button>
       </div>
       <div class="theme-opts" style="margin-top:10px;">
         <button type="button" class="theme-opt" id="cl-now"><span class="name">지금 백업</span><span class="desc">바로 올리기</span></button>
@@ -634,6 +635,7 @@
     $('cl-when').textContent = '켜짐 · 마지막 백업 ' + when(s.at);
     $('cl-auto').checked = s.auto !== false;
     $('cl-code').textContent = s.code;
+    $('cl-saved').hidden = !!s.saved;
     if (showCode) $('cl-codebox').hidden = false;
   }
   function busy(t) { msg.textContent = t; }
@@ -660,6 +662,7 @@
       function () { prompt('아래 코드를 길게 눌러 복사해 두세요', code); });
   });
   $('cl-auto').addEventListener('change', function () { C.setAuto(this.checked); });
+  $('cl-saved').addEventListener('click', function () { C.markSaved(); busy('좋아요. 새 폰에서는 [복구 코드로 되찾기]에 이 코드를 넣으면 돼요.'); $('cl-codebox').hidden = true; });
   $('cl-del').addEventListener('click', function () {
     if (!confirm('서버에 맡긴 백업을 지우고 서버 백업을 끌까요?\n이 휴대폰의 기록은 그대로예요.')) return;
     busy('지우는 중…');

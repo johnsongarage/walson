@@ -137,7 +137,19 @@
       });
     },
     // 되살린 뒤 같은 코드로 계속 백업(되살리기는 이 기기 기록을 바꾸며 이 칸도 지워지므로 다시 적는다)
-    adopt: function (code) { setState({ code: code, auto: true, consentAt: new Date().toISOString(), at: null, sum: null }); },
+    adopt: function (code) { setState({ code: code, auto: true, consentAt: new Date().toISOString(), at: null, sum: null, saved: true }); },
+    // 복구 코드를 보관했다고 누름(11/23 — 안 챙기면 백업이 있어도 못 찾으니, 누를 때까지 [오늘]에 한 줄로 알린다)
+    markSaved: function () { var s = state(); if (s) { s.saved = true; setState(s); } },
+    // [오늘] 맨 위 한 줄: 켰는데 코드 보관을 아직 안 눌렀으면
+    remind: function (before) {
+      var s = state();
+      if (!api.available() || !s || !s.code || s.saved || !before || !before.parentNode) return;
+      var a = document.createElement('a');
+      a.href = 'profile.html#cloud';
+      a.style.cssText = 'display:block;margin:0 0 12px;padding:10px 14px;border-radius:14px;border:1.5px dashed var(--accent);background:var(--panel);color:var(--ink);font-size:13px;font-weight:800;text-decoration:none;line-height:1.5;';
+      a.textContent = '복구 코드를 보관하셨나요? 코드가 없으면 서버 백업을 되찾을 수 없어요 — [프로필]에서 보기';
+      before.parentNode.insertBefore(a, before);
+    },
     // 화면을 열 때: 켜져 있고 자동이고 내용이 바뀌었으면 조용히 올린다(10분에 한 번까지)
     autoSync: function () {
       var s = state();
