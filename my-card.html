@@ -116,6 +116,8 @@
   .type-row b::after { content: ' ›'; color: var(--ink-soft); }
   /* 만난 친구(11/23) — 개방명록: 도감·QR 교환이 이 탭의 큰 버튼 */
   .friends .hint { margin-top: 6px; }
+  .to-azit { flex-shrink: 0; font-size: 12.5px; font-weight: 800; color: var(--ink-soft); text-decoration: none; }
+  .to-azit::after { content: ' ›'; }
   .friends .btn { margin-top: 10px; }
 
   .panel {
@@ -219,7 +221,7 @@
 <script src="dex-card.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
-<script src="site-config.js?v=10"></script>
+<script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
@@ -299,10 +301,11 @@
     <a class="type-row" href="walk-type.html"><span>산책 유형</span><b id="type-name">테스트 해 보기</b></a>
   </div>
 
-  <!-- 만난 친구(11/23) — 개방명록(hq DECISIONS 11/23 "교환은 앱 QR이 기본"): 도감·QR 교환은 늘 보인다 -->
+  <!-- QR 교환(11/23) — 개방명록(hq DECISIONS 11/23 "교환은 앱 QR이 기본"): 내 카드 QR을 보여 주고 찍는 곳이라 워킹패스에 늘 보인다.
+       만난 친구 줄·킁킁 방명록·단짝 방 마실은 [아지트] 탭(azit.html, 같은 날 개방명록 2단계)에 있어서 여기엔 마릿수 한 줄 + [아지트] 링크만 -->
   <div class="panel friends">
-    <div class="next-label"><span>만난 친구</span><small id="friends-count"></small></div>
-    <p class="hint">공원에서 만난 강아지와 그 자리에서 서로 화면 QR을 찍으면 단짝이 되고 한마디가 남아요.</p>
+    <div class="next-label"><span>QR 교환</span><a class="to-azit" id="friends-count" href="azit.html">만난 친구 · 아지트</a></div>
+    <p class="hint">공원에서 만난 강아지와 그 자리에서 서로 화면 QR을 찍으면 단짝이 되고 한마디가 남아요. 친구 방과 방명록은 [아지트]에서 봐요.</p>
     <!-- 강아지 도감(2026-11-15): QR 교환, 서버 없음 -->
     <a class="btn btn-primary" href="dex.html">강아지 도감 · QR 교환</a>
     <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
@@ -551,11 +554,11 @@
     if (wt && NAMES[wt.type]) $('type-name').textContent = NAMES[wt.type];
   })();
 
-  // ── 만난 친구 — 도감(petwalk_dex) 마릿수 · 단짝 수(dex.html과 같은 셈) ──
+  // ── 만난 친구 한 줄 — 도감(petwalk_dex) 마릿수 · 단짝 수(dex.html과 같은 셈). 누르면 [아지트](친구 줄·방명록) ──
   (function () {
     var dex = (WalsonStore.dex && WalsonStore.dex()) || [];
     var pals = dex.filter(function (d) { return d && d.pal; }).length;
-    $('friends-count').textContent = dex.length ? dex.length + '마리' + (pals ? ' · 단짝 ' + pals : '') : '아직 없어요';
+    $('friends-count').textContent = dex.length ? '만난 친구 ' + dex.length + '마리' + (pals ? ' · 단짝 ' + pals : '') : '만난 친구 · 아지트';
   })();
 
   // ── 접어 둔 칸(칭호·발도장 모음판) — 펼친 건 이 휴대폰에 기억 ──
@@ -793,6 +796,6 @@
 <script>
   if (window.RewardRules && RewardRules.KEYRING && RewardRules.KEYRING.open) document.getElementById('keyring-link').hidden = false;
 </script>
-<script src="tabbar.js?v=10" data-tab="card"></script>
+<script src="tabbar.js?v=11" data-tab="card"></script>
 </body>
 </html>

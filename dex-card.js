@@ -96,12 +96,14 @@
     return '<svg viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="' + d + '"/></svg>';
   }
   function nowMin() { return Math.floor(Date.now() / 60000); }
-  // 화면 QR 주소 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고)
-  function liveUrl(card, m) {
+  // 화면 QR 주소 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고) + 내 아지트 방 모습 몇 글자(r, azit-room.js snapshot — 없으면 빼고)
+  // 방 모습(2026-11-23 개방명록 2단계)은 그 자리에서 찍은 단짝 폰에만 남아 마실 갈 때 그 방으로 보인다. 키링·카드 주소 보내기에는 안 싣는다.
+  function liveUrl(card, m, r) {
     var c = {};
     for (var k in card) if (Object.prototype.hasOwnProperty.call(card, k)) c[k] = card[k];
     c.t = nowMin();
     if (m != null && MSGS[m]) c.m = m;
+    if (typeof r === 'string' && r) c.r = r;
     return cardUrl(c);
   }
   // 받은 카드가 어떤 QR이었나: 'live' 몇 분 안에 띄운 화면 · 'stale' 지난 캡처 · 'static' 시각 없음(키링·카드 주소·예전 QR)
