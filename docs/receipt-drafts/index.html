@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>영수증 개편 시안</title>
+<!-- 영수증 개편 시안 3개(2026-11-23) 비교 화면 — 앱에서 연결하지 않는 시험 화면. 사진·글은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다 -->
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  body { margin: 0; padding: 16px; background: #f4eee9; font-family: Pretendard, sans-serif; color: #26211d; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  p { font-size: 13px; color: #6b5f57; margin: 0 0 12px; line-height: 1.5; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .tools label, .tools button { font: 700 13px Pretendard, sans-serif; padding: 8px 12px; border-radius: 999px; border: 1px solid #d9cbbf; background: #fff; cursor: pointer; }
+  .tools input[type=text] { flex: 1 1 220px; font: 14px Pretendard, sans-serif; padding: 8px 12px; border-radius: 10px; border: 1px solid #d9cbbf; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  figure { margin: 0; }
+  figcaption { font: 800 14px Pretendard, sans-serif; margin-bottom: 6px; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+</style>
+<script src="../../site-config.js?v=10"></script>
+<script src="../../walk-receipt.js?v=8"></script>
+<script src="../../canvas-view.js?v=1"></script>
+<script src="drafts.js"></script>
+</head>
+<body>
+<h1>영수증 개편 시안</h1>
+<p>지금 영수증과 시안 셋을 같은 산책(지어낸 기록)으로 그려요. 내 강아지 사진을 골라도 이 휴대폰 안에서만 그려요.</p>
+<div class="tools">
+  <label>내 사진으로 보기<input type="file" id="pick" accept="image/*" hidden></label>
+  <button type="button" id="time">시간만 잰 산책</button>
+  <input type="text" id="note" maxlength="28" placeholder="특이 사항 바꿔 보기">
+</div>
+<div class="grid">
+  <figure><figcaption>지금</figcaption><canvas id="cur"></canvas></figure>
+  <figure><figcaption>시안 1 · 정리한 영수증</figcaption><canvas id="a"></canvas></figure>
+  <figure><figcaption>시안 2 · 사진이 주인공</figcaption><canvas id="b"></canvas></figure>
+  <figure><figcaption>시안 3 · 젤리 핑크 카드</figcaption><canvas id="c"></canvas></figure>
+</div>
+<script>
+(function () {
+  var D = { no: 18, date: '2026-11-18', mode: 'gps', durationMin: 34, distanceKm: 1.2, feel: 'enough', sniff: 4, poop: 1,
+    stamps: { hit: 1, fresh: 0 }, steady: { days: 3, got: true }, goal: { target: 30, total: 34, reached: true },
+    note: '풀숲 앞에서 3분 정차 (냄새 조사)', name: '보리' };
+  var img = new Image(), big = { cur: document.createElement('canvas'), a: document.createElement('canvas'), b: document.createElement('canvas'), c: document.createElement('canvas') };
+  function show(id) { if (window.WalsonView) WalsonView.show(document.getElementById(id), big[id]); }
+  function render() {
+    var text = WalkReceipt.textOf(D, 'story') + '오늘목표달성응가킁킁발도장꾸준함일째곳건시간거리분회의산책영수증특이사항결제보호자다리일시불상환완료일부해냈다';
+    var fonts = document.fonts ? Promise.all(['400 30px "Nanum Gothic Coding"', '700 30px "Nanum Gothic Coding"', '60px "Black Han Sans"', '900 60px Pretendard', '800 60px Pretendard', '700 60px Pretendard']
+      .map(function (f) { return document.fonts.load(f, text).catch(function () {}); })) : Promise.resolve();
+    return fonts.then(function () {
+      WalkReceipt.draw(big.cur, D, img, { fmt: 'story', photoY: 0.42 }); show('cur');
+      RcDrafts.A(big.a, D, img); show('a');
+      RcDrafts.B(big.b, D, img); show('b');
+      RcDrafts.C(big.c, D, img); show('c');
+    });
+  }
+  img.onload = render;
+  img.src = '../../demo/guardian-home-ai.jpg';
+  document.getElementById('pick').addEventListener('change', function () {
+    var f = this.files[0]; if (!f) return;
+    var u = URL.createObjectURL(f), n = new Image();
+    n.onload = function () { img = n; render(); URL.revokeObjectURL(u); };
+    n.src = u;
+  });
+  document.getElementById('time').addEventListener('click', function () {
+    var on = D.mode !== 'time';
+    D.mode = on ? 'time' : 'gps'; D.stamps = on ? null : { hit: 1, fresh: 0 };
+    this.textContent = on ? '길 기록 산책' : '시간만 잰 산책';
+    render();
+  });
+  document.getElementById('note').addEventListener('input', function () { D.note = this.value.trim() || '풀숲 앞에서 3분 정차 (냄새 조사)'; render(); });
+})();
+</script>
+</body>
+</html>
