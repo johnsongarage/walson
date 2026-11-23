@@ -234,6 +234,10 @@
     background: var(--hl, var(--accent)); color: var(--hl-ink, #fff); font-size: 14px; font-weight: 800; text-decoration: none; }
   .ls-tools:empty { display: none; }
   .list-sheet[data-state="peek"] .ls-tools, .list-sheet[data-state="peek"] .ls-body { display: none; }
+  /* 지도만 보기(2026-11-23 가르시아 "지도에서 드래그로 아래로 쭉 내리면 지도만 보이게") — 접힘에서 더 끌어내리면 손잡이 한 줄만 남는다.
+     손잡이를 누르거나 끌어 올리면 접힘으로 돌아온다. 지도를 누르거나 끌어도 다시 올라오지 않는다 */
+  .list-sheet[data-state="hide"] .ls-head, .list-sheet[data-state="hide"] .ls-tools, .list-sheet[data-state="hide"] .ls-body { display: none; }
+  .list-sheet[data-state="hide"] .ls-grab { padding: 10px 0 13px; }
   .ls-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .ls-body .shop-list { overflow: visible; }
   .ls-body .sheet-note:empty { display: none; }
@@ -1117,7 +1121,7 @@
     try { localStorage.setItem(ARRIVE_KEY, JSON.stringify(keep)); } catch (e) { /* 이번만 */ }
     var routeOn = activeRouteOn();
     map.closePopup();
-    if (sheetReady && sheetState !== 'peek') setSheet('peek');
+    if (sheetReady && sheetOpen()) setSheet('peek');
     WalsonMissionAlert.show({
       icon: 'flag',
       badge: '미션 ' + missionNow.no + ' · 발도장 ' + missionDone() + '/' + missionAll.length,
@@ -1298,7 +1302,9 @@
   var SHORT = { stamp: '발도장', park: '공원', bag: '봉투함', guard: '지킴이', cheer: '응원 가게' };   // 요약 줄에 쓰는 짧은 이름
   var PIN_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.6A2.6 2.6 0 1 1 12 6.4a2.6 2.6 0 0 1 0 5.2z"/></svg>';
 
-  // 높이: 접힘 = 손잡이 + 머리(요약 줄·볼 것 — 미션 카드는 11/18부터 [미션] 목록 안), 반 = 지도 높이의 55%, 펼침 = 위 칩 한 줄만 남기고
+  // 높이: 숨김 = 손잡이 한 줄(지도만 보기, 11/23), 접힘 = 손잡이 + 머리(요약 줄·볼 것 — 미션 카드는 11/18부터 [미션] 목록 안),
+  //       반 = 지도 높이의 55%, 펼침 = 위 칩 한 줄만 남기고
+  var HIDE_H = 28;
   function availH() { return mapEl.clientHeight || Math.max(200, window.innerHeight - 58); }
   function naturalPeek() { return lsGrab.offsetHeight + lsHead.offsetHeight; }
   function heights() {
@@ -1306,13 +1312,13 @@
     var peek = Math.min(Math.round(H * 0.45), peekH || naturalPeek());
     var full = Math.max(peek + 80, H - 56);
     var half = Math.min(full, Math.max(peek + 140, Math.round(H * 0.55)));
-    return { peek: peek, half: half, full: full };
+    return { hide: HIDE_H, peek: peek, half: half, full: full };
   }
   function fitSheet() {
     if (sheetState === 'peek') peekH = naturalPeek();   // 접혔을 때만 잰다(펼치면 미션 카드가 숨어서 머리가 낮아짐)
     var h = heights();
     if (!sheetEl.classList.contains('is-dragging')) sheetEl.style.height = h[sheetState] + 'px';
-    POPUP_PAD[1] = h.peek + 16;   // 팝업은 접힌 시트 위로 열린다
+    POPUP_PAD[1] = (sheetState === 'hide' ? h.hide : h.peek) + 16;   // 팝업은 접힌 시트(지도만 볼 땐 손잡이) 위로 열린다
     if (!window.ResizeObserver) placeAttribution(h[sheetState]);
   }
   // 지도 출처 표기를 시트 바로 위로 — 펼쳤을 때(지도가 위 칩 줄만큼만 남음)는 칩 뒤로 비죽 나오지 않게 시트 밑으로 들어간다
@@ -1325,25 +1331,28 @@
   }
   function setSheet(s) {
     if (!sheetReady) return;
-    if (s !== 'peek') map.closePopup();   // 목록을 펼치면 지도 위 핀 팝업은 내린다(11/18 "다른 액션을 취하면 내려가게")
+    if (s === 'half' || s === 'full') map.closePopup();   // 목록을 펼치면 지도 위 핀 팝업은 내린다(11/18 "다른 액션을 취하면 내려가게")
     if (sheetState === 'peek' && s !== 'peek') lsBody.scrollTop = 0;
     sheetState = s;
     sheetEl.setAttribute('data-state', s);
-    lsSummary.setAttribute('aria-expanded', s === 'peek' ? 'false' : 'true');
+    lsSummary.setAttribute('aria-expanded', s === 'peek' || s === 'hide' ? 'false' : 'true');
+    lsGrab.setAttribute('aria-label', s === 'hide' ? '목록 다시 보기' : '목록 크기 바꾸기');
     renderSheet();
     fitSheet();
   }
-  // 손잡이·요약 줄을 누르면: 접힘 → 반('지금 화면') → 펼침 → 접힘
+  // 손잡이·요약 줄을 누르면: 접힘 → 반('지금 화면') → 펼침 → 접힘. 지도만 보는 중(숨김)이면 접힘으로
   function cycleSheet() {
+    if (sheetState === 'hide') { setSheet('peek'); return; }
     if (sheetState === 'peek') sheetMode = 'view';
     setSheet(sheetState === 'peek' ? 'half' : sheetState === 'half' ? 'full' : 'peek');
   }
+  function sheetOpen() { return sheetState === 'half' || sheetState === 'full'; }   // 목록이 지도를 가리고 있나(지도를 누르면 접을 것)
   function chooseMode(m) {
-    if (sheetMode === m && sheetState !== 'peek') return;
+    if (sheetMode === m && sheetOpen()) return;
     sheetMode = m;
     lsBody.scrollTop = 0;
     if (m === 'shop' && !shopListSent && window.WalsonTrack) { shopListSent = true; WalsonTrack.send('shop_list_open'); }
-    if (sheetState === 'peek') setSheet('half'); else renderSheet();
+    if (!sheetOpen()) setSheet('half'); else renderSheet();
     if (m === 'sos') sosLocate();
   }
   Object.keys(MODE_BTN).forEach(function (m) {
@@ -1368,7 +1377,7 @@
         sheetEl.classList.add('is-dragging');
       }
       var h = heights();
-      sheetEl.style.height = Math.max(h.peek - 40, Math.min(h.full, startH + dy)) + 'px';
+      sheetEl.style.height = Math.max(h.hide, Math.min(h.full, startH + dy)) + 'px';
     }
     function up() {
       if (!active) return;
@@ -1377,8 +1386,8 @@
       sheetEl.classList.remove('is-dragging');
       lastDragEnd = Date.now();
       var h = heights(), cur = sheetEl.getBoundingClientRect().height, best = 'peek', bd = Infinity;
-      ['peek', 'half', 'full'].forEach(function (s) { var d = Math.abs(h[s] - cur); if (d < bd) { bd = d; best = s; } });
-      if (sheetState === 'peek' && best !== 'peek') sheetMode = 'view';
+      ['hide', 'peek', 'half', 'full'].forEach(function (s) { var d = Math.abs(h[s] - cur); if (d < bd) { bd = d; best = s; } });
+      if ((sheetState === 'peek' || sheetState === 'hide') && (best === 'half' || best === 'full')) sheetMode = 'view';
       setSheet(best);   // 같은 단계로 돌아와도 높이를 제자리로(fitSheet)
     }
     [lsGrab, lsSummary].forEach(function (el) {
@@ -1434,13 +1443,13 @@
   function renderSheet() {
     if (!sheetReady) return;
     Object.keys(MODE_BTN).forEach(function (m) {
-      MODE_BTN[m].setAttribute('aria-pressed', sheetState !== 'peek' && sheetMode === m ? 'true' : 'false');
+      MODE_BTN[m].setAttribute('aria-pressed', sheetOpen() && sheetMode === m ? 'true' : 'false');
     });
     lsSummary.innerHTML = '';
     var sum = mk('span', 'sum');
     lsSummary.appendChild(sum);
-    lsSummary.appendChild(mk('span', 'more', sheetState === 'peek' ? '목록 ▲' : sheetState === 'half' ? '더 보기 ▲' : '접기 ▼'));
-    if (sheetState === 'peek') {
+    lsSummary.appendChild(mk('span', 'more', !sheetOpen() ? '목록 ▲' : sheetState === 'half' ? '더 보기 ▲' : '접기 ▼'));
+    if (!sheetOpen()) {   // 접힘(지도만 볼 땐 안 보이지만 같이 — 다시 올렸을 때 바로 맞게)
       paintPeekSummary(sum, viewEntries());
       return;
     }
@@ -1456,7 +1465,7 @@
   function scheduleSheet() {
     if (!sheetReady) return;
     clearTimeout(sheetTimer);
-    sheetTimer = setTimeout(function () { if (sheetState === 'peek' || sheetMode === 'view') renderSheet(); }, 80);
+    sheetTimer = setTimeout(function () { if (sheetState === 'hide') return; if (sheetState === 'peek' || sheetMode === 'view') renderSheet(); }, 80);
   }
 
   function iconBox(svg, color) {
@@ -1638,15 +1647,15 @@
   }
 
   // 지도를 누르거나 핀을 열면 접는다(목록이 지도를 가린 채로 두지 않게). Esc도.
-  map.on('click', function () { if (sheetState !== 'peek') setSheet('peek'); });
-  map.on('popupopen', function () { if (sheetState !== 'peek') setSheet('peek'); });
+  map.on('click', function () { if (sheetOpen()) setSheet('peek'); });
+  map.on('popupopen', function () { if (sheetOpen()) setSheet('peek'); });
   // 다른 행동을 하면 지도 위에 떠 있던 것을 내린다(11/18 가르시아 "지도 위에 팝업되었던 정보들은 내가 다른 액션을 취하면 내려가게"):
   // 지도를 손으로 끌면 핀 팝업을 닫고 펼친 목록도 접는다. 확대·축소(버튼·두 손가락·[내 위치])도 팝업을 닫는다.
   // 목록을 펼치면(setSheet), 위 칩을 누르면 닫는다. 팝업을 열 때 Leaflet이 지도를 살짝 미는 것은 끌기·확대가 아니라 그대로 둔다.
-  map.on('dragstart', function () { map.closePopup(); if (sheetState !== 'peek') setSheet('peek'); });
+  map.on('dragstart', function () { map.closePopup(); if (sheetOpen()) setSheet('peek'); });
   map.on('zoomstart', function () { map.closePopup(); });
   map.on('moveend', scheduleSheet);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetState !== 'peek') setSheet('peek'); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetOpen()) setSheet('peek'); });
   window.addEventListener('resize', relayoutSheet);
   sheetReady = true;
   setSheet('peek');
@@ -1757,6 +1766,6 @@
     }
   })();
 </script>
-<script src="walk-fab.js?v=5"></script>
+<script src="walk-fab.js?v=6"></script>
 </body>
 </html>

@@ -84,13 +84,14 @@
     }
   }
   // [동네]의 목록 시트(2026-11-18 — 요약 줄·볼 것·미션 카드) 바로 위에 붙는다. 시트를 반·펼침으로 올리면 숨는다.
+  // 지도만 보기(시트를 끝까지 내린 'hide', 11/23)에서는 손잡이 줄 바로 위로 같이 내려간다.
   // (예전 화면의 아래쪽 덩어리 #bottom-stack도 그대로 따른다 — 그 덩어리가 숨으면 같이 숨음)
   function anchor() { return document.getElementById('list-sheet') || document.getElementById('bottom-stack'); }
   function place() {
     var stack = anchor();
     if (!stack) return;
     var state = stack.getAttribute('data-state');
-    if (stack.hidden || (state && state !== 'peek')) { fab.hidden = true; return; }
+    if (stack.hidden || (state && state !== 'peek' && state !== 'hide')) { fab.hidden = true; return; }
     fab.hidden = false;
     var top = stack.getBoundingClientRect().top;
     if (top > 0) fab.style.bottom = Math.round(window.innerHeight - top + 10) + 'px';
