@@ -100,16 +100,19 @@
     return style;
   }
 
+  function colorsNow() { return document.documentElement.getAttribute('data-palette') === 'black' ? COLORS.night : COLORS.day; }
+  var rawStyle = null;   // 받은 스타일 원본(다시 칠할 때 씀)
+
   // map: Leaflet 지도. fallback: 실패하면 부를 함수(원래 그림 지도).
   window.WalsonVectorTiles = function (map, fallback) {
     if (!window.L || !L.maplibreGL || !window.maplibregl || !window.fetch) { fallback(map); return; }
-    var dark = document.documentElement.getAttribute('data-palette') === 'black';
-    var c = dark ? COLORS.night : COLORS.day;
+    var c = colorsNow();
     var done = false;
     var timer = setTimeout(function () { if (!done) { done = true; fallback(map); } }, 8000);
     fetch(STYLE_URL).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (style) {
       if (done) return;
       done = true; clearTimeout(timer);
+      rawStyle = JSON.stringify(style);
       var layer = L.maplibreGL({
         style: recolor(style, c),
         attribution: '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
@@ -117,5 +120,17 @@
       document.documentElement.classList.add('walson-vector-map');
       window.WalsonVectorLayer = layer;
     }).catch(function () { if (!done) { done = true; clearTimeout(timer); fallback(map); } });
+  };
+  // 화면 색을 바꾼 뒤 지도 색도 다시(2026-11-23 지도 위 [설정] → 화면 색). 받은 원본에서 지금 화면 색(밤·낮)으로 다시 칠해 넣으면
+  // MapLibre가 달라진 칸만 고친다(지도 데이터는 다시 안 받음). 벡터 지도를 못 받았으면(그림 지도) 할 일 없음 → false.
+  // 도트 지도로 바꿔 둔 동안엔 벡터 지도가 빠져 있다가 다시 붙을 때 options.style로 새로 만들어져서, 그 값도 새 색으로 바꿔 둔다.
+  window.WalsonVectorTiles.repaint = function () {
+    var layer = window.WalsonVectorLayer;
+    if (!layer || !rawStyle) return false;
+    var c = colorsNow();
+    layer.options.style = recolor(JSON.parse(rawStyle), c);
+    var ml = layer.getMaplibreMap && layer.getMaplibreMap();
+    if (ml) ml.setStyle(recolor(JSON.parse(rawStyle), c));
+    return true;
   };
 })();
