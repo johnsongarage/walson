@@ -1,4 +1,4 @@
-// 지도 위 설정 판 — [동네]·[산책] 지도가 같이 쓴다(2026-11-23).
+// 설정 판 — [동네]·[산책] 지도와 [기록] 머리의 톱니가 같이 쓴다(2026-11-23).
 // 가르시아 "테마 변경을 좀 쉽게… 프로필 변경에선 너무 찾기 힘들어… 지도에 설정 버튼 달아봐 거기서 하게 해" →
 // "산책 지도에도 달아줘" + "모아줘"(지도 위에 따로 있던 [도트]·[이름] 버튼도 이 판으로 모음).
 //
@@ -12,7 +12,8 @@
 //   var qs = WalsonQuickSet.attach(톱니 버튼, {
 //     side: 'left' | 'below',      // 판을 버튼 왼쪽(오른쪽 버튼 줄)에 / 버튼 아래(위쪽 띠)에
 //     map: { get(), set(v), labels(), setLabels(on) },   // 지도 모양·이름 — 없으면 지도 칸을 안 보인다. setLabels는 Promise를 돌려줘도 됨
-//     onPalette(prev, next)        // 화면 색을 바꾼 뒤(벡터 지도 다시 칠하기 등)
+//     onPalette(prev, next),       // 화면 색을 바꾼 뒤(벡터 지도 다시 칠하기 등)
+//     more: { href, label }        // 판 맨 아래 다른 설정으로 가는 링크(예: 프로필) — 없으면 안 보임
 //   });
 //   qs.close()  // 지도를 닫을 때 등
 (function () {
@@ -39,7 +40,10 @@
     '.qs-row>span{font-size:13px;font-weight:800;}' +
     '.qs-seg{display:inline-flex;gap:2px;padding:2px;border:1.5px solid var(--panel-border);border-radius:999px;}' +
     '.qs-seg button{font:inherit;font-size:12px;font-weight:800;min-width:48px;padding:7px 11px;border:none;border-radius:999px;background:transparent;color:var(--ink-soft);cursor:pointer;}' +
-    '.qs-seg button[aria-pressed="true"]{background:var(--hl);color:var(--hl-ink);}';
+    '.qs-seg button[aria-pressed="true"]{background:var(--hl);color:var(--hl-ink);}' +
+    '.qs-more{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:9px 2px 0;border-top:1px dashed var(--panel-border);' +
+      'font-size:13px;font-weight:800;color:var(--ink);text-decoration:none;}' +
+    '.qs-more::after{content:"›";font-size:18px;line-height:1;color:var(--ink-soft);}';
   var cssDone = false;
   function addCss() {
     if (cssDone) return; cssDone = true;
@@ -122,6 +126,11 @@
         });
         labelRow.appendChild(labelSeg); sec.appendChild(labelRow);
         box.appendChild(sec);
+      }
+
+      if (opt.more && opt.more.href) {
+        var more = el('a', 'qs-more', opt.more.label || '다른 설정'); more.href = opt.more.href;
+        box.appendChild(more);
       }
 
       document.body.appendChild(box);

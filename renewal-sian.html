@@ -23,7 +23,7 @@
   /* 리뉴얼 시안(2026-11-20) — 가르시아가 건넨 시안 이미지 두 장(기록·워킹패스 한 장, 동네 한 장)을 그대로 옮긴 것.
      가르시아 "왜 별 차이 없어 보이냐, 내가 건네준 시안 이미지를 왜 다 무시한 거 같냐" — 앞선 시안(town-sian·record-sian)은 검토 노트의 제약과
      지금 앱 모양에 맞춰 그려서 받은 시안과 달랐다. 이번엔 받은 이미지의 배치·모양·크기·문구를 따른다. 일부러 바꾼 것:
-       ① 수호견 → 지킴이(11/19 용어 결정)  ② "또래 소형견 평균" → "반려견 평균"(구한 자료가 크기 구분 없음, 11/20)
+       ① 수호견 → 지킴이(11/19 용어 결정)  ② "또래 소형견 평균" 비교 → "지난달의 나"와 비교(11/23 가르시아 — 다른 앱 자료는 경쟁 앱이라 빼고 이 휴대폰 기록만)
        ③ 지도 오른쪽 '내 위치' 두 개 → 하나  ④ 분홍 버튼 글씨는 앱 규칙대로 검정(분홍 위 흰 글씨는 잘 안 읽힘)
        ⑤ 달력에 요일 줄(받은 그림은 요일 없이 5칸)  ⑥ 럭키 스팟 보상은 다꾸 스티커만(제휴 쿠폰은 11/17 "돈 드는 보상은 현장에서")
      예시 데이터(지킴이·럭키 스팟·발도장·숫자·내 위치)는 위 띠에 '예시'로 밝힌다. [내 기록]을 누르면 기록·워킹패스가 이 휴대폰 기록으로 바뀐다.
@@ -296,9 +296,9 @@
       <small>이달의 성적표</small>
       <div class="stats" id="r-stats"></div>
       <hr>
-      <small>반려견 비교 인사이트</small>
+      <small>지난달의 나와 비교</small>
       <div class="insight" id="r-insight"></div>
-      <div class="src">기준: 산책 앱 기록 21만 건의 하루 평균 51분(펫핑 2022 리포트 · 크기 구분 없음)</div>
+      <div class="src" id="r-basis"></div>
     </div>
   </div>
   <div class="card">
@@ -592,13 +592,15 @@
     var mon, s, pct, cal, rows, place, y, m;
     if (dataMode === 'ex') {
       y = 2026; m = 10; mon = 11;
-      s = { count: 17, km: 5.4, streak: 5 }; pct = 15;
+      s = { count: 17, km: 5.4, streak: 5, perDay: 34 }; pct = 15; var prevDay = 30;
       cal = { 15: 1, 16: 1, 17: 1, 18: 1, 19: 1 };
       rows = [['11월 19일 (목) - 20분 · 다녀와서 적음', '다녀와서 적음'], ['11월 18일 (수) - 30분 · 충분했어요', '길 기록 · 1.2km'], ['11월 17일 (화) - 25분 · 킁킁 많이', '시간만 잼']];
       place = '다산 중앙공원<br>5회 정복!';
     } else {
       y = Y; m = M; mon = M + 1;
-      s = monthStats(Y, M); pct = s.perDay ? Math.round((s.perDay - 51) / 51 * 100) : null;
+      s = monthStats(Y, M);
+      var ps = monthStats(M ? Y : Y - 1, M ? M - 1 : 11);   // 지난달의 나(이 휴대폰 기록)
+      prevDay = ps.perDay; pct = s.perDay && ps.perDay ? Math.round((s.perDay - ps.perDay) / ps.perDay * 100) : null;
       cal = {}; s.days.forEach(function (k) { cal[+k.slice(8, 10)] = 1; });
       rows = walks.slice().sort(function (a, b) { return (b.date > a.date ? 1 : b.date < a.date ? -1 : 0) || (b.startedAt || 0) - (a.startedAt || 0); }).slice(0, 3).map(function (w) {
         var d = new Date(w.date + 'T00:00:00');
@@ -611,8 +613,9 @@
     $('r-title').textContent = mon + '월 산책 기록 리포트';
     $('s-title').textContent = mon + '월 결산 영수증'; $('rc-t').textContent = mon + '월 결산 영수증'; $('rc-p').innerHTML = place;
     $('r-stats').innerHTML = '<span>총 <strong>' + s.count + '</strong>회 산책</span><span><strong>' + (s.km ? s.km.toFixed(1) : '0') + '</strong> km</span><span>연속 <strong>' + s.streak + '</strong>일 달성</span>';
-    $('r-insight').innerHTML = pct === null ? '이번 달 기록이 쌓이면 다른 강아지들과 비교해 드려요.' :
-      pct >= 0 ? '반려견 평균보다 ' + pct + '% 더 부지런히 걸었어요! 👍' : '반려견 평균의 ' + (100 + pct) + '%만큼 걸었어요 — 작은 강아지는 짧아도 괜찮아요 🐾';
+    $('r-insight').innerHTML = pct === null ? (s.count ? '다음 달부터 지난달의 나와 비교해 드려요.' : '이번 달 첫 산책을 기다려요 🐾') :
+      pct >= 5 ? '지난달의 나보다 ' + pct + '% 더 부지런히 걸었어요! 👍' : pct <= -5 ? '지난달보다 조금 짧게 걸었어요 — 짧아도 꾸준한 게 최고예요 🐾' : '지난달의 나만큼 꾸준히 걷고 있어요 🐾';
+    $('r-basis').textContent = pct === null ? '' : '산책한 날 하루 평균 ' + s.perDay + '분 · 지난달 ' + prevDay + '분(이 휴대폰 기록)';
     var first = new Date(y, m, 1).getDay(), last = new Date(y, m + 1, 0).getDate();
     var h = '<b class="m">' + mon + '월</b><div class="grid">' + DOW.map(function (d) { return '<span class="w">' + d + '</span>'; }).join('');
     for (var i = 0; i < first; i++) h += '<span></span>';

@@ -151,12 +151,8 @@ html[data-palette="black"][data-page="walk-end"] .photo-pick { background: var(-
 html[data-palette="black"][data-page="walk-end"] .photo-actions button { background: var(--panel) !important; }
 
 /* walk-history.html */
-html[data-palette="black"][data-page="walk-history"] { --ok: #63955e; --stamp: #db5d53; }
-html[data-palette="black"][data-page="walk-history"] .format { background: var(--panel) !important; }
-html[data-palette="black"][data-page="walk-history"] .chips button { background: var(--panel) !important; }
-html[data-palette="black"][data-page="walk-history"] .custom { background: var(--panel) !important; }
-html[data-palette="black"][data-page="walk-history"] .walk-card { background: var(--panel) !important; }
-html[data-palette="black"][data-page="walk-history"] .walk-card[aria-current="true"] .thumb { background: var(--panel) !important; }
+html[data-palette="black"][data-page="walk-history"] { --ok: #63955e; --stamp: #db5d53; --soft: var(--ink-soft); --soft-2: #2f282a; --paper: var(--panel); --paper-ink: #968376; --butter: #38321e; --butter-ink: #ad7f00; --paw-ink: #b87755; }
+html[data-palette="black"][data-page="walk-history"] .rcpt .bar { background: repeating-linear-gradient(90deg, #2e2e38 0 2px, transparent 2px 4px, #2e2e38 4px 5px, transparent 5px 8px, #2e2e38 8px 11px, transparent 11px 12px) !important; }
 html[data-palette="black"][data-page="walk-history"] .poop-cal .head button { background: var(--panel) !important; }
 
 /* walk.html */
@@ -231,3 +227,11 @@ html[data-palette="black"] .leaflet-popup-content [style*="rgb(251, 227, 232)"] 
 html[data-palette="black"] .leaflet-popup-content [style*="rgb(201, 184, 164)"] { color: #5a5a66 !important; }
 html[data-palette="black"] .leaflet-popup-content [style*="rgb(227, 211, 190)"],
 html[data-palette="black"] .leaflet-popup-content [style*="rgb(230, 214, 193)"] { border-color: #3a3a46 !important; }
+
+/* walk-history.html — [기록] 리뉴얼(11/23) 색 이름. 스크립트는 밝은 색 값을 기계적으로 어둡게 바꿔서(연한 칸이 밝은 회색, 발바닥이 어두운 동그라미 위에 어둡게) 여기서 바로잡는다.
+   연한 칸은 카드보다 조금 밝게, 종이 영수증 그림은 블랙에서도 종이 색 그대로, 버터색 칩·발바닥은 리뉴얼 시안의 블랙 값 */
+html[data-palette="black"][data-page="walk-history"] { --card-shadow: none; --soft: #2a2a31; --soft-2: #34343c; --paper: #fffaf0; --paper-ink: #2a2420; --butter: #3b311c; --butter-ink: #f3d27a; --paw-ink: #f394b4; }
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  html[data-palette="black"][data-page="walk-history"] { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); --soft-2: color-mix(in srgb, var(--ink) 8%, var(--soft)); }
+}
+html[data-palette="black"][data-page="walk-history"] .rcpt .bar { background: repeating-linear-gradient(90deg, #2a2420 0 2px, transparent 2px 4px, #2a2420 4px 5px, transparent 5px 8px, #2a2420 8px 11px, transparent 11px 12px) !important; }
