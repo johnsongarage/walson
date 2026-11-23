@@ -22,7 +22,12 @@
      예전 세로 보상 카드(reward-card-soft.js)와 "스킬 다시 뽑기"는 지웠다 — 특기·특이 사항은 목록에서 고른다(문구는 card-shared.js 그대로).
      11/18 가르시아 칭호 5묶음 27개(card-shared.js TITLES)를 두 목록 뒤에 같이 붙이고, 목록 위에 묶음 탭을 둬서 묶음별로 고른다.
      "실물로 뽑기"(11/16 가르시아 "③ 추천대로"): A4에 실제 크기(85.6×54mm) 앞·뒷면 네 쌍 — 오려서 등을 맞대 포토카드 홀더에.
-     포토프린터를 사기 전에 공원에서 반응을 보는 0원 시험용(hq notes/petwalk-growing-id-card.md). 인쇄는 이 기기에서만 — 어디로도 안 보낸다. */
+     포토프린터를 사기 전에 공원에서 반응을 보는 0원 시험용(hq notes/petwalk-growing-id-card.md). 인쇄는 이 기기에서만 — 어디로도 안 보낸다.
+     2026-11-23 탭 정리(가르시아 "중복되는 거 한쪽에 몰아 … 복잡한 거 다 접어 버리고 싶어" → "추천해 봐, 너의 생각대로 진행",
+     hq notes/petwalk-tab-reorg.md): [워킹패스] = 우리 강아지가 누구인지 + 모은 것.
+       카드·꾸미기 → 등급 한 줄(다음 등급까지 n회) + 산책 유형 → 만난 친구(도감·QR 교환 — 개방명록, 키링 받기) →
+       접어 둔 칸: 칭호(특기·특이 사항) · 발도장 모음판 · 실물로 뽑기·키링 파일.
+     누적 숫자(km 등)·꾸준함 도장판은 [기록] '통계·통찰'로, "다음 목표" 한 줄은 뺐다(등급 막대·칭호 칸·발도장 판·[동네] 미션이 같은 걸 보여 줌). */
   :root {
     /* index.html/walk-history.html/profile.html과 동일한 색 토큰 */
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -97,6 +102,21 @@
   details.tools > summary::after { content: ''; flex-shrink: 0; width: 8px; height: 8px; border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft);
     transform: rotate(45deg); margin: -4px 4px 0 0; }
   details.tools[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
+  /* 접는 칸 제목 아래 한 줄(11/23) — 지금 고른 특기, 모은 발도장 수 */
+  details.tools > summary > span { min-width: 0; }
+  details.tools > summary small { display: block; margin-top: 3px; font-size: 12px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  details.tools > summary small:empty { display: none; }
+  #traits { margin-top: 12px; }
+
+  /* 등급 한 줄 + 산책 유형(11/23) */
+  .rank-sub { margin: 8px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+  .type-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--panel-border);
+    text-decoration: none; color: var(--ink); font-size: 13px; font-weight: 700; }
+  .type-row b { font-size: 14px; font-weight: 800; }
+  .type-row b::after { content: ' ›'; color: var(--ink-soft); }
+  /* 만난 친구(11/23) — 개방명록: 도감·QR 교환이 이 탭의 큰 버튼 */
+  .friends .hint { margin-top: 6px; }
+  .friends .btn { margin-top: 10px; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 18px;
@@ -271,36 +291,37 @@
     <p class="color-note" id="dot-note" hidden>고른 모양과 사진 맞춤은 이 휴대폰에만 기억해요. 실물로 뽑기·키링 파일은 아직 기본 카드로 나와요(도트 인쇄 크기는 정해지면).</p>
   </div>
 
-  <div class="panel">
-    <div class="stats">
-      <div><b id="stat-walks">0회</b><span>산책(5분 이상)</span></div>
-      <div><b id="stat-km">0.0</b><span>km</span></div>
-      <div><b id="stat-rank">입문자</b><span>산책 등급</span></div>
-    </div>
-    <div class="next">
-      <div class="next-label"><span id="rank-label"></span><small id="rank-left"></small></div>
-      <div class="bar"><i id="rank-bar"></i></div>
-    </div>
-    <div class="places" id="places"></div>
-    <p class="hint" id="next-goal"></p>
+  <!-- 등급 한 줄(11/23 탭 정리 — 누적 산책 횟수·km 칸과 꾸준함 도장판은 [기록] '통계·통찰'로) + 산책 유형(누구인지) -->
+  <div class="panel" id="rank-panel">
+    <div class="next-label"><span id="rank-label"></span><small id="rank-left"></small></div>
+    <div class="bar"><i id="rank-bar"></i></div>
+    <p class="rank-sub" id="rank-sub"></p>
+    <a class="type-row" href="walk-type.html"><span>산책 유형</span><b id="type-name">테스트 해 보기</b></a>
   </div>
 
+  <!-- 만난 친구(11/23) — 개방명록(hq DECISIONS 11/23 "교환은 앱 QR이 기본"): 도감·QR 교환은 늘 보인다 -->
+  <div class="panel friends">
+    <div class="next-label"><span>만난 친구</span><small id="friends-count"></small></div>
+    <p class="hint">공원에서 만난 강아지와 그 자리에서 서로 화면 QR을 찍으면 단짝이 되고 한마디가 남아요.</p>
+    <!-- 강아지 도감(2026-11-15): QR 교환, 서버 없음 -->
+    <a class="btn btn-primary" href="dex.html">강아지 도감 · QR 교환</a>
+    <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
+    <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden>키링 받기</a>
+    <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
+    <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden>스친 강아지 (서버 가정 시험판)</a>
+  </div>
+
+  <!-- 모은 것(11/23 — 접어 둔다, 펼친 건 이 휴대폰에 기억) -->
   <!-- 특기·특이 사항 — 산책 1회·3회에 생긴다. 처음 하나는 깜짝 선물로 정해 주고, 바꾸기는 목록에서 고른다(예전 "다시 뽑기") -->
-  <div class="panel" id="traits"></div>
-
-  <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다(5분 이상 — 11/17부터 주민 등급과 같은 기준) -->
-  <div class="panel" id="steady-card">
-    <div class="next-label" style="margin-bottom:10px;"><span>꾸준함 도장판</span><small id="steady-count"></small></div>
-    <div id="steady-board"></div>
-    <p class="hint" style="margin-top:10px;">한 주(월~일)에 산책한 날 3·5·7일마다 도장. 시간만 잰 산책도 들어가요(5분 이상).</p>
-  </div>
-
-  <!-- 키링 받기(2026-11-15): reward-rules.js의 KEYRING.open이 true일 때만 보인다 -->
-  <a class="btn btn-secondary" id="keyring-link" href="keyring.html" hidden>키링 받기</a>
-  <!-- 강아지 도감(2026-11-15): QR 교환, 서버 없음 — 늘 보인다 -->
-  <a class="btn btn-secondary" href="dex.html">강아지 도감 · QR 교환</a>
-  <!-- 강아지 도감(2026-11-15 서버 가정 시험판): ?server=mock으로 켰을 때만 보인다(mock-server.js) -->
-  <a class="btn btn-secondary" id="friends-link" href="friends.html" hidden>스친 강아지 (서버 가정 시험판)</a>
+  <details class="panel tools" id="traits-fold">
+    <summary><span>칭호 · 특기와 특이 사항<small id="traits-sum"></small></span></summary>
+    <div id="traits"></div>
+  </details>
+  <details class="panel tools" id="places-fold">
+    <summary><span>발도장 모음판<small id="places-sum"></small></span></summary>
+    <div class="places" id="places"></div>
+    <p class="hint">발도장은 길 기록 산책에서만 찍혀요. 다음에 갈 곳은 [동네] 미션에서 알려 줘요.</p>
+  </details>
   <!-- 실물로 뽑기·키링 파일 — 자주 안 쓰고 설명이 길어서 맨 아래에 접어 둔다(2026-11-18 밤 화면 정리) -->
   <details class="panel tools" id="save-panel" hidden>
     <summary>실물로 뽑기 · 키링 파일</summary>
@@ -334,7 +355,6 @@
 <script src="pass-pixel.js?v=6"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
-<script src="steady-stamp.js?v=4"></script>
 <script src="mock-server.js?v=2"></script>
 <script>
   (function () {
@@ -490,14 +510,12 @@
     document.querySelector('.style-toggle').hidden = true;   // 도트 그림 파일을 못 받았으면 기본 카드만
   }
 
-  // ── 진행도 ──
+  // ── 등급 한 줄 · 발도장 모음판(11/23 탭 정리 — 누적 km·횟수 칸은 [기록] '통계·통찰' 모두 합쳐로) ──
   function renderSummary() {
     var p = progress;
-    $('stat-walks').textContent = p.walks + '회';
-    $('stat-km').textContent = p.km.toFixed(1);
-    $('stat-rank').textContent = rank.short;
     $('rank-label').textContent = next ? rank.name + ' → ' + next.name : '핑크 앰배서더예요';
     $('rank-left').textContent = next ? (next.minWalks - p.walks) + '회 남음' : '';
+    $('rank-sub').textContent = '지금 ' + rank.name + ' · 산책 ' + p.walks + '회(5분 이상)';
     var frac = next ? (p.walks - rank.minWalks) / (next.minWalks - rank.minWalks) : 1;
     frac = Math.max(0, Math.min(1, frac));
     $('rank-bar').style.width = Math.round(frac * 100) + '%';
@@ -512,15 +530,40 @@
     }
     var placesEl = $('places');
     placesEl.innerHTML = '';
-    RR.PLACES.filter(function (pl) { return !pl.pending; }).forEach(function (pl) {
+    var allPlaces = RR.PLACES.filter(function (pl) { return !pl.pending; }), gotN = 0;
+    allPlaces.forEach(function (pl) {
       var got = !!p.visited[pl.id];
+      if (got) gotN++;
       var chip = document.createElement('span');
       chip.className = got ? 'got' : '';
       chip.textContent = (got ? '발도장 · ' : '아직 · ') + pl.name;
       placesEl.appendChild(chip);
     });
-    $('next-goal').textContent = '다음 · ' + RR.nextGoalText(p);
+    $('places-sum').textContent = '모은 발도장 ' + gotN + '/' + allPlaces.length;
+    // "다음 · …" 한 줄(RR.nextGoalText)은 11/23 뺐다 — 등급 막대·칭호 칸·이 판·[동네] 미션이 같은 걸 보여 준다
   }
+
+  // ── 산책 유형(누구인지 — walk-type.html 결과, 이 휴대폰에만 petwalk_walk_type). 이름은 walk-type.html TYPES와 같게 ──
+  (function () {
+    var NAMES = { sniff: '킁킁 탐정형', run: '직진 마라토너형', social: '동네 이장님형', home: '집돌이 귀가형', snack: '간식 협상가형', chill: '감성 산책러형' };
+    var wt = null;
+    try { wt = JSON.parse(localStorage.getItem('petwalk_walk_type')); } catch (e) { wt = null; }
+    if (wt && NAMES[wt.type]) $('type-name').textContent = NAMES[wt.type];
+  })();
+
+  // ── 만난 친구 — 도감(petwalk_dex) 마릿수 · 단짝 수(dex.html과 같은 셈) ──
+  (function () {
+    var dex = (WalsonStore.dex && WalsonStore.dex()) || [];
+    var pals = dex.filter(function (d) { return d && d.pal; }).length;
+    $('friends-count').textContent = dex.length ? dex.length + '마리' + (pals ? ' · 단짝 ' + pals : '') : '아직 없어요';
+  })();
+
+  // ── 접어 둔 칸(칭호·발도장 모음판) — 펼친 건 이 휴대폰에 기억 ──
+  ['traits-fold', 'places-fold'].forEach(function (id) {
+    var d = $(id), k = 'walson_fold_' + id;
+    try { if (localStorage.getItem(k) === '1') d.open = true; } catch (e) { /* 접힌 채로 */ }
+    d.addEventListener('toggle', function () { try { localStorage.setItem(k, d.open ? '1' : '0'); } catch (e) { /* 이번만 */ } });
+  });
 
   // ── 특기·특이 사항 ──
   var openList = null;   // 펼친 목록('skill'|'passive')
@@ -531,6 +574,10 @@
   function renderTraits() {
     var box = $('traits');
     box.innerHTML = '';
+    // 접힌 제목 줄 아래 한 줄 — 지금 고른 특기(없으면 언제 생기는지)
+    var sk = skills[pick.skill];
+    $('traits-sum').textContent = progress.walks >= RR.SLOT_RULES.skill
+      ? '특기 · ' + (sk ? sk.title : '') : '산책 ' + RR.SLOT_RULES.skill + '회 하면 특기가 생겨요';
     [['skill', '특기', skills, RR.SLOT_RULES.skill], ['passive', '특이 사항', passives, RR.SLOT_RULES.passive]].forEach(function (t) {
       var kind = t[0], label = t[1], list = t[2], need = t[3];
       var open = progress.walks >= need, item = list[pick[kind]];
@@ -734,14 +781,7 @@
     $('card-area').hidden = false;
     $('save-panel').hidden = false;
   }
-  if (steadyInfo && window.SteadyStamp) {
-    $('steady-board').appendChild(SteadyStamp.board(steadyInfo, 8));
-    $('steady-count').textContent = steadyInfo.total
-      ? '모두 ' + steadyInfo.total + '개 · 3일 ' + steadyInfo.byLevel[0] + ' · 5일 ' + steadyInfo.byLevel[1] + ' · 7일 ' + steadyInfo.byLevel[2]
-      : '아직 없어요';
-  } else {
-    $('steady-card').hidden = true;
-  }
+  // 꾸준함 도장판(최근 8주)은 11/23 [기록] '통계·통찰'로 옮겼다 — 카드 뒷면의 도장 수(steadyInfo.total)는 그대로
   renderSummary();
   renderTraits();
   if (hasCard) applyStyle(cardStyle, false); else render();

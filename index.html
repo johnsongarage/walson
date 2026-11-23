@@ -53,13 +53,24 @@
      지도가 없다. 앱을 열어도 위치를 읽지 않고, 지도 타일도 받지 않는다 — 그래서 바로 뜨고,
      남에게 화면을 보여 줘도 집 근처가 드러나지 않는다.
      지도는 [동네](town.html), 산책 기록은 산책 화면(walk.html — 예전 index.html)에 있다.
-     여기서는 이 기기에 저장된 산책 기록(petwalk_walks)을 읽어 오늘과 이번 주를 보여 주기만 한다.
-     "오늘 충분해요 ✓" 같은 목표 대비 한 줄은 목표 숫자가 정해지면 넣는다(기획표 V1-01·V1-02, 아직 미정). */
+     여기서는 이 기기에 저장된 산책 기록(petwalk_walks)을 읽어 오늘을 보여 주기만 한다.
+     2026-11-23 탭 정리(가르시아 "오늘에 들어갈 건 오늘 산책하면서 한 게 나와야 해 … 복잡한 거 다 접어 버리고 싶어" →
+     "추천해 봐, 너의 생각대로 진행", hq notes/petwalk-tab-reorg.md): [오늘] = 오늘 산책하면서 한 것만.
+       머리: [기록]과 같은 머리(강아지·이름·인사 신호) + 톱니(설정 판 — 화면 색·프로필·홈 화면에 추가·카톡 채널·시연용 샘플)
+       오늘 칸: 오늘 분·횟수·목표 + 이번 주 꾸준함 한 줄 + [산책 나가기]·[다녀왔어요]
+       오늘 한 것(오늘 산책이 있을 때만): 오늘의 한 장·끝 화면 답(충분·킁킁·응가)·오늘 생긴 것(발도장·승급·도장) → 오늘 영수증([기록] 일기 창)
+     최근 7일 막대·꾸준함 도장(이번 주 판)은 [기록] '통계·통찰'로, 최근 산책(지난 것)은 [기록] 목록으로,
+     샘플 버튼·맨 아래 링크 줄은 톱니 판으로 옮겼다. 산책을 안 한 날엔 어제 요약 대신 "오늘 나가면 이번 주 n일째" 한 줄만. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
     --shadow-rgb: 74, 63, 53;
     --sig-green: #3f9b5b; --sig-yellow: #dfa21f; --sig-red: #d2493f;
+    /* 머리 — [기록](walk-history.html)과 같은 값. 블랙 값은 theme-black.css 맨 아래 "손으로 고친 것"(index) */
+    --soft: #ede6e8; --gold-ring: #dcab3f; --butter: #fde8ad; --butter-ink: #5b4300;
+  }
+  @supports (background: color-mix(in srgb, red 50%, blue)) {
+    :root { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); }
   }
   * { box-sizing: border-box; }
   html, body {
@@ -69,18 +80,26 @@
   body { padding: 18px 16px 32px; }
   .wrap { max-width: 420px; margin: 0 auto; }
 
-  /* 위쪽 강아지 얼굴 — 누르면 프로필(C안: "프로필·설정은 [오늘] 위쪽 강아지 얼굴에서") */
-  .who { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); margin-bottom: 18px; }
+  /* 머리 — [기록]과 같은 머리(11/23 탭 정리). 강아지 얼굴·이름을 누르면 프로필(C안 "프로필·설정은 [오늘] 위쪽 강아지 얼굴에서"),
+     오른쪽 톱니는 설정 판(quick-set.js) */
+  .who { display: flex; align-items: center; gap: 10px; margin: 0 2px 14px; }
+  .who-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
   .face {
-    position: relative; flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%;
-    background: var(--accent-tint); color: var(--accent); overflow: hidden;
+    flex: none; width: 50px; height: 50px; border-radius: 50%; overflow: hidden;
+    border: 2.5px solid var(--gold-ring); background: var(--soft);
     display: flex; align-items: center; justify-content: center;
-    border: 3px solid var(--panel-border);
   }
-  .face img { width: 100%; height: 100%; object-fit: cover; }
+  .face img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .face img[hidden] { display: none; }
-  .who-name { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
-  .who-sub { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .face svg { width: 40px; height: 40px; }
+  .who-nm { min-width: 0; }
+  .who-name { display: block; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-y { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 7px; background: var(--butter); color: var(--butter-ink); font-size: 12px; font-weight: 700; }
+  .pill-y[hidden] { display: none; }
+  .gear { flex: none; width: 42px; height: 42px; border: none; border-radius: 50%; background: transparent; color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .gear svg { width: 25px; height: 25px; }
+  .gear[aria-expanded="true"] { color: var(--accent); box-shadow: 0 0 0 2.5px var(--hl); }
+  .gear[hidden] { display: none; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px;
@@ -95,6 +114,11 @@
   .today-goal { display: inline-block; margin: 8px 0 0; padding: 3px 10px; font-size: 13px; font-weight: 800; color: var(--accent); background: var(--accent-tint, #f3ddd2); border-radius: 999px; }
   .today-goal.is-done { color: #fff; background: var(--accent); }
   .today-goal[hidden] { display: none; }
+  /* 이번 주 꾸준함 한 줄(11/23 탭 정리 — 도장판은 [기록] '통계·통찰'로) */
+  .today-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .today-pills .today-goal { margin: 0; }
+  .today-goal.week { color: var(--ink); background: var(--soft); }
+  .today-goal.week.is-done { color: var(--butter-ink); background: var(--butter); }
 
   .btn-main {
     display: block; width: 100%; text-align: center; text-decoration: none;
@@ -106,23 +130,25 @@
   .btn-main:active { transform: scale(0.98); }
   .btn-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 10px 0 0; line-height: 1.5; }
 
-  /* 이번 주 막대 */
-  .week { display: flex; align-items: flex-end; gap: 8px; height: 96px; }
-  .week .day { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
-  .week .bar { width: 100%; max-width: 28px; border-radius: 7px 7px 3px 3px; background: var(--accent-tint); min-height: 4px; }
-  .week .day.is-today .bar { background: var(--accent); }
-  .week .day.is-empty .bar { background: var(--panel-border); }
-  .week .lbl { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
-  .week .day.is-today .lbl { color: var(--accent); }
-  .week-sum { font-size: 13px; color: var(--ink-soft); margin: 12px 0 0; }
-  /* 도트 모드(2026-11-22 — [산책]·[동네]에서 [도트]를 고른 사람만): 막대 대신 한 칸씩 쌓는 블록, 사진 없으면 도트 강아지 */
-  .week.is-pixel .day { gap: 6px; }
-  .week.is-pixel .stack { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; width: 100%; }
-  .week.is-pixel .blk { width: 100%; max-width: 20px; height: 8px; background: var(--accent); opacity: 0.45;
-    box-shadow: inset -2px -2px 0 rgba(0,0,0,0.18); }
-  .week.is-pixel .day.is-today .blk { opacity: 1; }
-  .week.is-pixel .day.is-empty .blk { height: 4px; background: var(--panel-border); box-shadow: none; opacity: 1; }
+  /* 도트 모드(2026-11-22 — [산책]·[동네]에서 [도트]를 고른 사람만): 사진 없으면 도트 강아지 얼굴.
+     최근 7일 막대(도트면 블록)는 11/23 [기록] '통계·통찰'로 옮겼다 */
   .face img.face-pixel { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+
+  /* 오늘 한 것(11/23 탭 정리) — 오늘 산책이 있을 때만. 오늘의 한 장·끝 화면 답·오늘 생긴 것 → 오늘 영수증 */
+  .did-top { display: flex; gap: 12px; align-items: flex-start; }
+  .did-photo { flex: none; width: 84px; height: 84px; border-radius: 16px; object-fit: cover; }
+  .did-photo[hidden] { display: none; }
+  .did-chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+  .did-chips span { padding: 5px 10px; border-radius: 999px; background: var(--soft); font-size: 13px; font-weight: 700; color: var(--ink); }
+  .did-chips .muted { background: transparent; padding-left: 0; color: var(--ink-soft); font-weight: 600; }
+  .did-got { list-style: none; margin: 12px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--butter); color: var(--butter-ink); }
+  .did-got[hidden] { display: none; }
+  .did-got li { font-size: 13.5px; font-weight: 800; line-height: 1.5; word-break: keep-all; }
+  .did-got li::before { content: '✓ '; }
+  .did-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding: 13px 14px;
+    border-radius: 14px; border: 2px solid var(--panel-border); text-decoration: none; color: var(--ink); font-size: 15px; font-weight: 800; }
+  .did-btn::after { content: '›'; font-size: 20px; line-height: 1; color: var(--ink-soft); }
+  .did-btn:active { transform: scale(0.98); }
 
   /* 다녀왔어요(2026-11-16): 산책 뒤에 몇 분이었는지만 골라 적는다 */
   .btn-sub {
@@ -152,13 +178,6 @@
   .after-close { display: block; width: 100%; margin-top: 6px; padding: 10px; background: none; border: none; font-family: inherit;
     font-size: 14px; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
 
-  .last { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-decoration: none; color: var(--ink); }
-  .last strong { font-size: 15px; font-weight: 700; }
-  .last span { font-size: 13px; color: var(--ink-soft); }
-  .last .go { color: var(--accent); font-weight: 700; flex-shrink: 0; }
-  .last-photo { flex-shrink: 0; width: 64px; height: 64px; border-radius: 14px; object-fit: cover; }
-  .last-photo[hidden] { display: none; }
-
   .notice {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     background: var(--accent-tint); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px;
@@ -167,16 +186,6 @@
   .notice strong { color: var(--accent); flex-shrink: 0; }
   .notice[hidden] { display: none; }
 
-  .sample-btn {
-    display: block; width: 100%; margin-top: 4px; padding: 13px; border-radius: 999px;
-    border: 1px dashed var(--accent); background: transparent; color: var(--accent);
-    font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
-  }
-  .sample-btn.is-on { border-style: solid; background: var(--panel); color: var(--ink); }
-  .sample-btn:disabled { opacity: 0.6; }
-  .links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 18px 2px 0; }
-  .links a { font-size: 13px; color: var(--ink-soft); }
-  .links a[hidden] { display: none; }
   .inapp-note { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: #fff3d6; border: 1px solid #f0d58c; font-size: 13px; line-height: 1.6; color: var(--ink); }
   .inapp-note[hidden] { display: none; }
   .inapp-note b:first-child { display: block; font-size: 14px; }
@@ -193,10 +202,11 @@
 <link rel="stylesheet" href="splash.css?v=2">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=14"></script>
 <script src="site-config.js?v=10"></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
+<script src="quick-set.js?v=3"></script>
 <script src="track.js?v=8"></script>
 </head>
 <body>
@@ -211,57 +221,29 @@
 <script src="splash.js?v=4"></script>
 
 <div class="wrap">
-  <a class="who" href="profile.html" title="프로필 고치기">
-    <span class="face" id="face">
-      <svg id="face-paw" width="26" height="26" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M212,80a28,28,0,1,0,28,28A28,28,0,0,0,212,80Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,212,120ZM72,108a28,28,0,1,0-28,28A28,28,0,0,0,72,108ZM44,120a12,12,0,1,1,12-12A12,12,0,0,1,44,120ZM92,88A28,28,0,1,0,64,60,28,28,0,0,0,92,88Zm0-40A12,12,0,1,1,80,60,12,12,0,0,1,92,48Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,88Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,48Zm23.12,100.86a35.3,35.3,0,0,1-16.87-21.14,44,44,0,0,0-84.5,0A35.25,35.25,0,0,1,69,148.82,40,40,0,0,0,88,224a39.48,39.48,0,0,0,15.52-3.13,64.09,64.09,0,0,1,48.87,0,40,40,0,0,0,34.73-72ZM168,208a24,24,0,0,1-9.45-1.93,80.14,80.14,0,0,0-61.19,0,24,24,0,0,1-20.71-43.26,51.22,51.22,0,0,0,24.46-30.67,28,28,0,0,1,53.78,0,51.27,51.27,0,0,0,24.53,30.71A24,24,0,0,1,168,208Z"/></svg>
-      <img id="face-img" alt="" hidden>
-    </span>
-    <span>
-      <span class="who-name" id="who-name">우리 아이</span>
-      <span class="who-sub" id="who-sub" style="display:block;"></span>
-    </span>
-  </a>
+  <!-- 머리(11/23 탭 정리 — [기록]과 같은 머리): 얼굴·이름을 누르면 프로필, 톱니는 설정 판(quick-set.js) -->
+  <div class="who">
+    <a class="who-link" href="profile.html" title="프로필 고치기">
+      <span class="face" id="face">
+        <span id="face-pup" aria-hidden="true"></span>
+        <img id="face-img" alt="" hidden>
+      </span>
+      <span class="who-nm">
+        <span class="who-name" id="who-name">우리 아이</span>
+        <span class="pill-y" id="who-sig" hidden></span>
+      </span>
+    </a>
+    <button type="button" class="gear" id="set-btn" aria-label="설정 — 화면 색·프로필·홈 화면에 추가" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
 
   <a class="notice" id="start-notice" href="start.html" hidden>
     <span>강아지를 등록하고 워킹패스 카드를 만들어 보세요.</span><strong>만들기</strong>
   </a>
 
-  <section class="panel">
-    <h2 id="today-label">오늘</h2>
-    <div class="today-num"><span id="today-min">0</span><small>분</small></div>
-    <p class="today-sub" id="today-sub">아직 오늘 산책 기록이 없어요.</p>
-    <p class="today-goal" id="today-goal" hidden></p>
-    <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
-    <button type="button" class="btn-sub" id="after-btn">다녀왔어요 · 몇 분인지만 적기</button>
-    <p class="btn-note" id="go-note">나갈 때 누르면 기록해 주고, 깜빡했으면 다녀와서 적어도 돼요.</p>
-  </section>
-
-  <section class="panel">
-    <h2>최근 7일</h2>
-    <div class="week" id="week"></div>
-    <p class="week-sum" id="week-sum"></p>
-  </section>
-
-  <!-- 꾸준함 도장(2026-11-15): 한 주(월~일)에 산책한 날 3·5·7일 — 시간만 잰 산책도 센다(reward-rules.js steady) -->
-  <section class="panel" id="steady-panel">
-    <h2>꾸준함 도장 · 이번 주</h2>
-    <div id="steady-box"></div>
-  </section>
-
-  <section class="panel" id="last-panel" hidden>
-    <h2>최근 산책</h2>
-    <a class="last" href="walk-history.html">
-      <img class="last-photo" id="last-photo" alt="최근 산책 사진" hidden>
-      <span style="flex:1;min-width:0;"><strong id="last-title"></strong><br><span id="last-sub"></span></span>
-      <span class="go">기록 보기</span>
-    </a>
-  </section>
-
-  <!-- 샘플 데이터로 보기(2026-11-14): 버튼 하나로 기록·카드·사진·동네 가게를 채워 둘러본다(sample-data.js) -->
-  <button type="button" class="sample-btn" id="sample-btn">샘플 데이터로 둘러보기</button>
-
   <!-- 앱 안 브라우저(카톡 등)로 열렸을 때 안내(2026-11-15): 홈 화면 추가는 크롬·사파리에서, 기록은 "기록 옮기기"로 -->
-  <!-- 2026-11-15: 카톡이면 "크롬으로 옮기기" 버튼으로 기록까지 한 번에 넘긴다(inapp.js·backup.js moveLink) -->
+  <!-- 2026-11-15: 카톡이면 "크롬으로 옮기기" 버튼으로 기록까지 한 번에 넘긴다(inapp.js·backup.js moveLink). 11/23 머리 바로 아래로 올림 -->
   <div class="inapp-note" id="inapp-note" hidden>
     <b>카톡 안에서 열려 있어요</b>
     <span id="inapp-text">여기 기록은 카톡 안에만 남아서, 홈 화면에 추가한 앱으로는 안 넘어가요.</span>
@@ -271,16 +253,32 @@
     <span id="inapp-msg" style="display:block;font-weight:800;"></span>
   </div>
 
-  <div class="links">
-    <a href="#" id="channel-link" target="_blank" rel="noopener" hidden>새 소식 받기(카톡 채널)</a>
-    <a href="start.html">워킹패스 카드</a>
-    <a href="walk-type.html">산책 유형 테스트</a>
-    <a href="profile.html#backup">기록 옮기기</a>
-    <a href="privacy.html">개인정보 안내</a>
-    <a href="about.html">왈슨 소개</a>
-    <a href="#" id="install-link" hidden>홈 화면에 추가</a>
-  </div>
-  <!-- 사업자 정보 한 줄은 뺐다(2026-11-18 가르시아 "이미 승인났으니까 소개 페이지면 충분") — 왈슨 소개·개인정보 안내 맨 아래에만 -->
+  <section class="panel">
+    <h2 id="today-label">오늘</h2>
+    <div class="today-num"><span id="today-min">0</span><small>분</small></div>
+    <p class="today-sub" id="today-sub">아직 오늘 산책 기록이 없어요.</p>
+    <div class="today-pills">
+      <p class="today-goal" id="today-goal" hidden></p>
+      <!-- 이번 주 꾸준함 한 줄(11/23) — 한 주(월~일)에 산책한 날 3·5·7일마다 도장(reward-rules.js steady). 도장판은 [기록] '통계·통찰' -->
+      <p class="today-goal week" id="today-week" hidden></p>
+    </div>
+    <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
+    <button type="button" class="btn-sub" id="after-btn">다녀왔어요 · 몇 분인지만 적기</button>
+    <p class="btn-note" id="go-note">나갈 때 누르면 기록해 주고, 깜빡했으면 다녀와서 적어도 돼요.</p>
+  </section>
+
+  <!-- 오늘 한 것(11/23 탭 정리) — 오늘 산책이 있을 때만. 끝 화면에서 답한 것·오늘 생긴 것을 한 칸에, 영수증은 [기록] 일기 창에서 -->
+  <section class="panel" id="did-panel" hidden>
+    <h2>오늘 한 것</h2>
+    <div class="did-top">
+      <img class="did-photo" id="did-photo" alt="오늘의 한 장" hidden>
+      <div class="did-chips" id="did-chips"></div>
+    </div>
+    <ul class="did-got" id="did-got" aria-label="오늘 생긴 것" hidden></ul>
+    <a class="did-btn" id="did-receipt" href="walk-history.html">오늘 영수증 보기 · 꾸미기</a>
+  </section>
+  <!-- 샘플 데이터 버튼·맨 아래 링크 줄(카톡 채널·산책 유형 테스트·기록 옮기기·개인정보 안내·왈슨 소개·홈 화면에 추가)은 11/23 톱니 판으로 옮겼다.
+       사업자 정보 한 줄은 뺐다(2026-11-18 가르시아 "이미 승인났으니까 소개 페이지면 충분") — 왈슨 소개·개인정보 안내 맨 아래에만 -->
 </div>
 
 <!-- 다녀왔어요(2026-11-16): 산책 전에 앱을 켜지 않아도 된다. 오늘 몇 분이었는지만 골라 적으면 끝 화면 → 영수증으로 이어진다 -->
@@ -302,7 +300,6 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="backup.js?v=8"></script>
-<script src="steady-stamp.js?v=4"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
   // 오늘의 한 장 사진이 저장되면 한 번 다시 열어 사진까지 보이게 한다. 시작 화면(2초)이 그동안을 가린다.
@@ -311,10 +308,6 @@
   if (!inappBusy && window.PetwalkSample && PetwalkSample.shouldAutoStart()) {
     PetwalkSample.autoStart().then(function (ok) { if (ok) location.replace('index.html'); });
   }
-</script>
-<script>
-  // 카톡 채널 — site-config.js에 주소가 있을 때만
-  (function () { var u = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel, a = document.getElementById('channel-link'); if (u && a) { a.href = u; a.hidden = false; } })();
 </script>
 <script>
   // 앱 안 브라우저 안내 + 카톡 → 크롬·사파리 옮기기, 그리고 옮기기 주소로 열렸을 때 받기(2026-11-15)
@@ -365,17 +358,25 @@
   // walk.html의 dateKey와 같은 형식(YYYY-MM-DD, 기기 시간 기준)
   function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
 
-  // ── 강아지 ──
+  // ── 강아지(머리 — [기록]과 같은 머리, 11/23) ──
   var profile = WalsonStore.profile() || {};
   if (profile.name) document.getElementById('who-name').textContent = profile.name;
   // 도트 모드: [산책]·[동네] 지도에서 [도트]를 고른 사람만(localStorage walson_map_style, pixel-map.js와 같은 값)
   var pixelOn = false;
   try { pixelOn = localStorage.getItem('walson_map_style') === 'pixel'; } catch (e) { /* 기본 모양 */ }
+  // 사진이 없을 때의 그림 강아지 — [기록] 머리(walk-history.html pup)와 같은 얼굴
+  document.getElementById('face-pup').innerHTML =
+    '<svg viewBox="0 0 40 40" aria-hidden="true">' +
+    '<ellipse cx="9.5" cy="17" rx="5.2" ry="9" fill="#c98f55" transform="rotate(22 9.5 17)"/><ellipse cx="30.5" cy="17" rx="5.2" ry="9" fill="#c98f55" transform="rotate(-22 30.5 17)"/>' +
+    '<ellipse cx="20" cy="21.5" rx="11.5" ry="11" fill="#f2cf9b"/><ellipse cx="20" cy="26.5" rx="6.4" ry="4.6" fill="#fff6e6"/>' +
+    '<circle cx="15.2" cy="20" r="1.8" fill="#3a2a20"/><circle cx="24.8" cy="20" r="1.8" fill="#3a2a20"/><circle cx="15.8" cy="19.4" r="0.55" fill="#fff"/><circle cx="25.4" cy="19.4" r="0.55" fill="#fff"/>' +
+    '<ellipse cx="20" cy="24.4" rx="2.2" ry="1.6" fill="#3a2a20"/><path d="M20 26v1.2M17.8 27.4q2.2 1.6 4.4 0" stroke="#3a2a20" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="12.3" cy="24.2" r="1.6" fill="#f7a8b8" opacity="0.7"/><circle cx="27.7" cy="24.2" r="1.6" fill="#f7a8b8" opacity="0.7"/></svg>';
   if (profile.photo) {
     var img = document.getElementById('face-img');
     img.src = profile.photo;
     img.hidden = false;
-    document.getElementById('face-paw').style.display = 'none';
+    document.getElementById('face-pup').style.display = 'none';
   } else if (pixelOn) {
     // 사진이 없으면 발바닥 대신 16×16 도트 강아지(map-pixel-sample.html과 같은 그림)
     var DOG = ['................', '..kk........kk..', '.kwck......kcwk.', '.kwwckkkkkkcwwk.', 'kwwwwwwwwwwwwwwk', 'kwwwwwwwwwwwwwwk',
@@ -391,17 +392,20 @@
     dogImg.src = cv.toDataURL();
     dogImg.className = 'face-pixel';
     dogImg.hidden = false;
-    document.getElementById('face-paw').style.display = 'none';
+    document.getElementById('face-pup').style.display = 'none';
   }
+  // 인사 신호 — [기록]처럼 버터색 칩으로(예전엔 얼굴 테두리 색 + 아랫줄 글)
   var sig = SIGNALS[profile.signal];
-  var whoSub = document.getElementById('who-sub');
   if (sig) {
-    whoSub.textContent = sig.label;
-    document.getElementById('face').style.borderColor = sig.color;
-  } else {
-    whoSub.textContent = profile.name ? '프로필 고치기' : '프로필을 등록해 주세요';
+    var sigEl = document.getElementById('who-sig');
+    sigEl.textContent = sig.label;
+    sigEl.hidden = false;
   }
   document.getElementById('start-notice').hidden = !!(profile.name && sig);
+  // 톱니 → 설정 판(quick-set.js app 링크): 화면 색 · 강아지 정보·프로필 · 기록 옮기기 · 홈 화면에 추가 · 카톡 채널 · 산책 유형 테스트 ·
+  // 왈슨 소개·개인정보 안내 · 시연용(샘플 데이터 — 이 화면 주소 ?sample=on|off가 처리, 아래)
+  if (window.WalsonQuickSet) WalsonQuickSet.attach(document.getElementById('set-btn'), { side: 'below', app: true });
+  else document.getElementById('set-btn').hidden = true;
 
   // ── 오늘 ──
   var walks = WalsonStore.walks();     // walk.html이 산책을 끝낼 때 저장하는 기록
@@ -426,16 +430,7 @@
     document.getElementById('today-sub').textContent = '산책 ' + today.count + '번' + (today.km ? ' · ' + today.km.toFixed(1) + 'km' : '');
   }
 
-  // 끝 화면(walk-end.html)에서 답한 것이 있으면 오늘 줄에 덧붙인다
-  var FEEL = { enough: '충분했어요', short: '조금 아쉬워요' };
-  var lastToday = null;
-  walks.forEach(function (w) { if (w && w.date === todayKey) lastToday = w; });
-  if (today && lastToday) {
-    var extra = [];
-    if (FEEL[lastToday.feel]) extra.push(FEEL[lastToday.feel]);
-    if (lastToday.sniff) extra.push('킁킁 ' + lastToday.sniff);
-    if (extra.length) document.getElementById('today-sub').textContent += ' · ' + extra.join(' · ');
-  }
+  // 끝 화면(walk-end.html)에서 답한 것(충분·킁킁·응가)은 아래 '오늘 한 것' 칸에(11/23 — 예전엔 이 줄에 덧붙였다)
   // 오늘 목표(2026-11-16 — 크기별 소 30·중 60·대 90분, reward-rules.js dayGoal). 끝난 뒤 확인용 — 모자라도 혼내지 않는다
   if (window.RewardRules && RewardRules.dayGoal) {
     var goal = RewardRules.dayGoal(walks, todayKey);
@@ -464,103 +459,107 @@
     document.getElementById('go-note').textContent = '눌러서 산책 화면으로 돌아가면 이어서 기록해요.';
   }
 
-  // ── 최근 7일 막대(오늘이 맨 오른쪽) ──
-  var weekEl = document.getElementById('week');
-  var days = [];
-  for (var i = 6; i >= 0; i--) {
-    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    var rec = byDate[dateKey(d)];
-    days.push({ label: DAY_NAMES[d.getDay()], min: rec ? rec.min : 0, isToday: i === 0 });
-  }
-  var maxMin = Math.max.apply(null, days.map(function (x) { return x.min; }).concat([30]));
-  // 도트 모드: 10분 = 한 칸. 가장 긴 날이 7칸(70분)을 넘으면 한 칸을 20분·30분…으로 키운다
-  var MAX_BLOCKS = 7;
-  var unit = Math.max(10, Math.ceil(maxMin / MAX_BLOCKS / 10) * 10);
-  if (pixelOn) weekEl.classList.add('is-pixel');
-  var weekTotal = 0, weekDays = 0;
-  days.forEach(function (x) {
-    weekTotal += x.min;
-    if (x.min > 0) weekDays += 1;
-    var col = document.createElement('div');
-    col.className = 'day' + (x.isToday ? ' is-today' : '') + (x.min ? '' : ' is-empty');
-    col.title = x.label + '요일 ' + x.min + '분';
-    var bar = document.createElement('div');
-    if (pixelOn) {
-      bar.className = 'stack';
-      var n = x.min ? Math.min(MAX_BLOCKS, Math.max(1, Math.round(x.min / unit))) : 1;
-      for (var b = 0; b < n; b++) { var blk = document.createElement('div'); blk.className = 'blk'; bar.appendChild(blk); }
+  var RR = window.RewardRules;
+  // ── 이번 주 꾸준함 한 줄(11/23 — 예전 '꾸준함 도장 · 이번 주' 칸. 도장판은 [기록] '통계·통찰') ──
+  // 오늘 이미 걸었으면 "이번 주 n일째", 아직이면 "오늘 나가면 이번 주 n일째"(정의: [오늘]엔 오늘 것만 — 어제 요약 대신 오늘 할 것 한 줄)
+  if (RR && RR.steady) {
+    var tw = RR.steady(walks).thisWeek, weekEl = document.getElementById('today-week');
+    var walkedToday = !!tw.walked[tw.todayIndex];
+    var LV = ['', '3일', '5일', '7일'];
+    if (walkedToday) {
+      weekEl.textContent = '이번 주 ' + tw.days + '일째 · ' + (tw.level === 3 ? '7일 도장 ✓' : tw.level ? LV[tw.level] + ' 도장 ✓' : '도장까지 ' + tw.left + '일');
+      weekEl.classList.toggle('is-done', tw.level > 0);
     } else {
-      bar.className = 'bar';
-      bar.style.height = x.min ? Math.max(8, Math.round(x.min / maxMin * 100)) + '%' : '4px';
+      var n = tw.days + 1;
+      weekEl.textContent = '오늘 나가면 이번 주 ' + n + '일째' + (RR.STEADY_STEPS.indexOf(n) >= 0 ? ' · ' + n + '일 도장' : '');
     }
-    var lbl = document.createElement('div');
-    lbl.className = 'lbl';
-    lbl.textContent = x.isToday ? '오늘' : x.label;
-    col.appendChild(bar);
-    col.appendChild(lbl);
-    weekEl.appendChild(col);
-  });
-  document.getElementById('week-sum').textContent = weekDays
-    ? '7일 중 ' + weekDays + '일 산책 · 모두 ' + weekTotal + '분' + (pixelOn ? ' · 한 칸 ' + unit + '분' : '')
-    : '최근 7일 동안 기록이 없어요.';
-
-  // ── 꾸준함 도장(2026-11-15) — 모든 산책(5분 이상)을 한 주 단위로 센다 ──
-  if (window.RewardRules && RewardRules.steady && window.SteadyStamp) {
-    document.getElementById('steady-box').appendChild(SteadyStamp.week(RewardRules.steady(walks)));
-  } else {
-    document.getElementById('steady-panel').hidden = true;
+    weekEl.hidden = false;
   }
 
-  // ── 최근 산책 ──
-  var last = walks.length ? walks[walks.length - 1] : null;
-  if (last && last.date) {
-    var parts = last.date.split('-');
-    document.getElementById('last-title').textContent =
-      (last.date === todayKey ? '오늘' : Number(parts[1]) + '월 ' + Number(parts[2]) + '일') + ' 산책';
-    document.getElementById('last-sub').textContent =
-      (last.durationMin || 0) + '분' + (last.distanceKm ? ' · ' + last.distanceKm.toFixed(1) + 'km' : last.logged === 'after' ? ' · 다녀와서 적음' : ' · 시간만 기록');
-    document.getElementById('last-panel').hidden = false;
-    // 끝 화면에서 남긴 사진이 있으면 같이 보여 준다(이 휴대폰 안 저장소에서 읽음)
-    if (last.photoKey && window.WalkPhotos) {
-      var lastPhoto = document.getElementById('last-photo');
-      WalkPhotos.show(last.photoKey, lastPhoto).then(function (ok) { lastPhoto.hidden = !ok; });
+  // ── 오늘 한 것(11/23 탭 정리) — 오늘 산책이 있을 때만 ──
+  // 끝 화면 답(충분·킁킁·응가), 오늘의 한 장, 오늘 생긴 것(발도장·승급·특기 칸·꾸준함 도장), 오늘 영수증([기록] 일기 창 ?day=)
+  (function () {
+    var todays = walks.filter(function (w) { return w && w.date === todayKey; });
+    if (!todays.length) return;
+    var chips = [];
+    var lastFeel = null, sniff = 0, poopSum = null, poopMore = false, toon = false;
+    todays.forEach(function (w) {
+      if (w.feel === 'enough' || w.feel === 'short') lastFeel = w.feel;
+      if (w.sniff > sniff) sniff = w.sniff;
+      if (typeof w.poop === 'number') { poopSum = (poopSum || 0) + Math.min(2, w.poop); if (w.poop >= 2) poopMore = true; }
+      if (w.poopToon) toon = true;
+    });
+    if (lastFeel) chips.push(lastFeel === 'enough' ? '충분했어요' : '조금 아쉬워요');
+    if (sniff) chips.push('킁킁 ' + sniff);
+    if (poopSum !== null) chips.push(poopSum ? '응가 ' + poopSum + '번' + (poopMore ? ' 이상' : '') : '응가 안 함');
+    if (toon) chips.push('응가 캐릭터 ✓');
+    var box = document.getElementById('did-chips');
+    chips.forEach(function (t) { var s = document.createElement('span'); s.textContent = t; box.appendChild(s); });
+    if (!chips.length) {   // 끝 화면 답이 없을 때(다녀와서 적기만 등)
+      var m = document.createElement('span'); m.className = 'muted';
+      m.textContent = todays.length > 1 ? '오늘 ' + todays.length + '번 다녀왔어요' : '오늘 다녀왔어요';
+      box.appendChild(m);
     }
-  }
+    // 오늘의 한 장 — 오늘 산책 중 마지막으로 남긴 사진(이 휴대폰 안 저장소에서 읽음)
+    var withPhoto = todays.filter(function (w) { return w.photoKey; }).pop();
+    if (withPhoto && window.WalkPhotos) {
+      var ph = document.getElementById('did-photo');
+      WalkPhotos.show(withPhoto.photoKey, ph).then(function (ok) { ph.hidden = !ok; });
+    }
+    // 오늘 생긴 것 — 오늘 전까지 기록과 지금 기록을 견줘 본다(reward-rules.js newUnlocks — 끝 화면 '받은 것'과 같은 셈)
+    var got = [];
+    if (RR && RR.computeProgress && RR.newUnlocks) {
+      var before = walks.filter(function (w) { return w && w.date < todayKey; });
+      var pb = RR.computeProgress(before), pa = RR.computeProgress(walks);
+      // 특기·특이 사항 칸, 승급 — 발도장 줄은 아래에서 장소 이름을 짧게 해서 따로 쓴다
+      got = RR.newUnlocks(pb, pa).filter(function (t) { return !/발도장을 받았어요$/.test(t); });
+      // 오늘 찍은 발도장(길 기록 산책만 — computeProgress와 같은 판정). 처음이면 "처음 받았어요", 아니면 "또 찍었어요".
+      // 장소 이름은 [기록] 영수증 그림처럼 짧게(다산 중앙공원_상 → 다산 중앙공원), 같은 줄은 한 번만
+      var seen = {};
+      RR.PLACES.forEach(function (pl) {
+        if (pl.pending) return;
+        var isNew = !!(pa.visited[pl.id] && !pb.visited[pl.id]);
+        var hit = isNew || todays.some(function (w) {
+          if (w.rewardEligible === false) return false;
+          return (w.stampRoute || w.route || []).some(function (p) { return RR.distanceKm(p, pl.center) <= pl.radiusKm; });
+        });
+        if (!hit) return;
+        var nm = String(pl.name || '발도장').replace(/_(상|하|동|서|남|북)$/, '').replace(/_/g, ' ');
+        var line = nm + (isNew ? ' 발도장을 처음 받았어요' : ' 발도장을 또 찍었어요');
+        if (!seen[line]) { seen[line] = true; got.push(line); }
+      });
+      if (RR.steady) {
+        var lb = RR.steady(before).thisWeek.level, la = RR.steady(walks).thisWeek.level;
+        if (la > lb) got.push('이번 주 꾸준함 ' + ['', '3일', '5일', '7일'][la] + ' 도장을 받았어요');
+      }
+    }
+    var gotEl = document.getElementById('did-got');
+    got.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; gotEl.appendChild(li); });
+    gotEl.hidden = !got.length;
+    document.getElementById('did-receipt').href = 'walk-history.html?day=' + todayKey;
+    document.getElementById('did-receipt').textContent = todays.length > 1 ? '오늘 영수증 ' + todays.length + '장 보기 · 꾸미기' : '오늘 영수증 보기 · 꾸미기';
+    document.getElementById('did-panel').hidden = false;
+  })();
 
-  // ── 샘플 데이터로 보기 ──
-  var sampleBtn = document.getElementById('sample-btn');
-  function paintSample() {
-    var on = window.PetwalkSample && PetwalkSample.isOn();
-    sampleBtn.textContent = on ? '샘플 끄고 내 기록으로 돌아가기' : '샘플 데이터로 둘러보기';
-    sampleBtn.classList.toggle('is-on', !!on);
-  }
+  // ── 샘플 데이터(11/23 — 버튼은 톱니 판 '시연용'으로 옮김) ──
+  // 판의 "샘플 데이터로 둘러보기"는 index.html?sample=on, 판·탭 위 띠의 "샘플 끄기"는 index.html?sample=off 로 온다
   function sampleOff() {
     if (!confirm('샘플 데이터를 지우고 원래 기록으로 돌아갈까요?\n샘플을 보는 동안 새로 한 산책도 같이 지워져요.')) return;
-    sampleBtn.disabled = true;
     PetwalkSample.turnOff().then(function () { location.replace('index.html'); });
   }
-  sampleBtn.addEventListener('click', function () {
-    if (!window.PetwalkSample) return;
-    if (PetwalkSample.isOn()) { sampleOff(); return; }
+  function sampleOn() {
     if (!confirm('샘플 데이터로 앱을 채울까요?\n지금 기록은 따로 보관했다가, "샘플 끄기"를 누르면 그대로 돌아와요.')) return;
-    sampleBtn.disabled = true;
-    sampleBtn.textContent = '샘플 넣는 중';
     PetwalkSample.turnOn().then(function () { location.replace('index.html'); })
-      .catch(function (err) { alert('샘플을 넣지 못했어요: ' + err.message); sampleBtn.disabled = false; paintSample(); });
-  });
-  paintSample();
-  // 탭 위 띠의 "샘플 끄기"는 index.html?sample=off 로 온다
-  if (/[?&]sample=off/.test(location.search) && window.PetwalkSample) {
+      .catch(function (err) { alert('샘플을 넣지 못했어요: ' + err.message); });
+  }
+  var sampleAsk = /[?&]sample=(on|off)(&|$)/.exec(location.search);
+  if (sampleAsk && window.PetwalkSample) {
     history.replaceState(null, '', 'index.html');
-    if (PetwalkSample.isOn()) setTimeout(sampleOff, 50);
+    if (sampleAsk[1] === 'off' && PetwalkSample.isOn()) setTimeout(sampleOff, 50);
+    if (sampleAsk[1] === 'on' && !PetwalkSample.isOn()) setTimeout(sampleOn, 50);
   }
 
-  // ── 홈 화면에 추가(설치) — install.js(WalsonInstall)가 맡는다. 둘 수 있을 때만 링크(아이폰 사파리는 기록 옮기기 안내와 같이) ──
-  var installLink = document.getElementById('install-link');
-  if (window.WalsonInstall) {
-    WalsonInstall.whenReady(function () { installLink.hidden = false; }, 15000);
-    installLink.addEventListener('click', function (e) { e.preventDefault(); WalsonInstall.open(); });
-  }
+  // 홈 화면에 추가(설치) 링크는 톱니 판으로 옮겼다(11/23, quick-set.js — install.js가 둘 수 있다고 할 때만 보임)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function () { /* 설치 지원이 안 될 뿐 화면은 그대로 */ });
   }

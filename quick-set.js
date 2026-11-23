@@ -5,20 +5,26 @@
 // 판에 있는 것
 //   - 화면 색 다섯 가지: 프로필 "화면 색"과 같은 설정(theme.js setPalette, 이 기기에 저장). 견본은 theme.js 색 값으로 그린다(색 고칠 땐 theme.js 한 곳).
 //   - 지도 모양 [기본]·[도트]과 길·장소 이름 [끄기]·[켜기](도트 지도일 때만 — 기본 지도엔 이름이 원래 있다). 고른 것은 pixel-map.js가 기억하고 두 화면이 같이 쓴다.
+//   - (app: true일 때 — 2026-11-23 탭 정리, 가르시아 "복잡한 거 다 접어 버리고 싶어") 앱 링크:
+//     강아지 정보·프로필 · 기록 옮기기 · 홈 화면에 추가(둘 수 있을 때만, install.js) · 새 소식 받기(카톡 채널 — site-config.js에 주소가 있을 때만) ·
+//     산책 유형 테스트 · 왈슨 소개·개인정보 안내, 그리고 접힌 '시연용'(샘플 데이터 켜기·끄기 + 화면마다 넘긴 demo 항목).
+//     [오늘] 맨 아래 링크 줄·샘플 버튼과 [기록] 데모 기록 지우기를 여기로 모았다. 샘플 켜기·끄기는 [오늘] 주소(index.html?sample=on|off)가 처리한다.
 // 색은 모두 화면 색 변수라 블랙에서도 그대로 보인다(theme-black.css에 더할 것 없음).
 // 겹침 순서: 판은 10001 — 시연 모드 "가짜 위치" 배지(demo-geo.js 9999)보다 위, 미션 도착 알림(mission-alert.js 12000)보다 아래.
 //
-// 쓰는 법(theme.js 다음에 불러온다):
+// 쓰는 법(theme.js 다음에 불러온다. app 링크를 쓰면 site-config.js·install.js도 먼저):
 //   var qs = WalsonQuickSet.attach(톱니 버튼, {
 //     side: 'left' | 'below',      // 판을 버튼 왼쪽(오른쪽 버튼 줄)에 / 버튼 아래(위쪽 띠)에
 //     map: { get(), set(v), labels(), setLabels(on) },   // 지도 모양·이름 — 없으면 지도 칸을 안 보인다. setLabels는 Promise를 돌려줘도 됨
 //     onPalette(prev, next),       // 화면 색을 바꾼 뒤(벡터 지도 다시 칠하기 등)
-//     more: { href, label }        // 판 맨 아래 다른 설정으로 가는 링크(예: 프로필) — 없으면 안 보임
+//     more: { href, label },       // 판 맨 아래 다른 설정으로 가는 링크(예: 프로필) — 없으면 안 보임. app이면 쓰지 않는다
+//     app: true,                   // 위 앱 링크·시연용 칸(산책 중 화면처럼 다른 화면으로 나가면 안 되는 곳엔 안 씀)
+//     demo: [{ label, onClick, id }]   // 시연용 칸에 더할 것(예: [기록] 데모 기록 지우기)
 //   });
 //   qs.close()  // 지도를 닫을 때 등
 (function () {
   var CSS =
-    '.quick-set{position:fixed;z-index:10001;width:min(272px,calc(100vw - 32px));padding:10px 12px 12px;background:var(--panel);color:var(--ink);' +
+    '.quick-set{position:fixed;z-index:10001;width:min(272px,calc(100vw - 32px));padding:10px 12px 12px;background:var(--panel);color:var(--ink);overflow-y:auto;overscroll-behavior:contain;' +
       'border:1.5px solid var(--panel-border);border-radius:16px;box-shadow:0 8px 24px rgba(var(--shadow-rgb),0.22);font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;text-align:left;}' +
     '.quick-set[hidden]{display:none;}' +
     '.qs-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 2px;}' +
@@ -43,7 +49,20 @@
     '.qs-seg button[aria-pressed="true"]{background:var(--hl);color:var(--hl-ink);}' +
     '.qs-more{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:9px 2px 0;border-top:1px dashed var(--panel-border);' +
       'font-size:13px;font-weight:800;color:var(--ink);text-decoration:none;}' +
-    '.qs-more::after{content:"›";font-size:18px;line-height:1;color:var(--ink-soft);}';
+    '.qs-more::after{content:"›";font-size:18px;line-height:1;color:var(--ink-soft);}' +
+    // 앱 링크·시연용(app: true)
+    '.qs-links{margin-top:10px;border-top:1px dashed var(--panel-border);}' +
+    '.qs-links a{display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 2px;border-bottom:1px solid var(--panel-border);' +
+      'font-size:13px;font-weight:800;color:var(--ink);text-decoration:none;}' +
+    '.qs-links a[hidden]{display:none;}' +
+    '.qs-links a::after{content:"›";font-size:18px;line-height:1;color:var(--ink-soft);}' +
+    '.qs-foot{margin:8px 2px 0;font-size:12px;font-weight:700;color:var(--ink-soft);}' +
+    '.qs-foot a{color:var(--ink-soft);}' +
+    '.qs-demo{margin-top:8px;}' +
+    '.qs-demo>summary{cursor:pointer;font-size:12px;font-weight:800;color:var(--ink-soft);padding:4px 2px;}' +
+    '.qs-dl{display:block;width:100%;margin-top:6px;padding:9px 10px;border:1px dashed var(--ink-soft);border-radius:999px;background:transparent;color:var(--ink-soft);' +
+      'font:inherit;font-size:12.5px;font-weight:800;text-align:center;text-decoration:none;cursor:pointer;box-sizing:border-box;}' +
+    '.qs-dl[hidden]{display:none;}';
   var cssDone = false;
   function addCss() {
     if (cssDone) return; cssDone = true;
@@ -128,7 +147,43 @@
         box.appendChild(sec);
       }
 
-      if (opt.more && opt.more.href) {
+      if (opt.app) {
+        // 앱 링크(2026-11-23 탭 정리) — [오늘] 맨 아래 링크 줄에 있던 것
+        var links = el('div', 'qs-links');
+        var link = function (href, label) { var a = el('a', '', label); a.href = href; links.appendChild(a); return a; };
+        link('profile.html', '강아지 정보 · 프로필');
+        link('profile.html#backup', '기록 옮기기');
+        var inst = link('#', '홈 화면에 추가'); inst.hidden = true;
+        var I = window.WalsonInstall;
+        if (I && I.whenReady) {
+          I.whenReady(function () { inst.hidden = false; }, 15000);
+          inst.addEventListener('click', function (e) { e.preventDefault(); open(false); I.open(); });
+        }
+        var ch = window.WALSON_CONFIG && WALSON_CONFIG.kakaoChannel;
+        if (ch) { var ca = link(ch, '새 소식 받기 · 카톡 채널'); ca.target = '_blank'; ca.rel = 'noopener'; }
+        link('walk-type.html', '산책 유형 테스트');
+        box.appendChild(links);
+        var foot = el('p', 'qs-foot');
+        foot.innerHTML = '<a href="about.html">왈슨 소개</a> · <a href="privacy.html">개인정보 안내</a>';
+        box.appendChild(foot);
+        // 시연용(접어 둠) — 공원에서 보여 줄 때만 쓰는 것
+        var demo = el('details', 'qs-demo'), sum = el('summary', '', '시연용');
+        demo.appendChild(sum);
+        var sOn = false;
+        try { sOn = localStorage.getItem('petwalk_sample_mode') === '1'; } catch (e) { sOn = false; }
+        var sa = el('a', 'qs-dl', sOn ? '샘플 끄고 내 기록으로 돌아가기' : '샘플 데이터로 둘러보기');
+        sa.href = 'index.html?sample=' + (sOn ? 'off' : 'on');
+        sa.id = 'qs-sample';
+        demo.appendChild(sa);
+        (opt.demo || []).forEach(function (d) {
+          if (!d || !d.label) return;
+          var b = el('button', 'qs-dl', d.label); b.type = 'button';
+          if (d.id) b.id = d.id;
+          b.addEventListener('click', function () { open(false); if (d.onClick) d.onClick(); });
+          demo.appendChild(b);
+        });
+        box.appendChild(demo);
+      } else if (opt.more && opt.more.href) {
         var more = el('a', 'qs-more', opt.more.label || '다른 설정'); more.href = opt.more.href;
         box.appendChild(more);
       }
@@ -147,10 +202,13 @@
       }
       // 판 자리 — 오른쪽 버튼 줄이면 버튼 왼쪽에, 위쪽 띠면 버튼 아래에. 화면 밖으로 안 나가게
       function place() {
-        var r = btn.getBoundingClientRect(), W = window.innerWidth;
+        var r = btn.getBoundingClientRect(), W = window.innerWidth, top;
         box.style.left = 'auto';
-        if (opt.side === 'below') { box.style.top = Math.round(r.bottom + 8) + 'px'; box.style.right = Math.max(8, Math.round(W - r.right)) + 'px'; }
-        else { box.style.top = Math.round(r.top) + 'px'; box.style.right = Math.max(8, Math.round(W - r.left + 10)) + 'px'; }
+        if (opt.side === 'below') { top = Math.round(r.bottom + 8); box.style.right = Math.max(8, Math.round(W - r.right)) + 'px'; }
+        else { top = Math.round(r.top); box.style.right = Math.max(8, Math.round(W - r.left + 10)) + 'px'; }
+        top = Math.max(8, top);
+        box.style.top = top + 'px';
+        box.style.maxHeight = Math.max(180, window.innerHeight - top - 12) + 'px';   // 낮은 화면에선 판 안에서 스크롤
       }
       function open(on) {
         box.hidden = !on;
