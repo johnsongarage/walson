@@ -26,7 +26,10 @@
      - 화면 색 칩(theme.js 다섯 가지 — 프로필 "화면 색"과 같은 설정, 이 기기에 저장): 고르면 화면과 함께 키링 뒷면 색·바탕·금속 고리 색이 바뀐다.
        앞면은 올린 그림이라 색을 바꾸지 않는다.
      같은 날 "더 다듬어 줘": 뒷면 발바닥이 글자에 붙던 것 띄움, 손글씨 칸에 쓸 줄(점선), 고리를 실물처럼 작은 고리 → 집게(랍스터) → 열쇠고리,
-     [나무 탁자 위] 장면(실물 사진처럼 탁자에 눕혀 비스듬히 내려다봄, 바닥 그림자), 저장 사진은 화면보다 크게(또렷하게). */
+     [나무 탁자 위] 장면(실물 사진처럼 탁자에 눕혀 비스듬히 내려다봄, 바닥 그림자), 저장 사진은 화면보다 크게(또렷하게).
+     11/23 가르시아 "3d 키링 렌더링 사진에 기본으로 이걸 넣어줘"(받은 도트 워킹패스 그림 — sian-ref/walking-pass-pom.webp와 같은 파일) →
+     처음 앞면 = 그 그림에서 카드만 잘라 넣는다(바깥 분홍 바탕·그림자·워터마크 빼고, 카드 자리는 pass-trace.js가 잰 값).
+     그림을 올리면 그 그림으로 바뀐다. 이 휴대폰 사진을 미리 넣지는 않는다. */
   :root {
     --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
     --accent: #ff5c9d; --accent-tint: #ffe4ef; --hl: #ff5c9d; --hl-ink: #ffffff; --line: #2a2026; --shadow-rgb: 74, 40, 58;
@@ -73,7 +76,7 @@
 <main class="wrap">
   <p class="kicker">시안 · 주소로만 열려요</p>
   <h1>3D 키링 미리 보기</h1>
-  <p class="lead">올린 그림 <b>그대로</b> 투명 아크릴 키링 앞면에 넣어 돌려 봐요. 키링 세로 길이는 그림 비율에 맞춰지고, 고리 구멍은 그림 위에 붙어요. 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
+  <p class="lead">처음엔 도트 워킹패스가 들어 있어요. 그림을 올리면 그 그림 <b>그대로</b> 투명 아크릴 키링 앞면에 넣어 돌려 봐요. 키링 세로 길이는 그림 비율에 맞춰지고, 고리 구멍은 그림 위에 붙어요. 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
 
   <div class="stage" id="stage">
     <canvas id="c" aria-label="3D 아크릴 키링"></canvas>
@@ -453,7 +456,7 @@ function setPal(k) {
 }
 function load(url) {
   const im = new Image();
-  im.onload = () => { state.photo = im; drawArt(); $('pick').textContent = '다른 그림 올리기'; };
+  im.onload = () => { state.photo = im; state.isDefault = false; drawArt(); $('pick').textContent = '다른 그림 올리기'; };
   im.src = url;
 }
 $('pick').addEventListener('click', () => $('file').click());
@@ -489,9 +492,22 @@ $('shot').addEventListener('click', () => {
   $('shot-out').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 
-// ── 시작: 올린 그림이 없으면 빈 판(샘플·이 휴대폰 사진을 미리 넣지 않는다) ──
+// ── 시작: 앞면 기본 = 받은 도트 워킹패스 그림에서 카드만(11/23 가르시아 "기본으로 이걸 넣어줘"). 못 불러오면 빈 판.
+//    카드 자리(그림 1493×2000의 픽셀) = pass-trace.js가 잰 값 { x: 153.5, y: 171, w: 1214, h: 1618.5, 둥글기 74 } — 안쪽으로 반올림.
+//    귀퉁이 둥글기 74px보다 키링 인쇄 칸 둥글기(3.8/45.6 → 약 101px)가 커서 바깥 바탕은 보이지 않는다. 이 휴대폰 사진은 미리 넣지 않는다.
+const DEFAULT_FRONT = { src: 'sian-ref/walking-pass-pom.webp', x: 154, y: 171, w: 1213, h: 1618 };
 paintChips(); drawArt();
 loop();
+(() => {
+  const im = new Image();
+  im.onload = () => {
+    if (state.photo) return;   // 그 사이에 그림을 올렸으면 그대로
+    const d = DEFAULT_FRONT, c = document.createElement('canvas'); c.width = d.w; c.height = d.h;
+    c.getContext('2d').drawImage(im, d.x, d.y, d.w, d.h, 0, 0, d.w, d.h);
+    state.photo = c; state.isDefault = true; drawArt();
+  };
+  im.src = DEFAULT_FRONT.src;
+})();
 // 뒷면 도트 글꼴이 늦게 오면 받은 뒤 한 번 더
 if (document.fonts && document.fonts.load) document.fonts.load("48px 'DungGeunMo'", '이 강아지를 만나면').then(() => build(false)).catch(() => {});
 window.__keyring3d = { state, scene, renderer, camera, controls, load, setPal, view, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
