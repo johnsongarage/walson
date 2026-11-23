@@ -91,6 +91,18 @@
     return (!need.walks || p.walks >= need.walks) && (!need.level || p.level >= need.level) &&
       (!need.stamps || p.stamps >= need.stamps) && (!need.shop || p.shop >= need.shop) && (!need.steady || p.steady >= need.steady);
   }
+  // 소품을 누르면 뜨는 글(모델하우스·친구 방) — how: 어떻게 생기는지, mine: 나는 어떤지
+  function howText(need, p) {
+    need = need || {};
+    var how;
+    if (need.level) { var rn = rankName(need.level), c = rn.charCodeAt(rn.length - 1); how = rn + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? '이' : '가') + ' 되면 생겨요'; }
+    else if (need.walks) how = '산책 ' + need.walks + '번 하면 생겨요';
+    else if (need.stamps) how = '발도장 ' + need.stamps + '곳 받으면 생겨요';
+    else if (need.shop) how = '가게 QR을 찍으면 생겨요';
+    else if (need.steady) how = '꾸준함 도장 ' + need.steady + '주 받으면 생겨요';
+    else how = '처음부터 있어요';
+    return { how: how, mine: met(need, p) ? '나도 있어요' : (need.shop ? '나는 아직 없어요' : '나는 ' + needText(need, p)) };
+  }
   // 소품 칸 아래 작은 글씨 — 생겼으면 어떻게 생겼는지, 아니면 얼마나 남았는지
   function needText(need, p) {
     need = need || {};
@@ -125,10 +137,37 @@
     return null;
   }
 
+  // ── 왈슨 모델하우스(2026-11-23 가르시아 "정성들여 꾸민 버전을 샘플로 보여주는 것도 있어야 해" → "추천대로 만들어",
+  //    hq notes/petwalk-azit-showroom.md) — 앱 캐릭터 왈슨(치와와)이 꾸민 예시 방. 진짜 사람·강아지 방이 아니라 구경용(늘 "예시" 표지).
+  //    소품은 모두 산책으로 생기는 것만(사는 것 X). 자리는 손으로 하나하나 — 벽 소품은 두 벽에 나눠 걸고, 바닥은 이야기 있게
+  //    (트로피·깃발은 안쪽 구석, 방석 옆 밥그릇·뼈다귀, 창가 화분, 앞쪽 놀이 자리), 강아지가 다니는 가운데는 비운다.
+  //    1단계는 한 채(지금 소품 전부 = 산책 30번 목표 그림). 2·3번 방(밤산책 라운지·공원 피크닉)은 새 소품을 그린 뒤.
+  var CURATED_POS = {
+    frame:  { wall: 'R', u: 2.5, h: 41 }, card0: { wall: 'R', u: 4.4, h: 44 }, card1: { wall: 'L', u: 4.9, h: 40 },
+    trophy: { i: 0.9, j: 0.9 }, flag: { i: 2.1, j: 0.7 },
+    bed: { i: 5.3, j: 1.3 }, bowl: { i: 7.1, j: 1.4 }, bone: { i: 6.0, j: 2.6 },
+    plant: { i: 0.8, j: 3.3 },
+    ball: { i: 5.0, j: 6.4 }, carrot: { i: 5.8, j: 6.0 }
+  };
+  function copyPos() { var o = {}; Object.keys(CURATED_POS).forEach(function (k) { var p = CURATED_POS[k], c = {}; for (var f in p) c[f] = p[f]; o[k] = c; }); return o; }
+  var SHOWROOMS = [
+    { id: 'pink', name: '핑크 앰배서더의 방', owner: '왈슨', dog: 'chihuahua', theme: 'jelly', acc: 'crown', level: 3,
+      items: ITEMS.map(function (it) { return it.id; }), pos: CURATED_POS, line: '산책 30번이면 이렇게 돼요' }
+  ];
+  // 샘플 모드의 내 방(공원 시연·처음 온 사람) — 샘플 강아지 왈슨이 지금 가진 소품을 같은 손 배치로. 벽지는 모델하우스와 다르게 라일락.
+  // 샘플을 끄면 원래대로(sample-data.js가 petwalk_azit을 보관했다 되돌린다). sample: true = 이 상태가 샘플용이라는 표시
+  function sampleState() {
+    var all = ITEMS.map(function (it) { return it.id; }).concat(ACCS.map(function (a) { return a.id; }));
+    return { sample: true, dog: 'chihuahua', dogAuto: false, theme: 'lilac', acc: 'crown', hidden: [], pos: copyPos(), seen: all,
+      mood: '산책 가고 싶어', moodDay: todayKey() };
+  }
+
   // ── 내 방 상태(petwalk_azit) ──
-  // {dog, dogAuto(우리가 골라 준 것 — 사용자가 고르면 false), theme, acc, hidden[빼 둔 소품], pos{소품: 옮긴 자리}, seen[본 적 있는 소품], mood, moodDay}
+  // {dog, dogAuto(우리가 골라 준 것 — 사용자가 고르면 false), theme, acc, hidden[빼 둔 소품], pos{소품: 옮긴 자리}, seen[본 적 있는 소품], mood, moodDay, sample}
+  // 샘플 모드인데 샘플용 상태가 아니면(샘플을 막 켰거나, 이 규칙 전에 샘플로 연 아지트) 샘플 방으로 시작한다
   function loadState() {
     var s = WalsonStore.object(KEY) || {};
+    if (WalsonStore.sampleOn && WalsonStore.sampleOn() && s.sample !== true) return sampleState();
     var pos = {};
     if (s.pos && typeof s.pos === 'object') Object.keys(s.pos).forEach(function (id) {
       var p = s.pos[id], it = byId(ITEMS, id);
@@ -145,18 +184,25 @@
       pos: pos,
       seen: Array.isArray(s.seen) ? s.seen.filter(function (id) { return !!byId(ITEMS, id) || !!byId(ACCS, id); }) : null,   // null = 아지트를 처음 연다
       mood: (s.moodDay === todayKey() && MOODS.indexOf(s.mood) >= 0) ? s.mood : '',   // 오늘 기분은 그날만
-      moodDay: s.moodDay === todayKey() ? s.moodDay : ''
+      moodDay: s.moodDay === todayKey() ? s.moodDay : '',
+      sample: s.sample === true
     };
   }
   function saveState(st) {
     var o = { dog: st.dog, dogAuto: !!st.dogAuto, theme: st.theme, acc: st.acc, hidden: st.hidden, pos: st.pos, seen: st.seen || [], mood: st.mood, moodDay: st.moodDay };
+    if (st.sample) o.sample = true;
     return WalsonStore.setJSON(KEY, o);
   }
-  // 우리 개 도트 강아지 — 고른 것 → 견종 → 크기·털색(color는 있으면) → 워킹패스가 없으면 포메(시안 B안 기본)
+  // 우리 개 도트 강아지 — 직접 고른 것 → 견종 → 털색(color가 있으면 크기와 함께) → 지난번에 털색으로 골라 둔 것 → 크기 → 워킹패스가 없으면 포메(시안 B안 기본).
+  // 직접 고르기 전(dogAuto)에는 열 때마다 다시 고른다 — 나중에 견종을 적거나 바꾸면 따라가게(11/23 빈틈)
   function myDog(st, color) {
-    if (st && st.dog) return st.dog;
+    if (st && st.dog && st.dogAuto === false) return st.dog;
     var p = WalsonStore.profile() || {};
-    return dogFromBreed(p.breed) || (p.size || color ? guessDog(p.size, color) : 'pom');
+    var b = dogFromBreed(p.breed);
+    if (b) return b;
+    if (color) return guessDog(p.size, color);
+    if (st && st.dog) return st.dog;
+    return p.size ? guessDog(p.size, null) : 'pom';
   }
   function unlockedItems(p) { return ITEMS.filter(function (it) { return met(it.need, p); }).map(function (it) { return it.id; }); }
   function placedItems(st, p) { return unlockedItems(p).filter(function (id) { return st.hidden.indexOf(id) < 0; }); }
@@ -172,8 +218,9 @@
   }
   function mySnapshot(color) { try { return snapshot(loadState(), progress(), color); } catch (e) { return null; } }
   // 남이 만든 QR일 수 있으니 모양을 꼼꼼히 — 맞으면 {dog(모르면 null), theme, acc, level, items[]}, 아니면 null
+  // 소품 자리는 16진수 8글자(소품 32개)까지 읽는다 — 소품을 늘리기 전에 읽는 쪽부터 넓혀 둔 것(11/23, 처음엔 4글자 = 16개)
   function parseRoom(r) {
-    var m = /^([0-9a-z])([a-z])([0-9a-z])([0-9])([0-9a-f]{1,4})$/.exec(typeof r === 'string' ? r : '');
+    var m = /^([0-9a-z])([a-z])([0-9a-z])([0-9])([0-9a-f]{1,8})$/.exec(typeof r === 'string' ? r : '');
     if (!m) return null;
     var d = DOGS[parseInt(m[1], 36)], th = THEMES.filter(function (t) { return t.charAt(0) === m[2]; })[0] || 'jelly';
     var a = ACCS[parseInt(m[3], 36) - 1], bits = parseInt(m[5], 16);
@@ -185,7 +232,8 @@
 
   window.WalsonAzit = {
     KEY: KEY, DOGS: DOGS, ITEMS: ITEMS, ACCS: ACCS, THEMES: THEMES, MOODS: MOODS,
-    byId: byId, progress: progress, met: met, needText: needText, rankName: rankName,
+    byId: byId, progress: progress, met: met, needText: needText, howText: howText, rankName: rankName,
+    SHOWROOMS: SHOWROOMS, sampleState: sampleState,
     guessDog: guessDog, dogFromBreed: dogFromBreed, myDog: myDog,
     loadState: loadState, saveState: saveState, unlockedItems: unlockedItems, placedItems: placedItems, accOn: accOn,
     snapshot: snapshot, mySnapshot: mySnapshot, parseRoom: parseRoom, todayKey: todayKey,

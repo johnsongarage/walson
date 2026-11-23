@@ -22,6 +22,11 @@
      - 킁킁 방명록 = 도감에 쌓인 만난 날 기록(받은 한마디·단짝 만남·발자국). 직접 쓰는 글 X(한마디는 고르기만 — 11/23).
        내 방 바닥에는 최근에 만난 친구 발자국이 그 친구 털색으로 찍힌다.
      - 시안에서 뺀 것: 강아지 도트 굵기 고르기(원본 하나로), 직접 쓰는 한마디 칸, 예시 친구 7명.
+     같은 날 가르시아 "아지트를 정성들여 꾸민 버전을 샘플로 보여주는 것도 있어야 해" → "추천대로 만들어"(hq notes/petwalk-azit-showroom.md 1단계):
+     - 왈슨 모델하우스 — 왈슨이 손으로 꾸민 예시 방(azit-room.js SHOWROOMS). 친구 줄 "내 방" 다음 칸, 구경만, 우리 개는 손님,
+       아래 칸은 방명록 대신 "이 방에 있는 것 — 어떻게 생겨요?"(소품마다 조건과 나는 어떤지). #show로 바로 열림.
+     - 소품을 누르면 어떻게 생기는지 잠깐(모델하우스·친구 방, 내 방은 끌지 않고 톡 누를 때).
+     - 샘플 모드의 내 방은 왈슨이 꾸민 샘플 방(sampleState) — 샘플을 끄면 원래대로(sample-data.js가 petwalk_azit을 보관·되돌림).
      색은 모두 화면 색 변수(theme.js) — 방 그림·소품·벽지 견본만 그림 색. */
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-display: swap; }
   * { box-sizing: border-box; }
@@ -64,6 +69,9 @@
   .fr.foot img { opacity: .75; }
   .fr[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl), 2px 2px 0 var(--line); }
   .fr.me .nm { color: var(--accent); }
+  /* 왈슨 모델하우스 칸 — 친구 칸과 헷갈리지 않게 바탕색 + "예시" */
+  .fr.show { width: 72px; background: var(--accent-tint); }
+  .fr.show .tg { color: var(--accent); }
   .fr-hint { font-size: 12px; color: var(--ink-soft); margin: -6px 0 0; line-height: 1.5; word-break: keep-all; }
 
   /* 방 */
@@ -85,6 +93,11 @@
   .bubble[hidden] { display: none; }
   .bubble .stamp, .gb-list .stamp { display: inline-block; width: 12px; height: 12px; flex: none; color: var(--accent); }
   .bubble .stamp svg, .gb-list .stamp svg { display: block; width: 100%; height: 100%; }
+  /* 소품 안내(누르면 잠깐) — 말풍선과 구별되게 글자색·바탕색을 뒤집어서 */
+  .tip { position: absolute; transform: translate(-50%, -100%); background: var(--ink); color: var(--bg); padding: 4px 8px; border-radius: 6px;
+    font-size: 11.5px; line-height: 1.4; width: max-content; max-width: 86%; text-align: center; word-break: keep-all; z-index: 4; pointer-events: none;
+    box-shadow: 0 3px 10px rgba(var(--shadow-rgb), .25); }
+  .tip[hidden] { display: none; }
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
   .closed[hidden] { display: none; }
@@ -121,6 +134,13 @@
   .gb-row .who { flex: none; font-family: 'DungGeunMo', 'Galmuri11', monospace; font-synthesis: none; color: var(--accent); }
   .gb-row .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gb-row .soft { color: var(--ink-soft); }
+  /* 모델하우스 "이 방에 있는 것" 줄 */
+  .gb-row.show-row { cursor: default; border-left-style: dotted; border-left-color: var(--ink-soft); }
+  .gb-row.show-row.have { border-left-style: solid; border-left-color: var(--hl); }
+  .gb-row .spr { flex: none; height: 18px; width: auto; image-rendering: pixelated; }
+  .gb-row.show-row .what { white-space: normal; word-break: keep-all; }
+  .gb-row .mine { flex: none; margin-left: auto; padding-left: 6px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .gb-row.have .mine { color: var(--accent); font-weight: 700; }
   .gb-empty { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
   .gb-empty[hidden] { display: none; }
   .more { display: block; margin: 8px auto 0; font: inherit; font-size: 12px; color: var(--ink); background: none; border: 0; text-decoration: underline; cursor: pointer; }
@@ -160,6 +180,7 @@
       <div class="roomwrap" id="roomwrap">
         <canvas id="room" width="184" height="150" role="img" aria-label="모서리에서 내려다본 도트 강아지 방"></canvas>
         <div class="bubble px" id="bubble" hidden></div>
+        <div class="tip" id="tip" role="status" hidden></div>
       </div>
       <div class="closed" id="closed" hidden></div>
     </div>
@@ -192,7 +213,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=1"></script>
+<script src="azit-room.js?v=2"></script>
 <script>
 (function () {
   'use strict';
@@ -441,10 +462,11 @@
   }
   friends.sort(byLast);
   function hexOk(c) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#e8b77a'; }
-  if (!state.dog) { state.dog = AZ.myDog(state, null); state.dogAuto = true; }   // 처음 — 견종 → 크기로 골라 두고 아래에서 털색으로 한 번 더
+  // 직접 고르기 전에는 열 때마다 견종 → (지난번 털색) → 크기로 다시 고르고, 아래에서 사진 털색으로 한 번 더(11/23 — 나중에 견종을 적어도 따라가게)
+  if (!state.dog || state.dogAuto) { state.dog = AZ.myDog(state, null); state.dogAuto = true; }
   function save() { if (!AZ.saveState(state)) toast('저장하지 못했어요. 저장 공간을 확인해 주세요.'); }
 
-  var view = -1, cur = null;   // view: -1 내 방, 0~ 친구(friends 순서)
+  var view = -1, cur = null;   // view: -1 내 방, 0~ 친구(friends 순서), -2부터 아래로 왈슨 모델하우스(-2 = 첫 채)
   function meModel() {
     return { me: true, name: myName || '우리 개', dog: state.dog, theme: state.theme, acc: AZ.accOn(state, prog),
       level: prog.level, rank: prog.rank, items: AZ.placedItems(state, prog), open: true };
@@ -454,9 +476,16 @@
     return { me: false, entry: e, name: e.n.trim(), dog: (r && r.dog) || AZ.guessDog(e.s, e.c), theme: r ? r.theme : 'jelly', acc: r ? r.acc : '',
       level: r ? r.level : 0, rank: r ? AZ.rankName(r.level) : '', items: r ? r.items : [], open: !!r };
   }
-  function refreshModel() { cur = view < 0 ? meModel() : friendModel(friends[view]); staticDirty = true; }
+  // 왈슨 모델하우스(11/23) — 왈슨이 손으로 꾸민 예시 방(azit-room.js SHOWROOMS). 구경만, 우리 개는 손님으로
+  function showModel(k) {
+    var s = AZ.SHOWROOMS[k];
+    return { me: false, show: true, sr: s, name: s.owner, dog: s.dog, theme: s.theme, acc: s.acc, level: s.level, rank: AZ.rankName(s.level),
+      items: s.items.slice(), pos: s.pos, open: true };
+  }
+  function modelOf(v) { return v === -1 ? meModel() : v <= -2 ? showModel(-2 - v) : friendModel(friends[v]); }
+  function refreshModel() { cur = modelOf(view); staticDirty = true; }
   function posOf(o, it) {
-    var p = o.me ? state.pos[it.id] : null;
+    var p = o.me ? state.pos[it.id] : (o.pos ? o.pos[it.id] : null);
     if (p) return p;
     return it.wall ? { wall: it.wall, u: it.u, h: it.h } : { i: it.i, j: it.j };
   }
@@ -512,7 +541,7 @@
       var p = posOf(o, it); things.push({ id: id, i: p.i, j: p.j, spr: sprite(it.spr) });
     });
     things.push({ dog: host, i: host.i, j: host.j, dogId: o.dog, acc: o.acc });
-    if (view >= 0) { var me = meModel(); things.push({ dog: guest, i: guest.i, j: guest.j, dogId: me.dog, acc: me.acc }); }
+    if (view !== -1) { var me = meModel(); things.push({ dog: guest, i: guest.i, j: guest.j, dogId: me.dog, acc: me.acc }); }   // 친구 방·모델하우스엔 우리 개가 손님으로
     things.sort(function (a, b) { return (a.i + a.j) - (b.i + b.j); });   // 뒤에서 앞으로
     things.forEach(function (t) {
       var p = P(t.i, t.j);
@@ -541,6 +570,18 @@
   function dogThumb(id) { var im = document.createElement('img'); im.src = AZ.dogSrc(id); im.alt = ''; im.decoding = 'async'; return im; }
   function friendsRow() {
     var f = $('friends'); f.innerHTML = '';
+    // 내 방 다음에 왈슨 모델하우스(누구에게나 — 친구 칸과 헷갈리지 않게 색·글자를 다르게 "예시").
+    // 칸은 하나 — 2·3번 방이 생기면 그 안에서 넘겨 보게(2단계)
+    function showTile() {
+      var s = AZ.SHOWROOMS[0], v = -2, b = el('button', 'fr show'); b.type = 'button';
+      b.setAttribute('aria-pressed', view === v ? 'true' : 'false');
+      b.setAttribute('aria-label', '왈슨 모델하우스 — 꾸민 예시 방 구경');
+      var pic = el('div', 'pic'); pic.appendChild(dogThumb(s.dog)); b.appendChild(pic);
+      b.appendChild(el('span', 'nm', '모델하우스'));
+      b.appendChild(el('span', 'tg', '예시'));
+      b.addEventListener('click', function () { goTo(v); });
+      f.appendChild(b);
+    }
     var all = [{ v: -1 }].concat(friends.map(function (e, n) { return { v: n, e: e }; }));
     all.forEach(function (x) {
       var b = el('button', 'fr' + (x.v < 0 ? ' me' : (x.e.pal ? ' pal' : ' foot'))); b.type = 'button';
@@ -552,6 +593,7 @@
       if (x.v >= 0) b.appendChild(el('span', 'tg', x.e.pal ? (m.open ? '마실' : '단짝') : '발자국'));
       b.addEventListener('click', function () { goTo(x.v); });
       f.appendChild(b);
+      if (x.v === -1) showTile();   // 내 방 바로 다음
     });
     var open = friends.filter(function (e) { return !!AZ.parseRoom(e.room); }).length, hint = $('fr-hint');
     if (!friends.length) hint.textContent = '공원에서 만난 강아지와 도감 QR을 찍으면 여기 친구가 생겨요. 그 자리에서 서로 화면 QR을 찍은 단짝의 방에는 마실 갈 수 있어요.';
@@ -560,8 +602,8 @@
     hint.hidden = !hint.textContent;
     $('visit').hidden = !open;
   }
-  function nextOpen() {   // 마실 가기 ▶ — 방이 열린 친구만 차례대로, 끝나면 내 방
-    for (var n = view + 1; n < friends.length; n++) if (AZ.parseRoom(friends[n].room)) return n;
+  function nextOpen() {   // 마실 가기 ▶ — 방이 열린 친구만 차례대로, 끝나면 내 방(모델하우스에서 누르면 첫 친구부터)
+    for (var n = view < 0 ? 0 : view + 1; n < friends.length; n++) if (AZ.parseRoom(friends[n].room)) return n;
     return -1;
   }
   function dogPicker() {
@@ -623,8 +665,25 @@
     });
   }
   var gbShown = 12;
+  // 모델하우스에선 방명록 대신 "이 방에 있는 것" — 소품마다 어떻게 생기는지와 나는 어떤지(목표 그림)
+  function showList() {
+    var o = cur, list = $('gb-list'); list.innerHTML = '';
+    $('gb-title').textContent = '이 방에 있는 것 — 어떻게 생겨요?';
+    var things = o.items.map(function (id) { return AZ.byId(AZ.ITEMS, id); }).filter(Boolean);
+    var acc = AZ.byId(AZ.ACCS, o.acc); if (acc) things.push(acc);
+    things.forEach(function (it) {
+      var h = AZ.howText(it.need, prog), have = AZ.met(it.need, prog);
+      var li = el('li'), row = el('div', 'gb-row show-row' + (have ? ' have' : ''));
+      var c = slotCanvas(it.spr || it.id, false); c.className = 'spr'; row.appendChild(c);
+      var t = el('span', 'what'); t.appendChild(el('b', '', it.name)); t.appendChild(document.createTextNode(' · ' + h.how)); row.appendChild(t);
+      row.appendChild(el('span', 'mine', h.mine));
+      li.appendChild(row); list.appendChild(li);
+    });
+    $('gb-more').hidden = true; $('gb-empty').hidden = true;
+  }
   function guestbook() {
     var o = cur, lines = [];
+    if (o.show) { showList(); return; }
     if (o.me) friends.forEach(function (e, n) { lines = lines.concat(linesOf(e, n)); });
     else lines = linesOf(o.entry, view);
     lines.sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; });
@@ -660,6 +719,8 @@
       var skill = rc.skillT && prog.walks >= ((RR && RR.SLOT_RULES && RR.SLOT_RULES.skill) || 1) ? String(rc.skillT).replace(/\s*\([^)]*\)\s*$/, '') : '';
       var line = state.mood ? '오늘 기분: ' + state.mood : (skill ? '특기: ' + skill : '');
       if (line) b.appendChild(document.createTextNode(line));
+    } else if (o.show) {
+      // 예시 방은 말풍선 없이 — 꾸민 것(안쪽 트로피·깃발)이 가려지지 않게. 왈슨 말은 제목 아래 줄에
     } else {
       var m = lastMsg(o.entry);   // 그 친구가 마지막으로 남긴 한마디(고른 말이라 우리 목록 글자만)
       if (m != null) { b.appendChild(stampEl(m)); b.appendChild(document.createTextNode(msgText(m))); }
@@ -675,22 +736,31 @@
     link('도감 · 상대 QR 찍기', 'dex.html', false);
   }
   function ui() {
-    var o = cur;
+    var o = cur, walker = ga(myName || '우리 개');
     friendsRow();
-    $('title').textContent = o.me && !myName ? '우리 개 산책 아지트' : o.name + '네 산책 아지트';
-    $('sub').textContent = o.me ? (myName ? '내 아지트' : '워킹패스를 만들면 우리 개 이름이 붙어요') : '마실 중 · ' + ga(myName || '우리 개') + ' 손님으로 놀러 왔어요';
-    $('count').textContent = o.me ? '산책 ' + prog.walks + '번' : (o.entry.days || 1) + '번 만남';
-    var ra = o.me ? '' : (o.entry.roomAt || '');
-    $('sign').textContent = o.me ? prog.rank : (o.open ? o.rank + (ra ? ' · ' + Number(ra.slice(5, 7)) + '/' + Number(ra.slice(8, 10)) + ' 모습' : '') : '아직 방 구경 전');
+    if (o.show) {   // 왈슨 모델하우스 — 예시라는 게 늘 보이게
+      $('title').textContent = '왈슨 모델하우스';
+      $('sub').textContent = o.sr.name + ' · ' + o.sr.line + ' — 산책으로 생기는 소품만 놓은 예시예요';
+      $('count').textContent = '예시';
+      $('sign').textContent = o.rank + ' · 예시 방';
+    } else {
+      $('title').textContent = o.me && !myName ? '우리 개 산책 아지트' : o.name + '네 산책 아지트';
+      $('sub').textContent = o.me ? (myName ? '내 아지트' : '워킹패스를 만들면 우리 개 이름이 붙어요') : '마실 중 · ' + walker + ' 손님으로 놀러 왔어요';
+      $('count').textContent = o.me ? '산책 ' + prog.walks + '번' : (o.entry.days || 1) + '번 만남';
+      var ra = o.me ? '' : (o.entry.roomAt || '');
+      $('sign').textContent = o.me ? prog.rank : (o.open ? o.rank + (ra ? ' · ' + Number(ra.slice(5, 7)) + '/' + Number(ra.slice(8, 10)) + ' 모습' : '') : '아직 방 구경 전');
+    }
     var nx = nextOpen();
     $('visit').textContent = view >= 0 && nx < 0 ? '내 아지트로 ◀' : '마실 가기 ▶';
     $('mine-box').hidden = !o.me;
     $('mood').disabled = !o.me;
-    $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 꾹 눌러 끌어요' : '바닥을 누르면 ' + ga(myName || '우리 개') + ' 걸어가요';
+    $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 꾹 눌러 끌어요'
+      : (o.open && o.items.length ? '소품을 누르면 어떻게 생기는지 보여요' : '바닥을 누르면 ' + walker + ' 걸어가요');
     var closed = $('closed');
     closed.textContent = o.open ? '' : (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
       : '그 자리에서 서로 화면 QR을 찍어 단짝이 되면 ' + o.name + '네 방이 열려요.');
     closed.hidden = o.open;
+    $('tip').hidden = true;
     bubble(); guestbook(); acts();
     if (o.me) { dogPicker(); tray(); }
     kick();
@@ -699,22 +769,37 @@
   // ── 누르기: 소품이면 끌기(내 방만), 아니면 강아지가 그 바닥 칸으로 ──
   var drag = null, downAt = null;
   function at(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / K, y: (e.clientY - r.top) / K }; }
-  // 그 자리에 놓인 소품(위에 그린 것부터) — 내 방에서만 끈다
-  function itemAt(p) {
-    if (view >= 0) return null;
+  // 그 자리에 놓인 소품(위에 그린 것부터)
+  function spriteAt(p) {
     for (var n = sprites.length - 1; n >= 0; n--) {
       var s = sprites[n];
       if (p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h) return s;
     }
     return null;
   }
+  function itemAt(p) { return view === -1 ? spriteAt(p) : null; }   // 끄는 건 내 방에서만
+  // 소품 안내(11/23 모델하우스) — 누른 소품 위에 "화분 — 산책 10번 하면 생겨요 · 나는 산책 4번 더" 잠깐
+  var tipTimer = 0, tapItem = null;
+  function showTip(s) {
+    var it = AZ.byId(AZ.ITEMS, s.id), t = $('tip');
+    if (!it) return;
+    var h = AZ.howText(it.need, prog);
+    t.textContent = it.name + ' — ' + h.how + ' · ' + h.mine;
+    t.hidden = false;
+    var tw = t.offsetWidth, th = t.offsetHeight, rw = CW * K, cx = (s.x + s.w / 2) * K;
+    t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, cx)) + 'px';
+    t.style.top = Math.max(th + 2, s.y * K - 4) + 'px';
+    clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; }, 3000);
+  }
   canvas.addEventListener('pointerdown', function (e) {
-    var p = at(e), s = itemAt(p); downAt = p; drag = null;   // 지난 끌기가 덜 끝났어도 새로 시작
+    var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null;   // 지난 끌기가 덜 끝났어도 새로 시작
     if (s) {
-      drag = { id: s.id, moved: false };
+      drag = { id: s.id, moved: false, s: s };
       try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
       e.preventDefault(); kick();
+      return;
     }
+    if (view !== -1) { tapItem = spriteAt(p); if (tapItem) showTip(tapItem); }   // 모델하우스·친구 방: 소품을 누르면 안내(걷지 않음)
   });
   // 휴대폰: 소품 위에서 시작한 손가락만 화면이 따라 움직이지 않게(끌기). 바닥에서 위아래로 밀면 화면이 내려가고
   // 그때 브라우저가 보내는 pointercancel로 걷기도 취소된다. 그냥 톡 누르면 그 칸으로 걸어간다.
@@ -737,13 +822,15 @@
     }
     drag.moved = true; kick();
   });
-  canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; });
+  canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
   canvas.addEventListener('pointerup', function (e) {
-    if (drag) { if (drag.moved) save(); drag = null; return; }
+    if (drag) { if (drag.moved) save(); else showTip(drag.s); drag = null; return; }   // 내 방 소품을 끌지 않고 톡 누르면 안내
+    if (tapItem) { tapItem = null; downAt = null; return; }
     var p = at(e); if (!downAt) return; downAt = null;
     var q = unP(p.x, p.y);
     if (q.i < 0 || q.j < 0 || q.i > N || q.j > N) return;              // 바닥 밖(벽)을 누르면 그대로
-    var who = view < 0 ? host : guest;
+    $('tip').hidden = true;
+    var who = view === -1 ? host : guest;
     who.ti = Math.max(0.7, Math.min(N - 0.5, q.i)); who.tj = Math.max(0.7, Math.min(N - 0.5, q.j));
     kick();
   });
@@ -768,7 +855,7 @@
   }
   function schedule() {
     if (raf || idle || document.hidden) return;
-    if (moving(host) || (view >= 0 && moving(guest)) || drag) raf = requestAnimationFrame(step);
+    if (moving(host) || (view !== -1 && moving(guest)) || drag) raf = requestAnimationFrame(step);
     else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
   }
   function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
@@ -779,7 +866,7 @@
 
   // ── 마실(방이 열린 친구 차례대로 → 다시 내 방) ──
   function goTo(v) {
-    if (v >= friends.length) v = -1;
+    if (v >= friends.length || v < -1 - AZ.SHOWROOMS.length) v = -1;
     view = v; gbShown = 12;
     host.i = host.ti = 3.6; host.j = host.tj = 4.8; host.flip = false;
     guest.i = guest.ti = 6.2; guest.j = guest.tj = 4.2; guest.flip = true;
@@ -795,8 +882,9 @@
   $('mood').value = state.mood;
   $('mood').addEventListener('change', function () { state.mood = $('mood').value; state.moodDay = state.mood ? AZ.todayKey() : ''; save(); bubble(); });
 
-  // ── 도감에서 "아지트 구경"으로 들어온 경우(#v=번호) ──
+  // ── 도감에서 "아지트 구경"으로 들어온 경우(#v=번호) · 모델하우스 바로 열기(#show — 공원 시연용) ──
   function fromHash() {
+    if (/^#show\b/.test(location.hash)) { goTo(-2); return true; }
     var m = /[#&]v=([a-z0-9]{8})/.exec(location.hash);
     if (!m) return false;
     for (var n = 0; n < friends.length; n++) if (friends[n].i === m[1]) { goTo(n); return true; }
