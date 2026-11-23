@@ -145,6 +145,28 @@
   .tag-opts button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 11px; border-radius: 999px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; text-align: left; line-height: 1.35; }
   .tag-opts button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint, #f3ddd2); }
   .tag-hint { font-size: 12px; color: var(--ink-soft); margin: 6px 2px 0; }
+
+  /* 처음 온 사람 안내(2026-11-23 밤 가르시아 "큐알 찍었으면 워킹패스로 가게 하고 팝업 같은 걸로, 워킹패스 만들기 전에 가볍게 안내") —
+     아래에서 올라오는 판, 한 번만. 색은 모두 화면 색 변수라 블랙에서도 그대로. 시작 화면(splash, z 100000)이 걷히면 보인다 */
+  .intro { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: flex-end; justify-content: center;
+           background: rgba(var(--shadow-rgb), 0.45); }
+  .intro[hidden] { display: none; }
+  .intro-sheet { position: relative; width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto; background: var(--panel); color: var(--ink);
+           border-radius: 22px 22px 0 0; padding: 22px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+           box-shadow: 0 -8px 24px rgba(var(--shadow-rgb), 0.18); animation: intro-up 0.22s ease-out; }
+  @keyframes intro-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .intro-sheet { animation: none; } }
+  .intro-x { position: absolute; right: 8px; top: 6px; width: 40px; height: 40px; border: none; background: transparent;
+             color: var(--ink-soft); font-family: inherit; font-size: 24px; line-height: 1; cursor: pointer; }
+  .intro-logo { display: block; width: 64px; height: auto; margin: 0 0 8px; }
+  .intro h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.35; margin: 0 40px 14px 0; word-break: keep-all; }
+  .intro-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+  .intro-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; word-break: keep-all; }
+  .intro-list svg { flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px; color: var(--accent); }
+  .intro-list b { font-weight: 800; }
+  .intro .btn-main { margin-top: 18px; }
+  .intro-more { display: block; width: max-content; margin: 12px auto 0; padding: 4px; font-size: 12.5px; color: var(--ink-soft); }
+  html.intro-open, html.intro-open body { overflow: hidden; }
 </style>
 <!-- 왈슨 시작 화면(splash.css/js): 이번 세션에 이미 봤으면 처음부터 숨긴다 -->
 <!-- 홈 화면에 설치한 앱으로 열면 휴대폰이 아이콘으로 시작 화면을 이미 띄우므로 이 시작 화면은 안 띄운다(11/18 가르시아 "화면이 또 바뀐다") -->
@@ -261,6 +283,32 @@
     <a href="privacy.html">어떤 정보를 어디에 두는지 보기</a>
   </p>
   <!-- 사업자 정보 한 줄은 뺐다(2026-11-18 가르시아 "이미 승인났으니까 소개 페이지면 충분") — 왈슨 소개·개인정보 안내 맨 아래에만 -->
+</div>
+
+<!-- 처음 온 사람 안내(2026-11-23 밤) — 공원 QR로 온 사람이 워킹패스를 만들기 전에 가볍게: 무엇을 하는 앱인지 · QR 친구 · 설치·가입 없음.
+     워킹패스가 없고 이 브라우저에서 처음일 때 한 번만(walson_start_intro_seen). 샘플 버튼은 두지 않는다(저장소 CLAUDE.md — 샘플은 주소·톱니 판 한 줄로만) -->
+<div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" hidden>
+  <div class="intro-sheet">
+    <button type="button" class="intro-x" id="intro-x" aria-label="안내 닫기">×</button>
+    <img class="intro-logo" src="icons/walson-logo.webp" alt="" width="64" height="52">
+    <h2 id="intro-title">강아지 산책 기록 앱,<br>왈슨이에요</h2>
+    <ul class="intro-list">
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>산책 다녀와서 <b>몇 분인지만 누르면</b> 오늘 기록 끝</span>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2z"/></svg>
+        <span>공원에서 만난 강아지와 <b>QR을 찍으면 친구</b>가 돼요</span>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <span><b>설치·가입 없이</b> 바로 써요. 이름·사진·위치는 이 휴대폰에만 남아요</span>
+      </li>
+    </ul>
+    <button type="button" class="btn-main" id="intro-go">워킹패스 만들기 · 30초</button>
+    <a class="intro-more" href="privacy.html">어떤 정보를 어디에 두는지 보기</a>
+  </div>
 </div>
 
 <canvas id="card-canvas" width="1600" height="1000" hidden></canvas>
@@ -550,8 +598,34 @@
   }
 
   // 이미 만든 적이 있으면 바로 카드를 보여 준다(다시 들어온 사람이 처음부터 하지 않게)
-  if (profile.name && SIGNALS[profile.signal] && profile.signal !== 'none' && profile.cardNo) {
+  var hasCard = !!(profile.name && SIGNALS[profile.signal] && profile.signal !== 'none' && profile.cardNo);
+  if (hasCard) {
     renderCard().then(function () { showStep(3); });
+  }
+
+  // ── 처음 온 사람 안내(2026-11-23 밤 가르시아 "큐알 찍었으면 워킹패스로 가게 하고 팝업 같은 걸로. 워킹패스 만들기 전에 가볍게 안내") ──
+  // 워킹패스가 없고 이 브라우저에서 처음일 때 한 번만. 닫으면([워킹패스 만들기]·×·바깥·Esc) 다시 안 뜬다.
+  // 카톡 안 브라우저에서 바깥 브라우저로 넘기는 중이면 넘어간 쪽에서 띄운다. 가게 지킴이 카드(?guardian=)는 위에서 이미 끝났다
+  var INTRO_KEY = 'walson_start_intro_seen';
+  var introSeen = false;
+  try { introSeen = !!localStorage.getItem(INTRO_KEY); } catch (e) { introSeen = false; }
+  var leaving = !!(window.WalsonInApp && WalsonInApp.escaped);
+  if (!hasCard && !introSeen && !leaving) openIntro();
+  function openIntro() {
+    var box = document.getElementById('intro'), go = document.getElementById('intro-go');
+    box.hidden = false;
+    document.documentElement.classList.add('intro-open');   // 뒤 화면이 같이 밀리지 않게
+    setTimeout(function () { try { go.focus({ preventScroll: true }); } catch (e) { go.focus(); } }, 60);
+    function close() {
+      if (box.hidden) return;
+      box.hidden = true;
+      document.documentElement.classList.remove('intro-open');
+      try { localStorage.setItem(INTRO_KEY, '1'); } catch (e) { /* 저장을 못 하면 다음에 한 번 더 뜰 뿐 */ }
+    }
+    go.addEventListener('click', close);
+    document.getElementById('intro-x').addEventListener('click', close);
+    box.addEventListener('click', function (e) { if (e.target === box) close(); });   // 어두운 바깥을 누르면 닫힘
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   }
 })();
 </script>
