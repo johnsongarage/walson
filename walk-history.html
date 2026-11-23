@@ -26,7 +26,12 @@
        ② 이달 결산 영수증 — 영수증 그림(누르면 한 달 리포트 한 장 month-report.js) + 산책한 날에 발바닥 찍힌 달력.
           날짜를 누르면 그날의 일기(산책 영수증) 창이 올라온다
        ③ 지난 산책 목록 — 누르면 그 산책의 일기 창
-       그리고 응가 달력(예전 그대로, 카드 모양만). 영수증 미리 보기·꾸미고 저장은 일기 창 안으로 옮겼다(기능은 그대로). */
+       그리고 응가 달력(예전 그대로, 카드 모양만). 영수증 미리 보기·꾸미고 저장은 일기 창 안으로 옮겼다(기능은 그대로).
+     2026-11-23 탭 정리(가르시아 "기록엔 월정산 … 통찰·통계·정보를 기록에 넣는 게 맞잖냐? … 복잡한 거 다 접어 버리고 싶어" →
+     "추천해 봐, 너의 생각대로 진행", hq notes/petwalk-tab-reorg.md): 숫자·그래프는 이 탭 한 곳에.
+       ①·② 그대로 → ③ 통계·통찰(접어 둠 — 제목 줄만, 펼친 건 이 휴대폰에 기억): 최근 7일 막대(← [오늘]) · 꾸준함 도장판 8주(← [워킹패스]) ·
+          모두 합쳐(누적 — ← [워킹패스] 진행도 숫자) · 응가 달력 → ④ 지난 산책 목록.
+       데모 기록 지우기는 톱니 판 '시연용'으로. [오늘] "오늘 영수증 보기"는 walk-history.html?day=YYYY-MM-DD로 와서 그날 일기 창을 연다. */
   :root {
     /* index.html과 같은 색 토큰(예전 값) — theme.js가 화면 색 변수로 덮어쓴다 */
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -147,8 +152,36 @@
   .more { display: block; width: 100%; margin-top: 10px; padding: 10px; font-family: inherit; font-size: 13px; font-weight: 800;
     border: 1px dashed var(--ink-soft); border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
   .demo-tag { font-size: 10px; font-weight: 800; color: #fff; background: #6b5d4e; border-radius: 999px; padding: 1px 6px; vertical-align: 1px; margin-right: 4px; }
-  .demo-clear { display: block; width: 100%; margin: 10px 0 0; padding: 11px; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
-    border-radius: 999px; border: 1px dashed var(--ink-soft); background: transparent; color: var(--ink-soft); }
+
+  /* ③ 통계·통찰(11/23 탭 정리) — 접어 둔 카드. 제목 줄을 누르면 펼친다 */
+  .fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary b { display: block; font-size: 18px; font-weight: 900; letter-spacing: -0.02em; }
+  .fold > summary small { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+  .fold > summary::after { content: ''; flex: none; width: 9px; height: 9px; border-right: 2.5px solid var(--ink-soft); border-bottom: 2.5px solid var(--ink-soft);
+    transform: rotate(45deg); margin: -5px 6px 0 0; }
+  .fold[open] > summary::after { transform: rotate(-135deg); margin-top: 5px; }
+  .fold-body h3 { margin: 18px 0 8px; font-size: 15px; font-weight: 900; letter-spacing: -0.02em; }
+  .fold-body h3 small { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-left: 4px; letter-spacing: 0; }
+  .fold-body > h3:first-child { margin-top: 14px; }
+  .fold-body .sub { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
+  /* 최근 7일 막대(← [오늘], 11/22 도트 모드면 한 칸씩 쌓는 블록) */
+  .week { display: flex; align-items: flex-end; gap: 8px; height: 96px; }
+  .week .day { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+  .week .bar { width: 100%; max-width: 28px; border-radius: 7px 7px 3px 3px; background: var(--accent-tint); min-height: 4px; }
+  .week .day.is-today .bar { background: var(--accent); }
+  .week .day.is-empty .bar { background: var(--panel-border); }
+  .week .lbl { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+  .week .day.is-today .lbl { color: var(--accent); }
+  .week.is-pixel .stack { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; width: 100%; }
+  .week.is-pixel .blk { width: 100%; max-width: 20px; height: 8px; background: var(--accent); opacity: 0.45; box-shadow: inset -2px -2px 0 rgba(0,0,0,0.18); }
+  .week.is-pixel .day.is-today .blk { opacity: 1; }
+  .week.is-pixel .day.is-empty .blk { height: 4px; background: var(--panel-border); box-shadow: none; opacity: 1; }
+  /* 모두 합쳐(← [워킹패스] 진행도 숫자) */
+  .totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .totals > div { border-radius: 12px; background: var(--soft); padding: 10px 4px 9px; text-align: center; min-width: 0; }
+  .totals b { display: block; font-size: clamp(16px, 4.6vw, 19px); font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .totals span { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* ── 그날의 일기 창 — 산책 영수증 미리 보기 + 꾸미고 저장(아래에서 올라온다) ── */
   .diary { position: fixed; inset: 0; z-index: 1500; display: flex; align-items: flex-end; justify-content: center; }
@@ -175,8 +208,9 @@
   .note { margin: 10px 2px 0; font-size: 12px; line-height: 1.55; color: var(--ink-soft); }
 
   /* 응가 달력(2026-11-15, hq "응가 일기 ①안"): 끝 화면에서 고른 응가 답을 날짜별로. 서버·AI 없음 — 11/23 리뉴얼 카드 모양으로 */
+  .poop-cal { margin-top: 18px; }
   .poop-cal .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .poop-cal .head h2 { font-size: 18px; font-weight: 900; letter-spacing: -0.02em; margin: 0; }
+  .poop-cal .head h3 { font-size: 15px; font-weight: 900; letter-spacing: -0.02em; margin: 0; text-align: center; }
   .poop-cal .head button { font-family: inherit; font-size: 14px; font-weight: 800; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); cursor: pointer; }
   .poop-cal .head button:disabled { opacity: 0.35; cursor: default; }
   .poop-cal .month { font-size: 13px; font-weight: 700; color: var(--ink-soft); text-align: center; }
@@ -206,11 +240,11 @@
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
-<script src="quick-set.js?v=2"></script>
 <script src="site-config.js?v=11"></script>
 <script src="cloud-backup.js?v=3" defer></script>
 <script src="inapp.js?v=4"></script>
 <script src="install.js?v=1"></script>
+<script src="quick-set.js?v=3"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
 <script src="canvas-view.js?v=1"></script>
@@ -265,29 +299,49 @@
     <p class="cap">날짜를 누르면 그날의 일기가 보여요</p>
   </section>
 
-  <!-- ③ 지난 산책 목록 -->
+  <!-- ③ 통계·통찰(11/23 탭 정리) — 접어 둔다. 최근 7일(← [오늘]) · 꾸준함 도장판(← [워킹패스]) · 모두 합쳐(← [워킹패스]) · 응가 달력 -->
+  <details class="card fold" id="stats-card" hidden>
+    <summary><span><b>통계 · 통찰</b><small>최근 7일 · 꾸준함 도장판 · 모두 합쳐 · 응가 달력</small></span></summary>
+    <div class="fold-body">
+      <h3>최근 7일</h3>
+      <div class="week" id="week"></div>
+      <p class="sub" id="week-sum"></p>
+
+      <!-- 꾸준함 도장판(2026-11-15): 최근 8주. 시간만 잰 산책도 센다(5분 이상 — 11/17부터 산책 등급과 같은 기준) -->
+      <div id="steady-wrap">
+        <h3>꾸준함 도장판 <small id="steady-count"></small></h3>
+        <div id="steady-board"></div>
+        <p class="sub">한 주(월~일)에 산책한 날 3·5·7일마다 도장. 시간만 잰 산책도 들어가요(5분 이상).</p>
+      </div>
+
+      <h3>모두 합쳐 <small>이 휴대폰 기록</small></h3>
+      <div class="totals" id="totals"></div>
+
+      <section class="poop-cal" id="poop-cal" aria-label="응가 달력">
+        <div class="head">
+          <button type="button" id="cal-prev" aria-label="이전 달">‹</button>
+          <div><h3>응가 달력</h3><div class="month" id="cal-month"></div></div>
+          <button type="button" id="cal-next" aria-label="다음 달">›</button>
+        </div>
+        <div class="grid" id="cal-grid"></div>
+        <div class="legend">
+          <span><span class="dots"><i></i></span>1번</span>
+          <span><span class="dots"><i></i><i></i></span>2번 이상</span>
+          <span><span class="dots"><i class="none"></i></span>안 쌌어요</span>
+          <span><span class="dots"><i class="unknown"></i></span>산책했지만 안 적음</span>
+          <span><span class="dots"><i class="toon"></i></span>응가 캐릭터 만든 날</span>
+        </div>
+        <p class="sum" id="cal-sum"></p>
+      </section>
+    </div>
+  </details>
+
+  <!-- ④ 지난 산책 목록 -->
   <section class="card" id="book" hidden>
     <h2>지난 산책 목록 <small id="book-count"></small></h2>
     <div id="list"></div>
     <button type="button" class="more" id="book-more" hidden>더 보기</button>
-    <button type="button" class="demo-clear" id="demo-clear" hidden></button>
-  </section>
-
-  <section class="card poop-cal" id="poop-cal" aria-label="응가 달력">
-    <div class="head">
-      <button type="button" id="cal-prev" aria-label="이전 달">‹</button>
-      <div><h2>응가 달력</h2><div class="month" id="cal-month"></div></div>
-      <button type="button" id="cal-next" aria-label="다음 달">›</button>
-    </div>
-    <div class="grid" id="cal-grid"></div>
-    <div class="legend">
-      <span><span class="dots"><i></i></span>1번</span>
-      <span><span class="dots"><i></i><i></i></span>2번 이상</span>
-      <span><span class="dots"><i class="none"></i></span>안 쌌어요</span>
-      <span><span class="dots"><i class="unknown"></i></span>산책했지만 안 적음</span>
-      <span><span class="dots"><i class="toon"></i></span>응가 캐릭터 만든 날</span>
-    </div>
-    <p class="sum" id="cal-sum"></p>
+    <!-- 데모 기록 지우기는 11/23 톱니 판 '시연용'으로 옮겼다 -->
   </section>
 </div>
 
@@ -309,6 +363,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
+<script src="steady-stamp.js?v=4"></script>
 <script src="month-report.js?v=6"></script>
 <script src="walk-receipt.js?v=10"></script>
 <script src="image-editor.js?v=7"></script>
@@ -446,27 +501,26 @@
     $('who-name').textContent = profile.name || '우리 강아지';
     var sig = SIGNAL_LINE[profile.signal];
     if (sig) { $('who-sig').textContent = sig; $('who-sig').hidden = false; }
-    if (window.WalsonQuickSet) WalsonQuickSet.attach($('set-btn'), { side: 'below', more: { href: 'profile.html', label: '다른 설정 · 프로필' } });
-    else $('set-btn').hidden = true;
   })();
 
-  // ── 데모 기록 지우기(2026-11-15) — 시연 모드(가짜 위치)로 남긴 산책만 골라 지운다. 진짜 산책은 그대로 ──
+  // ── 데모 기록 지우기(2026-11-15) — 시연 모드(가짜 위치)로 남긴 산책만 골라 지운다. 진짜 산책은 그대로.
+  //    11/23 탭 정리부터 목록 아래 버튼 대신 톱니 판 '시연용'에 ──
   var demoCount = walks.filter(function (w) { return w.demo; }).length;
-  if (demoCount) {
-    var dc = $('demo-clear');
-    dc.textContent = '데모 기록 지우기 (' + demoCount + '개)';
-    dc.hidden = false;
-    dc.addEventListener('click', function () {
-      var all = WalsonStore.walks(), gone = all.filter(function (w) { return w && w.demo; });
-      if (!gone.length) { location.reload(); return; }
-      if (!confirm('시연 모드로 남긴 데모 산책 ' + gone.length + '개를 지울까요?\n진짜 산책 기록은 그대로 남아요.')) return;
-      var keep = all.filter(function (w) { return !(w && w.demo); });
-      if (!WalsonStore.saveWalks(keep)) { alert('지우지 못했어요.'); return; }
-      WalsonStore.remove(WalsonStore.KEYS.lastWalk);   // 마지막 산책 요약은 다음 산책 때 다시 생김
-      var jobs = gone.map(function (w) { return (w.photoKey && window.WalkPhotos) ? WalkPhotos.remove(w.photoKey).catch(function () {}) : null; });
-      Promise.all(jobs).then(function () { location.reload(); });
-    });
+  function clearDemo() {
+    var all = WalsonStore.walks(), gone = all.filter(function (w) { return w && w.demo; });
+    if (!gone.length) { location.reload(); return; }
+    if (!confirm('시연 모드로 남긴 데모 산책 ' + gone.length + '개를 지울까요?\n진짜 산책 기록은 그대로 남아요.')) return;
+    var keep = all.filter(function (w) { return !(w && w.demo); });
+    if (!WalsonStore.saveWalks(keep)) { alert('지우지 못했어요.'); return; }
+    WalsonStore.remove(WalsonStore.KEYS.lastWalk);   // 마지막 산책 요약은 다음 산책 때 다시 생김
+    var jobs = gone.map(function (w) { return (w.photoKey && window.WalkPhotos) ? WalkPhotos.remove(w.photoKey).catch(function () {}) : null; });
+    Promise.all(jobs).then(function () { location.reload(); });
   }
+  // 톱니 → 설정 판(quick-set.js app 링크 — [오늘]과 같은 판): 화면 색 · 프로필 · 홈 화면에 추가 · 카톡 채널 … · 시연용(샘플 + 데모 기록 지우기)
+  if (window.WalsonQuickSet) {
+    WalsonQuickSet.attach($('set-btn'), { side: 'below', app: true,
+      demo: demoCount ? [{ label: '데모 기록 지우기 (' + demoCount + '개)', id: 'demo-clear', onClick: clearDemo }] : [] });
+  } else $('set-btn').hidden = true;
 
   if (!walks.length) {
     $('empty').hidden = false;
@@ -597,6 +651,77 @@
   });
   if (!window.MonthReport) $('month-receipt').disabled = true;
   paintSettle();
+
+  // ── ③ 통계·통찰(11/23 탭 정리) — 접어 둔 카드. 펼친 건 이 휴대폰에 기억(walson_history_stats_open) ──
+  (function () {
+    var card = $('stats-card'), OPEN_KEY = 'walson_history_stats_open';
+    try { if (localStorage.getItem(OPEN_KEY) === '1') card.open = true; } catch (e) { /* 접힌 채로 */ }
+    card.addEventListener('toggle', function () { try { localStorage.setItem(OPEN_KEY, card.open ? '1' : '0'); } catch (e) { /* 이번만 */ } });
+
+    // 최근 7일 막대(← [오늘], 오늘이 맨 오른쪽) — 5분 미만 산책도 시간에는 넣는다(보상 횟수에서만 빠진다)
+    var byDate = {};
+    walks.forEach(function (w) { byDate[w.date] = (byDate[w.date] || 0) + (w.durationMin || 0); });
+    var now = new Date(), days = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      days.push({ label: DOW[d.getDay()], min: byDate[dk(d)] || 0, isToday: i === 0 });
+    }
+    var maxMin = Math.max.apply(null, days.map(function (x) { return x.min; }).concat([30]));
+    // 도트 모드(11/22): 10분 = 한 칸. 가장 긴 날이 7칸(70분)을 넘으면 한 칸을 20분·30분…으로 키운다
+    var pixelOn = pixelThumbs(), MAX_BLOCKS = 7, unit = Math.max(10, Math.ceil(maxMin / MAX_BLOCKS / 10) * 10);
+    var weekEl = $('week');
+    if (pixelOn) weekEl.classList.add('is-pixel');
+    var weekTotal = 0, weekDays = 0;
+    days.forEach(function (x) {
+      weekTotal += x.min;
+      if (x.min > 0) weekDays += 1;
+      var col = document.createElement('div');
+      col.className = 'day' + (x.isToday ? ' is-today' : '') + (x.min ? '' : ' is-empty');
+      col.title = x.label + '요일 ' + x.min + '분';
+      var bar = document.createElement('div');
+      if (pixelOn) {
+        bar.className = 'stack';
+        var n = x.min ? Math.min(MAX_BLOCKS, Math.max(1, Math.round(x.min / unit))) : 1;
+        for (var b = 0; b < n; b++) { var blk = document.createElement('div'); blk.className = 'blk'; bar.appendChild(blk); }
+      } else {
+        bar.className = 'bar';
+        bar.style.height = x.min ? Math.max(8, Math.round(x.min / maxMin * 100)) + '%' : '4px';
+      }
+      var lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = x.isToday ? '오늘' : x.label;
+      col.appendChild(bar); col.appendChild(lbl);
+      weekEl.appendChild(col);
+    });
+    $('week-sum').textContent = weekDays
+      ? '7일 중 ' + weekDays + '일 산책 · 모두 ' + weekTotal + '분' + (pixelOn ? ' · 한 칸 ' + unit + '분' : '')
+      : '최근 7일 동안 기록이 없어요.';
+
+    // 꾸준함 도장판(← [워킹패스], 최근 8주) — 계산은 reward-rules.js steady, 모양은 steady-stamp.js
+    var st = (R && R.steady) ? R.steady(walks) : null;
+    if (st && window.SteadyStamp) {
+      $('steady-board').appendChild(SteadyStamp.board(st, 8));
+      $('steady-count').textContent = st.total
+        ? '모두 ' + st.total + '개 · 3일 ' + st.byLevel[0] + ' · 5일 ' + st.byLevel[1] + ' · 7일 ' + st.byLevel[2]
+        : '아직 없어요';
+    } else $('steady-wrap').hidden = true;
+
+    // 모두 합쳐(← [워킹패스] 진행도 숫자) — 모든 산책·산책한 날·길 기록 km·가장 긴 산책·가장 긴 연속·처음 산책
+    var keys = Object.keys(walkedDays).sort(), best = 0, run = 0, prev = null;
+    keys.forEach(function (k) {
+      var gap = prev ? Math.round((parseDay(k) - parseDay(prev)) / 86400000) : 0;
+      run = gap === 1 ? run + 1 : 1; best = Math.max(best, run); prev = k;
+    });
+    var km = walks.reduce(function (s, w) { return s + (w.mode === 'time' ? 0 : (w.distanceKm || 0)); }, 0);
+    var longest = walks.reduce(function (m, w) { return Math.max(m, w.durationMin || 0); }, 0);
+    var first = parseDay(keys[0]);
+    var cells = [
+      [walks.length + '번', '모든 산책'], [keys.length + '일', '산책한 날'], [km.toFixed(1) + 'km', '길 기록'],
+      [longest + '분', '가장 긴 산책'], [best + '일', '가장 긴 연속'], [(first.getMonth() + 1) + '/' + first.getDate(), '처음 산책 ' + first.getFullYear()]
+    ];
+    $('totals').innerHTML = cells.map(function (c) { return '<div><b>' + esc(c[0]) + '</b><span>' + esc(c[1]) + '</span></div>'; }).join('');
+    card.hidden = false;
+  })();
 
   // 특이 사항 기본값 — 날마다 다르게(같은 문구만 나오면 금방 질린다). 산책 시간·답과 어긋나지 않게 고른다(11/16):
   // 킁킁을 많이 했으면 냄새 쪽, 짧았거나 "조금 아쉬워요"면 일찍 들어가려는 쪽, 충분히 걸었으면 그 두 문구(5분 만에 안아·나오자마자 집에)는 빼고.
@@ -897,6 +1022,12 @@
   paintBook();
   // 끝 화면에서 왔거나(?end=1) 번호로 왔으면(?no=12) 그 산책의 일기를 바로 연다
   if (fromEnd || m) openWalk(state.i);
+  // [오늘] "오늘 영수증 보기"(11/23)는 ?day=YYYY-MM-DD — 그날 일기 창(그날 마지막 산책부터, 여럿이면 위에서 골라 보기)
+  var dayQ = /[?&]day=(\d{4}-\d{2}-\d{2})(&|$)/.exec(location.search);
+  if (dayQ) {
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* 주소를 못 바꿔도 화면은 그대로 */ }
+    if (!(fromEnd || m)) openDay(dayQ[1]);
+  }
   window.__history = { openDay: openDay, openWalk: openWalk, close: closeViewer, state: function () { return { i: state.i, open: !$('viewer').hidden, shown: state.shown }; } };   // 시험용
 })();
 

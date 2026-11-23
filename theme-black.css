@@ -235,3 +235,9 @@ html[data-palette="black"][data-page="walk-history"] { --card-shadow: none; --so
   html[data-palette="black"][data-page="walk-history"] { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); --soft-2: color-mix(in srgb, var(--ink) 8%, var(--soft)); }
 }
 html[data-palette="black"][data-page="walk-history"] .rcpt .bar { background: repeating-linear-gradient(90deg, #2a2420 0 2px, transparent 2px 4px, #2a2420 4px 5px, transparent 5px 8px, #2a2420 8px 11px, transparent 11px 12px) !important; }
+
+/* index.html — [오늘] 머리·오늘 한 것(11/23 탭 정리 — [기록]과 같은 색 이름 --soft·--butter). 값은 [기록] 블랙과 같게 */
+html[data-palette="black"][data-page="index"] { --soft: #2a2a31; --butter: #3b311c; --butter-ink: #f3d27a; }
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  html[data-palette="black"][data-page="index"] { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); }
+}
