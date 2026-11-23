@@ -275,7 +275,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="month-report.js?v=6"></script>
-<script src="walk-receipt.js?v=8"></script>
+<script src="walk-receipt.js?v=9"></script>
 <script src="image-editor.js?v=7"></script>
 <script>
 (function () {
@@ -616,7 +616,7 @@
         },
         text: {
           title: '특이 사항', hint: '영수증에 이대로 찍혀요', max: 28,
-          empty: '없음 (평화로운 산책)', font: '"Nanum Gothic Coding", ui-monospace, monospace',
+          empty: '없음 (평화로운 산책)', font: 'Pretendard, "Apple SD Gothic Neo", sans-serif',   // 11/23 개편 — 영수증 조각의 특이 사항 글꼴과 같게
           presets: NOTES.map(function (n) { return { text: n.text, value: n.id, group: n.g }; }),
           get: function (st) { return noteFrom(st.extra, i); },
           set: function (st, t, id) {
