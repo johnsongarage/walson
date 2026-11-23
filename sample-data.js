@@ -5,6 +5,7 @@
 //   - 강아지 프로필: 왈슨(앱 그림 사진·빨강불·주민증 번호)
 //   - 최근 3주 산책 기록: 길 기록 산책(공원 둘레 가짜 경로) + 시간만 잰 산책, 끝 화면 답, 오늘의 한 장 사진
 //   - 산책 중에 찍은 메모 핀 2개
+//   - 산책 아지트: 왈슨이 꾸민 방(azit-room.js sampleState — 켤 때 아지트 설정을 비워 두면 [아지트]가 샘플 방으로 연다, 2026-11-23)
 //   (가게·지킴이(옛 수호견)는 넣지 않는다)
 // 사진: 왈슨은 앱 그림(icons/sample-walson.jpg). 오늘의 한 장도 왈슨 그림.
 // 경로는 공용 공원(다산중앙공원·다산수변공원) 둘레를 도는 지어낸 고리다 — 누구의 실제 경로도 아니다.
@@ -16,8 +17,9 @@
   var BACKUP = 'petwalk_sample_backup';
   var SPOTS = 'petwalk_sample_spots';    // 예전 샘플 가게 자리 — 이제 쓰지 않고, 남아 있으면 지운다
   // 샘플이 덮어쓰는 열쇠들 — 끌 때 이 값들을 되돌린다
+  // petwalk_azit(11/23): 샘플 동안 연 아지트 설정(왈슨 방·고른 강아지·본 소품)이 진짜 기록에 남지 않게 — 처음 온 사람은 샘플로 시작하니까
   var KEYS = ['petwalk_walks', 'petwalk_profile', 'petwalk_pins', 'petwalk_reward_card',
-              'petwalk_last_walk', 'petwalk_active_walk', 'petwalk_dog_size', 'petwalk_keyring'];
+              'petwalk_last_walk', 'petwalk_active_walk', 'petwalk_dog_size', 'petwalk_keyring', 'petwalk_azit'];
   var PHOTO_PREFIX = 'sample-';
 
   function isOn() { try { return localStorage.getItem(FLAG) === '1'; } catch (e) { return false; } }
@@ -117,6 +119,7 @@
       localStorage.removeItem('petwalk_keyring');
       localStorage.removeItem('petwalk_last_walk');
       localStorage.removeItem('petwalk_active_walk');
+      localStorage.removeItem('petwalk_azit');   // [아지트]가 왈슨이 꾸민 샘플 방으로 연다(azit-room.js)
       localStorage.setItem('petwalk_dog_size', 'small');
       localStorage.removeItem(SPOTS);
       localStorage.setItem(FLAG, '1');
