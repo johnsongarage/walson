@@ -60,7 +60,13 @@
        오늘 칸: 오늘 분·횟수·목표 + 이번 주 꾸준함 한 줄 + [산책 나가기]·[다녀왔어요]
        오늘 한 것(오늘 산책이 있을 때만): 오늘의 한 장·끝 화면 답(충분·킁킁·응가)·오늘 생긴 것(발도장·승급·도장) → 오늘 영수증([기록] 일기 창)
      최근 7일 막대·꾸준함 도장(이번 주 판)은 [기록] '통계·통찰'로, 최근 산책(지난 것)은 [기록] 목록으로,
-     샘플 버튼·맨 아래 링크 줄은 톱니 판으로 옮겼다. 산책을 안 한 날엔 어제 요약 대신 "오늘 나가면 이번 주 n일째" 한 줄만. */
+     샘플 버튼·맨 아래 링크 줄은 톱니 판으로 옮겼다. 산책을 안 한 날엔 어제 요약 대신 "오늘 나가면 이번 주 n일째" 한 줄만.
+     11/23 저녁 가르시아 "텅 비어 있는 모습이네" → 시안(today-sian.html) → "추천대로 실제 [오늘]에 넣어줘":
+       ① 오늘 링 — 크기별 오늘 목표(30·60·90분)를 채워 가는 링 + 가운데 강아지 얼굴 + 말풍선(시간대·상태별 한마디, 혼내지 않는 말), 다 채우면 '달성' 도장
+       ② 오늘의 산책 도장 6칸 — 산책·응가·킁킁·오늘의 한 장·발도장·친구(오늘 도감 QR). 산책 전엔 빈칸과 찍히는 법, 다녀오면 찍힘. 매일 새로, 보상 없음.
+          오늘 생긴 것(승급·처음 발도장·꾸준함 도장)은 판 위 버터색 줄. 예전 '오늘 한 것' 칩을 이 판으로
+       ③ 이번 주 7칸(월~일) · ④ 다음 갈 곳 한 줄([동네] 미션) · ⑤ 오늘 영수증(다녀오면 진짜 그림 미리 보기 + 꾸미고 저장, 산책 전엔 빈 자리)
+     순서: 산책 전·중 = 링 → 도장 → 이번 주 → 다음 갈 곳 → 영수증 자리 / 다녀온 뒤 = 링 → 오늘 영수증 → 도장 → 이번 주 → 다음 갈 곳. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
@@ -68,6 +74,7 @@
     --sig-green: #3f9b5b; --sig-yellow: #dfa21f; --sig-red: #d2493f;
     /* 머리 — [기록](walk-history.html)과 같은 값. 블랙 값은 theme-black.css 맨 아래 "손으로 고친 것"(index) */
     --soft: #ede6e8; --gold-ring: #dcab3f; --butter: #fde8ad; --butter-ink: #5b4300;
+    --paper: #fffaf0; --paper-ink: #2a2420;   /* 오늘 영수증 빈 자리(종이) — 블랙에서도 종이 색 그대로([기록]과 같게) */
   }
   @supports (background: color-mix(in srgb, red 50%, blue)) {
     :root { --soft: color-mix(in srgb, var(--accent-tint) 18%, color-mix(in srgb, var(--ink) 8.5%, var(--panel))); }
@@ -103,59 +110,123 @@
 
   .panel {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px;
-    padding: 20px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.08); margin-bottom: 14px;
+    padding: 16px; box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.08); margin-bottom: 12px;
   }
-  .panel h2 { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin: 0 0 10px; }
+  .panel[hidden] { display: none; }
+  .panel > h2 { margin: 0 0 10px; font-size: 15px; font-weight: 800; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .panel > h2 small { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
 
-  .today-num { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
-  .today-num small { font-size: 20px; font-weight: 700; margin-left: 4px; letter-spacing: 0; }
-  .today-sub { font-size: 14px; color: var(--ink-soft); margin: 8px 0 0; }
-  /* 오늘 목표(2026-11-16) — 달성하면 도장처럼 */
-  .today-goal { display: inline-block; margin: 8px 0 0; padding: 3px 10px; font-size: 13px; font-weight: 800; color: var(--accent); background: var(--accent-tint, #f3ddd2); border-radius: 999px; }
-  .today-goal.is-done { color: #fff; background: var(--accent); }
-  .today-goal[hidden] { display: none; }
-  /* 이번 주 꾸준함 한 줄(11/23 탭 정리 — 도장판은 [기록] '통계·통찰'로) */
-  .today-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .today-pills .today-goal { margin: 0; }
-  .today-goal.week { color: var(--ink); background: var(--soft); }
-  .today-goal.week.is-done { color: var(--butter-ink); background: var(--butter); }
+  /* ① 오늘 링(11/23 저녁) — 왼쪽 링 + 가운데 강아지, 오른쪽 말풍선·숫자 */
+  .hero-top { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+  .hero-top .tod { padding: 2px 9px; border-radius: 999px; background: var(--soft); color: var(--ink); font-size: 12px; }
+  .hero-main { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .ringbox { position: relative; flex: none; width: 164px; height: 164px; }
+  .ringbox svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+  .ring .trk { fill: none; stroke: var(--soft); stroke-width: 14; }
+  .ring .val { fill: none; stroke: var(--hl); stroke-width: 14; stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
+  .ring .dot { fill: var(--line); }
+  .ring .dot.live { animation: ring-beat 1.2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+  @keyframes ring-beat { 50% { transform: scale(1.6); opacity: 0.6; } }
+  @media (prefers-reduced-motion: reduce) { .ring .dot.live { animation: none; } .ring .val { transition: none; } }
+  .ringbox .dog { position: absolute; left: 50%; top: 50%; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; overflow: hidden;
+    border: 3px solid var(--gold-ring); background: var(--soft); display: flex; align-items: center; justify-content: center; }
+  .ringbox .dog img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ringbox .dog img.face-pixel { width: 76px; height: 76px; object-fit: contain; image-rendering: pixelated; }
+  .ringbox .dog svg { width: 92px; height: 92px; }
+  .seal-done { position: absolute; right: -10px; top: -4px; width: 52px; height: 52px; border-radius: 50%; border: 3px solid var(--line); background: var(--hl); color: var(--hl-ink);
+    display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; font-weight: 900; line-height: 1.15; transform: rotate(12deg); box-shadow: 0 2px 0 var(--line); }
+  .seal-done[hidden] { display: none; }
+  .hero-side { flex: 1; min-width: 0; }
+  /* 말풍선 — 강아지가 하는 말(꼬리는 왼쪽 강아지 쪽) */
+  .bubble { position: relative; display: inline-block; padding: 8px 12px; border-radius: 14px; background: var(--butter); color: var(--butter-ink);
+    font-size: 14.5px; font-weight: 800; line-height: 1.35; word-break: keep-all; }
+  .bubble::before { content: ''; position: absolute; left: -8px; top: 50%; margin-top: -8px; border: 8px solid transparent; border-left: 0; border-right-color: var(--butter); }
+  .ring-num { margin-top: 10px; }
+  .today-num { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .today-num small { font-size: 16px; font-weight: 700; margin-left: 4px; letter-spacing: 0; }
+  .ring-sub { margin: 6px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); word-break: keep-all; }
 
   .btn-main {
-    display: block; width: 100%; text-align: center; text-decoration: none;
-    border: none; border-radius: 999px; padding: 16px; margin-top: 18px;
+    display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; text-decoration: none;
+    border: none; border-radius: 999px; padding: 12px 8px; margin-top: 14px;
     background: linear-gradient(180deg, #c96b4f 0%, var(--accent) 100%); color: #fff;
     font-family: inherit; font-weight: 800; font-size: 17px; cursor: pointer;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 6px rgba(0,0,0,0.15), 0 6px 16px rgba(var(--shadow-rgb), 0.3);
   }
   .btn-main:active { transform: scale(0.98); }
-  .btn-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin: 10px 0 0; line-height: 1.5; }
+  /* 버튼 줄 — [산책 나가기]가 넓게, [다녀왔어요]가 옆에(산책 중이면 [다녀왔어요]가 숨어 혼자 한 줄) */
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+  .btn-row > * { margin-top: 0 !important; }
+  .btn-row .btn-main { flex: 1.55 1 0; }
+  .btn-row .btn-sub { flex: 1 1 0; }
+  .btn-row.even .btn-main, .btn-row.even .btn-sub { flex: 1 1 0; }
 
   /* 도트 모드(2026-11-22 — [산책]·[동네]에서 [도트]를 고른 사람만): 사진 없으면 도트 강아지 얼굴.
      최근 7일 막대(도트면 블록)는 11/23 [기록] '통계·통찰'로 옮겼다 */
   .face img.face-pixel { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
 
-  /* 오늘 한 것(11/23 탭 정리) — 오늘 산책이 있을 때만. 오늘의 한 장·끝 화면 답·오늘 생긴 것 → 오늘 영수증 */
-  .did-top { display: flex; gap: 12px; align-items: flex-start; }
-  .did-photo { flex: none; width: 84px; height: 84px; border-radius: 16px; object-fit: cover; }
-  .did-photo[hidden] { display: none; }
-  .did-chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
-  .did-chips span { padding: 5px 10px; border-radius: 999px; background: var(--soft); font-size: 13px; font-weight: 700; color: var(--ink); }
-  .did-chips .muted { background: transparent; padding-left: 0; color: var(--ink-soft); font-weight: 600; }
-  .did-got { list-style: none; margin: 12px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--butter); color: var(--butter-ink); }
+  /* ② 오늘의 산책 도장 6칸 — 빈칸(점선)은 찍히는 법, 찍힌 칸(진한 테두리·기울임)은 그날 내용. 사진 칸은 찍히면 진짜 사진 */
+  .did-got { list-style: none; margin: 0 0 12px; padding: 9px 12px; border-radius: 12px; background: var(--butter); color: var(--butter-ink); }
   .did-got[hidden] { display: none; }
-  .did-got li { font-size: 13.5px; font-weight: 800; line-height: 1.5; word-break: keep-all; }
+  .did-got li { font-size: 13.5px; font-weight: 800; line-height: 1.55; word-break: keep-all; }
   .did-got li::before { content: '✓ '; }
-  .did-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding: 13px 14px;
-    border-radius: 14px; border: 2px solid var(--panel-border); text-decoration: none; color: var(--ink); font-size: 15px; font-weight: 800; }
-  .did-btn::after { content: '›'; font-size: 20px; line-height: 1; color: var(--ink-soft); }
-  .did-btn:active { transform: scale(0.98); }
+  .st-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 6px; }
+  .st { text-align: center; min-width: 0; text-decoration: none; color: var(--ink); }
+  .st .sl { width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; border: 2px dashed var(--panel-border); display: flex; align-items: center; justify-content: center;
+    color: var(--ink-soft); overflow: hidden; }
+  .st .sl svg { width: 28px; height: 28px; opacity: 0.45; }
+  .st .sl img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .st.on .sl { border: 2.5px solid var(--line); background: var(--accent-tint); color: var(--ink); transform: rotate(-8deg); box-shadow: 0 2px 0 var(--line); }
+  .st.on .sl svg { opacity: 1; }
+  .st.part .sl { border: 2.5px solid var(--hl); color: var(--ink); }
+  .st.part .sl svg { opacity: 0.9; }
+  .st b { display: block; margin-top: 7px; font-size: 13px; font-weight: 800; }
+  .st small { display: block; margin-top: 1px; font-size: 11px; line-height: 1.35; color: var(--ink-soft); word-break: keep-all; }
+  .st.on small { color: var(--ink); font-weight: 700; }
+  .st-note { margin: 12px 0 0; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+
+  /* ③ 이번 주 7칸(월~일) — 8주 도장판은 [기록] */
+  .wk { display: flex; justify-content: space-between; gap: 4px; }
+  .wk span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+  .wk i { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--panel-border); display: flex; align-items: center; justify-content: center; font-style: normal; }
+  .wk i svg { width: 15px; height: 15px; }
+  .wk .on i { border: none; background: var(--hl); color: var(--hl-ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .wk .today i { border: 2px solid var(--line); }
+  .wk .today { color: var(--ink); font-weight: 900; }
+  .wk-sum { margin: 10px 0 0; font-size: 13px; font-weight: 700; text-align: center; word-break: keep-all; }
+
+  /* ④ 다음 갈 곳 한 줄 — [동네] 미션 */
+  .next { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+  .next .pin { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--soft); display: flex; align-items: center; justify-content: center; }
+  .next .pin svg { width: 24px; height: 24px; }
+  .next .tx { flex: 1; min-width: 0; }
+  .next .tx small { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .next .tx b { display: block; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .next .go { flex: none; font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+
+  /* ⑤ 오늘 영수증 — 다녀오면 진짜 영수증(피드 4:5) 작게, 산책 전엔 빈 종이 자리 */
+  .rc { display: flex; gap: 14px; align-items: center; }
+  .rc-img { flex: none; width: 132px; display: block; }
+  .rc-img canvas { display: block; width: 132px; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.18); }
+  .rc-tx { flex: 1; min-width: 0; }
+  .rc-tx b { display: block; font-size: 16px; font-weight: 900; }
+  .rc-tx small { display: block; margin-top: 4px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; word-break: keep-all; }
+  .rc-tx .btn-main { font-size: 14px; padding: 11px; margin-top: 10px; }
+  .rc-empty { flex: none; width: 104px; height: 128px; border-radius: 4px; background: var(--paper); transform: rotate(-5deg); position: relative; opacity: 0.75;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--paper-ink); }
+  .rc-empty::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 6px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23fffaf0'/%3E%3C/svg%3E") 0 0 / 10px 6px repeat-x; }
+  .rc-empty i { display: block; width: 64px; height: 6px; border-radius: 3px; background: rgba(42, 36, 32, 0.16); }
+  .rc-empty i.s { width: 40px; }
+  .rc-empty em { font-style: normal; font-size: 22px; font-weight: 900; opacity: 0.35; }
 
   /* 다녀왔어요(2026-11-16): 산책 뒤에 몇 분이었는지만 골라 적는다 */
   .btn-sub {
-    display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; padding: 14px;
-    border-radius: 16px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink);
-    font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; margin-top: 10px; padding: 10px 8px;
+    border-radius: 16px; border: 2px solid var(--panel-border); background: #fff; color: var(--ink); text-decoration: none; line-height: 1.2;
+    font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
   }
+  .btn-sub small { font-size: 11px; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
   .btn-sub[hidden] { display: none; }
   .btn-sub:active { transform: scale(0.98); }
   .after-sheet { position: fixed; inset: 0; z-index: 2000; background: rgba(40, 32, 26, 0.55); display: flex; align-items: flex-end; justify-content: center; }
@@ -198,7 +269,7 @@
 <script>try { if (sessionStorage.getItem('walson_splash_shown') || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true) document.documentElement.classList.add('no-splash'); else document.documentElement.style.background = '#fff6e2'; } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=2">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
@@ -255,29 +326,44 @@
     <span id="inapp-msg" style="display:block;font-weight:800;"></span>
   </div>
 
-  <section class="panel">
-    <h2 id="today-label">오늘</h2>
-    <div class="today-num"><span id="today-min">0</span><small>분</small></div>
-    <p class="today-sub" id="today-sub">아직 오늘 산책 기록이 없어요.</p>
-    <div class="today-pills">
-      <p class="today-goal" id="today-goal" hidden></p>
-      <!-- 이번 주 꾸준함 한 줄(11/23) — 한 주(월~일)에 산책한 날 3·5·7일마다 도장(reward-rules.js steady). 도장판은 [기록] '통계·통찰' -->
-      <p class="today-goal week" id="today-week" hidden></p>
+  <!-- ① 오늘 링(11/23 저녁 — today-sian.html 그대로): 오늘 목표를 채워 가는 링 + 강아지 얼굴 + 말풍선 -->
+  <section class="panel hero" id="hero">
+    <div class="hero-top"><span id="today-label">오늘</span><span class="tod" id="tod"></span></div>
+    <div class="hero-main">
+      <div class="ringbox"><span id="ring"></span><span class="dog" id="hero-dog"></span><span class="seal-done" id="seal-done" hidden>오늘<br>달성</span></div>
+      <div class="hero-side">
+        <span class="bubble" id="bubble" role="status"></span>
+        <div class="ring-num"><span class="today-num"><span id="today-min">0</span><small id="today-target">/ 30분</small></span></div>
+        <p class="ring-sub" id="ring-sub"></p>
+      </div>
     </div>
-    <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
-    <button type="button" class="btn-sub" id="after-btn">다녀왔어요 · 몇 분인지만 적기</button>
-    <p class="btn-note" id="go-note">나갈 때 누르면 기록해 주고, 깜빡했으면 다녀와서 적어도 돼요.</p>
+    <div class="btn-row" id="btn-row">
+      <a class="btn-main" id="go-btn" href="go.html">산책 나가기</a>
+      <button type="button" class="btn-sub" id="after-btn">다녀왔어요<small>몇 분만 적기</small></button>
+    </div>
   </section>
 
-  <!-- 오늘 한 것(11/23 탭 정리) — 오늘 산책이 있을 때만. 끝 화면에서 답한 것·오늘 생긴 것을 한 칸에, 영수증은 [기록] 일기 창에서 -->
-  <section class="panel" id="did-panel" hidden>
-    <h2>오늘 한 것</h2>
-    <div class="did-top">
-      <img class="did-photo" id="did-photo" alt="오늘의 한 장" hidden>
-      <div class="did-chips" id="did-chips"></div>
-    </div>
+  <!-- ⑤ 오늘 영수증 — 다녀온 날엔 링 바로 아래(진짜 그림), 산책 전엔 맨 아래 빈 자리(아래 스크립트가 자리를 옮긴다) -->
+  <section class="panel" id="rc-panel" hidden></section>
+
+  <!-- ② 오늘의 산책 도장 6칸 — 매일 새로, 보상 없음. 오늘 생긴 것은 위 버터색 줄 -->
+  <section class="panel" id="stamp-panel">
+    <h2>오늘의 산책 도장 <small id="stamp-count">0 / 6</small></h2>
     <ul class="did-got" id="did-got" aria-label="오늘 생긴 것" hidden></ul>
-    <a class="did-btn" id="did-receipt" href="walk-history.html">오늘 영수증 보기 · 꾸미기</a>
+    <div class="st-grid" id="st-grid"></div>
+    <p class="st-note">매일 새로 시작해요 · 다 못 채워도 괜찮아요</p>
+  </section>
+
+  <!-- ③ 이번 주 7칸(월~일) — 한 주에 산책한 날 3·5·7일마다 도장(reward-rules.js steady). 8주 도장판은 [기록] '통계·통찰' -->
+  <section class="panel" id="week-panel">
+    <h2>이번 주 <small>꾸준함 도장판은 [기록]에</small></h2>
+    <div class="wk" id="wk"></div>
+    <p class="wk-sum" id="wk-sum"></p>
+  </section>
+
+  <!-- ④ 다음 갈 곳 한 줄 — [동네] 미션(다음 발도장 장소). 다 모았으면 안 보인다 -->
+  <section class="panel" id="next-panel" hidden>
+    <a class="next" href="town.html"><span class="pin" id="next-pin"></span><span class="tx"><small id="next-sub"></small><b id="next-name"></b></span><span class="go">지도 ›</span></a>
   </section>
   <!-- 샘플 데이터 버튼·맨 아래 링크 줄(카톡 채널·산책 유형 테스트·기록 옮기기·개인정보 안내·왈슨 소개·홈 화면에 추가)은 11/23 톱니 판으로 옮겼다.
        사업자 정보 한 줄은 뺐다(2026-11-18 가르시아 "이미 승인났으니까 소개 페이지면 충분") — 왈슨 소개·개인정보 안내 맨 아래에만 -->
@@ -301,6 +387,9 @@
 <script src="sample-data.js?v=7"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
+<script src="receipt-info.js?v=1"></script>
+<script src="walk-receipt.js?v=10"></script>
+<script src="canvas-view.js?v=1"></script>
 <script src="backup.js?v=9"></script>
 <script>
   // 처음 온 사람은 샘플 데이터로 시작한다(2026-11-15 가르시아). 기록은 바로 들어가고(아래 화면이 그걸 읽는다),
@@ -409,139 +498,226 @@
   if (window.WalsonQuickSet) WalsonQuickSet.attach(document.getElementById('set-btn'), { side: 'below', app: true });
   else document.getElementById('set-btn').hidden = true;
 
-  // ── 오늘 ──
+  // ── 오늘(11/23 저녁 — today-sian.html 시안대로: 오늘 링 · 도장 6칸 · 이번 주 · 다음 갈 곳 · 오늘 영수증) ──
   var walks = WalsonStore.walks();     // walk.html이 산책을 끝낼 때 저장하는 기록
+  var RR = window.RewardRules;
   var now = new Date();
   var todayKey = dateKey(now);
   document.getElementById('today-label').textContent =
     '오늘 · ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DAY_NAMES[now.getDay()] + '요일';
+  var hh = now.getHours();
+  document.getElementById('tod').textContent = hh >= 5 && hh < 10 ? '아침' : hh >= 10 && hh < 16 ? '낮' : hh >= 16 && hh < 21 ? '저녁' : '밤';
+  // 그림 — 발바닥·응가(응가 달력과 같은 모양)·코·사진기·장소 핀·하트
+  var PAW = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ellipse cx="5.3" cy="10.3" rx="2.1" ry="2.6" transform="rotate(-25 5.3 10.3)"/><ellipse cx="9.4" cy="5.7" rx="2.2" ry="2.8" transform="rotate(-8 9.4 5.7)"/>' +
+    '<ellipse cx="14.6" cy="5.7" rx="2.2" ry="2.8" transform="rotate(8 14.6 5.7)"/><ellipse cx="18.7" cy="10.3" rx="2.1" ry="2.6" transform="rotate(25 18.7 10.3)"/>' +
+    '<path d="M12 11.2c-2.6 0-4.3 2.4-5.4 4.4-.9 1.6-1.6 2.6-1.6 3.7 0 1.6 1.3 2.7 3 2.7 1.4 0 2.4-.6 4-.6s2.6.6 4 .6c1.7 0 3-1.1 3-2.7 0-1.1-.7-2.1-1.6-3.7-1.1-2-2.8-4.4-5.4-4.4z"/></svg>';
+  var ICON = {
+    walk: PAW,
+    poop: '<svg viewBox="0 0 30 24" fill="currentColor" aria-hidden="true"><path d="M4 22c-3-1-2-5 1-5-1-3 1-6 5-5 0-4 4-6 7-4 2-3 7-2 7 2 3 0 5 3 3 6 3 1 3 5 0 6z"/></svg>',
+    sniff: '<svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12 5.5c-4.7 0-8.3 2.6-8.3 6.3 0 3.2 2.5 5.7 5.4 5.7 1 0 2-.3 2.9-.9.9.6 1.9.9 2.9.9 2.9 0 5.4-2.5 5.4-5.7 0-3.7-3.6-6.3-8.3-6.3zM8.6 12.6a1.5 2 0 1 0 .01 0zm6.8 0a1.5 2 0 1 0 .01 0z"/></svg>',
+    photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8.5 7l1.4-2.6h4.2L15.5 7"/><circle cx="12" cy="13.5" r="3.4"/></svg>',
+    stamp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.2s-6.8-6-6.8-11.4a6.8 6.8 0 0 1 13.6 0c0 5.4-6.8 11.4-6.8 11.4z"/><circle cx="12" cy="9.8" r="2.6"/></svg>',
+    friend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.2-4.5-7.2-10.1A4.1 4.1 0 0 1 12 7.4a4.1 4.1 0 0 1 7.2 2.5C19.2 15.5 12 20 12 20z"/></svg>'
+  };
+  // 장소 이름은 [기록] 영수증 그림처럼 짧게(다산 중앙공원_상 → 다산 중앙공원)
+  function shortPlace(n) { return String(n || '발도장').replace(/_(상|하|동|서|남|북)$/, '').replace(/_/g, ' '); }
+  var LV = ['', '3일', '5일', '7일'];
 
-  // 날짜별 합계 — 5분·200m 미만 산책도 시간에는 넣는다(보상 횟수에서만 빠진다)
-  var byDate = {};
-  walks.forEach(function (w) {
-    if (!w || !w.date) return;
-    var d = byDate[w.date] || (byDate[w.date] = { min: 0, km: 0, count: 0 });
-    d.min += w.durationMin || 0;
-    d.km += w.distanceKm || 0;
-    d.count += 1;
-  });
+  // 오늘 산책 — 5분·200m 미만 산책도 시간에는 넣는다(보상 횟수에서만 빠진다)
+  var todays = walks.filter(function (w) { return w && w.date === todayKey; });
+  var sum = 0, km = 0;
+  todays.forEach(function (w) { sum += w.durationMin || 0; km += w.distanceKm || 0; });
+  // 진행 중인 산책 — 시간만 재는 산책(go.html), 아니면 길 기록 산책(walk.html — 앱이 닫혔다 열려 [오늘]부터 보일 때, 11/16 이어 하기)
+  var active = WalsonStore.activeWalk(), activeRoute = WalsonStore.activeRoute(), live = null;
+  if (active && active.startedAt) live = { startedAt: active.startedAt, href: 'go.html' };
+  else if (activeRoute && typeof activeRoute.startedAt === 'number') live = { startedAt: activeRoute.startedAt, href: 'walk.html' };
+  var liveMin = live ? Math.max(0, Math.floor((Date.now() - live.startedAt) / 60000)) : 0;
 
-  var today = byDate[todayKey];
-  if (today) {
-    document.getElementById('today-min').textContent = today.min;
-    document.getElementById('today-sub').textContent = '산책 ' + today.count + '번' + (today.km ? ' · ' + today.km.toFixed(1) + 'km' : '');
-  }
-
-  // 끝 화면(walk-end.html)에서 답한 것(충분·킁킁·응가)은 아래 '오늘 한 것' 칸에(11/23 — 예전엔 이 줄에 덧붙였다)
-  // 오늘 목표(2026-11-16 — 크기별 소 30·중 60·대 90분, reward-rules.js dayGoal). 끝난 뒤 확인용 — 모자라도 혼내지 않는다
-  if (window.RewardRules && RewardRules.dayGoal) {
-    var goal = RewardRules.dayGoal(walks, todayKey);
-    var goalEl = document.getElementById('today-goal');
-    if (goalEl) {
-      goalEl.textContent = goal.reached ? '오늘 목표 달성 · 목표 ' + goal.target + '분' : (goal.total ? '목표 ' + goal.target + '분까지 ' + goal.left + '분' : '오늘 목표 ' + goal.target + '분');
-      goalEl.classList.toggle('is-done', goal.reached);
-      goalEl.hidden = false;
-    }
-  }
-
-  // 시간만 재는 산책(go.html)이 진행 중이면 버튼이 그 화면으로 돌아가게 한다
-  var active = WalsonStore.activeWalk();
-  if (active && active.startedAt) {
-    var goMin = Math.max(0, Math.floor((Date.now() - active.startedAt) / 60000));
-    document.getElementById('go-btn').textContent = '산책 중 · ' + goMin + '분째';
-    document.getElementById('go-note').textContent = '눌러서 산책 화면으로 돌아가 끝내기를 눌러 주세요.';
-  }
-  // 길 기록 산책(walk.html)이 진행 중이면(앱이 닫혔다 열려 [오늘]부터 보일 때 — 2026-11-16 이어 하기) 그 화면으로
-  var activeRoute = WalsonStore.activeRoute();
-  if (!(active && active.startedAt) && activeRoute && typeof activeRoute.startedAt === 'number') {
-    var routeMin = Math.max(0, Math.floor((Date.now() - activeRoute.startedAt) / 60000));
-    var goBtn = document.getElementById('go-btn');
-    goBtn.href = 'walk.html';
-    goBtn.textContent = '길 기록 중 · ' + routeMin + '분째';
-    document.getElementById('go-note').textContent = '눌러서 산책 화면으로 돌아가면 이어서 기록해요.';
-  }
-
-  var RR = window.RewardRules;
-  // ── 이번 주 꾸준함 한 줄(11/23 — 예전 '꾸준함 도장 · 이번 주' 칸. 도장판은 [기록] '통계·통찰') ──
-  // 오늘 이미 걸었으면 "이번 주 n일째", 아직이면 "오늘 나가면 이번 주 n일째"(정의: [오늘]엔 오늘 것만 — 어제 요약 대신 오늘 할 것 한 줄)
-  if (RR && RR.steady) {
-    var tw = RR.steady(walks).thisWeek, weekEl = document.getElementById('today-week');
-    var walkedToday = !!tw.walked[tw.todayIndex];
-    var LV = ['', '3일', '5일', '7일'];
-    if (walkedToday) {
-      weekEl.textContent = '이번 주 ' + tw.days + '일째 · ' + (tw.level === 3 ? '7일 도장 ✓' : tw.level ? LV[tw.level] + ' 도장 ✓' : '도장까지 ' + tw.left + '일');
-      weekEl.classList.toggle('is-done', tw.level > 0);
-    } else {
-      var n = tw.days + 1;
-      weekEl.textContent = '오늘 나가면 이번 주 ' + n + '일째' + (RR.STEADY_STEPS.indexOf(n) >= 0 ? ' · ' + n + '일 도장' : '');
-    }
-    weekEl.hidden = false;
-  }
-
-  // ── 오늘 한 것(11/23 탭 정리) — 오늘 산책이 있을 때만 ──
-  // 끝 화면 답(충분·킁킁·응가), 오늘의 한 장, 오늘 생긴 것(발도장·승급·특기 칸·꾸준함 도장), 오늘 영수증([기록] 일기 창 ?day=)
+  // ── ① 오늘 링 — 오늘 목표(2026-11-16 크기별 소 30·중 60·대 90분, reward-rules.js dayGoal)를 채워 간다. 산책 중이면 지금까지 걸은 분까지 ──
+  var goal = (RR && RR.dayGoal) ? RR.dayGoal(walks, todayKey) : { target: 60, total: sum, reached: sum >= 60, left: Math.max(0, 60 - sum) };
+  var shown = sum + liveMin;
+  document.getElementById('today-min').textContent = shown;
+  document.getElementById('today-target').textContent = '/ ' + goal.target + '분';
   (function () {
-    var todays = walks.filter(function (w) { return w && w.date === todayKey; });
-    if (!todays.length) return;
-    var chips = [];
-    var lastFeel = null, sniff = 0, poopSum = null, poopMore = false, toon = false;
-    todays.forEach(function (w) {
-      if (w.feel === 'enough' || w.feel === 'short') lastFeel = w.feel;
-      if (w.sniff > sniff) sniff = w.sniff;
-      if (typeof w.poop === 'number') { poopSum = (poopSum || 0) + Math.min(2, w.poop); if (w.poop >= 2) poopMore = true; }
-      if (w.poopToon) toon = true;
-    });
-    if (lastFeel) chips.push(lastFeel === 'enough' ? '충분했어요' : '조금 아쉬워요');
-    if (sniff) chips.push('킁킁 ' + sniff);
-    if (poopSum !== null) chips.push(poopSum ? '응가 ' + poopSum + '번' + (poopMore ? ' 이상' : '') : '응가 안 함');
-    if (toon) chips.push('응가 캐릭터 ✓');
-    var box = document.getElementById('did-chips');
-    chips.forEach(function (t) { var s = document.createElement('span'); s.textContent = t; box.appendChild(s); });
-    if (!chips.length) {   // 끝 화면 답이 없을 때(다녀와서 적기만 등)
-      var m = document.createElement('span'); m.className = 'muted';
-      m.textContent = todays.length > 1 ? '오늘 ' + todays.length + '번 다녀왔어요' : '오늘 다녀왔어요';
-      box.appendChild(m);
-    }
-    // 오늘의 한 장 — 오늘 산책 중 마지막으로 남긴 사진(이 휴대폰 안 저장소에서 읽음)
-    var withPhoto = todays.filter(function (w) { return w.photoKey; }).pop();
-    if (withPhoto && window.WalkPhotos) {
-      var ph = document.getElementById('did-photo');
-      WalkPhotos.show(withPhoto.photoKey, ph).then(function (ok) { ph.hidden = !ok; });
-    }
-    // 오늘 생긴 것 — 오늘 전까지 기록과 지금 기록을 견줘 본다(reward-rules.js newUnlocks — 끝 화면 '받은 것'과 같은 셈)
-    var got = [];
-    if (RR && RR.computeProgress && RR.newUnlocks) {
-      var before = walks.filter(function (w) { return w && w.date < todayKey; });
-      var pb = RR.computeProgress(before), pa = RR.computeProgress(walks);
-      // 특기·특이 사항 칸, 승급 — 발도장 줄은 아래에서 장소 이름을 짧게 해서 따로 쓴다
-      got = RR.newUnlocks(pb, pa).filter(function (t) { return !/발도장을 받았어요$/.test(t); });
-      // 오늘 찍은 발도장(길 기록 산책만 — computeProgress와 같은 판정). 처음이면 "처음 받았어요", 아니면 "또 찍었어요".
-      // 장소 이름은 [기록] 영수증 그림처럼 짧게(다산 중앙공원_상 → 다산 중앙공원), 같은 줄은 한 번만
-      var seen = {};
-      RR.PLACES.forEach(function (pl) {
-        if (pl.pending) return;
-        var isNew = !!(pa.visited[pl.id] && !pb.visited[pl.id]);
-        var hit = isNew || todays.some(function (w) {
-          if (w.rewardEligible === false) return false;
-          return (w.stampRoute || w.route || []).some(function (p) { return RR.distanceKm(p, pl.center) <= pl.radiusKm; });
-        });
-        if (!hit) return;
-        var nm = String(pl.name || '발도장').replace(/_(상|하|동|서|남|북)$/, '').replace(/_/g, ' ');
-        var line = nm + (isNew ? ' 발도장을 처음 받았어요' : ' 발도장을 또 찍었어요');
-        if (!seen[line]) { seen[line] = true; got.push(line); }
-      });
-      if (RR.steady) {
-        var lb = RR.steady(before).thisWeek.level, la = RR.steady(walks).thisWeek.level;
-        if (la > lb) got.push('이번 주 꾸준함 ' + ['', '3일', '5일', '7일'][la] + ' 도장을 받았어요');
-      }
-    }
-    var gotEl = document.getElementById('did-got');
-    got.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; gotEl.appendChild(li); });
-    gotEl.hidden = !got.length;
-    document.getElementById('did-receipt').href = 'walk-history.html?day=' + todayKey;
-    document.getElementById('did-receipt').textContent = todays.length > 1 ? '오늘 영수증 ' + todays.length + '장 보기 · 꾸미기' : '오늘 영수증 보기 · 꾸미기';
-    document.getElementById('did-panel').hidden = false;
+    var R0 = 70, C = 2 * Math.PI * R0, pct = Math.max(0, Math.min(1, goal.target ? shown / goal.target : 0));
+    var a = pct * 2 * Math.PI, x = 82 + R0 * Math.cos(a), y = 82 + R0 * Math.sin(a);
+    document.getElementById('ring').outerHTML = '<svg class="ring" viewBox="0 0 164 164" aria-hidden="true"><circle class="trk" cx="82" cy="82" r="' + R0 + '"/>' +
+      (pct > 0 ? '<circle class="val" cx="82" cy="82" r="' + R0 + '" stroke-dasharray="' + (C * pct).toFixed(1) + ' ' + C.toFixed(1) + '"/>' : '') +
+      (pct > 0 && pct < 1 ? '<circle class="dot' + (live ? ' live' : '') + '" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4.5"/>' : '') + '</svg>';
   })();
+  // 가운데 얼굴 — 머리와 같은 것(사진 → 도트 강아지 → 그림 강아지)
+  (function () {
+    var src = document.getElementById('face-img'), dog = document.getElementById('hero-dog');
+    if (!src.hidden && src.getAttribute('src')) {
+      var im = document.createElement('img'); im.src = src.getAttribute('src'); im.alt = ''; if (src.className) im.className = src.className; dog.appendChild(im);
+    } else dog.innerHTML = document.getElementById('face-pup').innerHTML;
+  })();
+  var reached = todays.length > 0 && goal.reached;
+  document.getElementById('seal-done').hidden = !reached;
+  // 말풍선 — 강아지가 하는 말(시간대·상태별). 모자라도 혼내지 않는다(11/16 "끝난 뒤 확인용")
+  document.getElementById('bubble').textContent =
+    live ? liveMin + '분째 — 천천히 냄새 맡으며 가요'
+    : reached ? '오늘 목표 달성! 고마워요'
+    : todays.length ? '오늘도 나가 줘서 좋았어요'
+    : hh >= 5 && hh < 10 ? '아침 산책 갈까요?'
+    : hh >= 10 && hh < 16 ? '오늘은 언제 나가요?'
+    : hh >= 16 && hh < 21 ? '저녁 산책 시간이에요!'
+    : hh >= 21 ? '밤 산책이면 밝은 길로 가요'
+    : '푹 자고 내일 가요';
+  var SIZE_LABEL = { small: '소형견', medium: '중형견', large: '대형견' };
+  document.getElementById('ring-sub').textContent =
+    live ? '다녀오면 끝 화면에서 오늘 도장을 찍어요'
+    : reached ? (sum > goal.target ? (sum - goal.target) + '분 더 걸었어요 · ' : '') + '산책 ' + todays.length + '번' + (km ? ' · ' + km.toFixed(1) + 'km' : '')
+    : todays.length ? '목표까지 ' + goal.left + '분 — 더 걸어도, 내일 해도 괜찮아요'
+    : '오늘 목표 · ' + (SIZE_LABEL[RR && RR.dogSize ? RR.dogSize() : 'medium'] || '중형견') + ' 기준';
+  // 버튼 — 산책 중이면 그 화면으로([다녀왔어요]는 아래 스크립트가 숨겨서 혼자 한 줄), 다녀온 날엔 [한 번 더 나가기]를 [다녀왔어요]와 같은 모양으로
+  var goBtn = document.getElementById('go-btn');
+  if (live) { goBtn.href = live.href; goBtn.textContent = '산책 화면으로 돌아가기'; }
+  else if (todays.length) { goBtn.className = 'btn-sub'; goBtn.textContent = '한 번 더 나가기'; document.getElementById('btn-row').classList.add('even'); }
+
+  // ── ② 오늘의 산책 도장 6칸 + 오늘 생긴 것 ──
+  var before = walks.filter(function (w) { return w && w.date < todayKey; });
+  var pb = RR.computeProgress(before), pa = RR.computeProgress(walks);
+  // 오늘 생긴 것 — 오늘 전까지 기록과 지금 기록을 견줘 본다(reward-rules.js newUnlocks — 끝 화면 '받은 것'과 같은 셈):
+  // 특기·특이 사항 칸, 승급, 처음 받은 발도장(장소 이름은 짧게), 이번 주 꾸준함 도장
+  var got = todays.length ? RR.newUnlocks(pb, pa).filter(function (t) { return !/발도장을 받았어요$/.test(t); }) : [];
+  // 오늘 찍은 발도장(길 기록 산책만 — computeProgress와 같은 판정). 같은 이름(공원 위·아래)은 한 번만
+  var placesToday = [], seenPlace = {};
+  RR.PLACES.forEach(function (pl) {
+    if (pl.pending) return;
+    var isNew = !!(pa.visited[pl.id] && !pb.visited[pl.id]);
+    var hit = isNew || todays.some(function (w) {
+      if (w.rewardEligible === false) return false;
+      return (w.stampRoute || w.route || []).some(function (p) { return RR.distanceKm(p, pl.center) <= pl.radiusKm; });
+    });
+    if (!hit) return;
+    var nm = shortPlace(pl.name);
+    if (seenPlace[nm]) return;
+    seenPlace[nm] = true;
+    placesToday.push(nm);
+    if (isNew) got.push(nm + ' 발도장을 처음 받았어요');
+  });
+  var tw = RR.steady(walks).thisWeek;
+  if (todays.length && tw.level > RR.steady(before).thisWeek.level) got.push('이번 주 꾸준함 ' + LV[tw.level] + ' 도장을 받았어요');
+  var gotEl = document.getElementById('did-got');
+  got.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; gotEl.appendChild(li); });
+  gotEl.hidden = !got.length;
+  // 끝 화면 답(충분·킁킁·응가)·오늘의 한 장·오늘 도감 QR로 만난 강아지
+  var feel = null, sniff = 0, poopAns = false, poopN = 0, poopMore = false, photoWalk = null;
+  todays.forEach(function (w) {
+    if (w.feel === 'enough' || w.feel === 'short') feel = w.feel;
+    if (w.sniff > sniff) sniff = w.sniff;
+    if (typeof w.poop === 'number') { poopAns = true; poopN += Math.min(2, w.poop); if (w.poop >= 2) poopMore = true; }
+    if (w.photoKey) photoWalk = w;
+  });
+  var friends = [];
+  ((WalsonStore.dex && WalsonStore.dex()) || []).forEach(function (d) {
+    if (!d) return;
+    var t = (d.log || []).filter(function (x) { return x && x.d === todayKey; })[0];
+    if (t) friends.push({ name: d.n || '친구', pal: t.k === 'l' });
+    else if (!d.log && d.last === todayKey) friends.push({ name: d.n || '친구', pal: !!d.pal });   // 만난 날 기록(log)이 없던 예전 항목
+  });
+  var FEEL = { enough: '충분했어요', short: '조금 아쉬워요' };
+  var stamps = [
+    { id: 'walk', label: '산책', on: sum >= 5, part: !!live && sum < 5,
+      detail: live && sum < 5 ? liveMin + '분째 걷는 중' : sum + '분' + (goal.reached ? ' · 목표 달성' : feel ? ' · ' + FEEL[feel] : ''), hint: '나가면 찍혀요' },
+    { id: 'poop', label: '응가', on: poopAns, detail: poopN ? poopN + '번' + (poopMore ? ' 이상' : '') + ' 치움' : '오늘은 안 쌌어요', hint: '끝 화면에서 답하면' },
+    { id: 'sniff', label: '킁킁', on: sniff > 0, detail: '킁킁 지수 ' + sniff, hint: '끝 화면에서 답하면' },
+    { id: 'photo', label: '오늘의 한 장', on: !!photoWalk, detail: '사진 남김', hint: '끝 화면에서 한 장' },
+    { id: 'stamp', label: '발도장', on: placesToday.length > 0, detail: (placesToday[0] || '') + (placesToday.length > 1 ? ' 외 ' + (placesToday.length - 1) : ''), hint: '길 기록하며 공원 지나면' },
+    { id: 'friend', label: '친구', on: friends.length > 0,
+      detail: friends.length ? friends[0].name + (friends.length > 1 ? ' 외 ' + (friends.length - 1) : '') + (friends[0].pal ? ' · 단짝' : '') : '', hint: '공원에서 QR 찍으면' }
+  ];
+  var grid = document.getElementById('st-grid');
+  stamps.forEach(function (st) {
+    var el = document.createElement('div');
+    el.className = 'st' + (st.on ? ' on' : st.part ? ' part' : '');
+    el.setAttribute('data-st', st.id);
+    var sl = document.createElement('span'); sl.className = 'sl'; sl.innerHTML = ICON[st.id];
+    var b = document.createElement('b'); b.textContent = st.label;
+    var sm = document.createElement('small'); sm.textContent = st.on || st.part ? st.detail : st.hint;
+    el.appendChild(sl); el.appendChild(b); el.appendChild(sm);
+    el.setAttribute('aria-label', st.label + (st.on ? ' 도장 — ' + st.detail : st.part ? ' — ' + st.detail : ' — 아직, ' + st.hint));
+    grid.appendChild(el);
+  });
+  document.getElementById('stamp-count').textContent = stamps.filter(function (s) { return s.on; }).length + ' / 6';
+  // 사진 칸은 찍히면 그날 사진으로(이 휴대폰 안 저장소에서 읽음)
+  if (photoWalk && window.WalkPhotos) {
+    var phImg = document.createElement('img'); phImg.alt = '';
+    WalkPhotos.show(photoWalk.photoKey, phImg).then(function (ok) {
+      if (!ok) return;
+      var sl = grid.querySelector('[data-st="photo"] .sl'); sl.innerHTML = ''; sl.appendChild(phImg);
+    });
+  }
+
+  // ── ③ 이번 주 7칸(월~일) — 오늘 이미 걸었으면 "이번 주 n일째", 아직이면 "오늘 나가면 n일째"(어제 요약 대신 오늘 할 것) ──
+  document.getElementById('wk').innerHTML = ['월', '화', '수', '목', '금', '토', '일'].map(function (d, k) {
+    return '<span class="' + (tw.walked[k] ? 'on' : '') + (k === tw.todayIndex ? ' today' : '') + '"><i>' + (tw.walked[k] ? PAW : '') + '</i>' + (k === tw.todayIndex ? '오늘' : d) + '</span>';
+  }).join('');
+  var wkSum = document.getElementById('wk-sum');
+  if (tw.walked[tw.todayIndex]) {
+    wkSum.innerHTML = '이번 주 <b>' + tw.days + '일째</b> · ' + (tw.level ? LV[tw.level] + ' 도장 ✓' : '도장까지 ' + tw.left + '일');
+  } else {
+    var nextDay = tw.days + 1;
+    wkSum.innerHTML = '오늘 나가면 이번 주 <b>' + nextDay + '일째</b>' + (RR.STEADY_STEPS.indexOf(nextDay) >= 0 ? ' · ' + nextDay + '일 도장!' : '');
+  }
+
+  // ── ④ 다음 갈 곳 한 줄 — [동네] 미션(발도장 장소를 순서대로). 다 모았으면 안 보인다 ──
+  var mission = RR.currentMission ? RR.currentMission(pa) : null;
+  if (mission) {
+    var allM = RR.missions(pa);
+    document.getElementById('next-pin').innerHTML = ICON.stamp;
+    document.getElementById('next-sub').textContent = '다음 갈 곳 · 발도장 ' + allM.filter(function (m) { return m.done; }).length + '/' + allM.length;
+    document.getElementById('next-name').textContent = shortPlace(mission.place.name);
+    document.getElementById('next-panel').hidden = false;
+  }
+
+  // ── ⑤ 오늘 영수증 — 다녀온 날엔 링 바로 아래 진짜 영수증(그날 마지막 산책 — [기록] ?day=가 여는 것과 같은 산책), 산책 전엔 맨 아래 빈 자리 ──
+  var rcPanel = document.getElementById('rc-panel');
+  if (todays.length) {
+    var dayHref = 'walk-history.html?day=' + todayKey;
+    rcPanel.innerHTML = '<div class="rc"><a class="rc-img" href="' + dayHref + '" aria-label="오늘 영수증 크게 보기"><canvas width="1080" height="1350" role="img" aria-label="오늘 영수증 미리 보기"></canvas></a>' +
+      '<div class="rc-tx"><b>오늘 영수증' + (todays.length > 1 ? ' ' + todays.length + '장' : '') + '</b><small>사진·특이 사항·글자를 꾸며 저장하거나 공유해요</small>' +
+      '<a class="btn-main" href="' + dayHref + '">꾸미고 저장하기</a></div></div>';
+    drawTodayReceipt(rcPanel.querySelector('canvas'));
+  } else {
+    rcPanel.innerHTML = '<div class="rc"><div class="rc-empty" aria-hidden="true"><em>?</em><i></i><i class="s"></i><i></i></div>' +
+      '<div class="rc-tx"><b>오늘 영수증</b><small>다녀와서 몇 분인지 적거나 산책을 끝내면 오늘 영수증이 여기 나와요.</small></div></div>';
+    var nextPanel = document.getElementById('next-panel');
+    nextPanel.parentNode.insertBefore(rcPanel, nextPanel.nextSibling);
+  }
+  rcPanel.hidden = false;
+  // 영수증 그림 — [기록] 일기 창과 같은 셈(receipt-info.js)·같은 그림(walk-receipt.js, 피드 4:5)을 작게(canvas-view.js). 글자 붙이기는 일기 창에서만
+  function loadImage(src) {
+    return new Promise(function (res) { if (!src) return res(null); var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; });
+  }
+  function drawTodayReceipt(canvas) {
+    var RI = window.WalsonReceiptInfo;
+    if (!RI || !window.WalkReceipt || !canvas) return;
+    var all = RI.clean(WalsonStore.walks()), idx = -1;
+    all.forEach(function (w, j) { if (w.date === todayKey) idx = j; });
+    if (idx < 0) return;
+    var info = RI.infoFor(all, RR), c = RI.loadChoices()[info[idx].key] || {};
+    var d = RI.dataFor(all, info, idx, c, profile, RR), w = all[idx];
+    var walkP = (w.photoKey && window.WalkPhotos)
+      ? WalkPhotos.get(w.photoKey).then(function (blob) {
+          if (!blob) return null;
+          var url = URL.createObjectURL(blob);
+          return loadImage(url).then(function (im) { URL.revokeObjectURL(url); return im; });
+        }).catch(function () { return null; })
+      : Promise.resolve(null);
+    Promise.all([walkP, loadImage(profile.photo || null), loadImage('icons/walson-logo.webp'), WalkReceipt.ensureFonts(WalkReceipt.textOf(d))]).then(function (a) {
+      // 사진 — 고른 것 → 산책 사진 → 프로필 사진 → 앱 그림([기록] pickSource와 같은 차례)
+      var s = { walk: a[0], profile: a[1] }, want = c.photo;
+      var pick = (want && (want === 'logo' || s[want])) ? want : (s.walk ? 'walk' : s.profile ? 'profile' : 'logo');
+      var big = document.createElement('canvas');
+      WalkReceipt.draw(big, d, pick === 'logo' ? null : s[pick], {
+        fmt: 'feed', logo: a[2], photoY: (c.pos != null ? c.pos : 40) / 100, photoX: (c.px != null ? c.px : 50) / 100, photoZoom: c.zoom || 1
+      });
+      if (window.WalsonView) WalsonView.show(canvas, big);
+      else { canvas.width = big.width; canvas.height = big.height; canvas.getContext('2d').drawImage(big, 0, 0); }
+    });
+  }
 
   // ── 샘플 데이터(11/23 — 버튼은 톱니 판 '시연용'으로 옮김) ──
   // 판의 "샘플 데이터로 둘러보기"는 index.html?sample=on, 판·탭 위 띠의 "샘플 끄기"는 index.html?sample=off 로 온다
