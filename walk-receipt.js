@@ -7,7 +7,7 @@
 //   [기록] 미리 보기에서 본문이 8px쯤이었다. 조각에는 큰 숫자(분·km는 작게), 알약 몇 개, 특이 사항, 브랜드 줄만 둔다.
 //   도장(상환 완료·응가 "오늘도 해냈다")은 조각 모서리에 스티커처럼 걸친다. 산책 빚 줄·농담 줄·품목표는 뺐다.
 //
-// 넣는 것: 사진, 강아지 이름, 날짜(요일까지), 몇 번째 산책인지, 걸은 시간, 거리(길 기록만), 응가·킁킁·발도장(또는 꾸준함) 알약,
+// 넣는 것: 사진, 강아지 이름, 날짜(요일까지), 몇 번째 산책인지, 걸은 시간, 거리(길 기록만), 응가·킁킁·발도장(또는 꾸준함)·오늘 목표 달성 알약,
 //         특이 사항, 상환 도장(충분했나), 응가 도장. 다녀와서 적은 산책은 "자진 신고"라고 숨기지 않는다.
 // 넣지 않는 것: 위치·경로·지도, 발도장 장소 이름, 가게 이름, 산책한 시각(시·분) —
 //   매일 올리는 이미지라 쌓이면 집 근처 동선·생활 패턴이 드러난다(CLAUDE.md "개인정보 취급").
@@ -39,6 +39,7 @@
   var BIG = '"Black Han Sans", Pretendard, sans-serif';
   var SANS = 'Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   var INK = '#26211d', SOFT_INK = '#7a7068', STAMP = '#d6453a', PAPER = '#fffdf8', PILL = '#f3ece3', RULE = '#bdb2a6';
+  var GOAL_PILL = '#fde4df';   // 오늘 목표 달성 알약 바탕(글씨는 도장 빨강)
   var POOP_INK = '#7a4a26';   // 응가 도장 — 빨간 도장(상환)과 갈리게 갈색 한 색
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   var SHOP = '다산동 산책 상회';   // 2026-11-17 가르시아 "다산동 산책 상회로 가 일단". 앱 이름은 아래 브랜드 줄(site-config.js brand)로
@@ -69,12 +70,13 @@
     // 큰 숫자: 숫자는 크게, 단위(분·km)는 작게(11/23 가르시아)
     var hero = [{ t: String(Math.max(0, d.durationMin | 0)), num: true }, { t: '분' }];
     if (d.mode !== 'time' && d.distanceKm) hero.push({ t: '·', sep: true }, { t: km(d.distanceKm), num: true }, { t: 'km' });
-    // 알약: 적은 것만 — 응가 · 킁킁 · 발도장(없으면 이번 주 꾸준함)
+    // 알약: 적은 것만 — 응가 · 킁킁 · 발도장(없으면 이번 주 꾸준함) · 오늘 목표 달성(11/23 가르시아 "오늘 목표 달성도 알약으로", 빨간 글씨)
     var pills = [];
-    if (typeof d.poop === 'number') pills.push('응가 ' + (d.poop >= 2 ? '2건+' : d.poop + '건'));
-    if (d.sniff) pills.push('킁킁 ' + Math.max(1, Math.min(5, d.sniff | 0)) + '/5');
-    if (d.stamps && d.stamps.hit) pills.push('발도장 ' + d.stamps.hit + '곳');
-    else if (d.steady && d.steady.days) pills.push('꾸준함 ' + d.steady.days + '일째');
+    if (typeof d.poop === 'number') pills.push({ t: '응가 ' + (d.poop >= 2 ? '2건+' : d.poop + '건') });
+    if (d.sniff) pills.push({ t: '킁킁 ' + Math.max(1, Math.min(5, d.sniff | 0)) + '/5' });
+    if (d.stamps && d.stamps.hit) pills.push({ t: '발도장 ' + d.stamps.hit + '곳' });
+    else if (d.steady && d.steady.days) pills.push({ t: '꾸준함 ' + d.steady.days + '일째' });
+    if (d.goal && d.goal.target && d.goal.reached) pills.push({ t: '오늘 목표 달성', goal: true });
     var B = window.WALSON_CONFIG && WALSON_CONFIG.brand;
     return {
       meta: meta, hero: hero, pills: pills, note: d.note || '', noteEmpty: '평화로운 산책',
@@ -89,7 +91,7 @@
   // 글꼴을 미리 불러올 때 쓰는 글자 모음 — 한글 글꼴은 글자 묶음별로 나뉘어 있어서, 그릴 글자를 같이 넘겨야 받아 온다
   function textOf(d) {
     var p = parts(d);
-    return [SHOP, p.meta, p.note, p.noteEmpty, p.brand, URL_TEXT].concat(p.pills, p.stamp).join('') +
+    return [SHOP, p.meta, p.note, p.noteEmpty, p.brand, URL_TEXT].concat(p.pills.map(function (x) { return x.t; }), p.stamp).join('') +
       p.hero.map(function (h) { return h.t; }).join('') + '0123456789.·/분km건곳일째응가킁킁발도장꾸준함오늘도해냈다×2+';
   }
   function ensureFonts(text) {
@@ -173,6 +175,23 @@
     });
   }
 
+  // 알약 줄: 한 줄에 다 들어가면 한 줄, 아니면 앞에서부터 채워 두 줄(줄마다 가운데). 그래도 넘치면 글씨를 조금 줄인다
+  function pillRows(ctx, pills, S, inner) {
+    if (!pills.length) return { rows: [], fs: S.pill };
+    for (var fs = S.pill; ; fs -= 1) {
+      ctx.font = '800 ' + fs + 'px ' + SANS;
+      var ws = pills.map(function (p) { return ctx.measureText(p.t).width + fs * 1.2; });
+      var rows = [], cur = [], cw = 0;
+      pills.forEach(function (p, i) {
+        var add = (cur.length ? S.pillGap : 0) + ws[i];
+        if (cur.length && cw + add > inner) { rows.push(cur); cur = []; cw = 0; add = ws[i]; }
+        cur.push({ p: p, w: ws[i] }); cw += add;
+      });
+      if (cur.length) rows.push(cur);
+      var fits = rows.length <= 2 && rows.every(function (r) { return r.reduce(function (a, x, k) { return a + x.w + (k ? S.pillGap : 0); }, 0) <= inner; });
+      if (fits || fs <= S.pill * 0.7) return { rows: rows.slice(0, 2), fs: fs };
+    }
+  }
   function drawBarcode(ctx, x, y, w, h, seed) {
     var rnd = rng(seed || 7), cx = x;
     ctx.fillStyle = INK;
@@ -308,7 +327,8 @@
     var hero = heroLayout(ctx, P.hero, S, inner);
     ctx.font = '800 ' + S.note + 'px ' + SANS;
     var noteLines = wrap(ctx, P.note || P.noteEmpty, inner, 2);
-    var pillsH = P.pills.length ? S.pillH + 26 : 0;
+    var PR = pillRows(ctx, P.pills, S, inner);
+    var pillsH = PR.rows.length ? PR.rows.length * S.pillH + (PR.rows.length - 1) * 12 + 26 : 0;
     var PH = S.tooth + 30 + S.meta + 14 + 22 + S.heroH + pillsH + noteLines.length * S.noteLine + 18 + 22 + S.bar + 12 + S.brand + 10 + S.url + 26 + S.tooth;
     // 사진이 너무 가려지면(특이 사항 두 줄 등) 조각을 줄인다
     var maxPH = H - S.bottom - H * S.minPhoto, scale = PH > maxPH ? maxPH / PH : 1;
@@ -346,24 +366,18 @@
     // 큰 숫자
     drawHero(ctx, hero, C, y + S.heroH * 0.84, S);
     y += S.heroH;
-    // 알약
-    if (P.pills.length) {
-      var fs = S.pill, ws, total;
-      for (;;) {
-        ctx.font = '800 ' + fs + 'px ' + SANS;
-        ws = P.pills.map(function (p) { return ctx.measureText(p).width + fs * 1.2; });
-        total = ws.reduce(function (a, b) { return a + b; }, 0) + S.pillGap * (ws.length - 1);
-        if (total <= inner || fs <= S.pill * 0.7) break;
-        fs -= 1;
-      }
-      var px = C - total / 2;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      P.pills.forEach(function (p, i) {
-        ctx.fillStyle = PILL; rr(ctx, px, y, ws[i], S.pillH, S.pillH / 2); ctx.fill();
-        ctx.fillStyle = INK; ctx.fillText(p, px + ws[i] / 2, y + S.pillH / 2 + 1);
-        px += ws[i] + S.pillGap;
+    // 알약(한 줄 또는 두 줄)
+    if (PR.rows.length) {
+      ctx.font = '800 ' + PR.fs + 'px ' + SANS; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      PR.rows.forEach(function (row, ri) {
+        var total = row.reduce(function (a, x, k) { return a + x.w + (k ? S.pillGap : 0); }, 0), px = C - total / 2;
+        row.forEach(function (x) {
+          ctx.fillStyle = x.p.goal ? GOAL_PILL : PILL; rr(ctx, px, y, x.w, S.pillH, S.pillH / 2); ctx.fill();
+          ctx.fillStyle = x.p.goal ? STAMP : INK; ctx.fillText(x.p.t, px + x.w / 2, y + S.pillH / 2 + 1);
+          px += x.w + S.pillGap;
+        });
+        y += S.pillH + (ri < PR.rows.length - 1 ? 12 : 26);
       });
-      y += S.pillH + 26;
     }
     // 특이 사항
     var n0 = y;
