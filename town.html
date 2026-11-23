@@ -103,7 +103,9 @@
   .chip .count { font-weight: 500; color: var(--ink-soft); }
   /* 묶음 칩: 여러 레이어가 든 묶음은 누르면 아래 줄이 펼쳐진다 */
   .chip .caret { font-size: 9px; color: var(--ink-soft); transition: transform 0.15s; }
-  .chip[aria-expanded="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  /* 글자색(--ink) 칸 위 글씨는 바탕색 변수(--bg)로 — #fff로 박으면 블랙에선 --ink가 흰색이라 흰 칸에 흰 글씨가 된다
+     (2026-11-23 가르시아 캡처: 지도 얼굴 발도장의 숫자 배지. 이 화면 일곱 곳을 같이 고침) */
+  .chip[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .chip[aria-expanded="true"] .count, .chip[aria-expanded="true"] .caret { color: #fff; }
   .chip[aria-expanded="true"] .caret { transform: rotate(180deg); }
   .chip.is-all { border-style: dashed; padding: 0 10px; }
@@ -213,20 +215,20 @@
   }
   .ls-mode[hidden] { display: none; }
   .ls-mode:active { transform: scale(0.97); }
-  .ls-mode[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .ls-mode[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   /* 급할 때는 빨간 글씨로 눈에 띄게(예전 버튼과 같은 색) */
   .ls-mode.is-sos { color: #a33a2f; border-color: #e8c4bd; }
   .ls-mode.is-sos[aria-pressed="true"] { background: #c2453f; color: #fff; border-color: #c2453f; }
   /* QR 찍기(2026-11-16)는 목록이 아니라 바로 하는 것 — 앞에 QR 동그라미 */
   .ls-mode.is-act { padding-left: 6px; }
-  .ls-mode .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .ls-mode .ic { width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--bg); display: flex; align-items: center; justify-content: center; }
   /* 미션(2026-11-18 가르시아 "첫 화면에 미션 정보가 바로 나와. 그냥 지도에 어떤 게 있는지부터 둘러볼 수 있게"):
      첫 화면(접힌 시트)에는 미션 카드를 두지 않고 [미션 n/N] 버튼 하나만 — 누르면 목록 시트에서 지금 미션 카드 + 미션 목록 */
   .ls-mode.is-mission .mf { display: flex; color: var(--accent); }
   .ls-mode.is-mission .mf svg { width: 15px; height: 15px; }
   .ls-mode.is-mission.is-here { border-color: #3f7d4a; color: #2f6b3a; }
   .ls-mode.is-mission.is-here .mf { color: #3f7d4a; }
-  .ls-mode.is-mission[aria-pressed="true"] .mf { color: #fff; }
+  .ls-mode.is-mission[aria-pressed="true"] .mf { color: var(--bg); }
   .list-sheet .mission-card { max-width: none; background: #fff; box-shadow: none; }
   .ls-mission-now { list-style: none; margin-bottom: 4px; }
   .shop-item.is-row.is-done .name { color: var(--ink-soft); }
@@ -296,14 +298,14 @@
   .sheet-tools { display: flex; gap: 6px; overflow-x: auto; padding: 6px 14px 10px; scrollbar-width: none; flex-shrink: 0; }
   .sheet-tools::-webkit-scrollbar { display: none; }
   .sheet-tools .chip { padding: 0 12px; box-shadow: none; }
-  .sheet-tools .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .sheet-tools .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .near-btn { flex-shrink: 0; font-family: inherit; font-size: 12px; font-weight: 800; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer; }
   .shop-list { list-style: none; margin: 0; padding: 0 14px 4px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
   .shop-item { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 10px; border-radius: 14px; border: 1px solid var(--panel-border); background: #fff; color: var(--ink); font-family: inherit; cursor: pointer; }
   .shop-item:active { transform: scale(0.99); }
   .shop-item .shop-thumb { position: relative; flex-shrink: 0; width: 46px; height: 46px; }
   .shop-item .shop-thumb img, .shop-item .shop-thumb .ic { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; }
-  .shop-item .lv { position: absolute; right: -6px; top: -6px; padding: 0 5px; height: 18px; border-radius: 999px; background: var(--ink); color: #fff; border: 2px solid #fff; font: 900 10px/14px Pretendard, -apple-system, sans-serif; }
+  .shop-item .lv { position: absolute; right: -6px; top: -6px; padding: 0 5px; height: 18px; border-radius: 999px; background: var(--ink); color: var(--bg); border: 2px solid #fff; font: 900 10px/14px Pretendard, -apple-system, sans-serif; }
   .shop-item .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .shop-item .row1 { display: flex; align-items: baseline; gap: 6px; }
   .shop-item .name { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -322,7 +324,7 @@
   .walk-btn { align-self: flex-start; font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--panel-border); background: #fff; color: var(--accent); cursor: pointer; }
   .reg { background: #fdf3ec; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
   .reg-top { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--ink); }
-  .reg-lv { font-size: 11px; font-weight: 900; padding: 0 7px; border-radius: 999px; background: var(--ink); color: #fff; }
+  .reg-lv { font-size: 11px; font-weight: 900; padding: 0 7px; border-radius: 999px; background: var(--ink); color: var(--bg); }
   .reg-text { font-size: 12px; color: var(--ink-soft); }
   .reg-hint { font-size: 11px; color: var(--ink-soft); line-height: 1.45; }
   .leaflet-bottom.leaflet-right { margin-bottom: 0; }
@@ -353,7 +355,7 @@
   .dog-face img, .leaflet-container .leaflet-marker-pane .dog-face img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .dog-face-n {
     position: absolute; right: -6px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
-    background: var(--ink); color: #fff; font: 800 11px/20px Pretendard, -apple-system, sans-serif; text-align: center; box-sizing: border-box;
+    background: var(--ink); color: var(--bg); font: 800 11px/20px Pretendard, -apple-system, sans-serif; text-align: center; box-sizing: border-box;
   }
   .deco-dog { width: 40px; height: 40px; animation: deco-bob 3s ease-in-out infinite; transform-origin: 50% 100%; filter: drop-shadow(0 2px 2px rgba(74,63,53,0.25)); }
   .deco-dog.is-flip svg { transform: scaleX(-1); }
@@ -361,7 +363,7 @@
   @media (prefers-reduced-motion: reduce) { .deco-dog { animation: none; } }
   .stamp.is-done { border: 2px solid var(--accent); color: #fff; background: var(--accent); }
 </style>
-<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<link rel="stylesheet" href="theme-black.css?v=3"><script src="theme.js?v=14"></script>
 <script src="quick-set.js?v=2"></script>
 <script src="site-config.js?v=11"></script>
 <script src="cloud-backup.js?v=3" defer></script>

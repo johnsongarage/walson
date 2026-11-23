@@ -63,7 +63,10 @@
     { id: 'keyhook', spr: 'keyhook', wall: 'R', u: 1.0, h: 34,         name: '키링 걸이',      need: { keyring: 1 } },
     { id: 'lamp',    spr: 'lamp',    i: 4.4, j: 0.7,                   name: '스탠드 조명',    need: { steady: 1 } },
     { id: 'mat',     spr: 'mat',     i: 1.8, j: 6.2, decal: [2.0, 2.0], name: '피크닉 매트',  need: { park: 1 } },
-    { id: 'garland', spr: 'garland', wall: 'R', u: 2.0, h: 51,         name: '가랜드',         need: { steady5: 1 } }
+    { id: 'garland', spr: 'garland', wall: 'R', u: 2.0, h: 51,         name: '가랜드',         need: { steady5: 1 } },
+    // 단짝 액자(11/23 가르시아 "추천대로" — 교환 수 문턱 보상("단짝 3마리면 가랜드") 대신): 첫 단짝부터 걸리고 최근 단짝 세 마리 도트 얼굴이 들어간다.
+    // 숫자를 채우는 보상이 아니라 방이 친구로 채워지는 것(11/23 결정 "방이 채워지는 것 자체가 보상"과 같은 결)
+    { id: 'palframe', spr: 'palframe', wall: 'L', u: 1.0, h: 27,      name: '단짝 액자',      need: { pals: 1 } }
   ];
   // 머리 위 장식 — 순서 고정(방 모습에 1부터 번호, 0 = 없음)
   var ACCS = [
@@ -109,10 +112,11 @@
       steady: (st && st.total) || 0,
       level: level, rank: rankName(level),
       pass: prof && prof.name ? 1 : 0, photos: photos, poop: poop, keyring: WalsonStore.keyring() ? 1 : 0, park: park,
-      steady5: (by[1] || 0) + (by[2] || 0)                        // 5일·7일 도장을 받은 주
+      steady5: (by[1] || 0) + (by[2] || 0),                       // 5일·7일 도장을 받은 주
+      pals: WalsonStore.dex().filter(function (e) { return e && e.pal; }).length   // 도감 단짝 수(그 자리에서 서로 찍은 친구)
     };
   }
-  var NEED_KEYS = ['walks', 'level', 'stamps', 'shop', 'steady', 'pass', 'photos', 'poop', 'keyring', 'park', 'steady5'];
+  var NEED_KEYS = ['walks', 'level', 'stamps', 'shop', 'steady', 'pass', 'photos', 'poop', 'keyring', 'park', 'steady5', 'pals'];
   function met(need, p) {
     need = need || {};
     for (var k = 0; k < NEED_KEYS.length; k++) { var key = NEED_KEYS[k]; if (need[key] && !((p[key] || 0) >= need[key])) return false; }
@@ -133,8 +137,9 @@
     else if (need.keyring) how = '키링을 받으면 생겨요';
     else if (need.park) how = '공원 발도장을 받으면 생겨요';
     else if (need.steady5) how = '한 주에 5일 산책하면 생겨요';
+    else if (need.pals) how = '단짝이 생기면 걸려요 — 최근 단짝 얼굴이 들어가요';
     else how = '처음부터 있어요';
-    var once = need.shop || need.pass || need.keyring || need.park;   // 한 번 하면 되는 것은 "아직 없어요"
+    var once = need.shop || need.pass || need.keyring || need.park || need.pals;   // 한 번 하면 되는 것은 "아직 없어요"
     return { how: how, mine: met(need, p) ? '나도 있어요' : (once ? '나는 아직 없어요' : '나는 ' + needText(need, p)) };
   }
   // 소품 칸 아래 작은 글씨 — 생겼으면 어떻게 생겼는지, 아니면 얼마나 남았는지
@@ -152,6 +157,7 @@
     if (need.keyring) return ok ? '키링' : '키링 받으면';
     if (need.park) return ok ? '공원 발도장' : '공원 발도장 받으면';
     if (need.steady5) return ok ? '꾸준함 5일' : '한 주 5일 산책하면';
+    if (need.pals) return ok ? '단짝' : '단짝이 생기면';
     return '처음부터';
   }
 
@@ -188,7 +194,7 @@
       line: '산책 30번이면 이렇게 돼요',   // 등급·꾸준함 — 안쪽 구석 트로피·깃발, 벽엔 액자·엽서 갤러리와 가랜드, 창 아래 우리 개 사진
       pos: {
         garland: { wall: 'R', u: 1.2, h: 52 }, frame: { wall: 'R', u: 2.5, h: 41 }, card0: { wall: 'R', u: 4.4, h: 44 },
-        photo: { wall: 'L', u: 3.0, h: 29 }, card1: { wall: 'L', u: 4.9, h: 40 },
+        photo: { wall: 'L', u: 3.0, h: 29 }, card1: { wall: 'L', u: 4.9, h: 40 }, palframe: { wall: 'L', u: 4.6, h: 22 },
         rug: { i: 3.8, j: 4.2 }, trophy: { i: 0.9, j: 0.9 }, flag: { i: 2.1, j: 0.7 },
         bed: { i: 5.3, j: 1.3 }, bowl: { i: 7.1, j: 1.4 }, bone: { i: 6.0, j: 2.6 }, plant: { i: 0.8, j: 3.3 },
         house: { i: 2.0, j: 6.6 }, ball: { i: 5.0, j: 6.4 }, carrot: { i: 5.8, j: 6.0 }
@@ -207,7 +213,7 @@
       dogs: { host: [3.0, 3.4], guest: [4.4, 2.6] },   // 매트 뒤에(앞쪽 매트 위 바구니·공이 가려지지 않게)
       pos: {
         garland: { wall: 'L', u: 5.0, h: 52 }, card0: { wall: 'R', u: 2.2, h: 42 }, card1: { wall: 'R', u: 3.6, h: 39 },
-        photo: { wall: 'R', u: 5.4, h: 41 }, poopbag: { wall: 'L', u: 6.8, h: 30 },
+        photo: { wall: 'R', u: 5.4, h: 41 }, poopbag: { wall: 'L', u: 6.8, h: 30 }, palframe: { wall: 'L', u: 2.2, h: 28 },
         mat: { i: 5.0, j: 5.4 }, house: { i: 6.6, j: 0.9 }, bowl: { i: 4.8, j: 0.8 }, bone: { i: 6.0, j: 2.0 },
         basket: { i: 4.4, j: 4.8 }, ball: { i: 5.4, j: 5.8 }, carrot: { i: 4.6, j: 6.0 }, plant: { i: 0.8, j: 3.2 }
       } }
@@ -218,7 +224,7 @@
   // 샘플 모드의 내 방(공원 시연·처음 온 사람) — 샘플 강아지 왈슨이 지금 가진 소품을 1번 방과 같은 손 배치로. 벽지는 모델하우스와 다르게 라일락.
   // 1번 방에 없는 소품은 빼 둔 걸로(샘플 방이 흐트러지지 않게 — [내 소품]에서 넣을 수 있다).
   // 샘플을 끄면 원래대로(sample-data.js가 petwalk_azit을 보관했다 되돌린다). sample: true = 이 상태가 샘플용이라는 표시
-  var SAMPLE_V = 2;   // 샘플 방 모양 번호 — 소품·배치가 바뀌면 올린다(예전 샘플 방은 새로 만든다)
+  var SAMPLE_V = 3;   // 샘플 방 모양 번호 — 소품·배치가 바뀌면 올린다(예전 샘플 방은 새로 만든다). 3 = 단짝 액자 더함(11/23)
   function sampleState() {
     var room = SHOWROOMS[0];
     var all = ITEMS.map(function (it) { return it.id; }).concat(ACCS.map(function (a) { return a.id; }));
