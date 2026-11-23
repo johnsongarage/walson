@@ -27,7 +27,11 @@
      - 상대가 휴대폰 카메라로 찍으면 이 화면이 열리며 "도감에 넣을까요?"를 묻는다(#뒤는 서버로 가지 않음).
        왈슨 안의 "상대 QR 찍기"(카메라)로 찍어도 같다 — 아이폰 홈 화면 앱은 기록이 사파리와 따로라 이쪽을 권한다.
      - 저장: petwalk_dex(배열, 기록 옮기기 때 번호로 합침), petwalk_dex_me(내 무작위 번호). 이 폰에만.
-     - 서로 넣으려면 둘 다 찍어야 한다(서버가 없어서 상대에게 알릴 길이 없음). 상대가 나중에 이름을 바꿔도 다시 찍기 전엔 그대로. */
+     - 서로 넣으려면 둘 다 찍어야 한다(서버가 없어서 상대에게 알릴 길이 없음). 상대가 나중에 이름을 바꿔도 다시 찍기 전엔 그대로.
+     - 2026-11-23 개방명록 1단계(hq DECISIONS 11/23 "교환은 앱 QR이 기본, 키링은 필수 아님"):
+       내 카드 화면 QR = 위 카드 + 띄운 시각 + 고른 한마디(dex-card.js liveUrl, 30초마다 새로 그림).
+       찍은 쪽은 몇 분 안의 화면 QR이면 단짝(pal) + 한마디, 키링·카드 주소·지난 캡처는 발자국으로 적는다.
+       만난 날마다 log에 {날짜, 단짝/발자국, 한마디 번호} — 날짜만, 시각·장소 X. 교환엔 보상을 걸지 않는다(치팅해도 이 폰 기록만). */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
     --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a; --accent-tint: #f3ddd2;
@@ -79,12 +83,40 @@
   .row .btn { flex: 1; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 90%; background: #4a3f35; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; z-index: 60; }
 
+  /* 개방명록 1단계(2026-11-23) — 단짝·발자국 표, 한마디 고르기, 받은 한마디. 색은 theme.js 변수만(블랙에서도 그대로) */
+  .tag { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 8px; }
+  .tag.pal { color: var(--accent); background: var(--accent-tint); }
+  .tag.foot { color: var(--ink-soft); border: 1px dashed var(--panel-border); }
+  .stamp { display: inline-flex; flex-shrink: 0; width: 14px; height: 14px; color: var(--accent); }
+  .stamp svg { width: 100%; height: 100%; display: block; }
+  .said { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.35; word-break: keep-all; margin-top: 2px; }
+  .who.compact .avatar.xl { width: 60px; height: 60px; font-size: 24px; border-width: 4px; }
+  .who.compact h2 { margin-top: 6px; font-size: 19px; }
+  .pick { display: flex; align-items: center; gap: 8px; width: 100%; margin: 0 0 8px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--panel-border); background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; font-weight: 800; text-align: left; cursor: pointer; }
+  .pick .lbl { font-size: 12px; font-weight: 700; color: var(--ink-soft); flex-shrink: 0; }
+  .pick .txt { flex: 1; min-width: 0; word-break: keep-all; }
+  .pick .chg { font-size: 12px; font-weight: 800; color: var(--accent); flex-shrink: 0; }
+  .msgs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0 0 10px; }
+  .msgs[hidden] { display: none; }
+  .msg { display: flex; align-items: center; gap: 6px; padding: 9px 9px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; text-align: left; line-height: 1.3; word-break: keep-all; cursor: pointer; }
+  .msg[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
+  .qr-note { margin: -2px 0 12px; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  .bubble { display: inline-flex; align-items: center; gap: 6px; margin: 0 auto 10px; padding: 9px 14px; border-radius: 16px; background: var(--accent-tint); color: var(--accent); font-size: 15px; font-weight: 800; word-break: keep-all; }
+  .book { list-style: none; margin: 0 0 4px; padding: 0; text-align: left; border-top: 1px solid var(--panel-border); }
+  .book li { display: flex; align-items: center; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--panel-border); font-size: 13px; color: var(--ink); }
+  .book .day { flex-shrink: 0; width: 64px; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .book .what { flex: 1; min-width: 0; font-weight: 700; word-break: keep-all; }
+  .book .soft { color: var(--ink-soft); font-weight: 600; }
+
 </style>
 <script src="store.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="qr-scan.js?v=4"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
-<script src="dex-card.js?v=1"></script>
+<script src="dex-card.js?v=2"></script>
+<!-- 사용 통계(2026-11-23 개방명록 1단계): 도감에 넣은 횟수를 QR 종류(화면·키링·지난 캡처)와 처음인지만으로 센다 — 강아지 이름·번호는 안 보냄 -->
+<script src="site-config.js?v=10"></script>
+<script src="track.js?v=10"></script>
 </head>
 <body>
 
@@ -93,8 +125,8 @@
     <a href="my-card.html" title="워킹패스로 돌아가기">←</a>
     <h1>강아지 도감</h1>
   </div>
-  <p class="subtitle">공원에서 만난 강아지와 서로 QR을 찍으면 도감에 들어가요.
-  서버 없이 이 휴대폰에만 저장돼요.</p>
+  <p class="subtitle">공원에서 만난 강아지와 그 자리에서 서로 화면 QR을 찍으면 단짝이 되고 한마디가 남아요.
+  키링 QR을 찍으면 발자국으로 남아요. 서버 없이 이 휴대폰에만 저장돼요.</p>
 
   <div class="acts">
     <button type="button" class="btn btn-main" id="show-btn">내 카드 보여 주기</button>
@@ -104,16 +136,21 @@
   <div class="count"><b id="dex-count">0</b><span>마리를 만났어요</span></div>
   <div class="grid" id="grid"></div>
   <p class="note">QR에 담기는 것: 강아지 이름 · 크기 · 성향 · 털색(프로필 사진에서 뽑은 색 하나).
-  위치 · 사진 · 견주 정보는 담지 않아요.<br>
+  앱 화면에 띄운 QR에는 띄운 시각과 고른 한마디도 담겨요. 위치 · 사진 · 견주 정보는 담지 않아요.<br>
+  화면 QR을 띄운 지 몇 분 안에 찍으면 단짝, 키링 QR이나 캡처해서 받은 QR은 발자국으로 남아요.
   서로 도감에 넣으려면 둘 다 찍어야 해요. 상대가 나중에 이름을 바꾸면 다시 찍어야 바뀌어요.</p>
 </div>
 
 <!-- 내 카드 -->
 <div class="sheet" id="my-sheet" hidden>
   <div class="card">
-    <div class="who" id="my-who"></div>
-    <p class="sub">상대 휴대폰 카메라나 왈슨의 "상대 QR 찍기"로 찍으면 돼요.</p>
+    <div class="who compact" id="my-who"></div>
+    <p class="sub">상대가 왈슨의 "상대 QR 찍기"나 휴대폰 카메라로 찍으면 돼요.</p>
+    <!-- 한마디 고르기(2026-11-23) — 고른 말이 QR에 실려 상대 폰으로 간다. 누르면 아래에 여덟 가지가 펼쳐진다 -->
+    <button type="button" class="pick" id="my-pick" aria-expanded="false" aria-controls="my-msgs"></button>
+    <div class="msgs" id="my-msgs" hidden></div>
     <div class="qr" id="my-qr"></div>
+    <p class="qr-note">이 QR은 30초마다 새로 바뀌어요. 그 자리에서 찍으면 단짝이 되고 한마디가 남아요 — 캡처해서 보내면 발자국만 남아요.</p>
     <!-- 카드 주소 보내기(2026-11-16 가르시아): 키링을 신청할 때 운영자에게 이 주소를 보낸다 — 키링 뒷면 QR·NFC에 그대로 들어간다 -->
     <button type="button" class="btn btn-main" id="share-btn">카드 주소 보내기 · 키링 신청용</button>
     <p class="sub" style="margin:8px 0 12px;">이 주소에는 강아지 이름·크기·성향·털색만 들어가요. 주소를 받은 사람은 누구나 열어 볼 수 있어요.</p>
@@ -135,6 +172,8 @@
   <div class="card">
     <div class="who" id="info-who"></div>
     <p class="sub" id="info-sub"></p>
+    <!-- 만난 날마다 한 줄(최근이 위) — 받은 한마디 · 단짝 만남 · 발자국 -->
+    <ul class="book" id="info-book"></ul>
     <div class="row">
       <button type="button" class="btn btn-sub" id="info-remove">도감에서 빼기</button>
       <button type="button" class="btn btn-main" data-close>닫기</button>
@@ -182,8 +221,24 @@
       if (!SIZE[o.s]) return null;
       if (o.g && !SIGNAL[o.g]) return null;
       if (!/^#[0-9a-f]{6}$/i.test(o.c)) return null;
-      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase() };
+      // 화면 QR(2026-11-23)이면 띄운 시각(분)·한마디 번호가 더 있다 — 모양이 이상하면 없는 걸로(발자국)
+      var t = (typeof o.t === 'number' && o.t > 0 && o.t % 1 === 0) ? o.t : null;
+      var m = (typeof o.m === 'number' && DC.MSGS[o.m]) ? o.m : null;
+      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase(), t: t, m: m };
     } catch (e) { return null; }
+  }
+  // 한마디 · 도장 그림
+  function msgText(m) { return DC.MSGS[m] ? DC.MSGS[m].t : ''; }
+  function stampEl(m) {
+    var s = el('span', 'stamp');
+    s.innerHTML = DC.stampSvg(DC.MSGS[m] ? DC.MSGS[m].s : 'paw');   // 우리 코드가 만든 그림만(받은 글자는 넣지 않음)
+    return s;
+  }
+  // 받은 한마디 중 가장 최근 것(없으면 null)
+  function lastMsg(d) {
+    var log = Array.isArray(d.log) ? d.log : [];
+    for (var i = log.length - 1; i >= 0; i--) if (log[i] && DC.MSGS[log[i].m]) return log[i].m;
+    return null;
   }
   function payloadFromText(text) {
     var m = /dex\.html#d=([A-Za-z0-9_-]+)/.exec(text || '');
@@ -212,6 +267,8 @@
   function render() {
     var list = loadDex().slice().sort(function (a, b) { return (b.last || '') < (a.last || '') ? -1 : 1; });
     $('dex-count').textContent = list.length;
+    var pals = list.filter(function (d) { return d.pal; }).length;
+    $('dex-count').nextElementSibling.textContent = '마리를 만났어요' + (pals ? ' · 단짝 ' + pals : '');
     var grid = $('grid');
     grid.innerHTML = '';
     list.forEach(function (d) {
@@ -220,6 +277,9 @@
       b.appendChild(el('div', 'name', d.n));
       b.appendChild(el('div', 'meta', SIZE[d.s]));
       if (SIGNAL[d.g]) { var s = el('div', 'sig', SIGNAL[d.g].desc); s.style.color = SIGNAL[d.g].color; b.appendChild(s); }
+      b.appendChild(el('div', 'tag ' + (d.pal ? 'pal' : 'foot'), d.pal ? '단짝' : '발자국'));
+      var lm = lastMsg(d);
+      if (lm != null) { var said = el('div', 'said'); said.appendChild(stampEl(lm)); said.appendChild(el('span', '', msgText(lm))); b.appendChild(said); }
       b.appendChild(el('div', 'met', (d.days > 1 ? d.days + '번 만남 · ' : '') + dayLabel(d.last)));
       b.addEventListener('click', function () { openInfo(d.i); });
       grid.appendChild(b);
@@ -231,7 +291,11 @@
 
   // ── 겹쳐 뜨는 화면 ──
   function open(id) { $(id).hidden = false; }
-  function closeAll() { ['my-sheet', 'add-sheet', 'info-sheet'].forEach(function (id) { $(id).hidden = true; }); if (window.WalsonQR) WalsonQR.close(); }
+  function closeAll() {
+    ['my-sheet', 'add-sheet', 'info-sheet'].forEach(function (id) { $(id).hidden = true; });
+    if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+    if (window.WalsonQR) WalsonQR.close();
+  }
   document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeAll); });
   document.querySelectorAll('.sheet').forEach(function (s) { s.addEventListener('click', function (e) { if (e.target === s) closeAll(); }); });
 
@@ -245,6 +309,48 @@
     } else copyFallback();
   }
 
+  // ── 내 카드(화면 QR) ── 2026-11-23: 고른 한마디 + 띄운 시각을 담고 30초마다 새로 그린다(캡처는 몇 분 뒤 발자국만).
+  // 카드 주소 보내기(키링 신청용)는 예전 그대로 시각 없는 주소 — 키링 뒷면 QR·NFC에 들어가는 주소라서.
+  var MSG_KEY = 'petwalk_dex_msg';   // 마지막으로 고른 한마디 번호(다음에 띄울 때 그대로)
+  var liveCard = null, liveTimer = null, pickedMsg = 0;
+  function savedMsg() {
+    var raw = WalsonStore.get(MSG_KEY), v = Number(raw);
+    return (raw != null && raw !== '' && DC.MSGS[v]) ? v : 0;
+  }
+  function drawLiveQr() {
+    var box = $('my-qr');
+    if (!liveCard) return;
+    if (!window.qrcode) { box.textContent = 'QR을 그리지 못했어요(인터넷 연결 확인).'; return; }
+    var qr = qrcode(0, 'M'); qr.addData(DC.liveUrl(liveCard, pickedMsg)); qr.make();
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  }
+  function drawPick() {
+    var m = pickedMsg, pick = $('my-pick');
+    pick.innerHTML = '';
+    pick.appendChild(el('span', 'lbl', '한마디'));
+    pick.appendChild(stampEl(m));
+    pick.appendChild(el('span', 'txt', msgText(m)));
+    pick.appendChild(el('span', 'chg', $('my-msgs').hidden ? '바꾸기' : '접기'));
+    pick.setAttribute('aria-expanded', $('my-msgs').hidden ? 'false' : 'true');
+    var box = $('my-msgs');
+    box.innerHTML = '';
+    DC.MSGS.forEach(function (x, i) {
+      var b = el('button', 'msg'); b.type = 'button';
+      b.setAttribute('aria-pressed', i === m ? 'true' : 'false');
+      b.appendChild(stampEl(i)); b.appendChild(el('span', '', x.t));
+      b.addEventListener('click', function () {
+        pickedMsg = i;
+        WalsonStore.set(MSG_KEY, String(i));   // 저장 못 해도 이번 화면은 고른 말로 그린다
+        $('my-msgs').hidden = true;
+        drawPick(); drawLiveQr();
+      });
+      box.appendChild(b);
+    });
+  }
+  $('my-pick').addEventListener('click', function () {
+    $('my-msgs').hidden = !$('my-msgs').hidden;
+    drawPick();
+  });
   function showMyCard() {
     myCard().then(function (card) {
       closeAll();
@@ -254,13 +360,16 @@
       }
       whoBlock($('my-who'), card);
       shareUrl = cardUrl(card); shareName = card.n;
-      var box = $('my-qr');
-      if (!window.qrcode) { box.textContent = 'QR을 그리지 못했어요(인터넷 연결 확인).'; }
-      else { var qr = qrcode(0, 'M'); qr.addData(cardUrl(card)); qr.make(); box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+      liveCard = card; pickedMsg = savedMsg();
+      $('my-msgs').hidden = true;
+      drawPick(); drawLiveQr();
+      liveTimer = setInterval(drawLiveQr, 30000);
       open('my-sheet');
     });
   }
   $('show-btn').addEventListener('click', showMyCard);
+  // 다른 앱에 갔다 오면 시각을 새로(타이머가 멈춰 있었을 수 있다)
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !$('my-sheet').hidden) drawLiveQr(); });
   $('share-btn').addEventListener('click', function () {
     if (!shareUrl) return;
     if (WalsonDevice.canShare()) {
@@ -282,31 +391,62 @@
       open('add-sheet');
       return;
     }
+    // 찍은 그때 어떤 QR이었는지 정해 둔다(넣기를 늦게 눌러도 그대로)
+    var kind = DC.kindOf(dog.t), live = kind === 'live';
     var exist = loadDex().filter(function (d) { return d.i === dog.i; })[0];
     whoBlock($('add-who'), dog, exist ? dog.n + ' 또 만났어요' : eul(dog.n) + ' 만났어요');
-    $('add-sub').textContent = exist ? '도감에 있는 강아지예요. 오늘 만난 걸로 적을까요?' : '도감에 넣을까요? 이 휴대폰에만 저장돼요.';
+    var who = $('add-who');
+    if (live && dog.m != null) {   // 받은 한마디 — 고르기만 하는 말이라 우리 목록의 글자만 보인다
+      var bub = el('div', 'bubble'); bub.appendChild(stampEl(dog.m)); bub.appendChild(el('span', '', msgText(dog.m)));
+      who.appendChild(bub);
+    }
+    var sub;
+    if (live) sub = (exist && exist.pal ? '단짝이에요. 오늘 만난 걸로 적을까요?' : '그 자리에서 찍은 화면 QR이라 단짝으로 적어요.') + ' 이 휴대폰에만 저장돼요.';
+    else if (kind === 'stale') sub = '띄운 지 몇 분 지난 QR이라 발자국으로만 적어요. 그 자리에서 다시 띄워 달라고 하면 단짝이 되고 한마디도 남아요.';
+    else sub = '키링이나 주소로 받은 QR이라 발자국으로 적어요. 상대 화면의 QR을 그 자리에서 찍으면 단짝이 되고 한마디도 남아요.';
+    $('add-sub').textContent = sub;
     var acts = $('add-actions'); acts.innerHTML = '';
     var row = el('div', 'row');
     var no = el('button', 'btn btn-sub', '안 넣기'); no.type = 'button'; no.addEventListener('click', closeAll);
-    var yes = el('button', 'btn btn-main', exist ? '만난 걸로 적기' : '도감에 넣기'); yes.type = 'button';
-    yes.addEventListener('click', function () { addDog(dog); });
+    var yes = el('button', 'btn btn-main', exist ? '만난 걸로 적기' : live ? '단짝으로 넣기' : '발자국 남기기'); yes.type = 'button';
+    yes.addEventListener('click', function () { addDog(dog, kind); });
     row.appendChild(no); row.appendChild(yes); acts.appendChild(row);
     open('add-sheet');
   }
-  function addDog(dog) {
-    var list = loadDex(), today = todayKey();
-    var e = list.filter(function (d) { return d.i === dog.i; })[0];
+  // 만난 날마다 한 줄 — {d: 날짜, k: 'l' 단짝 만남 | 'f' 발자국, m: 받은 한마디 번호}. 날짜만(시각·장소 X), 최근 60줄까지
+  function logMeet(e, day, k, m) {
+    var log = Array.isArray(e.log) ? e.log : [];
+    var last = log[log.length - 1];
+    if (last && last.d === day) {   // 같은 날 또 찍으면 한 줄로 — 단짝 만남이 이기고, 한마디는 새로 받은 것
+      if (k === 'l') last.k = 'l';
+      if (m != null) last.m = m;
+    } else {
+      var item = { d: day, k: k };
+      if (m != null) item.m = m;
+      log.push(item);
+    }
+    e.log = log.length > 60 ? log.slice(-60) : log;
+  }
+  function addDog(dog, kind) {
+    var list = loadDex(), today = todayKey(), live = kind === 'live';
+    var e = list.filter(function (d) { return d.i === dog.i; })[0], first = !e;
     if (e) {
       e.n = dog.n; e.s = dog.s; e.g = dog.g; e.c = dog.c;   // 새로 찍은 내용으로 갱신
       if (e.last !== today) { e.days = (e.days || 1) + 1; e.last = today; }
     } else {
-      list.push({ i: dog.i, n: dog.n, s: dog.s, g: dog.g, c: dog.c, first: today, last: today, days: 1 });
+      e = { i: dog.i, n: dog.n, s: dog.s, g: dog.g, c: dog.c, first: today, last: today, days: 1 };
+      list.push(e);
     }
+    if (live) e.pal = 1;   // 한 번 단짝이면 계속 단짝
+    logMeet(e, today, live ? 'l' : 'f', live ? dog.m : null);
     if (!saveDex(list)) return;
+    // 통계: 어떤 QR이었는지와 처음인지만(강아지 이름·번호·한마디는 안 보냄)
+    if (window.WalsonTrack) WalsonTrack.send('dex_add', { kind: kind, first: first ? 1 : 0 });
     render();
     // 서로 넣으려면 상대도 내 카드를 찍어야 한다 — 바로 이어서 보여 주게
     var mine = WalsonStore.profile();
-    $('add-sub').textContent = '도감에 넣었어요. ' + dog.n + '도 우리 개를 넣으려면 내 카드를 보여 주세요.';
+    $('add-sub').textContent = (live ? '단짝으로 적었어요. ' : '발자국으로 적었어요. ') + dog.n + '도 우리 개를 넣으려면 내 카드를 보여 주세요' +
+      (live ? ' — 한마디를 골라 보낼 수 있어요.' : '.');
     var acts = $('add-actions'); acts.innerHTML = '';
     var row = el('div', 'row');
     var close = el('button', 'btn btn-sub', '닫기'); close.type = 'button'; close.addEventListener('click', closeAll);
@@ -323,7 +463,19 @@
     if (!d) return;
     infoId = id;
     whoBlock($('info-who'), d);
+    $('info-who').appendChild(el('div', 'tag ' + (d.pal ? 'pal' : 'foot'), d.pal ? '단짝' : '발자국'));
     $('info-sub').textContent = '처음 만난 날 ' + dayLabel(d.first) + (d.days > 1 ? ' · ' + d.days + '번 만남 · 마지막 ' + dayLabel(d.last) : '');
+    // 만난 날마다(최근이 위) — 받은 한마디 · 단짝 만남 · 발자국. 11/23 전에 넣은 강아지는 기록이 없어 줄이 없다
+    var book = $('info-book'); book.innerHTML = '';
+    (Array.isArray(d.log) ? d.log.slice().reverse() : []).forEach(function (x) {
+      if (!x || !x.d) return;
+      var li = el('li');
+      li.appendChild(el('span', 'day', dayLabel(x.d)));
+      if (DC.MSGS[x.m]) { li.appendChild(stampEl(x.m)); li.appendChild(el('span', 'what', msgText(x.m))); }
+      else li.appendChild(el('span', 'what soft', x.k === 'l' ? '단짝으로 만남' : '발자국'));
+      book.appendChild(li);
+    });
+    book.hidden = !book.children.length;
     open('info-sheet');
   }
   $('info-remove').addEventListener('click', function () {

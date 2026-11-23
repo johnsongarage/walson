@@ -28,7 +28,9 @@
     share_click: ['what', 'via', 'line'],  // via: 어느 화면에서 보냈는지(응가 캐릭터를 산책 끝 화면에서 만들면 walk_end, 2026-11-16)
                                            // line: 응가 캐릭터 멘트 묶음 이름만(예: art/dog — 한마디/말풍선, 2026-11-17). 멘트 내용·직접 쓴 글은 안 보냄
     store_visit: ['shop'],         // 가게 카운터 체크인 QR(visit.html) — 스팟 번호만, 하루 한 번
-    shop_list_open: []             // [동네]에서 동반 가게 목록을 열었음(2026-11-16) — 지도가 실제로 쓰이는지 보려고, 값 없음
+    shop_list_open: [],            // [동네]에서 동반 가게 목록을 열었음(2026-11-16) — 지도가 실제로 쓰이는지 보려고, 값 없음
+    dex_add: ['kind', 'first']     // 강아지 도감에 넣음(2026-11-23 개방명록) — kind: live(그 자리 화면 QR)·static(키링·카드 주소)·stale(지난 캡처),
+                                   // first: 처음 넣은 강아지면 1. 강아지 이름·번호·받은 한마디는 안 보냄. 첫 30마리 판 "서로 찍는가"를 세려고
   };
 
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }

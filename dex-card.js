@@ -56,8 +56,64 @@
     return (base || location.origin + location.pathname.replace(/[^/]*$/, '')) + 'dex.html#d=' + encode(card);
   }
 
+  // ── 화면 QR(2026-11-23 개방명록 1단계, hq DECISIONS 11/23) ──
+  // 앱 안 "내 카드 보여 주기" QR에는 띄운 시각(t, 1970년부터 센 분)과 고른 한마디 번호(m)를 더 담는다.
+  // 찍은 쪽은 몇 분 안에 띄운 화면 QR이면 단짝 + 한마디로, 시각이 없는 QR(키링 뒷면 인쇄·NFC·카드 주소 보내기)이나
+  // 지난 캡처는 발자국으로 적는다. 키링·NFC·카드 주소 보내기는 지금처럼 cardUrl(시각 없음) 그대로 — 이미 뽑은 키링도 그대로 읽힌다.
+  // 예전 왈슨으로 찍으면 t·m은 무시되고 지금처럼 도감에 들어간다.
+  var LIVE_MIN = 5;   // 띄운 지 이 분 수 안이면 그 자리에서 찍은 걸로 본다(휴대폰끼리 시계가 다른 것도 이만큼 봐준다)
+
+  // 한마디는 고르기만(11/23 — 모르는 사람 글·장소·시간·연락처가 샐 틈이 없게. 직접 쓰는 글은 서버가 생긴 뒤 편지에서).
+  // 강아지가 강아지에게 하는 말. 받은 기록에 번호로 남으니 순서를 바꾸거나 지우지 말 것 — 새 말은 맨 뒤에 더한다.
+  // 간식 말은 넣지 않는다(남의 개에게 간식 — 키링 뒷면 "간식 주지 마세요"와 부딪힘)
+  var MSGS = [
+    { t: '킁킁! 반가웠어', s: 'nose' },
+    { t: '또 냄새 맡자', s: 'paw' },
+    { t: '너 냄새 좋더라', s: 'heart' },
+    { t: '꼬리 흔든 거 봤지?', s: 'sparkle' },
+    { t: '산책 친구 하자', s: 'star' },
+    { t: '다음에 또 놀자', s: 'ball' },
+    { t: '부끄러워서 말 못 했어', s: 'bubble' },
+    { t: '오늘 산책 최고!', s: 'bone' }
+  ];
+  // 도장 그림 — 7×7 도트, 색은 쓰는 곳의 글자 색(currentColor)
+  var STAMPS = {
+    nose:    ['.......', '.#####.', '#######', '##.#.##', '.#####.', '..###..', '.......'],
+    paw:     ['.#.#.#.', '.#.#.#.', '#.....#', '..###..', '.#####.', '.#####.', '..###..'],
+    heart:   ['.##.##.', '#######', '#######', '#######', '.#####.', '..###..', '...#...'],
+    sparkle: ['...#...', '...#...', '..###..', '#######', '..###..', '...#...', '...#...'],
+    star:    ['...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '##...##'],
+    ball:    ['..###..', '.#####.', '#######', '#.....#', '#######', '.#####.', '..###..'],
+    bubble:  ['.#####.', '#######', '#.#.#.#', '#######', '.#####.', '..#....', '.#.....'],
+    bone:    ['.......', '##...##', '#######', '.#####.', '#######', '##...##', '.......']
+  };
+  function stampSvg(name) {
+    var rows = STAMPS[name] || STAMPS.paw, d = '';
+    rows.forEach(function (r, y) {
+      // 가로로 붙은 칸은 한 덩어리로(칸 사이 틈이 안 보이게)
+      r.replace(/#+/g, function (run, x) { d += 'M' + x + ' ' + y + 'h' + run.length + 'v1h-' + run.length + 'z'; return run; });
+    });
+    return '<svg viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="' + d + '"/></svg>';
+  }
+  function nowMin() { return Math.floor(Date.now() / 60000); }
+  // 화면 QR 주소 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고)
+  function liveUrl(card, m) {
+    var c = {};
+    for (var k in card) if (Object.prototype.hasOwnProperty.call(card, k)) c[k] = card[k];
+    c.t = nowMin();
+    if (m != null && MSGS[m]) c.m = m;
+    return cardUrl(c);
+  }
+  // 받은 카드가 어떤 QR이었나: 'live' 몇 분 안에 띄운 화면 · 'stale' 지난 캡처 · 'static' 시각 없음(키링·카드 주소·예전 QR)
+  function kindOf(t) {
+    if (typeof t !== 'number' || !isFinite(t)) return 'static';
+    var age = nowMin() - t;
+    return (age >= -LIVE_MIN && age <= LIVE_MIN) ? 'live' : 'stale';
+  }
+
   window.WalsonDexCard = {
     SIZE_FROM: SIZE_FROM, SIG_FROM: SIG_FROM, PALETTE: PALETTE,
-    myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl
+    myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl,
+    LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveUrl: liveUrl, kindOf: kindOf
   };
 })();
