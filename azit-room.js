@@ -63,14 +63,47 @@
     { id: 'basket',  spr: 'basket_blue_carrot', i: 16, j: 5, name: '장난감 바구니', need: { walks: 15 } },
     { id: 'house',   spr: 'sofa_bed', i: 64, j: 16, name: '강아지 소파', need: { walks: 20 } },   // 11/23 새 방부터 집 대신 소파
     { id: 'shelf',   spr: 'board_postcard', face: 'R', wall: 'R', u: 11.5, h: 52.5, name: '오늘의 한 장 게시판', need: { photos: 3 } },
-    { id: 'poopbag', spr: 'poopbag_holder', face: 'R', wall: 'L', u: 68.5, h: 47.5, name: '응가 봉투 걸이', need: { poop: 10 } },
+    { id: 'poopbag', spr: 'bag_dispenser', face: 'R', wall: 'L', u: 68.5, h: 47.5, name: '응가 봉투 걸이', need: { poop: 10 } },   // 11/23 밤 받은 디스펜서 그림으로
     { id: 'keyhook', spr: 'keyhook_rail', face: 'R', wall: 'R', u: 92, h: 56, name: '키링 걸이', need: { keyring: 1 } },
     { id: 'lamp',    spr: 'lamp_stand', i: 5, j: 30, name: '스탠드 조명', need: { steady: 1 } },
     { id: 'mat',     spr: 'picnic_mat', i: 20, j: 56, decal: true, name: '피크닉 매트', need: { park: 1 } },
     { id: 'garland', spr: 'garland_bunting', corner: true, name: '가랜드', need: { steady5: 1 } },
     // 단짝 액자(11/23 가르시아 "추천대로" — 교환 수 문턱 보상("단짝 3마리면 가랜드") 대신): 첫 단짝부터 걸리고 최근 단짝 도트 강아지가 들어간다.
     // 숫자를 채우는 보상이 아니라 방이 친구로 채워지는 것(11/23 결정 "방이 채워지는 것 자체가 보상"과 같은 결)
-    { id: 'palframe', spr: 'frame_pal', face: 'R', wall: 'L', u: 59.5, h: 56.5, name: '단짝 액자', need: { pals: 1 } }
+    { id: 'palframe', spr: 'frame_pal', face: 'R', wall: 'L', u: 59.5, h: 56.5, name: '단짝 액자', need: { pals: 1 } },
+    // ── 11/23 밤 받은 그림 세 장(가르시아 "에셋을 추가해봤어 같은 느낌으로 실제로 추가해줘") — 29개 ──
+    // stash: 생기면 [내 소품]에 들어오고 눌러야 방에 놓인다(소품이 51개라 한꺼번에 놓이면 방이 엉켜서). 자리는 눌렀을 때 처음 놓이는 곳.
+    // both: 글자가 있는 벽 그림 — 왼쪽 벽에선 뒤집지 않고 왼쪽 벽용 그림(spr + '_L')을 쓴다(글씨가 거울처럼 되지 않게).
+    // 생기는 조건은 Claude 제안(11/23 밤) — 모두 "한 것"(산책·발도장·가게 QR·응가 치움·꾸준함·오늘의 한 장 + 산책 기록으로 세는
+    //   밤 산책 night · 겨울 산책 winter · 40분 넘는 산책 long · 킁킁 지수 4 이상 산책 sniff). 단짝 수는 조건으로 쓰지 않는다(11/23).
+    { id: 'pee_pad', spr: 'pee_pad', i: 62, j: 52, decal: true, name: '배변판', need: {}, stash: true },
+    { id: 'bubble_visited', spr: 'bubble_visited', face: 'R', both: true, wall: 'L', u: 41.5, h: 85.5, name: '다녀감 말풍선', need: { walks: 2 }, stash: true },
+    { id: 'sign_snack', spr: 'sign_snack', i: 10, j: 48, name: '간식 내놔라 팻말', need: { walks: 4 }, stash: true },
+    { id: 'board_refuse', spr: 'board_refuse', i: 26, j: 70, name: '안가 안걸어 대자보', need: { walks: 6 }, stash: true },
+    { id: 'toy_chicken', spr: 'toy_chicken', i: 58, j: 60, name: '삑삑이 닭 인형', need: { walks: 8 }, stash: true },
+    { id: 'food_box', spr: 'food_box', i: 6, j: 34, name: '사료통', need: { walks: 12 }, stash: true },
+    { id: 'grooming_basket', spr: 'grooming_basket', i: 40, j: 62, name: '미용 바구니', need: { walks: 22 }, stash: true },
+    { id: 'bubble_interior', spr: 'bubble_interior', face: 'R', both: true, wall: 'L', u: 24.5, h: 58.5, name: '인테리어 맛집 말풍선', need: { walks: 25 }, stash: true },
+    { id: 'pet_stairs', spr: 'pet_stairs', i: 52, j: 22, name: '강아지 계단', need: { walks: 30 }, stash: true },
+    { id: 'panel_guestbook', spr: 'panel_guestbook', face: 'R', both: true, wall: 'R', u: 84.5, h: 66.5, name: '집사의 삶 판넬', need: { walks: 40 }, stash: true },
+    { id: 'donut_cushion', spr: 'donut_cushion', i: 34, j: 44, name: '도넛 쿠션', need: { walks: 45 }, stash: true },
+    { id: 'balloons', spr: 'balloons', i: 8, j: 4, name: '헬륨 풍선 다발', need: { walks: 50 }, stash: true },
+    { id: 'cafe_cup', spr: 'cafe_cup', i: 80, j: 12, name: '동네 카페 컵', need: { shop: 2 }, stash: true },
+    { id: 'stamp_regular', spr: 'stamp_regular', face: 'R', both: true, wall: 'R', u: 16.5, h: 66.5, name: '단골 인증 스탬프', need: { shop: 3 }, stash: true },
+    { id: 'sign_meetup', spr: 'sign_meetup', i: 92, j: 36, name: '산책길 조우 팻말', need: { stamps: 5 }, stash: true },
+    { id: 'cone_barricade', spr: 'cone_barricade', i: 86, j: 44, name: '라바콘 바리케이드', need: { stamps: 8 }, stash: true },
+    { id: 'parasol_set', spr: 'parasol_set', i: 84, j: 30, name: '편의점 파라솔', need: { stamps: 10 }, stash: true },
+    { id: 'bubble_poop', spr: 'bubble_poop', face: 'R', both: true, wall: 'L', u: 61.5, h: 61.5, name: '오늘도 똥줍 말풍선', need: { poop: 5 }, stash: true },
+    { id: 'trophy_poop', spr: 'trophy_poop', i: 30, j: 5, name: '황금 똥 트로피', need: { poop: 30 }, stash: true },
+    { id: 'bubble_chihuahua', spr: 'bubble_chihuahua', face: 'R', both: true, wall: 'R', u: 18.5, h: 52.5, name: '참지않긔 말풍선', need: { steady: 2 }, stash: true },
+    { id: 'leash_hook', spr: 'leash_hook', face: 'L', wall: 'L', u: 64.5, h: 52.5, name: '리드줄 걸이', need: { steady: 4 }, stash: true },
+    { id: 'raincoat_rack', spr: 'raincoat_rack', i: 12, j: 70, name: '우비 옷걸이', need: { steady: 5 }, stash: true },
+    { id: 'scroll_dogslife', spr: 'scroll_dogslife', face: 'R', both: true, wall: 'R', u: 11.5, h: 45.5, name: '개팔자 상팔자 족자', need: { level: 2 }, stash: true },
+    { id: 'treat_jar', spr: 'treat_jar', i: 8, j: 44, name: '간식 통', need: { photos: 5 }, stash: true },
+    { id: 'neon_chihuahua', spr: 'neon_chihuahua', face: 'R', wall: 'R', u: 29.5, h: 63.5, name: '치와와 네온사인', need: { night: 5 }, stash: true },
+    { id: 'nosework_mat', spr: 'nosework_mat', i: 44, j: 44, name: '노즈워크 매트', need: { sniff: 5 }, stash: true },
+    { id: 'stroller', spr: 'stroller', i: 90, j: 22, name: '강아지 유모차', need: { long: 5 }, stash: true },
+    { id: 'cart_bungeoppang', spr: 'cart_bungeoppang', i: 70, j: 40, name: '붕어빵 포장마차', need: { winter: 5 }, stash: true }
   ];
   var POS_V = 2;   // 저장한 자리의 좌표 판 — 2 = 11/23 새 방(394×220점). 그 전(8×8칸) 자리는 읽지 않고 새 처음 자리로
   // 머리 위 장식 — 순서 고정(방 모습에 1부터 번호, 0 = 없음)
@@ -103,10 +136,19 @@
     var n = (p && p.walks) || 0, level = 0;
     for (var l = 1; l < 4; l++) if (n >= rankMin(l)) level = l;
     var prof = WalsonStore.profile(), visited = (p && p.visited) || {}, poop = 0, photos = 0;
+    var night = 0, winter = 0, long = 0, sniff = 0;                // 11/23 밤 새 소품 조건 — 5분 넘는 산책만 센다(산책 횟수와 같은 결)
     walks.forEach(function (w) {
       if (!w) return;
       if (w.photoKey) photos++;                                   // 오늘의 한 장을 남긴 산책
       var pp = Number(w.poop); if (pp === 1 || pp === 2) poop += pp;   // "응가 치웠나요" — 1번·2번 이상(2로 셈)
+      var mins = Number(w.durationMin) || 0;
+      if (mins < 5) return;
+      var at = w.startedAt ? new Date(w.startedAt) : null, hr = at && !isNaN(at) ? at.getHours() : -1;
+      if (hr >= 20 || (hr >= 0 && hr < 5)) night++;                // 밤 산책(저녁 8시~새벽 5시에 나감)
+      var mo = /^\d{4}-(\d{2})/.exec(w.date || ''), m = mo ? Number(mo[1]) : 0;
+      if (m === 12 || m === 1 || m === 2) winter++;               // 겨울(12~2월) 산책
+      if (mins >= 40) long++;                                     // 40분 넘게 걸은 산책
+      if (Number(w.sniff) >= 4) sniff++;                          // 킁킁 지수 4 이상(실컷 맡음)
     });
     var park = ((RR && RR.PLACES) || []).filter(function (pl) { return pl.kind === 'park' && visited[pl.id]; }).length;
     var by = (st && st.byLevel) || [0, 0, 0];
@@ -118,10 +160,11 @@
       level: level, rank: rankName(level),
       pass: prof && prof.name ? 1 : 0, photos: photos, poop: poop, keyring: WalsonStore.keyring() ? 1 : 0, park: park,
       steady5: (by[1] || 0) + (by[2] || 0),                       // 5일·7일 도장을 받은 주
-      pals: WalsonStore.dex().filter(function (e) { return e && e.pal; }).length   // 도감 단짝 수(그 자리에서 서로 찍은 친구)
+      pals: WalsonStore.dex().filter(function (e) { return e && e.pal; }).length,   // 도감 단짝 수(그 자리에서 서로 찍은 친구)
+      night: night, winter: winter, long: long, sniff: sniff
     };
   }
-  var NEED_KEYS = ['walks', 'level', 'stamps', 'shop', 'steady', 'pass', 'photos', 'poop', 'keyring', 'park', 'steady5', 'pals'];
+  var NEED_KEYS = ['walks', 'level', 'stamps', 'shop', 'steady', 'pass', 'photos', 'poop', 'keyring', 'park', 'steady5', 'pals', 'night', 'winter', 'long', 'sniff'];
   function met(need, p) {
     need = need || {};
     for (var k = 0; k < NEED_KEYS.length; k++) { var key = NEED_KEYS[k]; if (need[key] && !((p[key] || 0) >= need[key])) return false; }
@@ -143,6 +186,10 @@
     else if (need.park) how = '공원 발도장을 받으면 생겨요';
     else if (need.steady5) how = '한 주에 5일 산책하면 생겨요';
     else if (need.pals) how = '단짝이 생기면 걸려요 — 최근 단짝 강아지가 들어가요';
+    else if (need.night) how = '밤 산책(저녁 8시~새벽 5시)을 ' + need.night + '번 하면 생겨요';
+    else if (need.winter) how = '겨울(12~2월)에 ' + need.winter + '번 산책하면 생겨요';
+    else if (need.long) how = '40분 넘게 걷는 산책을 ' + need.long + '번 하면 생겨요';
+    else if (need.sniff) how = '킁킁 지수 4 이상인 산책을 ' + need.sniff + '번 하면 생겨요';
     else how = '처음부터 있어요';
     var once = need.shop || need.pass || need.keyring || need.park || need.pals;   // 한 번 하면 되는 것은 "아직 없어요"
     return { how: how, mine: met(need, p) ? '나도 있어요' : (once ? '나는 아직 없어요' : '나는 ' + needText(need, p)) };
@@ -163,6 +210,10 @@
     if (need.park) return ok ? '공원 발도장' : '공원 발도장 받으면';
     if (need.steady5) return ok ? '꾸준함 5일' : '한 주 5일 산책하면';
     if (need.pals) return ok ? '단짝' : '단짝이 생기면';
+    if (need.night) return ok ? '밤 산책 ' + need.night + '번' : '밤 산책 ' + (need.night - (p.night || 0)) + '번 더';
+    if (need.winter) return ok ? '겨울 산책 ' + need.winter + '번' : '겨울 산책 ' + (need.winter - (p.winter || 0)) + '번 더';
+    if (need.long) return ok ? '긴 산책 ' + need.long + '번' : '40분 산책 ' + (need.long - (p.long || 0)) + '번 더';
+    if (need.sniff) return ok ? '킁킁 산책 ' + need.sniff + '번' : '킁킁 산책 ' + (need.sniff - (p.sniff || 0)) + '번 더';
     return '처음부터';
   }
 
@@ -220,7 +271,21 @@
       line: '공원 발도장을 모으면 이렇게 돼요',   // 공원 — 피크닉 매트에 바구니·공·당근, 벽엔 엽서, 응가 봉투 걸이
       dogs: { host: [34, 30], guest: [44, 22] },   // 매트 뒤에(앞쪽 매트 위 바구니·공이 가려지지 않게)
       pos: roomPos(['garland', 'card0', 'card1', 'photo', 'poopbag', 'palframe', 'mat', 'house', 'bowl', 'bone', 'basket', 'ball', 'carrot', 'plant'],
-        { mat: { i: 52, j: 50 }, basket: { i: 50, j: 60 }, ball: { i: 62, j: 60 }, carrot: { i: 58, j: 50 }, bone: { i: 74, j: 44 } }) }
+        { mat: { i: 52, j: 50 }, basket: { i: 50, j: 60 }, ball: { i: 62, j: 60 }, carrot: { i: 58, j: 50 }, bone: { i: 74, j: 44 } }) },
+    // 11/23 밤 새 소품을 보여 주는 두 채 — 붕어빵 포장마차·네온·풍선·말풍선(B급), 생활용품(살림)
+    { id: 'meme', name: '왈슨의 B급 방', owner: '왈슨', dog: 'chihuahua', theme: 'jelly', acc: 'crown', level: 2,
+      line: '웃긴 소품을 모으면 이렇게 돼요',   // 족자·말풍선·네온, 창가 붕어빵 포장마차, 팻말·대자보, 노즈워크 매트·삑삑이
+      dogs: { host: [46, 34], guest: [58, 42] },
+      pos: roomPos(['garland', 'scroll_dogslife', 'bubble_visited', 'neon_chihuahua', 'bubble_interior', 'balloons', 'cart_bungeoppang',
+        'trophy_poop', 'sign_snack', 'toy_chicken', 'cone_barricade', 'cafe_cup', 'nosework_mat', 'board_refuse'],
+        { scroll_dogslife: { wall: 'L', u: 61.5, h: 61.5 }, bubble_interior: { wall: 'R', u: 85.5, h: 67.5 },
+          balloons: { i: 4, j: 8 }, cart_bungeoppang: { i: 64, j: 16 } }) },
+    { id: 'home', name: '집사 살림 방', owner: '왈슨', dog: 'chihuahua', theme: 'lilac', acc: 'ribbon', level: 1,
+      line: '꾸준히 걸으면 살림이 늘어요',   // 리드줄 걸이·봉투 디스펜서·우비 옷걸이(입구 쪽), 소파 옆 계단, 사료통·간식 통·밥그릇
+      dogs: { host: [30, 30], guest: [44, 26] },
+      pos: roomPos(['leash_hook', 'poopbag', 'panel_guestbook', 'shelf', 'house', 'pet_stairs', 'stroller', 'raincoat_rack', 'food_box',
+        'treat_jar', 'bowl', 'grooming_basket', 'donut_cushion', 'pee_pad', 'plant'],
+        { leash_hook: { wall: 'L', u: 64.5, h: 52.5 }, poopbag: { wall: 'L', u: 51.5, h: 33.5 }, bowl: { i: 9, j: 56 } }) }
   ];
   // 방마다 놓은 소품 = pos에 자리가 있는 것(소품 순서대로)
   SHOWROOMS.forEach(function (s) { s.items = ITEMS.filter(function (it) { return s.pos[it.id]; }).map(function (it) { return it.id; }); });
@@ -228,7 +293,7 @@
   // 샘플 모드의 내 방(공원 시연·처음 온 사람) — 샘플 강아지 왈슨이 지금 가진 소품을 1번 방과 같은 손 배치로. 벽지는 모델하우스와 다르게 라일락.
   // 1번 방에 없는 소품은 빼 둔 걸로(샘플 방이 흐트러지지 않게 — [내 소품]에서 넣을 수 있다).
   // 샘플을 끄면 원래대로(sample-data.js가 petwalk_azit을 보관했다 되돌린다). sample: true = 이 상태가 샘플용이라는 표시
-  var SAMPLE_V = 4;   // 샘플 방 모양 번호 — 소품·배치가 바뀌면 올린다(예전 샘플 방은 새로 만든다). 3 = 단짝 액자 더함(11/23), 4 = 새 방(11/23 밤)
+  var SAMPLE_V = 5;   // 샘플 방 모양 번호 — 소품·배치가 바뀌면 올린다(예전 샘플 방은 새로 만든다). 3 = 단짝 액자 더함(11/23), 4 = 새 방(11/23 밤), 5 = 새 소품 28개(11/23 밤)
   function sampleState() {
     var room = SHOWROOMS[0];
     var all = ITEMS.map(function (it) { return it.id; }).concat(ACCS.map(function (a) { return a.id; }));
@@ -314,25 +379,31 @@
   function placedItems(st, p) { return unlockedItems(p).filter(function (id) { return st.hidden.indexOf(id) < 0; }); }
   function accOn(st, p) { var a = byId(ACCS, st.acc); return a && met(a.need, p) ? a.id : ''; }
 
-  // ── 방 모습 몇 글자(화면 QR의 r) ── [강아지 번호][벽지 j·l·n][머리 장식 0~][산책 등급 0~3][놓은 소품 16진수]
-  // 예: "0j1" + "1" + "2c4". 받은 쪽은 모르는 번호·자리는 버리고 읽는다(나중에 강아지·소품이 늘어도 예전 앱이 깨지지 않게).
+  // ── 방 모습 몇 글자(화면 QR의 r) ── [강아지 번호][벽지 j·l·n][머리 장식 0~][산책 등급 0~3][놓은 소품 16진수(1~32번)][.33~64번 16진수]
+  // 예: "0j1" + "1" + "2c4", 33번째부터 놓았으면 "…2c4.3". 받은 쪽은 모르는 번호·자리는 버리고 읽는다(나중에 강아지·소품이 늘어도 예전 앱이 깨지지 않게).
+  // 11/23 밤 소품이 50개가 되어 뒤에 ".16진수"를 붙였다(그 전 앱은 이 글자가 붙은 방을 "아직 방 구경 전"으로 본다 — 새로 열면 바뀜).
   function snapshot(st, p, color) {
-    var bits = 0;
-    placedItems(st, p).forEach(function (id) { bits |= 1 << indexOf(ITEMS, id); });
+    var lo = 0, hi = 0;
+    placedItems(st, p).forEach(function (id) {
+      var k = indexOf(ITEMS, id);
+      if (k < 0) return;
+      if (k < 32) lo = (lo | (1 << k)) >>> 0; else if (k < 64) hi = (hi | (1 << (k - 32))) >>> 0;
+    });
     var di = indexOf(DOGS, myDog(st, color)), ai = indexOf(ACCS, accOn(st, p));
-    return (di < 0 ? 0 : di).toString(36) + st.theme.charAt(0) + (ai + 1).toString(36) + String(Math.max(0, Math.min(3, p.level))) + bits.toString(16);
+    return (di < 0 ? 0 : di).toString(36) + st.theme.charAt(0) + (ai + 1).toString(36) + String(Math.max(0, Math.min(3, p.level))) +
+      lo.toString(16) + (hi ? '.' + hi.toString(16) : '');
   }
   function mySnapshot(color) { try { return snapshot(loadState(), progress(), color); } catch (e) { return null; } }
   // 남이 만든 QR일 수 있으니 모양을 꼼꼼히 — 맞으면 {dog(모르면 null), theme, acc, level, items[]}, 아니면 null
   // 소품 자리는 16진수 8글자(소품 32개)까지 읽는다 — 소품을 늘리기 전에 읽는 쪽부터 넓혀 둔 것(11/23, 처음엔 4글자 = 16개)
   function parseRoom(r) {
-    var m = /^([0-9a-z])([a-z])([0-9a-z])([0-9])([0-9a-f]{1,8})$/.exec(typeof r === 'string' ? r : '');
+    var m = /^([0-9a-z])([a-z])([0-9a-z])([0-9])([0-9a-f]{1,8})(?:\.([0-9a-f]{1,8}))?$/.exec(typeof r === 'string' ? r : '');
     if (!m) return null;
     var d = DOGS[parseInt(m[1], 36)], th = THEMES.filter(function (t) { return t.charAt(0) === m[2]; })[0] || 'jelly';
-    var a = ACCS[parseInt(m[3], 36) - 1], bits = parseInt(m[5], 16);
+    var a = ACCS[parseInt(m[3], 36) - 1], lo = parseInt(m[5], 16) >>> 0, hi = m[6] ? parseInt(m[6], 16) >>> 0 : 0;
     return {
       dog: d ? d.id : null, theme: th, acc: a ? a.id : '', level: Math.min(3, parseInt(m[4], 10)),
-      items: ITEMS.filter(function (it, i) { return bits & (1 << i); }).map(function (it) { return it.id; })
+      items: ITEMS.filter(function (it, i) { return i < 32 ? (lo >>> i) & 1 : i < 64 ? (hi >>> (i - 32)) & 1 : 0; }).map(function (it) { return it.id; })
     };
   }
 

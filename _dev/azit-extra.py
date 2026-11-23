@@ -389,7 +389,7 @@ def main():
     load = lambda n: np.asarray(Image.open(os.path.join(OUT, n + ".png")).convert("RGBA"))
     save("carrot_plush", carrot_plush())
     save("lamp_stand", lamp_stand())
-    save("poopbag_holder", poopbag_holder())
+    # 응가 봉투 걸이는 11/23 밤 받은 디스펜서 그림(bag_dispenser)으로 바꿔 poopbag_holder()는 더 내보내지 않는다
     save("keyhook_rail", keyhook_rail())
     save("picnic_mat", picnic_mat())
     save("paw", paw())

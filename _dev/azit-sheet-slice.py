@@ -44,7 +44,28 @@ SHEET_CONFIG = {
         "plant_daisy", "cushion_cafe_beige", "cushion_cafe_mint"],
     "window_sheet.png": [  # 창문 — 낮·밤·비·눈 (4, 11/23 추가 — 오른쪽 벽 방향)
         "window_day", "window_night", "window_rain", "window_snow"],
+    # 11/23 밤 가르시아 "에셋을 추가해봤어 같은 느낌으로 실제로 추가해줘" — 세 장. 앞 둘은 그림 아래 한글 이름표가 있어서
+    # 순서 대신 그림 가운데 자리(시트 점 좌표)로 이름을 붙인다(NAMED_AT — 이름 없는 덩어리 = 이름표라 건너뜀).
+    "text_sheet.png": [],        # 글자 소품(말풍선·팻말·족자·스탬프·판넬) — Gemini_Generated_Image_ql7bev…
+    "fun_sheet.png": [],         # 풍선·삑삑이·노즈워크·카페 컵·네온·황금 똥·파라솔·라바콘·붕어빵 — Gemini_Generated_Image_oxuvbo…
+    "supplies_sheet.jpg": [],    # 생활용품(배변판·봉투 디스펜서·계단·유모차·리드줄 걸이·우비·사료통·간식통·미용 바구니·넥 쿠션) — Pixel_art_dog_supplies…
 }
+NAMED_AT = {   # 시트: [(이름, 그림 가운데 x, y)] — 가장 가까운 덩어리(160px 안)에 그 이름
+    "text_sheet.png": [("sign_snack", 975, 295), ("bubble_interior", 1594, 292), ("bubble_chihuahua", 2292, 307),
+                       ("bubble_visited", 387, 323), ("scroll_dogslife", 370, 994), ("board_refuse", 951, 1015),
+                       ("stamp_regular", 1849, 756), ("sign_meetup", 1402, 1132), ("panel_guestbook", 2406, 1163),
+                       ("bubble_poop", 1852, 1189)],
+    "fun_sheet.png": [("balloons", 303, 342), ("neon_chihuahua", 2043, 350), ("toy_chicken", 718, 409),
+                      ("nosework_mat", 1222, 401), ("cafe_cup", 1667, 405), ("trophy_poop", 2472, 433),
+                      ("parasol_set", 1327, 1089), ("sign_refuse", 782, 1141), ("cone_barricade", 1898, 1183),
+                      ("cart_bungeoppang", 2411, 1180)],
+    "supplies_sheet.jpg": [("pet_stairs", 1686, 367), ("pee_pad", 432, 361), ("bag_dispenser", 1072, 338),
+                           ("stroller", 381, 1004), ("leash_hook", 1070, 1027), ("raincoat_rack", 1716, 1065),
+                           ("food_box", 365, 1688), ("treat_jar", 834, 1745), ("grooming_basket", 1244, 1755),
+                           ("donut_cushion", 1736, 1747)],
+}
+# 점 간격을 직접 정한 시트 — 자동 추정이 몇 배 큰 값을 잡아서(격자를 겹쳐 보고 정함, 11/23 밤)
+PITCH = {"text_sheet.png": 5.75, "fun_sheet.png": 7.35, "supplies_sheet.jpg": 5.125}
 WALL_CHUNK = {"window_sheet.png"}   # 소품 뒤에 벽 조각이 같이 그려진 시트 — 벽 조각을 떼어 낸다(strip_wall)
 # 손으로 지울 곳(벽 떼기 뒤 원래 점 좌표, x0·y0·x1·y1 끝 포함) — 걸레받이 띠가 두 줄 테두리 사이에 끼어 자동으로 안 떨어진 곳.
 # 이 시트 파일(Gemini_Generated_Image_hu9k4z…)에만 맞는 값. 시트를 새로 받으면 _check.png를 보고 다시 잡는다.
@@ -208,7 +229,24 @@ def extract(path, names, out_big, out_native, made):
             rows.append([])
         rows[-1].append(it); prev = c
     items = [it for r in rows for it in sorted(r, key=lambda b: b[0])]
+    base = os.path.basename(path)
+    if base in NAMED_AT:                                         # 자리로 이름 붙이기(이름표 덩어리는 버림)
+        named, names = [], []
+        for nm, cx, cy in NAMED_AT[base]:
+            best = min(items, key=lambda b: (b[0] + b[2] / 2 - cx) ** 2 + (b[1] + b[3] / 2 - cy) ** 2)
+            if (best[0] + best[2] / 2 - cx) ** 2 + (best[1] + best[3] / 2 - cy) ** 2 <= 160 ** 2:
+                named.append(best); names.append(nm)
+            else:
+                print(f"  ! {nm}: 그 자리에 그림이 없음")
+        items = named
     p, ox, oy = grid_of(rgb, fg)
+    if base in PITCH:                                            # 직접 정한 간격 — 위상만 찾는다
+        p = PITCH[base]
+        d = rgb.astype(np.int32)
+        ex = (np.abs(np.diff(d, axis=1)).sum(2) > 60) & fg[:, 1:]
+        ey = (np.abs(np.diff(d, axis=0)).sum(2) > 60) & fg[1:, :]
+        ph = lambda prof: (np.angle((prof * np.exp(2j * np.pi * np.arange(len(prof)) / p)).sum()) / (2 * np.pi) * p + 1) % p
+        ox, oy = ph(ex.sum(0).astype(float)), ph(ey.sum(1).astype(float))
     print(f"{os.path.basename(path)}: 소품 {len(items)}개 (이름 {len(names)}개), 점 간격 {p:.2f}px")
     if len(items) != len(names):
         print(f"  ! 개수가 다름 — _check.png로 이름이 맞는지 꼭 보기")

@@ -38,6 +38,8 @@
      - 소품 22개·생기는 조건·순서(방 모습 QR)는 그대로, 그림만 새로: 받은 그림에 없는 당근 인형·스탠드·깃발·응가 봉투 걸이·키링 걸이·피크닉 매트·
        머리 장식은 같은 화풍으로 그림. 우리 개 사진 액자·단짝 액자는 받은 액자의 속 그림 칸에 사진·단짝 도트 강아지를 넣는다.
        트로피는 오른쪽 붙박이 선반 위(벽), 가랜드는 두 벽 모서리에 걸쳐(끌지 않음), 강아지 집은 소파로.
+     - 같은 날 밤 받은 그림 세 장으로 새 소품 28개(말풍선·팻말·족자·네온·풍선·붕어빵 포장마차·생활용품 등) — 생기면 [내 소품]에 들어오고 눌러야 놓인다(stash).
+       글자 있는 벽 그림은 왼쪽 벽용을 따로(뒤집으면 거울 글씨). 모델하우스 두 채 더(왈슨의 B급 방·집사 살림 방). 소품 칸은 생긴 것 먼저, 안 생긴 것은 접기.
      - 좌표가 바뀌어 예전에 옮겨 둔 자리는 새 처음 자리로(azit-room.js POS_V). 강아지 키 44점, 방 한 점 = 화면 점 정수 배(모자라면 왼쪽 계단 쪽을 잘라 보임).
     색은 모두 화면 색 변수(theme.js) — 방 그림·소품·벽지 견본만 그림 색. */
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-display: swap; }
@@ -119,7 +121,7 @@
   .show-bar { display: flex; flex-direction: column; gap: 8px; margin-top: -2px; }
   .show-bar[hidden] { display: none; }
   .rooms { display: flex; gap: 6px; flex-wrap: wrap; }
-  .room-chip { flex: 1 1 0; min-width: 0; font: inherit; font-size: 11.5px; color: var(--ink); background: var(--panel); border: 2px solid var(--line);
+  .room-chip { flex: 1 1 28%; min-width: 0;   /* 다섯 채(11/23 밤) — 한 줄에 셋 */ font: inherit; font-size: 11.5px; color: var(--ink); background: var(--panel); border: 2px solid var(--line);
     padding: 6px 4px; cursor: pointer; line-height: 1.25; word-break: keep-all; }
   .room-chip[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
   .show-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; margin: 0; word-break: keep-all; text-align: center; }
@@ -143,6 +145,10 @@
   .slot canvas { display: block; margin: 0 auto 3px; image-rendering: pixelated; height: 30px; width: auto; max-width: 100%; object-fit: contain; }
   .slot[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
   .slot[disabled] { opacity: .5; cursor: not-allowed; }
+  .tray-more { margin-top: 8px; }
+  .tray-more[hidden] { display: none; }
+  .tray-more summary { cursor: pointer; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 12px; color: var(--ink-soft); padding: 4px 0; }
+  .tray-more .tray { margin-top: 6px; }
   .slot .why { display: block; font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 10px; color: var(--ink-soft); }
   .accs, .walls { display: flex; gap: 6px; flex-wrap: wrap; }
   .accs .slot { flex: 1; min-width: 64px; }
@@ -221,8 +227,9 @@
       <div class="undo-row" id="undo-row" hidden><span id="undo-text"></span><button type="button" class="more" id="undo-btn">되돌리기</button></div>
       <div class="box-title"><span>우리 개 도트 강아지</span><small id="dog-note"></small></div>
       <div class="dogs" id="dogs"></div>
-      <div class="box-title"><span>내 소품</span><small>산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
+      <div class="box-title"><span>내 소품</span><small id="tray-note">산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
       <div class="tray" id="tray"></div>
+      <details class="tray-more" id="tray-more" hidden><summary id="tray-more-sum"></summary><div class="tray" id="tray-locked"></div></details>
       <div class="box-title"><span>머리 위 장식</span><small>등급·꾸준함으로 생겨요</small></div>
       <div class="accs" id="accs"></div>
       <div class="box-title"><span>벽지</span></div>
@@ -245,7 +252,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=5"></script>
+<script src="azit-room.js?v=6"></script>
 <script>
 (function () {
   'use strict';
@@ -291,6 +298,7 @@
   function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
   var picNames = ['room', 'room_lilac', 'room_night', 'window_day', 'window_night', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
     .concat(AZ.ITEMS.map(function (it) { return it.spr; }))
+    .concat(AZ.ITEMS.filter(function (it) { return it.both; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
     .filter(function (n, k, a) { return a.indexOf(n) === k; });
   var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=1').then(function (im) { if (im) pics[n] = im; }); }));
   function pic(n) { return pics[n] || null; }
@@ -299,6 +307,7 @@
   function oriented(it, side) {
     var im = pic(it.spr); if (!im) return null;
     if (!it.face || it.face === side) return im;
+    if (it.both && pic(it.spr + '_L')) return pic(it.spr + '_L');   // 글자가 있으면 뒤집지 않고 왼쪽 벽용 그림(거울 글씨 X)
     if (!flipCache[it.spr]) {
       var c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
       var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.translate(im.width, 0); g.scale(-1, 1); g.drawImage(im, 0, 0);
@@ -684,9 +693,11 @@
     return c;
   }
   function tray() {
-    var t = $('tray'); t.innerHTML = '';
+    // 소품이 50개라(11/23 밤) 생긴 것만 먼저 보이고, 아직 안 생긴 것은 한 줄로 접어 둔다(누르면 펼침 — 어떻게 생기는지)
+    var t = $('tray'), t2 = $('tray-locked'), got = 0, left = 0; t.innerHTML = ''; t2.innerHTML = '';
     AZ.ITEMS.forEach(function (it) {
       var ok = AZ.met(it.need, prog), on = ok && state.hidden.indexOf(it.id) < 0;
+      if (ok) got++; else left++;
       var b = el('button', 'slot'); b.type = 'button';
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
       if (!ok) b.disabled = true;
@@ -698,8 +709,11 @@
         if (i >= 0) state.hidden.splice(i, 1); else state.hidden.push(it.id);
         save(); refreshModel(); ui();
       });
-      t.appendChild(b);
+      (ok ? t : t2).appendChild(b);
     });
+    $('tray-more').hidden = !left;
+    $('tray-more-sum').textContent = '아직 안 생긴 소품 ' + left + '개 — 어떻게 생기는지 보기';
+    $('tray-note').textContent = '산책으로 생긴 것 ' + got + '개 · 눌러서 넣고 빼기';
     var a = $('accs'); a.innerHTML = '';
     [{ id: '', name: '없음', need: {} }].concat(AZ.ACCS).forEach(function (ac) {
       var ok = AZ.met(ac.need, prog);
@@ -1005,12 +1019,21 @@
 
   // ── 처음 ── 새로 생긴 소품 알려 주기(처음 연 날은 그냥 보이기만)
   var gotNow = AZ.unlockedItems(prog).concat(AZ.ACCS.filter(function (a) { return AZ.met(a.need, prog); }).map(function (a) { return a.id; }));
-  if (state.seen === null) { state.seen = gotNow; save(); }
+  // 11/23 밤 새 소품(stash)은 생기면 [내 소품]에 넣어 둔다 — 눌러야 방에 놓인다(50개가 한꺼번에 놓이면 방이 엉켜서)
+  function stashNew(ids) {
+    var n = 0;
+    ids.forEach(function (id) { var it = AZ.byId(AZ.ITEMS, id); if (it && it.stash && state.hidden.indexOf(id) < 0) { state.hidden.push(id); n++; } });
+    return n;
+  }
+  if (state.seen === null) { state.seen = gotNow; stashNew(gotNow); save(); }
   else {
     var fresh = gotNow.filter(function (id) { return state.seen.indexOf(id) < 0; });
     if (fresh.length) {
-      state.seen = state.seen.concat(fresh); save();
-      toast('새로 생겼어요: ' + fresh.map(function (id) { var x = AZ.byId(AZ.ITEMS, id) || AZ.byId(AZ.ACCS, id); return x ? x.name : ''; }).filter(Boolean).join(' · '));
+      state.seen = state.seen.concat(fresh);
+      var stashed = stashNew(fresh); save();
+      var names = fresh.map(function (id) { var x = AZ.byId(AZ.ITEMS, id) || AZ.byId(AZ.ACCS, id); return x ? x.name : ''; }).filter(Boolean);
+      toast('새로 생겼어요: ' + names.slice(0, 3).join(' · ') + (names.length > 3 ? ' 외 ' + (names.length - 3) + '개' : '') +
+        (stashed ? ' — [내 소품]에서 눌러 방에 놓아요' : ''));
     }
   }
   // 견종을 안 적었으면 프로필 사진 털색으로 한 번 더 골라 둔다(사용자가 고른 뒤엔 그대로)

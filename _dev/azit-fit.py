@@ -29,6 +29,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 F56, F34, F23, F12 = 5 / 6, 3 / 4, 2 / 3, 1 / 2
+F45, F35, F25, F13 = 4 / 5, 3 / 5, 2 / 5, 1 / 3   # 11/23 밤 새 시트 셋(점이 더 촘촘해 더 줄여야 하는 것)
 # 이름: (줄이는 비율, 놓는 곳) — 놓는 곳 floor 바닥 · wall_R/wall_L 그 벽 방향으로 그린 벽 소품 · hang 천장에 매달기 · small 작은 것
 SCALE = {
     # 가구·식기 시트 — 방석·러그·소파는 원래 크기가 방과 맞는다(소파 72점 ≈ 강아지 소파 70cm의 1.6배).
@@ -56,7 +57,26 @@ SCALE = {
     "plant_daisy": (F12, "floor"), "cushion_cafe_beige": (1, "floor"), "cushion_cafe_mint": (1, "floor"),
     # 창문 — 원래 72×104라 벽(98)보다 크다. 붙박이 창(61×88) 자리에 맞게
     **{n: (F56, "wall_R") for n in ("window_day", "window_night", "window_rain", "window_snow")},
+    # ── 11/23 밤 새 시트 셋(가르시아 "에셋을 추가해봤어 같은 느낌으로 실제로 추가해줘") ──
+    # 글자 소품은 글씨가 읽히게 덜 줄인다(글자 높이 7~10점). 벽에 붙이는 정면 그림은 SKEW로 벽 기울기(2:1)대로 눕힌다.
+    "bubble_visited": (F45, "wall_R"), "bubble_interior": (F45, "wall_R"), "bubble_chihuahua": (F45, "wall_R"),
+    "bubble_poop": (F45, "wall_R"), "panel_guestbook": (F45, "wall_R"), "stamp_regular": (F45, "wall_R"),
+    "scroll_dogslife": (F35, "wall_R"), "sign_snack": (F34, "floor"), "sign_meetup": (F34, "floor"),
+    "board_refuse": (F35, "floor"),   # 같은 뜻의 "안 걸어" 팻말(fun_sheet sign_refuse)은 줄이면 글씨가 흐려서 대자보만
+    "balloons": (F45, "floor"), "neon_chihuahua": (F23, "wall_R"), "toy_chicken": (F35, "floor"),   # 네온·디스펜서는 입체라 눕히지 않는다(정면 그대로)
+    "nosework_mat": (F45, "floor"), "cafe_cup": (F23, "floor"), "trophy_poop": (F35, "floor"),
+    "parasol_set": (F56, "floor"), "cone_barricade": (F34, "floor"), "cart_bungeoppang": (1, "floor"),
+    # 생활용품 시트는 점이 촘촘해(5.12px) 원래 점 그림이 크다 — 방에 맞게 1/2~1/3
+    "pet_stairs": (F12, "floor"), "pee_pad": (F12, "floor"), "bag_dispenser": (F25, "wall_R"),
+    "stroller": (F25, "floor"), "leash_hook": (F25, "wall_L"), "raincoat_rack": (F25, "floor"),
+    "food_box": (F13, "floor"), "treat_jar": (F13, "floor"), "grooming_basket": (F25, "floor"),
+    "donut_cushion": (F12, "floor"),
 }
+# 정면으로 그려진 그림을 벽에 붙일 것 — 줄인 뒤 오른쪽 벽 기울기대로 눕힌다(세로줄마다 반 점씩 내림, 왼쪽 벽은 앱이 뒤집는다)
+SKEW = {"bubble_visited", "bubble_interior", "bubble_chihuahua", "bubble_poop", "panel_guestbook", "stamp_regular"}
+# 글자가 있는 벽 그림은 왼쪽 벽에 걸 때 좌우로 뒤집으면 글씨가 거울처럼 된다 — 왼쪽 벽용(이름_L)을 따로: 정면 그림은 반대로 눕히고,
+# 오른쪽 벽 방향으로 그려 받은 것(족자)은 한 번 바로 세운 뒤 반대로 눕힌다. 앱(azit-room.js both: true)은 왼쪽 벽에서 이 그림을 쓴다
+TEXT_ISO_R = {"scroll_dogslife"}
 DARK = 90   # 이보다 어두운 색 = 테두리·눈·코 — 줄일 때 표를 1.8배
 # 앱(icons/azit-room)에 넣지 않는 것 — 강아지는 가르시아가 따로 만든 도트 강아지(icons/dot-dogs)를 그대로 쓴다
 # (11/23 가르시아 "여기 있던 강아지는 빼, 내가 따로 만든 강아지들 그대로 유지하자"). 같은 시트의 고양이·토끼도 그림체가
@@ -98,6 +118,33 @@ def spans(n, s, N):
                 row.append((i, w))
         out.append(row)
     return out
+
+
+def skew_r(img):
+    h, w = img.shape[:2]
+    out = np.zeros((h + (w - 1) // 2, w, 4), np.uint8)
+    for x in range(w):
+        out[x // 2:x // 2 + h, x] = img[:, x]
+    return out
+
+
+def skew_l(img):      # 왼쪽 벽 기울기(왼쪽으로 갈수록 반 점씩 내림)
+    h, w = img.shape[:2]
+    out = np.zeros((h + (w - 1) // 2, w, 4), np.uint8)
+    for x in range(w):
+        s = (w - 1 - x) // 2
+        out[s:s + h, x] = img[:, x]
+    return out
+
+
+def unskew_r(img):    # 오른쪽 벽 방향으로 그려진 것을 바로 세우기(세로줄마다 반 점씩 올림)
+    h, w = img.shape[:2]
+    out = np.zeros((h, w, 4), np.uint8)
+    for x in range(w):
+        s = x // 2
+        out[:h - s, x] = img[s:, x]
+    ys, xs = np.nonzero(out[:, :, 3])
+    return out[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
 
 
 def downscale(img, f):
@@ -283,7 +330,15 @@ def main():
         nat = np.asarray(Image.open(p).convert("RGBA"))
         before[name] = nat
         fit[name] = downscale(nat, f)
+        if name in SKEW:
+            flat = fit[name]
+            fit[name] = skew_r(flat)
+            fit[name + "_L"] = skew_l(flat)
+        elif name in TEXT_ISO_R:
+            fit[name + "_L"] = skew_l(unskew_r(fit[name]))
         Image.fromarray(fit[name]).save(os.path.join(out_dir, name + ".png"))
+        if name + "_L" in fit:
+            Image.fromarray(fit[name + "_L"]).save(os.path.join(out_dir, name + "_L.png"))
         print(f"{name}: {nat.shape[1]}x{nat.shape[0]} → {fit[name].shape[1]}x{fit[name].shape[0]}")
 
     room = np.asarray(Image.open(os.path.join(src, "empty_room_bg_native.png")).convert("RGBA")).copy()
