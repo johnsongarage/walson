@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>도트 워킹패스 트레이싱</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 도트 워킹패스 트레이싱(2026-11-23 가르시아 "이 시안을 html로 뽑으라니까 못 뽑더라 — 트레이싱으로 다시 짜 봐, 정교하게").
+     받은 시안 그림(sian-ref/walking-pass-pom.webp)을 밑에 깔고, 실측한 자리 그대로 다시 그린 카드(pass-trace.js, SVG 도트)를 겹쳐 비교한다.
+     보기: 내 그림 · 원본 · 겹쳐 보기(투명도) · 밀어 보기(왼쪽=원본) · 차이 보기(같은 곳은 검게) + 확대.
+     바뀌는 칸(사진·번호·이름·종류·QR)은 아래에서 바꾸고, 카드만/시안 그대로 PNG로 저장. 사진은 이 휴대폰 안에서만 다루고 아무 데도 보내지 않는다. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink, #121215); background: var(--bg, #fffdfd); }
+  body { padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .kicker { display: inline-block; margin: 0; padding: 3px 8px; border-radius: 6px; background: var(--accent-tint, #ffe4ef); color: var(--accent, #c2185b); font-size: 12px; font-weight: 800; }
+  h1 { margin: 8px 0 4px; font-size: 22px; font-weight: 800; }
+  .lead { margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: var(--ink-soft, #6b6b70); word-break: keep-all; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 8px; }
+  .chip { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--panel-border, #f0d6e2); background: var(--panel, #fff);
+    color: var(--ink, #121215); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .chip[aria-pressed="true"] { border-color: var(--hl, #ff5c9d); background: var(--hl, #ff5c9d); color: var(--hl-ink, #121215); }
+  .slider { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); margin: 0 0 8px; }
+  .slider input { flex: 1; }
+  .slider[hidden] { display: none; }
+  .viewport { overflow: auto; border-radius: 14px; border: 1.5px solid var(--panel-border, #f0d6e2); background: #f3e8e7; max-height: 78vh; touch-action: pan-x pan-y; }
+  .stage { position: relative; width: 100%; aspect-ratio: 1493 / 2000; isolation: isolate; }
+  .stage > #trace, .stage > #trace svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .stage > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+  .stage.diff > img { mix-blend-mode: difference; }
+  .handle { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #ff2d7a; pointer-events: none; }
+  .handle::after { content: '원본 | 내 그림'; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11px; font-weight: 800;
+    background: #ff2d7a; color: #fff; padding: 2px 6px; border-radius: 999px; }
+  .handle[hidden] { display: none; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; background: var(--panel, #fff);
+    border: 1px solid var(--panel-border, #f0d6e2); border-radius: 16px; padding: 14px; }
+  .form .wide { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft, #6b6b70); margin-bottom: 4px; }
+  input[type=text], input[type=url] { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--panel-border, #f0d6e2);
+    background: var(--bg, #fffdfd); color: var(--ink, #121215); }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--ink, #121215); margin: 6px 0 0; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6b6b70); margin: 4px 0 0; line-height: 1.5; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .btn { min-height: 46px; border-radius: 999px; border: 1.5px solid var(--panel-border, #f0d6e2); background: var(--panel, #fff); color: var(--ink, #121215);
+    font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .btn.main { background: var(--hl, #ff5c9d); border-color: var(--hl, #ff5c9d); color: var(--hl-ink, #121215); }
+  .notes { margin: 14px 2px 0; padding: 0 0 0 18px; font-size: 13px; line-height: 1.7; color: var(--ink-soft, #6b6b70); word-break: keep-all; }
+  .notes b { color: var(--ink, #121215); }
+  #file { display: none; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
+<script src="site-config.js?v=10"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="photo-dot.js?v=2"></script>
+<script src="pass-trace.js?v=1"></script>
+</head>
+<body>
+<main class="wrap">
+  <p class="kicker">시안 · 주소로만 열려요</p>
+  <h1>도트 워킹패스 트레이싱</h1>
+  <p class="lead">받은 시안 그림을 밑에 깔고, 칸 하나하나 재서 같은 자리에 다시 그렸어요. <b>겹쳐 보기·밀어 보기·차이 보기</b>로 원본과 얼마나 맞는지 직접 확인해 보세요.</p>
+
+  <div class="bar" id="modes" role="group" aria-label="보기"></div>
+  <div class="slider" id="op-row"><span>원본 투명도</span><input type="range" id="op" min="0" max="100" value="50"><span id="op-v">50%</span></div>
+  <div class="slider" id="sw-row" hidden><span>원본 ◀</span><input type="range" id="sw" min="0" max="100" value="50"><span>▶ 내 그림</span></div>
+  <div class="bar" id="zooms" role="group" aria-label="확대"></div>
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage">
+      <div id="trace"></div>
+      <img id="ref" src="sian-ref/walking-pass-pom.webp" alt="받은 시안 그림(원본)">
+      <div class="handle" id="handle" hidden></div>
+    </div>
+  </div>
+
+  <div class="form">
+    <div class="wide">
+      <label>사진</label>
+      <div class="bar" style="margin:0;">
+        <button type="button" class="chip" id="pick">사진 올리기</button>
+        <button type="button" class="chip" id="reset-photo">원본 강아지로</button>
+      </div>
+      <input type="file" id="file" accept="image/*">
+      <label class="check"><input type="checkbox" id="dot" checked> 강아지만 도트로 바꾸기(끄면 사진 그대로)</label>
+      <p class="hint" id="photo-hint">처음엔 원본 그림의 강아지를 그대로 잘라 넣었어요(비교용). 사진은 이 휴대폰 안에서만 다뤄요.</p>
+    </div>
+    <div><label for="f-id">ID No.</label><input type="text" id="f-id" maxlength="10" placeholder="비워 두면 원본처럼 빈칸"></div>
+    <div><label for="f-name">NAME</label><input type="text" id="f-name" maxlength="12" value="POM"></div>
+    <div><label for="f-type">TYPE</label><input type="text" id="f-type" maxlength="12" value="DOG"></div>
+    <div class="wide"><label for="f-qr">QR 주소</label><input type="url" id="f-qr" value="https://johnsongarage.co.kr/walson/start.html"></div>
+    <div class="wide">
+      <label class="check"><input type="checkbox" id="tag" checked> 홍보 문구 줄 넣기(원본엔 없음 · 밖에 나가는 굿즈엔 필수)</label>
+    </div>
+  </div>
+  <div class="btns">
+    <button type="button" class="btn main" id="save-card">카드만 PNG</button>
+    <button type="button" class="btn" id="save-ref">시안 그대로 PNG</button>
+  </div>
+
+  <ul class="notes">
+    <li><b>똑같이 맞춘 것:</b> 카드 크기·둥근 모서리·그림자, 머리띠·아래 줄, 사진 틀(겹 테두리·뼈다귀 귀퉁이·주황 발바닥), 정보 칸 셋, 점선, 알약, QR 자리, 모든 글자 자리와 크기.</li>
+    <li><b>글자:</b> 원본 글자를 칸 단위로 따서 글꼴 하나(12×16칸)로 만들었어요. 원본에 없는 글자·숫자도 같은 규칙으로 그렸고, 한글은 둥근모꼴을 굵게 해서 같은 높이로 써요.</li>
+    <li><b>남는 차이:</b> 원본은 AI 그림이라 칸 크기가 곳곳에서 1~3px씩 흔들려요 — 다시 그린 쪽은 반듯하게 맞춰서 차이 보기에서 가는 선으로 보여요.
+      QR은 진짜 주소로 다시 그려서 무늬가 달라요. 홍보 문구 줄은 원본에 없어요.</li>
+  </ul>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var PT = window.WalsonPassTrace, R = PT.REF, P = PT.photoBox();
+  var state = { mode: 'over', zoom: 1, photo: null, refPhoto: null, upload: null };
+
+  // ── 보기 칩 ──
+  var MODES = [['mine', '내 그림'], ['ref', '원본'], ['over', '겹쳐 보기'], ['swipe', '밀어 보기'], ['diff', '차이 보기']];
+  var ZOOMS = [[1, '전체'], [2, '2배'], [4, '4배']];
+  function chips(el, list, cur, fn) {
+    el.innerHTML = '';
+    list.forEach(function (it) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = it[1];
+      b.setAttribute('aria-pressed', it[0] === cur ? 'true' : 'false');
+      b.addEventListener('click', function () { fn(it[0]); }); el.appendChild(b);
+    });
+  }
+  function applyView() {
+    chips($('modes'), MODES, state.mode, function (m) { state.mode = m; applyView(); });
+    chips($('zooms'), ZOOMS, state.zoom, function (z) { setZoom(z); });
+    var img = $('ref'), st = $('stage'), m = state.mode;
+    $('op-row').hidden = m !== 'over'; $('sw-row').hidden = m !== 'swipe'; $('handle').hidden = m !== 'swipe';
+    st.classList.toggle('diff', m === 'diff');
+    img.style.display = m === 'mine' ? 'none' : '';
+    img.style.opacity = m === 'over' ? ($('op').value / 100) : 1;
+    var sw = Number($('sw').value);
+    img.style.clipPath = m === 'swipe' ? 'inset(0 ' + (100 - sw) + '% 0 0)' : 'none';
+    $('handle').style.left = sw + '%';
+    $('op-v').textContent = $('op').value + '%';
+  }
+  // 확대: 보이던 가운데를 그대로 두고 키운다
+  function setZoom(z) {
+    var vp = $('viewport'), old = state.zoom;
+    var cx = (vp.scrollLeft + vp.clientWidth / 2) / (vp.scrollWidth || 1), cy = (vp.scrollTop + vp.clientHeight / 2) / (vp.scrollHeight || 1);
+    state.zoom = z; $('stage').style.width = (100 * z) + '%';
+    if (z !== old) { vp.scrollLeft = cx * vp.scrollWidth - vp.clientWidth / 2; vp.scrollTop = cy * vp.scrollHeight - vp.clientHeight / 2; }
+    applyView();
+  }
+  $('op').addEventListener('input', applyView);
+  $('sw').addEventListener('input', applyView);
+
+  // ── 카드 그리기 ──
+  function opts(scene) {
+    return { scene: scene, photo: state.photo, id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
+      qr: $('f-qr').value.trim(), tagline: $('tag').checked };
+  }
+  function draw() { $('trace').innerHTML = PT.render(opts('ref')); }
+  ['f-id', 'f-name', 'f-type', 'f-qr'].forEach(function (id) { $(id).addEventListener('input', draw); });
+  $('tag').addEventListener('change', draw);
+
+  // ── 사진 ── 처음엔 원본 그림의 사진 칸을 그대로 잘라서(비교용)
+  function cropRef() {
+    var img = $('ref'), c = document.createElement('canvas'), k = 2;
+    c.width = Math.round(P.w * k); c.height = Math.round(P.h * k);
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(img, P.x, P.y, P.w, P.h, 0, 0, c.width, c.height);
+    return c.toDataURL('image/png');
+  }
+  // 올린 사진 → 사진 칸(흰 바탕)에: 도트면 강아지만 스티커로 아래 맞춤, 아니면 칸을 꽉 채움
+  function fitUpload() {
+    var im = state.upload; if (!im) return;
+    var k = 2, c = document.createElement('canvas'); c.width = Math.round(P.w * k); c.height = Math.round(P.h * k);
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+    function cover(src) {
+      var s = Math.max(c.width / src.width, c.height / src.height), w = src.width * s, h = src.height * s;
+      g.drawImage(src, (c.width - w) / 2, (c.height - h) / 2, w, h);
+    }
+    function done(msg) { state.photo = c.toDataURL('image/png'); $('photo-hint').textContent = msg; draw(); }
+    if (!$('dot').checked || !window.WalsonPhotoDot) { cover(im); done('사진 그대로 넣었어요.'); return; }
+    $('photo-hint').textContent = '강아지를 찾고 있어요… (처음엔 몇 초 걸려요)';
+    WalsonPhotoDot.findDog(im).then(function (m) {
+      if (m.source === 'none') { cover(im); done('강아지를 못 찾아서 사진 그대로 넣었어요.'); return; }
+      var big = WalsonPhotoDot.render(im, m, { cols: 56, colors: 16, bg: 'none', width: 1200 }), st = WalsonPhotoDot.sticker(big);
+      if (!st) { cover(im); done('사진 그대로 넣었어요.'); return; }
+      // 칸 안에 들어가게 줄이고 아래·가운데 맞춤(원본처럼 발이 틀 아래쪽에)
+      var s = Math.min(c.width * 0.94 / st.width, c.height * 0.94 / st.height), w = st.width * s, h = st.height * s;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(st, (c.width - w) / 2, c.height - h - c.height * 0.01, w, h);
+      done('강아지만 도트로 바꿔 넣었어요.');
+    }).catch(function () { cover(im); done('강아지 찾는 모델을 못 불러와서 사진 그대로 넣었어요.'); });
+  }
+  $('pick').addEventListener('click', function () { $('file').click(); });
+  $('file').addEventListener('change', function () {
+    var f = $('file').files && $('file').files[0]; if (!f) return;
+    var im = new Image(); im.onload = function () { state.upload = im; fitUpload(); }; im.src = URL.createObjectURL(f);
+  });
+  $('dot').addEventListener('change', fitUpload);
+  $('reset-photo').addEventListener('click', function () {
+    state.upload = null; state.photo = state.refPhoto; $('file').value = '';
+    $('photo-hint').textContent = '원본 그림의 강아지로 되돌렸어요.'; draw();
+  });
+
+  // ── PNG 저장 ── SVG를 그림으로 바꿔 2배로(카드만: 카드 둘레까지, 시안 그대로: 바탕·그림자까지)
+  function savePng(scene) {
+    var svg = PT.render(opts(scene)), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })), im = new Image();
+    im.onload = function () {
+      var k = 2, c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k;
+      var g = c.getContext('2d'); g.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      var a = document.createElement('a'); a.download = scene === 'card' ? 'walson-pass-trace.png' : 'walson-pass-trace-full.png';
+      a.href = c.toDataURL('image/png'); a.click();
+    };
+    im.src = url;
+  }
+  $('save-card').addEventListener('click', function () { savePng('card'); });
+  $('save-ref').addEventListener('click', function () { savePng('ref'); });
+
+  // ── 시작 ──
+  applyView();
+  function start() { state.refPhoto = cropRef(); if (!state.upload) state.photo = state.refPhoto; draw(); }
+  var ref = $('ref');
+  PT.ready().then(function () { if (ref.complete && ref.naturalWidth) start(); else ref.addEventListener('load', start); });
+  window.__trace = { state: state, draw: draw, setZoom: setZoom, applyView: applyView,   // 시험용
+    loadPhoto: function (url) { var im = new Image(); im.onload = function () { state.upload = im; fitUpload(); }; im.src = url; } };
+})();
+</script>
+</body>
+</html>
