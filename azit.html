@@ -548,10 +548,12 @@
     if (!b) { d.box = null; return py - DOG_VIS; }
     var hop = d.hop != null ? d.hop : (d.frame === 1 || d.frame === 3) ? 1 : 0;   // d.hop = 소품과 노는 동안(actStep)
     var w = b.width / R, h = b.height / R;
-    var x = Math.round((px - w / 2) * R) / R, top = Math.round((py - h + 1) * R) / R - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
-    shadowOn(ctx, px, py + 1, w * 0.62, 0.22);
+    var sink = d.sink || 0;   // 방석에 앉은 만큼 내려앉음(11/24) — 앉는 점 아래로 내려간 다리는 방석 앞에 가려진다
+    var x = Math.round((px - w / 2) * R) / R, top = Math.round((py - h + 1 + sink) * R) / R - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
+    if (!d.seat) shadowOn(ctx, px, py + 1, w * 0.62, 0.22);   // 방석 위에선 바닥 그림자 X
     ctx.save();
     ctx.imageSmoothingEnabled = false;
+    if (sink > 0 && d.seat) { ctx.beginPath(); ctx.rect(x - 4, top - 12, w + 8, d.seat.clipY - (top - 12)); ctx.clip(); }
     if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
     ctx.drawImage(b, x, top, w, h);
     ctx.restore();
@@ -864,10 +866,10 @@
     itemsOf(o, 'floor').forEach(function (it) {
       var p = posOf(o, it), q = P(p.i, p.j); things.push({ id: it.id, z: q.y, x: q.x, y: q.y, spr: pic(it.spr) });
     });
-    var hp = P(host.i, host.j); things.push({ dog: host, z: hp.y + 0.5, x: hp.x, y: hp.y, dogId: o.dog, acc: o.acc });
+    var hp = P(host.i, host.j); things.push({ dog: host, z: host.seat ? host.seat.z : hp.y + 0.5, x: hp.x, y: hp.y, dogId: o.dog, acc: o.acc });   // 방석 위면 방석 바로 다음(11/24)
     if (view !== -1) {   // 친구 방·모델하우스엔 우리 개가 손님으로
       var me = meModel(), gp = P(guest.i, guest.j);
-      things.push({ dog: guest, z: gp.y + 0.5, x: gp.x, y: gp.y, dogId: me.dog, acc: me.acc });
+      things.push({ dog: guest, z: guest.seat ? guest.seat.z : gp.y + 0.5, x: gp.x, y: gp.y, dogId: me.dog, acc: me.acc });
     }
     things.sort(function (a, b) { return a.z - b.z || a.x - b.x; });   // 뒤에서 앞으로
     things.forEach(function (t) {
@@ -1300,11 +1302,40 @@
   function goPlay(s) {
     var it = AZ.byId(AZ.ITEMS, s.id); if (!it || !cur) return;
     var who = view === -1 ? host : guest, r = REACT[it.id] || ['look', '킁킁'], sp = playSpot(it, s, who, r[0]);
+    var seat = r[0] === 'rest' ? seatOf(it) : null;   // 방석·침대(SEATS) — 바로 앞까지 걸어가서 폴짝 올라가 앉는다
     stopAct(who);
-    who.ti = sp.i; who.tj = sp.j; who.fast = true;
-    who.act = { id: it.id, kind: r[0], say: r[1], fx: sp.fx, on: false };
+    who.ti = seat ? seat.front.i : sp.i; who.tj = seat ? seat.front.j : sp.j; who.fast = true;
+    who.act = { id: it.id, kind: r[0], say: r[1], fx: sp.fx, on: false, seat: seat };
     kick();
   }
+  // ── 방석·침대에 올라가 앉기(11/24 가르시아 "침대 방석에 올라갈 때 위치 조절 좀 해야겠어. 앉는 모션도 주면 좋고") ──
+  // 예전엔 방석 그림의 발 자리(맨 아래 가운데)에 서서 방석 앞에 선 것처럼 보였다. 이제 방석 바로 앞에서 폴짝(0.35초) 뛰어
+  // 방석 윗면의 앉는 점(SEATS — 그림 왼쪽 위에서 x·y점)에 내려앉고(0.25초 동안 SINK점), 앉는 점 아래로 내려간 다리는 방석 앞 가장자리에 가려진다.
+  // 앉아 있는 동안은 방석 바로 다음 순서로 그린다(방석보다 위·뒤에 서 있어도 앞에 보이게). 가야 할 곳이 생기면 일어나서(0.15초) 걸어간다
+  var SEATS = {
+    cushion_cafe_beige: [23, 20], cushion_cafe_mint: [23, 20],   // 둥근 쿠션 — 윗면 앞쪽
+    cushion_yellow: [29, 20], cushion_pink: [22, 17], cushion_blue: [23, 18],   // 네모 방석 — 윗면 가운데에서 조금 앞
+    donut_cushion: [20, 17],   // 도넛 — 가운데 구멍, 앞 테두리에 다리가 가려진다
+    sofa_bed: [33, 36]         // 강아지 소파 — 안쪽 방석, 앞 나무 테두리에 다리가 가려진다
+  };
+  var SINK = 8;
+  function seatOf(it) {
+    var st = SEATS[it.spr], im = pic(it.spr), p = posOf(cur, it);
+    if (!st || !im || it.decal || p.wall || p.shelf != null) return null;
+    var q = P(p.i, p.j), x0 = Math.round(q.x - im.width / 2), y0 = Math.round(q.y - im.height + 1), sy = y0 + st[1];
+    return { id: it.id, at: unP(x0 + st[0], sy), front: clampFloor({ i: p.i + 3, j: p.j + 3 }), z: q.y + 0.25, clipY: sy,
+      x0: x0, x1: x0 + im.width, y0: y0, y1: q.y };
+  }
+  function onSeatRect(d) { var s = d.seat, q = P(d.i, d.j); return q.x >= s.x0 - 2 && q.x <= s.x1 + 2 && q.y >= s.y0 && q.y <= s.y1 + 3; }
+  function hopStep(d, now) {   // 방석 위로 폴짝 — 그동안은 걷기 대신 이것이 자리를 옮긴다
+    var k = Math.min(1, (now - d.modeT0) / 0.35), e = k * (2 - k), s = d.seat;
+    if (!s) { d.mode = null; d.hop = null; return; }
+    d.i = d.hopFrom.i + (s.at.i - d.hopFrom.i) * e; d.j = d.hopFrom.j + (s.at.j - d.hopFrom.j) * e;
+    d.ti = d.i; d.tj = d.j; d.frame = 0;
+    d.hop = Math.round(7 * Math.sin(Math.PI * k));
+    if (k >= 1) { d.hop = null; d.mode = 'sit'; d.modeT0 = now; d.sink = 0; if (d.act) startAct(d, now); }
+  }
+  function unseat(d) { d.mode = null; d.sink = 0; d.seat = null; d.hop = null; }
   function startAct(d, now) {
     var a = d.act, x = P(d.i, d.j).x;
     a.on = true; a.t0 = now;
@@ -1386,6 +1417,7 @@
       }
       staticDirty = true;   // 발밑 그림자도 따라가게
     }
+    [host, guest].forEach(function (d) { if (d.seat && d.seat.id === drag.id) unseat(d); });   // 앉아 있던 방석을 옮기면 그 자리에 선다
     drag.moved = true; kick();
   });
   canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
@@ -1405,6 +1437,7 @@
     $('tip').hidden = true;
     var who = view === -1 ? host : guest, c = clampFloor(q);
     stopAct(who); who.fast = false;
+    if (who.mode === 'hop') { who.mode = 'sit'; who.modeT0 = 0; who.hop = null; }   // 폴짝 중이면 앉은 셈 치고 일어나서 간다
     who.ti = c.i; who.tj = c.j; who.rest = 9 + Math.random() * 4;     // 누른 곳에선 한동안 쉰다
     kick();
   });
@@ -1422,6 +1455,17 @@
     raf = 0;
     var now = ts / 1000, dt = last ? Math.min(0.05, now - last) : 0; last = now;
     [host, guest].forEach(function (d) {
+      if (d.mode === 'hop') { hopStep(d, now); return; }
+      if (d.mode === 'sit') {
+        if (moving(d)) { d.mode = 'stand'; d.modeT0 = now; }   // 가야 할 곳이 생기면 먼저 일어난다
+        else d.sink = SINK * Math.min(1, (now - d.modeT0) / 0.25);
+      }
+      if (d.mode === 'stand') {
+        var ku = (now - d.modeT0) / 0.15;
+        if (ku < 1) { d.sink = SINK * (1 - ku); d.frame = 0; return; }
+        d.sink = 0; d.mode = null;
+      }
+      if (d.seat && !d.mode && !onSeatRect(d)) d.seat = null;   // 방석 둘레를 벗어나면 앞뒤 순서 원래대로
       var di = d.ti - d.i, dj = d.tj - d.j, dist = Math.sqrt(di * di + dj * dj);
       if (dist > 0.2) {
         var sp = Math.min(dist, (d.fast ? 26 : 15) * dt);   // 1초에 바닥 15칸(소품으로 놀러 갈 땐 26칸 — 뛰어서)
@@ -1430,9 +1474,12 @@
         d.frame = Math.floor(now * 6) % 2;
       } else {
         d.fast = false;
-        if (d.act && !d.act.on) startAct(d, now);
+        if (d.act && !d.act.on) {
+          if (d.act.seat && d.mode !== 'sit') { d.mode = 'hop'; d.modeT0 = now; d.hopFrom = { i: d.i, j: d.j }; d.seat = d.act.seat; return; }   // 방석 앞에 왔으면 폴짝
+          startAct(d, now);
+        }
         if (d.act && actStep(d, now)) return;   // 소품과 노는 중 — 쉬는 통통·혼자 돌아다니기는 잠깐 쉼
-        d.frame = ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;   // 쉴 땐 4초쯤마다 한 번 통통
+        d.frame = d.mode === 'sit' ? 0 : ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;   // 쉴 땐 4초쯤마다 한 번 통통(앉아 있을 땐 가만히)
         if (d === host && view === -1 && !drag) { d.rest -= dt || 0.15; if (d.rest <= 0) { d.rest = 6 + Math.random() * 6; wander(d); } }
       }
     });
@@ -1441,7 +1488,7 @@
   }
   function schedule() {
     if (raf || idle || document.hidden) return;
-    if (moving(host) || (view !== -1 && moving(guest)) || drag || host.act || guest.act) raf = requestAnimationFrame(step);
+    if (moving(host) || (view !== -1 && moving(guest)) || drag || host.act || guest.act || host.mode === 'hop' || guest.mode === 'hop' || host.mode === 'stand' || guest.mode === 'stand' || (host.mode === 'sit' && host.sink < SINK) || (guest.mode === 'sit' && guest.sink < SINK)) raf = requestAnimationFrame(step);
     else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
   }
   function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
@@ -1470,7 +1517,7 @@
   function goTo(v) {
     if (v >= friends.length || v < -1 - AZ.SHOWROOMS.length) v = -1;
     view = v; gbShown = 12;
-    stopAct(host); stopAct(guest); host.fast = guest.fast = false; tipFor = null;
+    stopAct(host); stopAct(guest); unseat(host); unseat(guest); host.fast = guest.fast = false; tipFor = null;
     var d = v <= -2 && AZ.SHOWROOMS[-2 - v].dogs;   // 모델하우스는 방마다 강아지 서는 자리(꾸민 것이 가려지지 않게)
     var hd = d ? d.host : HOME_DOGS.host, gd = d ? d.guest : HOME_DOGS.guest;
     host.i = host.ti = hd[0]; host.j = host.tj = hd[1]; host.flip = false; host.rest = 5;
@@ -1552,7 +1599,7 @@
       }
       return null;
     },
-    dogs: function () { return [host, guest].map(function (d) { var q = P(d.i, d.j); return { i: d.i, j: d.j, x: q.x, y: q.y, flip: d.flip, hop: d.hop, act: d.act ? { id: d.act.id, kind: d.act.kind, on: d.act.on } : null }; }); } };
+    dogs: function () { return [host, guest].map(function (d) { var q = P(d.i, d.j); return { i: d.i, j: d.j, x: q.x, y: q.y, flip: d.flip, hop: d.hop, act: d.act ? { id: d.act.id, kind: d.act.kind, on: d.act.on } : null, mode: d.mode || null, sink: d.sink || 0, seat: d.seat ? d.seat.id : null }; }); } };
 })();
 </script>
 <script src="tabbar.js?v=11" data-tab="azit"></script>
