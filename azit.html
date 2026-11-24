@@ -108,7 +108,8 @@
   .roomwrap { position: relative; line-height: 0; }
   /* 휴대폰에서 방 위를 위아래로 밀면 화면이 내려간다(pan-y, 11/23 가르시아 "고쳐줘" — 시안은 none이라 방 위에선 안 내려갔음).
      내 방 소품 위를 누를 때만 아래 스크립트(touchstart)가 막아서 끌기가 된다 */
-  #room { display: block; image-rendering: pixelated; touch-action: pan-y; cursor: pointer; }
+  #room { display: block; image-rendering: pixelated; touch-action: pan-y; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* 꾹 누를 때 저장·복사 메뉴가 안 뜨게 */
+  #room.grab { cursor: grabbing; }
   /* 방 이름표 — 오른쪽 위 천장 자리(11/24: 왼쪽 위였을 땐 선반 위 화분·두 선반 사이 사진 액자를 가려서). 오른쪽 벽 위 천장은 소품이 안 가는 곳 */
   .sign { position: absolute; right: 8px; top: 6px; max-width: 46%; background: var(--panel); color: var(--ink); border: 2px solid var(--line);
     padding: 3px 6px; font-size: 12px; line-height: 1.3; z-index: 2; word-break: keep-all; text-align: right; }
@@ -887,6 +888,11 @@
       ctx.drawImage(t.spr, x, y);
       sprites.push({ id: t.id, x: x, y: y, w: t.spr.width, h: t.spr.height, foot: { x: t.x, y: t.y }, img: t.spr });
     });
+    if (drag && drag.armed && !drag.moved) {   // 꾹 눌러 집은 소품 — 둘레에 흰 테두리(아직 안 움직였을 때)
+      var hs = drag.s; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 1;
+      ctx.strokeRect(hs.x - 1.5, hs.y - 1.5, hs.w + 3, hs.h + 3);
+      ctx.strokeStyle = 'rgba(232,74,130,0.9)'; ctx.strokeRect(hs.x - 2.5, hs.y - 2.5, hs.w + 5, hs.h + 5);
+    }
     var di = drag && drag.moved && AZ.byId(AZ.ITEMS, drag.id);
     if (di && di.shelf) {   // 선반에 올릴 수 있는 소품을 끄는 동안 빈 선반 자리에 흰 줄(11/24)
       var bl = shelfBlocked(o);
@@ -1188,7 +1194,7 @@
     $('mine-box').hidden = !o.me;
     $('mood').disabled = !o.me;
     $('mood-row').hidden = !o.me;
-    $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 꾹 눌러 끌어요'
+    $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 톡 누르면 놀고, 꾹 누르면 옮겨요'
       : (o.open && o.items.length ? '소품을 누르면 어떻게 생기는지 보여요' : '바닥을 누르면 ' + walker + ' 걸어가요');
     var closed = $('closed');
     closed.textContent = o.open ? '' : (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
@@ -1369,17 +1375,31 @@
     var rw = VW * K, half = reactW / 2, left = Math.max(half + 2, Math.min(rw - half - 2, (x - OX) * K));
     r.style.left = left + 'px'; r.style.top = Math.max(0, (y - 6) * K) + 'px';
   }
+  // 톡 = 놀기, 꾹(0.6초) = 옮기기(11/24 가르시아 "상호작용이랑 드래그 이동이랑 겹쳐" → "꾹 누르기, 좀 더 오래") —
+  // 소품을 누르면 바로 끌지 않고 HOLD_MS 동안 기다린다. 그 전에 떼면 톡(안내 → 한 번 더 = 놀러 가기), 그 전에 손이 움직이면
+  // 아무것도 안 함(손가락이면 화면 스크롤). 다 채우면 소품 둘레에 테두리 + 짧은 진동 → 그때부터 끌기.
+  var HOLD_MS = 600, HOLD_SLOP = 8;   // 기다리는 동안 이만큼(화면 px) 넘게 움직이면 꾹 누르기 취소
+  var hold = null;
+  function armDrag(h) {
+    var s = h.s, p = h.p, it0 = AZ.byId(AZ.ITEMS, s.id), anc = it0 && it0.wall ? { x: s.x + s.w / 2, y: s.y + s.h / 2 } : (s.foot || p);
+    drag = { id: s.id, moved: false, armed: true, s: s, dx: anc.x - p.x, dy: anc.y - p.y,   // 잡은 곳과 소품 기준점의 차이(끌 때 튀지 않게)
+      decal: !!s.decal, sx: p.x, sy: p.y };
+    // 손가락으로 끌 때는 소품을 손가락 위로 띄운다(11/24 가르시아 "옮길 때 손가락에 가려지지 않게") — 소품 아래 끝이
+    // 손끝보다 화면 40px 위에 오게. 바닥 소품 기준점 = 발(아래 끝), 벽 소품·깔개 기준점 = 그림 가운데
+    if (h.touch) { drag.touch = true; drag.tdy = -(40 / K) - (it0 && (it0.wall || s.decal) ? s.h / 2 : 0); }
+    try { canvas.setPointerCapture(h.pid); } catch (er) { /* 무시 */ }
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch (er) { /* 무시 */ }
+    $('tip').hidden = true; tipFor = null;
+    canvas.classList.add('grab'); kick();
+  }
+  function endHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
+  canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });   // 안드로이드 꾹 누르기 메뉴 막기
   canvas.addEventListener('pointerdown', function (e) {
-    var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null;   // 지난 끌기가 덜 끝났어도 새로 시작
+    var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null; endHold();   // 지난 끌기가 덜 끝났어도 새로 시작
     if (s && !s.fixed) {   // 모서리 가랜드는 끌지 않는다(톡 누르면 안내만)
-      var it0 = AZ.byId(AZ.ITEMS, s.id), anc = it0 && it0.wall ? { x: s.x + s.w / 2, y: s.y + s.h / 2 } : (s.foot || p);
-      drag = { id: s.id, moved: false, s: s, dx: anc.x - p.x, dy: anc.y - p.y,   // 잡은 곳과 소품 기준점의 차이(끌 때 튀지 않게)
-        decal: !!s.decal, sx: p.x, sy: p.y };   // 깔개(배변판)는 조금 움직인 건 끌기로 안 본다(톡 = 안내, 한 번 더 = 가서 킁킁)
-      // 손가락으로 끌 때는 소품을 손가락 위로 띄운다(11/24 가르시아 "옮길 때 손가락에 가려지지 않게") — 소품 아래 끝이
-      // 손끝보다 화면 40px 위에 오게. 바닥 소품 기준점 = 발(아래 끝), 벽 소품·깔개 기준점 = 그림 가운데
-      if (e.pointerType === 'touch') { drag.touch = true; drag.tdy = -(40 / K) - (it0 && (it0.wall || s.decal) ? s.h / 2 : 0); }
-      try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
-      e.preventDefault(); kick();
+      hold = { s: s, p: p, cx: e.clientX, cy: e.clientY, pid: e.pointerId, touch: e.pointerType === 'touch' };
+      var h = hold; h.timer = setTimeout(function () { if (hold === h) { hold = null; armDrag(h); } }, HOLD_MS);
+      if (!h.touch) e.preventDefault();
       return;
     }
     if (s && s.fixed) { tapItem = s; tapOn(s); return; }
@@ -1387,11 +1407,10 @@
   });
   // 휴대폰: 소품 위에서 시작한 손가락만 화면이 따라 움직이지 않게(끌기). 바닥에서 위아래로 밀면 화면이 내려가고
   // 그때 브라우저가 보내는 pointercancel로 걷기도 취소된다. 그냥 톡 누르면 그 칸으로 걸어간다.
-  canvas.addEventListener('touchstart', function (e) {
-    var hit = e.touches.length === 1 && itemAt(at(e.touches[0]));
-    if (hit && !hit.fixed) e.preventDefault();
-  }, { passive: false });
+  // 꾹 누르기를 기다리는 동안은 화면 스크롤을 막지 않는다(움직이면 스크롤 → 꾹 누르기 취소). 끌기가 시작되면 화면이 안 움직이게
+  canvas.addEventListener('touchmove', function (e) { if (drag && drag.armed) e.preventDefault(); }, { passive: false });
   canvas.addEventListener('pointermove', function (e) {
+    if (hold && Math.abs(e.clientX - hold.cx) + Math.abs(e.clientY - hold.cy) > HOLD_SLOP) { endHold(); downAt = null; }   // 꾹 누르기 전에 움직임 = 톡도 끌기도 아님
     if (!drag) return;
     var p = at(e), it = AZ.byId(AZ.ITEMS, drag.id);
     if (!it) return;
@@ -1420,14 +1439,16 @@
     [host, guest].forEach(function (d) { if (d.seat && d.seat.id === drag.id) unseat(d); });   // 앉아 있던 방석을 옮기면 그 자리에 선다
     drag.moved = true; kick();
   });
-  canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
+  canvas.addEventListener('pointercancel', function () { endHold(); canvas.classList.remove('grab'); if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
   canvas.addEventListener('pointerup', function (e) {
+    canvas.classList.remove('grab');
+    if (hold) { var hs = hold.s; endHold(); downAt = null; tapOn(hs); return; }   // 꾹 누르기 전에 뗌 = 톡(안내 → 한 번 더 = 놀러 가기)
     if (drag) {
       if (drag.moved) {
         save();
         var dit = AZ.byId(AZ.ITEMS, drag.id), dp = state.pos[drag.id];
         if (dit && drag.ax != null && !(dp && dp.shelf != null)) { var why = shelfWhy(dit, drag.ax, drag.ay); if (why) dropTip(why, drag.ax, drag.ay); }
-      } else tapOn(drag.s);
+      }   // 꾹 눌러 집었다가 그대로 놓으면 아무것도 안 함
       drag = null; return;
     }   // 내 방 소품을 끌지 않고 톡 누르면 안내(한 번 더 누르면 놀러 가기)
     if (tapItem) { tapItem = null; downAt = null; return; }
