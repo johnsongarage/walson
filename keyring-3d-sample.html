@@ -29,7 +29,12 @@
      [나무 탁자 위] 장면(실물 사진처럼 탁자에 눕혀 비스듬히 내려다봄, 바닥 그림자), 저장 사진은 화면보다 크게(또렷하게).
      11/23 가르시아 "3d 키링 렌더링 사진에 기본으로 이걸 넣어줘"(받은 도트 워킹패스 그림 — sian-ref/walking-pass-pom.webp와 같은 파일) →
      처음 앞면 = 그 그림에서 카드만 잘라 넣는다(바깥 분홍 바탕·그림자·워터마크 빼고, 카드 자리는 pass-trace.js가 잰 값).
-     그림을 올리면 그 그림으로 바뀐다. 이 휴대폰 사진을 미리 넣지는 않는다. */
+     그림을 올리면 그 그림으로 바뀐다. 이 휴대폰 사진을 미리 넣지는 않는다.
+     11/24 가르시아 "샘플로 키링을 무료 제작 의뢰 하려고 해 — 이름 견종 란을 편집할 수 있게, 사이즈 아담하니 좋아 대신 입력할 칸을 좀 바꿔야겠어,
+     밑에 WALSON만 적혀 있는데 중복되니 좀만 개편" →
+     - 처음 앞면 = 그 그림을 같은 자리에 다시 그린 트레이싱판(pass-trace.js, 키링판) — 번호·이름·견종을 아래 칸에서 고쳐 쓴다(사진 칸 강아지는 그림에서 잘라 그대로).
+       키링판: 이름·견종 칸은 두 줄(분홍 띠에 칸 이름 · 흰 칸에 값 크게), 점선 아래 알약은 WALSON 대신 홍보 문구 두 줄.
+     - 앞면·뒷면 인쇄 파일(PNG) 저장 — 인쇄소에 보낼 그림. 그림을 올렸다가 [도트 워킹패스 앞면으로] 돌아올 수 있다. */
   :root {
     --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
     --accent: #ff5c9d; --accent-tint: #ffe4ef; --hl: #ff5c9d; --hl-ink: #ffffff; --line: #2a2026; --shadow-rgb: 74, 40, 58;
@@ -61,6 +66,15 @@
   .btn-sub { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 46px; margin-top: 8px; border: 1.5px solid var(--panel-border); border-radius: 999px;
     background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
   #file { display: none; }
+  /* 앞면 글자 칸(11/24) — 휴대폰에서 눌러도 화면이 커지지 않게 16px */
+  .fields { display: grid; grid-template-columns: 0.8fr 1fr 1.25fr; gap: 6px; }
+  .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 12px; font-weight: 800; color: var(--ink-soft); }
+  .field input { width: 100%; min-width: 0; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink); padding: 9px 10px;
+    border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
+  .field input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
+  #pass-row[hidden], #pass-back[hidden] { display: none; }
+  .saves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .saves .btn-sub { font-size: 14px; }
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
   #shot-out { margin-top: 12px; }
   #shot-out[hidden] { display: none; }
@@ -71,12 +85,13 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=14"></script>
 <script src="site-config.js?v=11"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="pass-trace.js?v=2"></script>
 </head>
 <body>
 <main class="wrap">
   <p class="kicker">시안 · 주소로만 열려요</p>
   <h1>3D 키링 미리 보기</h1>
-  <p class="lead">처음엔 도트 워킹패스가 들어 있어요. 그림을 올리면 그 그림 <b>그대로</b> 투명 아크릴 키링 앞면에 넣어 돌려 봐요. 키링 세로 길이는 그림 비율에 맞춰지고, 고리 구멍은 그림 위에 붙어요. 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
+  <p class="lead">처음엔 도트 워킹패스가 들어 있어요 — 아래에서 번호·이름·견종을 고쳐 쓸 수 있어요. 그림을 올리면 그 그림 <b>그대로</b> 투명 아크릴 키링 앞면에 넣어 돌려 봐요. 키링 세로 길이는 그림 비율에 맞춰지고, 고리 구멍은 그림 위에 붙어요. 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
 
   <div class="stage" id="stage">
     <canvas id="c" aria-label="3D 아크릴 키링"></canvas>
@@ -91,6 +106,17 @@
 
   <button type="button" class="btn-main" id="pick">그림 올리기</button>
   <input type="file" id="file" accept="image/*">
+  <!-- 앞면 글자(11/24) — 앞면이 도트 워킹패스일 때만 -->
+  <div class="row" id="pass-row">
+    <p class="row-label">앞면 글자 · 도트 워킹패스</p>
+    <div class="fields">
+      <label class="field"><span>번호</span><input type="text" id="f-id" maxlength="8" placeholder="비워도 돼요" autocomplete="off"></label>
+      <label class="field"><span>이름</span><input type="text" id="f-name" maxlength="10" value="POM" autocomplete="off"></label>
+      <label class="field"><span>견종</span><input type="text" id="f-type" maxlength="12" value="DOG" autocomplete="off"></label>
+    </div>
+    <p class="note" style="margin-top:6px">영어는 대문자로, 한글은 도트 글씨로 들어가요. 길면 칸에 맞게 조금 작아져요.</p>
+  </div>
+  <button type="button" class="btn-sub" id="pass-back" hidden>도트 워킹패스 앞면으로 돌아가기</button>
 
   <div class="row">
     <p class="row-label">장면</p>
@@ -111,6 +137,10 @@
   </div>
 
   <button type="button" class="btn-sub" id="shot">이 각도로 사진 저장</button>
+  <div class="saves">
+    <button type="button" class="btn-sub" id="save-front">앞면 인쇄 파일(PNG)</button>
+    <button type="button" class="btn-sub" id="save-back">뒷면 인쇄 파일(PNG)</button>
+  </div>
   <div id="shot-out" hidden>
     <img id="shot-img" alt="3D 키링 사진">
     <p class="note">길게 눌러 저장하거나 <a id="dl" download="walson-keyring-3d.png" href="#">내려받기</a></p>
@@ -456,7 +486,7 @@ function setPal(k) {
 }
 function load(url) {
   const im = new Image();
-  im.onload = () => { state.photo = im; state.isDefault = false; drawArt(); $('pick').textContent = '다른 그림 올리기'; };
+  im.onload = () => { state.photo = im; state.isDefault = false; drawArt(); $('pick').textContent = '다른 그림 올리기'; passUi(); };
   im.src = url;
 }
 $('pick').addEventListener('click', () => $('file').click());
@@ -496,12 +526,62 @@ $('shot').addEventListener('click', () => {
 //    카드 자리(그림 1493×2000의 픽셀) = pass-trace.js가 잰 값 { x: 153.5, y: 171, w: 1214, h: 1618.5, 둥글기 74 } — 안쪽으로 반올림.
 //    귀퉁이 둥글기 74px보다 키링 인쇄 칸 둥글기(3.8/45.6 → 약 101px)가 커서 바깥 바탕은 보이지 않는다. 이 휴대폰 사진은 미리 넣지 않는다.
 const DEFAULT_FRONT = { src: 'sian-ref/walking-pass-pom.webp', x: 154, y: 171, w: 1213, h: 1618 };
-paintChips(); drawArt();
+// 11/24부터 처음 앞면 = 트레이싱판(pass-trace.js 키링판) — 그 그림을 같은 자리에 다시 그린 것이라 번호·이름·견종을 고쳐 쓸 수 있다.
+// 사진 칸 강아지는 그림에서 그대로 잘라(2배) 넣는다. pass-trace.js를 못 불러오면 예전처럼 그림에서 카드만 잘라 넣는다.
+const PT = window.WalsonPassTrace;
+const pass = { refPhoto: null, timer: 0, seq: 0 };
+function passOpts() {
+  return { scene: 'card', keyring: true, tagline: true, photo: pass.refPhoto, id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
+    qr: 'https://johnsongarage.co.kr/walson/start.html' };
+}
+function passCanvas(k) {   // 트레이싱판 SVG → 캔버스(k배)
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(new Blob([PT.render(passOpts())], { type: 'image/svg+xml' })), im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c);
+    };
+    im.onerror = (e) => { URL.revokeObjectURL(url); rej(e); };
+    im.src = url;
+  });
+}
+function drawPass() {
+  if (!PT || !pass.refPhoto || state.isDefault === false) return;
+  const my = ++pass.seq;   // 빨리 여러 번 고치면 마지막 것만
+  passCanvas(1).then((c) => { if (my !== pass.seq || state.isDefault === false) return; state.photo = c; state.isDefault = true; drawArt(); }).catch(() => {});
+}
+function passUi() {
+  const on = state.isDefault !== false && !!PT;
+  $('pass-row').hidden = !on; $('pass-back').hidden = on || !PT;
+}
+['f-id', 'f-name', 'f-type'].forEach((id) => $(id).addEventListener('input', () => { clearTimeout(pass.timer); pass.timer = setTimeout(drawPass, 120); }));
+$('pass-back').addEventListener('click', () => {
+  state.isDefault = true; $('file').value = ''; $('pick').textContent = '그림 올리기'; passUi(); drawPass();
+  setSpin(false); view(false);
+});
+// 인쇄 파일 — 앞면은 워킹패스면 2배로 다시 그려서(가로 2428), 올린 그림이면 그대로. 뒷면은 지금 그린 뒷면 그대로(가로 1000)
+function savePng(c, name) { const a = document.createElement('a'); a.download = name; a.href = c.toDataURL('image/png'); a.click(); }
+$('save-front').addEventListener('click', () => {
+  if (state.isDefault !== false && PT && pass.refPhoto) passCanvas(2).then((c) => savePng(c, 'walson-keyring-front.png')).catch(() => savePng(art, 'walson-keyring-front.png'));
+  else savePng(art, 'walson-keyring-front.png');
+});
+$('save-back').addEventListener('click', () => savePng(backArt, 'walson-keyring-back.png'));
+paintChips(); drawArt(); passUi();
 loop();
 (() => {
   const im = new Image();
   im.onload = () => {
-    if (state.photo) return;   // 그 사이에 그림을 올렸으면 그대로
+    if (state.photo && state.isDefault === false) return;   // 그 사이에 그림을 올렸으면 그대로
+    if (PT) {
+      const P = PT.photoBox(), c = document.createElement('canvas'), k = 2;
+      c.width = Math.round(P.w * k); c.height = Math.round(P.h * k);
+      const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+      g.drawImage(im, P.x, P.y, P.w, P.h, 0, 0, c.width, c.height);
+      pass.refPhoto = c.toDataURL('image/png');
+      state.isDefault = true;
+      PT.ready().then(drawPass);   // 한글 도트 글꼴(둥근모꼴)을 받은 뒤에 그려야 이름·견종 한글이 도트로
+      return;
+    }
     const d = DEFAULT_FRONT, c = document.createElement('canvas'); c.width = d.w; c.height = d.h;
     c.getContext('2d').drawImage(im, d.x, d.y, d.w, d.h, 0, 0, d.w, d.h);
     state.photo = c; state.isDefault = true; drawArt();

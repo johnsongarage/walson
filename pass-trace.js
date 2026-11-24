@@ -215,7 +215,12 @@
     title1: { x: 513.8, y: 370, ux: 5.877, uy: 5.835, xs: [513, 603, 688, 766, 850, 935] },
     title2: { x: 346, y: 502.5, ux: 5.06, uy: 4.96, xs: [346, 424, 499, 567, 642, 703, 776, 876, 946, 1019, 1090] },
     paws: [{ x: 393, y: 380.5 }, { x: 1044.5, y: 380.5 }], pawU: { x: 83 / 29, y: 80 / 27 },
-    tagline: { y: 1725, u: 2.4 }
+    tagline: { y: 1725, u: 2.4 },
+    // 키링판(11/24 가르시아 "샘플로 키링 무료 제작 의뢰 — 이름·견종 란을 편집할 수 있게, 사이즈 아담하니 좋아 대신 입력할 칸을 좀 바꿔야겠어,
+    // 밑에 WALSON만 적혀 있는데 중복되니 좀만 개편"): 번호 칸은 그대로, 이름·견종 칸은 두 줄(분홍 띠에 칸 이름 · 흰 칸에 값 크게 —
+    // "포메라니안"·"골든 리트리버"도 작아지지 않게), 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
+    kr: { ys: [880.5, 1083.5], h: 175, strip: 64, pad: 18, lux: 2.45, luy: 2.55, vux: 3.4, vuy: 3.45,
+      dashY: 1286.5, pill: { y: 1330, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 } }
   };
   function photoBox() {
     var F = L.frame;
@@ -248,11 +253,36 @@
   }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
-  // opts: { photo: dataURL(사진 칸 크기 그대로 넣음), id, name, type, qr(주소), tagline(true/false), scene('ref'=바탕·그림자까지 | 'card'=카드만), brand }
+  // 홍보 문구를 두 줄로 — 띄어쓰기 자리 중 두 줄 폭이 가장 비슷한 곳에서 나눈다(한 단어면 한 줄)
+  function twoLines(s) {
+    var words = String(s || '').trim().split(/\s+/), best = [words.join(' '), ''], bw = Infinity;
+    for (var i = 1; i < words.length; i++) {
+      var a = words.slice(0, i).join(' '), b = words.slice(i).join(' '), w = Math.max(textUnits(a), textUnits(b));
+      if (w < bw) { bw = w; best = [a, b]; }
+    }
+    return best;
+  }
+  // 키링판 두 줄 칸: 분홍 띠(칸 이름) 위 · 흰 칸(값) 아래, 테두리는 다른 칸과 같은 계단 모서리
+  function twoRowBox(out, label, value, y) {
+    var FD = L.field, K = L.kr, x = FD.x, w = FD.w, u = FD.u, h = K.h;
+    rect(out, x + u, y + u, w - 2 * u, K.strip, COL.label);
+    rect(out, x + u, y + u + K.strip, w - 2 * u, h - 2 * u - K.strip, COL.value);
+    stepBox(out, x, y, w, h, u, []);
+    var tx = x + u + K.pad;
+    text(out, label, tx, y + u + (K.strip - 16 * K.luy) / 2, K.lux, K.luy, COL.ink);
+    var v = String(value || '').trim().toUpperCase();
+    if (!v) return;
+    var avail = (x + w - u - K.pad) - tx, vux = Math.min(K.vux, avail / textUnits(v)), vuy = vux * K.vuy / K.vux;
+    var area = h - 2 * u - K.strip;
+    text(out, v, tx, y + u + K.strip + (area - 16 * vuy) / 2, vux, vuy, COL.ink);
+  }
+
+  // opts: { photo: dataURL(사진 칸 크기 그대로 넣음), id, name, type, qr(주소), tagline(true/false), scene('ref'=바탕·그림자까지 | 'card'=카드만), brand,
+  //         keyring(true = 키링판 — 이름·견종 두 줄 칸, 아래 알약에 홍보 문구) }
   function render(o) {
     o = o || {};
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
-    var C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [];
+    var C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring;
     var vb = card ? [C.x, C.y, C.w, C.h] : [0, 0, REF.w, REF.h];
     out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb.join(' ') + '" width="' + vb[2] + '" height="' + vb[3] + '">');
     out.push('<defs><clipPath id="pt-card"><rect x="' + C.x + '" y="' + C.y + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '"/></clipPath>' +
@@ -296,6 +326,7 @@
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
+      if (KR && i > 0) { twoRowBox(g1, i === 1 ? 'NAME' : 'TYPE', vals[i], L.kr.ys[i - 1]); return; }   // 키링판 이름·견종 = 두 줄 칸
       var sp = FD.splits[i], fx = FD.x, fu = FD.u;
       stepBox(g1, fx, fy, FD.w, FD.h, fu, [[fx + fu, sp, COL.label], [sp, fx + FD.w - fu, COL.value]]);
       var lb = L.labels[i];
@@ -307,20 +338,30 @@
       }
     });
     // 점선(양 끝은 옅게)
-    var D = L.dash;
-    for (var k = -1; k <= 9; k++) rect(g1, D.x0 + k * D.pitch, D.y, D.w, D.h, k < 0 ? COL.dashFaint : (k === 9 ? COL.dashSoft : COL.dash));
-    // 알약
-    var PL = L.pill;
-    stepBox(g1, PL.x, PL.y, PL.w, PL.h, PL.u, [[PL.x + PL.u, PL.x + PL.w - PL.u, COL.pill]]);
-    var pn = String(B.name || 'WALSON').toUpperCase();
-    if (pn === 'WALSON') text(g1, pn, PL.tx, PL.ty, PL.tux, PL.tuy, COL.ink, PL.xs);
-    else text(g1, pn, PL.x + PL.w / 2 - textUnits(pn) * PL.tux / 2, PL.ty, PL.tux, PL.tuy, COL.ink);
+    var D = L.dash, dy = KR ? L.kr.dashY : D.y;
+    for (var k = -1; k <= 9; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === 9 ? COL.dashSoft : COL.dash));
+    // 알약 — 키링판은 홍보 문구 두 줄(칸 폭 그대로), 아니면 원본처럼 WALSON
+    var PL = L.pill, KP = L.kr.pill, tag = o.tagline !== false && B.tagline;
+    if (KR && tag) {
+      stepBox(g1, FD.x, KP.y, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
+      var ln = twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),
+        pux = Math.min(KP.ux, (FD.w - 2 * KP.u - 2 * KP.pad) / lw), puy = pux * KP.uy / KP.ux,
+        nl = ln[1] ? 2 : 1, th = nl * 16 * puy + (nl - 1) * KP.gap, ty = KP.y + (KP.h - th) / 2;
+      ln.forEach(function (s, i) {
+        if (s) text(g1, s, FD.x + FD.w / 2 - textUnits(s) * pux / 2, ty + i * (16 * puy + KP.gap), pux, puy, COL.ink);
+      });
+    } else {
+      stepBox(g1, PL.x, PL.y, PL.w, PL.h, PL.u, [[PL.x + PL.u, PL.x + PL.w - PL.u, COL.pill]]);
+      var pn = String(B.name || 'WALSON').toUpperCase();
+      if (pn === 'WALSON') text(g1, pn, PL.tx, PL.ty, PL.tux, PL.tuy, COL.ink, PL.xs);
+      else text(g1, pn, PL.x + PL.w / 2 - textUnits(pn) * PL.tux / 2, PL.ty, PL.tux, PL.tuy, COL.ink);
+    }
     // QR(흰 판 + 진짜 주소)
     var Q = L.qr;
     rect(g1, Q.x, Q.y, Q.w, Q.h, COL.white);
     qrRects(g1, o.qr || 'https://johnsongarage.co.kr/walson/start.html', Q.x + (Q.w - Q.size) / 2, Q.y + (Q.h - Q.size) / 2, Q.size);
-    // 홍보 문구(원본엔 없음 — 밖에 나가는 굿즈엔 필수, site-config.js brand): 사진 틀 아래 가운데
-    if (o.tagline !== false && B.tagline) {
+    // 홍보 문구(원본엔 없음 — 밖에 나가는 굿즈엔 필수, site-config.js brand): 사진 틀 아래 가운데(키링판은 알약 안에 있어서 뺌)
+    if (!KR && tag) {
       var tu = L.tagline.u, tw = textUnits(B.tagline) * tu;
       text(g1, B.tagline, (F.ol + F.or) / 2 - tw / 2, L.tagline.y, tu, tu, COL.ink);
     }
