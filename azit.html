@@ -340,9 +340,9 @@
     if (i - j < -70) { var t = (-70 - (i - j)) / 2; i += t; j -= t; }
     return { i: i, j: j };
   }
-  // 벽지 셋(방 모습 글자 j·l·n 그대로) — 분홍 방과, 점은 그대로 색만 바꾼 라일락·밤 블랙 핑크(_dev/azit-extra.py)
+  // 벽지 셋(방 모습 글자 j·l·n 그대로) — 기본 크림 발바닥 방(11/24, 옛 분홍 방의 벽지·바닥만 바꿈)과, 옛 분홍 방에서 색만 바꾼 라일락·밤 블랙 핑크(_dev/azit-extra.py — 다시 돌리면 크림 방에서 만들어지니 주의)
   var ROOM = {
-    jelly: { name: '분홍 줄무늬', img: 'room', paper: '#ffbcba', ink: '#2a2026' },
+    jelly: { name: '크림 발바닥', img: 'room', paper: '#f3e9da', ink: '#2a2026' },   // 11/24 가르시아 받은 그림으로 기본 벽지·바닥 교체(_dev/azit-cream-room.py) — 방 모습 글자 j 그대로
     lilac: { name: '라일락', img: 'room_lilac', paper: '#e4d2f4', ink: '#2a2026' },
     night: { name: '밤 블랙 핑크', img: 'room_night', paper: '#3b2a3e', ink: '#ffffff' }
   };
@@ -358,7 +358,7 @@
   // 11/24 글씨를 한글 도트 글꼴로 다시 쓴 글자 소품(_dev/azit-letter.py) — 예전 그림이 브라우저 캐시에 남지 않게 주소를 v2로(왼쪽 벽용 _L도)
   var LETTER_V2 = ['sign_snack', 'board_refuse', 'sign_meetup', 'bubble_visited', 'bubble_interior', 'bubble_poop', 'bubble_chihuahua',
     'panel_guestbook', 'stamp_regular', 'scroll_dogslife'];
-  function picV(n) { return LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }
+  function picV(n) { return n === 'room' ? 3 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // room v3 = 크림 발바닥 방(11/24)
   var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) pics[n] = im; }); }));
   function pic(n) { return pics[n] || null; }
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
