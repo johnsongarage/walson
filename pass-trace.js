@@ -223,7 +223,9 @@
     // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
     // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
     kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
-      dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 } }
+      dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
+      // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
+      light: { y: 1516.5, h: 78, gap: 16, u: 9.3, lu: 8 } }
   };
   function photoBox() {
     var F = L.frame;
@@ -280,8 +282,35 @@
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
   }
 
+  // 성향 신호등(뒷면 성향 칸과 같은 색 — 0 다가와도 좋아요 초록 · 1 천천히 인사해요 노랑 · 2 눈으로만 빨강): 진한 판에 불 셋, 고른 불만 켬
+  var LAMP = ['..###..', '.#####.', '###*###', '#######', '#######', '.#####.', '..###..'];
+  var SIG_COL = ['#3f9b5b', '#e8b02a', '#d2493f'], SIG_OFF = '#7a4b45';
+  function signalLight(out, x, y, w, h, on) {
+    var LT = L.kr.light, u = LT.u, lu = LT.lu, d = 7 * lu;
+    stepBox(out, x, y, w, h, u, [[x + u, x + w - u, '#5c2a25']]);
+    var inner = w - 2 * u, step = inner / 3;
+    for (var i = 0; i < 3; i++) {
+      var lx = x + u + step * i + (step - d) / 2, ly = y + (h - d) / 2, lit = i === on;
+      bitmap(out, LAMP, { '#': lit ? SIG_COL[i] : SIG_OFF, '*': lit ? SIG_COL[i] : SIG_OFF }, lx, ly, lu, lu);
+      if (lit) rect(out, lx + 2 * lu, ly + lu, lu, lu, '#ffffff');   // 반짝 한 칸
+    }
+  }
+  // 산책 등급 뱃지(reward-rules.js RANKS 이름 그대로) — 등급이 오를수록 진한 분홍, 앞에 발바닥
+  var GRADES = ['산책 입문자', '산책 러버', '프로 산책러', '핑크 앰배서더'], GRADE_COL = ['#fde0dc', '#fdcfd3', '#fbb8bf', '#feafc7'];
+  function gradeBadge(out, x, y, w, h, lv) {
+    lv = Math.max(0, Math.min(3, lv | 0));
+    var LT = L.kr.light, KP = L.kr.pill, u = LT.u, name = GRADES[lv];
+    stepBox(out, x, y, w, h, u, [[x + u, x + w - u, GRADE_COL[lv]]]);
+    var pu = (h - 2 * u - 20) / 27, pw = 29 * pu, gap = 14,
+      tux = Math.min(KP.ux * 1.05, (w - 2 * u - 40 - pw - gap) / textUnits(name)), tuy = tux * KP.uy / KP.ux,
+      total = pw + gap + textUnits(name) * tux, sx = x + (w - total) / 2;
+    bitmap(out, PAW, { '#': lv === 3 ? COL.divider : COL.paw }, sx, y + (h - 27 * pu) / 2, pu, pu);
+    text(out, name, sx + pw + gap, y + (h - 16 * tuy) / 2, tux, tuy, COL.ink);
+  }
+
   // opts: { photo: dataURL(사진 칸 크기 그대로 넣음), id, name, type, qr(주소), tagline(true/false), scene('ref'=바탕·그림자까지 | 'card'=카드만), brand,
-  //         keyring(true = 키링판 — 칸 이름 짧게·간격 좁혀 값 자리 넓힘, 아래 알약에 홍보 문구) }
+  //         keyring(true = 키링판 — 칸 이름 짧게·간격 좁혀 값 자리 넓힘, 아래 알약에 홍보 문구),
+  //         signal(0~2)·grade(0~3) — 키링판에서 주면 QR 대신 성향 신호등·산책 등급 뱃지 }
   function render(o) {
     o = o || {};
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
@@ -359,10 +388,18 @@
       if (pn === 'WALSON') text(g1, pn, PL.tx, PL.ty, PL.tux, PL.tuy, COL.ink, PL.xs);
       else text(g1, pn, PL.x + PL.w / 2 - textUnits(pn) * PL.tux / 2, PL.ty, PL.tux, PL.tuy, COL.ink);
     }
-    // QR(흰 판 + 진짜 주소)
-    var Q = L.qr;
-    rect(g1, Q.x, Q.y, Q.w, Q.h, COL.white);
-    qrRects(g1, o.qr || 'https://johnsongarage.co.kr/walson/start.html', Q.x + (Q.w - Q.size) / 2, Q.y + (Q.h - Q.size) / 2, Q.size);
+    // 키링판 앞면 아래(11/24 가르시아 "앞쪽 큐알은 너무 작아 — 빼고 1·2번 둘 다"): QR 대신 성향 신호등 + 산책 등급 뱃지.
+    // 뒷면에 큰 QR이 있어서 앞면엔 없어도 된다. signal/grade를 안 주면 예전처럼 QR
+    if (KR && (o.signal != null || o.grade != null)) {
+      var LT = L.kr.light, rowY = LT.y;
+      if (o.signal != null) { signalLight(g1, FD.x, rowY, FD.w, LT.h, +o.signal); rowY += LT.h + LT.gap; }
+      if (o.grade != null) gradeBadge(g1, FD.x, rowY, FD.w, LT.h, +o.grade);
+    } else {
+      // QR(흰 판 + 진짜 주소)
+      var Q = L.qr;
+      rect(g1, Q.x, Q.y, Q.w, Q.h, COL.white);
+      qrRects(g1, o.qr || 'https://johnsongarage.co.kr/walson/start.html', Q.x + (Q.w - Q.size) / 2, Q.y + (Q.h - Q.size) / 2, Q.size);
+    }
     // 홍보 문구(원본엔 없음 — 밖에 나가는 굿즈엔 필수, site-config.js brand): 사진 틀 아래 가운데(키링판은 알약 안에 있어서 뺌)
     if (!KR && tag) {
       var tu = L.tagline.u, tw = textUnits(B.tagline) * tu;
