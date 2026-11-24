@@ -7,6 +7,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
 <meta name="theme-color" content="#fffdfd">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<!-- 앞면 한글(이름·견종·홍보 문구·등급) — 도트 대신 또렷한 굵은 글꼴(11/24 가르시아 "한글은 도트 말고 또렷하게") -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
 <style>
   /* 3D 키링 시안(2026-11-22 밤 가르시아 "실제로 이미지를 선택하면 키링을 3D로 모델링해 볼 수 있어?").
      사진을 고르면 투명 아크릴 키링(두께·둥근 모서리·고리 구멍)으로 만들어 손가락으로 돌려 본다.
@@ -95,7 +97,7 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
-<script src="pass-trace.js?v=5"></script>
+<script src="pass-trace.js?v=6"></script>
 </head>
 <body>
 <main class="wrap">
@@ -741,18 +743,27 @@ const PT = window.WalsonPassTrace;
 const pass = { refPhoto: null, timer: 0, seq: 0 };
 function passOpts() {
   return { scene: 'card', keyring: true, tagline: true, photo: pass.refPhoto, id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
-    signal: state.signal, grade: state.grade };   // 앞면 QR은 뺌(11/24 "너무 작아") → 신호등 + 산책 등급
+    signal: state.signal, grade: state.grade, hangul: HANGUL_FONT };   // 앞면 QR은 뺌(11/24 "너무 작아") → 신호등 + 산책 등급
 }
-function passCanvas(k) {   // 트레이싱판 SVG → 캔버스(k배)
-  return new Promise((res, rej) => {
-    const url = URL.createObjectURL(new Blob([PT.render(passOpts())], { type: 'image/svg+xml' })), im = new Image();
+const HANGUL_FONT = "'Black Han Sans', 'Pretendard', sans-serif";
+// 웹 글꼴은 글자 묶음별로 나눠 받아서, 그릴 글자를 다 넘겨 받아 둔 뒤에 그린다(안 받은 글자는 다른 글꼴로 나옴)
+function hangulReady(txt) {
+  if (!txt || !txt.list.length || !document.fonts || !document.fonts.load) return Promise.resolve();
+  return document.fonts.load("48px 'Black Han Sans'", txt.list.map((t) => t.s).join('')).catch(() => {});
+}
+function passCanvas(k) {   // 트레이싱판 SVG → 캔버스(k배) + 한글은 캔버스에 글꼴로(또렷하게)
+  const svg = PT.render(passOpts()), txt = PT.lastText;
+  return hangulReady(txt).then(() => new Promise((res, rej) => {
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })), im = new Image();
     im.onload = () => {
       const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
-      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c);
+      const g = c.getContext('2d'); g.drawImage(im, 0, 0, c.width, c.height);
+      if (PT.paintText) PT.paintText(g, c.width / txt.vb[2], txt);
+      URL.revokeObjectURL(url); res(c);
     };
     im.onerror = (e) => { URL.revokeObjectURL(url); rej(e); };
     im.src = url;
-  });
+  }));
 }
 function drawPass() {
   if (!PT || !pass.refPhoto || state.isDefault === false) return;

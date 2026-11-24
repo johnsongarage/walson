@@ -162,7 +162,12 @@
     }
     paths(out, byCol, order);
   }
+  // 한글 또렷하게(11/24 가르시아 "한글은 도트 말고 또렷하게, 느낌은 비슷한 글씨체로"): render(o.hangul = '글꼴')이면
+  // 한글이 든 글줄은 도트로 그리지 않고 자리만 적어 둔다(VEC) → paintText()가 캔버스에 그 글꼴로 덮어 쓴다.
+  // SVG를 그림(Image)으로 그리면 웹 글꼴을 못 써서 캔버스에서 따로 그린다. 자리·크기는 도트 글자와 같은 칸.
+  var VEC = null;
   function text(out, str, x, y, ux, uy, fill, xs) {
+    if (VEC && /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(String(str || ''))) { VEC.push({ s: String(str), x: x, y: y, w: textUnits(str) * ux, h: 16 * uy, fill: fill }); return; }
     // xs: 원본에서 잰 글자별 왼쪽 끝(띄어쓰기 빼고) — 원본 글자 자리를 그대로 따를 때. 없으면 글자 간격 14칸으로
     var cx = x, k = 0;
     Array.from(String(str || '')).forEach(function (ch) {
@@ -279,6 +284,10 @@
     // 한글 값은 둥근모꼴 도트라 같은 크기면 영문보다 가늘고 작아 보여서 더 크게(11/24 가르시아 "이름 글씨 잘 안 보이네") — 칸 폭이 허락하는 만큼
     var vmax = /[가-힣]/.test(v) ? K.kmax : V.ux;
     var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
+    if (VEC && /[가-힣]/.test(v)) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
+      var vh = 16 * K.kmax * V.uy / V.ux * 0.8;
+      VEC.push({ s: v, x: vx, y: y + (h - vh) / 2, w: avail, h: vh, fill: COL.ink, left: true }); return;
+    }
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
   }
 
@@ -316,6 +325,8 @@
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
     var C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring;
     var vb = card ? [C.x, C.y, C.w, C.h] : [0, 0, REF.w, REF.h];
+    VEC = o.hangul ? [] : null;
+    api.lastText = VEC ? { list: VEC, vb: vb, font: o.hangul } : null;
     out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb.join(' ') + '" width="' + vb[2] + '" height="' + vb[3] + '">');
     out.push('<defs><clipPath id="pt-card"><rect x="' + C.x + '" y="' + C.y + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '"/></clipPath>' +
       '<clipPath id="pt-photo"><rect x="' + n(P.x) + '" y="' + n(P.y) + '" width="' + n(P.w) + '" height="' + n(P.h) + '"/></clipPath></defs>');
@@ -407,7 +418,24 @@
     }
     out.push('<g shape-rendering="crispEdges">' + g1.join('') + '</g>');
     out.push('</svg>');
+    VEC = null;
     return out.join('');
+  }
+  // render(o.hangul) 뒤 그 SVG를 k배로 그린 캔버스에 한글을 덮어 쓴다 — 도트 글자 칸 가운데, 칸 높이만큼(넓으면 칸 폭에 맞게 줄임)
+  function paintText(g, k, t) {
+    t = t || api.lastText; if (!t) return;
+    g.save(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    t.list.forEach(function (it) {
+      var fs = it.h * k * 1.02, font = function () { return fs + 'px ' + t.font; };
+      g.font = font();
+      var m = g.measureText(it.s), maxw = it.w * k * (it.left ? 0.95 : 1.06);
+      if (m.width > maxw) { fs *= maxw / m.width; g.font = font(); m = g.measureText(it.s); }
+      var asc = m.actualBoundingBoxAscent || fs * 0.8, desc = m.actualBoundingBoxDescent || 0,
+        cx = (it.x - t.vb[0] + it.w / 2) * k, cy = (it.y - t.vb[1] + it.h / 2) * k;
+      g.fillStyle = it.fill;
+      g.fillText(it.s, it.left ? (it.x - t.vb[0]) * k : cx - m.width / 2, cy + (asc - desc) / 2);
+    });
+    g.restore();
   }
 
   // 둥근모꼴(한글 대신 그리기용)을 받아 둔다 — 받은 뒤 다시 그리면 한글이 도트로
@@ -420,5 +448,6 @@
     return (document.fonts && document.fonts.load) ? document.fonts.load("16px 'DungGeunMo'", '가나다').then(function () { hcache = {}; }).catch(function () {}) : Promise.resolve();
   }
 
-  window.WalsonPassTrace = { REF: REF, L: L, COL: COL, FONT: FONT, photoBox: photoBox, render: render, ready: ready, textUnits: textUnits, glyph: glyph };
+  var api = { REF: REF, L: L, COL: COL, FONT: FONT, photoBox: photoBox, render: render, ready: ready, textUnits: textUnits, glyph: glyph, paintText: paintText, lastText: null };
+  window.WalsonPassTrace = api;
 })();
