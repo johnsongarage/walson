@@ -118,7 +118,7 @@
 <script src="device.js?v=1"></script>
 <script src="qr-scan.js?v=5"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
-<script src="dex-card.js?v=3"></script>
+<script src="dex-card.js?v=4"></script>
 <!-- 화면 QR에 싣는 내 아지트 방 모습(2026-11-23 개방명록 2단계) — 산책 기록으로 생긴 소품을 세려고 reward-rules.js(앞에 spots-data.js)까지 -->
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
@@ -158,8 +158,9 @@
   <div class="card">
     <div class="who compact" id="my-who"></div>
     <p class="sub">상대가 왈슨의 "상대 QR 찍기"나 휴대폰 카메라로 찍으면 돼요. 앱이 없어도 설치·가입 없이 바로 열려요.</p>
-    <!-- 만날 때 예절(11/24 — 앱을 안 쓰는 견주와 만났을 때 생길 일을 미리, hq notes/petwalk-park-trouble.md) -->
-    <p class="manners">강아지끼리 인사는 견주에게 먼저 물어보고, 앱이 없는 견주에게는 "찍어 보실래요?" 한 번이면 충분해요.</p>
+    <!-- 만날 때 예절(11/24 — 앱을 안 쓰는 견주와 만났을 때 생길 일을 미리, hq notes/petwalk-park-trouble.md).
+         같은 날 가르시아 "교환하는 와중에 강아지에 소홀해지는 순간" — QR은 강아지 인사가 끝나고 줄을 짧게 잡은 뒤에 -->
+    <p class="manners">강아지 인사는 견주에게 먼저 묻고, QR은 인사가 끝나 줄을 짧게 잡은 뒤에 꺼내요. 앱이 없는 견주에겐 한&nbsp;번만 권해요.</p>
     <!-- 한마디 고르기(2026-11-23) — 고른 말이 QR에 실려 상대 폰으로 간다. 누르면 아래에 여덟 가지가 펼쳐진다 -->
     <button type="button" class="pick" id="my-pick" aria-expanded="false" aria-controls="my-msgs"></button>
     <div class="msgs" id="my-msgs" hidden></div>
@@ -417,7 +418,8 @@
     whoBlock($('add-who'), dog, exist ? dog.n + ' 또 만났어요' : eul(dog.n) + ' 만났어요');
     var who = $('add-who');
     if (live && dog.m != null) {   // 받은 한마디 — 고르기만 하는 말이라 우리 목록의 글자만 보인다
-      var bub = el('div', 'bubble'); bub.appendChild(stampEl(dog.m)); bub.appendChild(el('span', '', msgText(dog.m)));
+      // 말한 강아지 이름을 앞에(11/24 "3 수정해") — 모르는 견주가 받아도 사람이 건네는 말이 아니라 강아지 말로 읽히게
+      var bub = el('div', 'bubble'); bub.appendChild(stampEl(dog.m)); bub.appendChild(el('span', '', dog.n + ': ' + msgText(dog.m)));
       who.appendChild(bub);
     }
     var sub;
