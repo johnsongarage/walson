@@ -6,6 +6,8 @@
 // 2) 이미 기록이 있으면 자동으로 넘기지 않는다 → [오늘]·[프로필]의 "크롬으로 옮기기" 버튼(backup.js moveLink)으로.
 // 3) 옮기기 주소(#walson-move=…)로 열린 쪽은 통계를 잠시 멈춘다 — 기기 번호를 넘겨받은 뒤에 센다(index.html).
 // 네이버·인스타 등 다른 앱은 바깥 브라우저로 여는 공식 방법이 없어 안내 문구만 보인다.
+// 2026-11-24 도감(dex.html)도 부른다 — 앱이 없는 견주가 카톡 "코드 스캔"으로 카드 QR을 찍으면 카톡 창에서 열려,
+// 강아지를 넣은 뒤 워킹패스를 만들러 가는 순간 바깥 브라우저로 넘어가며 방금 넣은 강아지가 안 보였다. 이제 찍자마자(#d= 그대로) 넘긴다.
 (function () {
   var ua = navigator.userAgent || '';
   var kakao = /KAKAOTALK/i.test(ua);
@@ -19,7 +21,8 @@
       var S = window.WalsonStore;   // store.js — 이 파일보다 먼저 불러야 한다
       var p = S.profile() || {};
       var w = S.walks();
-      return !!(p.cardNo || p.name) || w.length > 0 || !!S.get(S.KEYS.visits) || !!S.activeWalk() || !!S.activeRoute();
+      return !!(p.cardNo || p.name) || w.length > 0 || !!S.get(S.KEYS.visits) || !!S.activeWalk() || !!S.activeRoute() ||
+        S.dex().length > 0;   // 11/24 도감에 넣은 강아지도 잃으면 안 되는 기록
     } catch (e) { return true; }   // 모르면 넘기지 않는다
   }
   function openExternal(url) {
