@@ -474,7 +474,44 @@
       if (im && im.naturalWidth) { dogSrc[d.id] = { im: im, px: true }; return null; }
       return loadImg(AZ.dogSrc(d.id)).then(function (im2) { if (im2 && im2.naturalWidth) dogSrc[d.id] = { im: im2, px: false }; });
     });
-  }));
+  })).then(function () { AZ.DOGS.forEach(function (d) { if (dogSrc[d.id]) heads[d.id] = headOf(dogSrc[d.id].im); }); });
+
+  // ── 머리 꼭대기 자리(11/24 가르시아 "머리 위 장식이 강아지 머리 위치를 못 찾는 문제" → "자동부터 고쳐 줘") ──
+  // 전엔 장식을 그림 네모의 가운데 위에 얹어서, 머리가 한쪽에 있는 강아지(워킹패스 사진 도트·시바·포메)는 비켜 났고 걸어서 그림이
+  // 뒤집히면 더 어긋났다. 강아지 그림마다 머리 자리를 그림 안 비율 {hx, hy}로 한 번 잰다:
+  // 맨 위 띠(키의 22%)에서 가장 넓게 이어진 덩어리 = 머리(귀 둘 + 정수리 — 꼬리 끝은 좁아서 안 잡힘),
+  // 높이는 그 덩어리 윗선의 가운데값(귀 끝이 아니라 귀 사이 정수리). 못 재면 예전처럼 그림 가운데 위.
+  // 나중에 장식 '자리 맞추기'를 붙이면 이 자리에서 얼마나 옮겼는지만 저장하면 된다
+  var heads = {};
+  function headOf(src) {
+    try {
+      var w0 = src.naturalWidth || src.width, h0 = src.naturalHeight || src.height;
+      if (!w0 || !h0) return null;
+      var c = document.createElement('canvas'); c.width = w0; c.height = h0;
+      var g = c.getContext('2d'); g.drawImage(src, 0, 0);
+      var px = g.getImageData(0, 0, w0, h0).data, top = [], ymin = h0, x, y;
+      for (x = 0; x < w0; x++) {
+        top[x] = h0;
+        for (y = 0; y < h0; y++) if (px[(y * w0 + x) * 4 + 3] > 128) { top[x] = y; break; }
+        if (top[x] < ymin) ymin = top[x];
+      }
+      if (ymin >= h0) return null;
+      var band = ymin + Math.max(2, Math.round(h0 * 0.22)), best = null, s = -1;
+      for (x = 0; x <= w0; x++) {
+        var on = x < w0 && top[x] <= band;
+        if (on && s < 0) s = x;
+        if (!on && s >= 0) { if (!best || x - 1 - s > best[1] - best[0]) best = [s, x - 1]; s = -1; }
+      }
+      var ys = top.slice(best[0], best[1] + 1).sort(function (a, b) { return a - b; });
+      return { hx: (best[0] + best[1] + 1) / 2 / w0, hy: ys[Math.floor(ys.length / 2)] / h0 };
+    } catch (e) { return null; }   // 그림을 못 읽으면 가운데 위로
+  }
+  // 장식을 얹을 머리 꼭대기(방 점) — drawDog가 그린 자리(d.box) 안에서, 걸어서 그림이 뒤집히면 가로도 뒤집는다
+  function headPoint(d, dogId, px, top) {
+    var b = d.box, hd = heads[dogId];
+    if (!b || !hd) return { x: px, y: top };
+    return { x: b.x + (d.flip ? 1 - hd.hx : hd.hx) * b.w, y: top + hd.hy * b.h };
+  }
   function smallCopy(src, w, h) {   // 곱게 줄이기 — 한 번에 많이 줄이면 거칠어져서 반씩 줄여 간다
     var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
     while (sw / 2 >= w * 1.5) {
@@ -504,7 +541,7 @@
   // 바닥 (px, py)에 발을 딛고 서 있는 강아지 — 걸으면 한 칸씩 통통, 쉴 땐 가끔 한 번. 발밑에 그림자(점으로)
   function drawDog(d, dogId, px, py) {
     var b = dogBitmap(dogId);
-    if (!b) return py - DOG_VIS;
+    if (!b) { d.box = null; return py - DOG_VIS; }
     var hop = d.hop != null ? d.hop : (d.frame === 1 || d.frame === 3) ? 1 : 0;   // d.hop = 소품과 노는 동안(actStep)
     var w = b.width / R, h = b.height / R;
     var x = Math.round((px - w / 2) * R) / R, top = Math.round((py - h + 1) * R) / R - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
@@ -514,6 +551,7 @@
     if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
     ctx.drawImage(b, x, top, w, h);
     ctx.restore();
+    d.box = { x: x, w: w, h: h };   // 머리 장식 자리(headPoint)가 쓴다
     return top;
   }
 
@@ -570,7 +608,8 @@
   function setPhotoSprite(png) {
     return loadImg(png).then(function (im) {
       Object.keys(dogCache).forEach(function (k) { if (k.indexOf(PHOTO_ID + '@') === 0) delete dogCache[k]; });
-      if (im && im.naturalWidth) dogSrc[PHOTO_ID] = { im: im, px: true }; else delete dogSrc[PHOTO_ID];
+      if (im && im.naturalWidth) { dogSrc[PHOTO_ID] = { im: im, px: true }; heads[PHOTO_ID] = headOf(im); }   // 사진마다 자세가 달라 머리 자리를 같이 잰다
+      else { delete dogSrc[PHOTO_ID]; delete heads[PHOTO_ID]; }
     });
   }
   var photoReady = state.photoDog ? setPhotoSprite(state.photoDog.png) : Promise.resolve();
@@ -812,7 +851,7 @@
         var top = drawDog(t.dog, t.dogId, t.x, t.y);
         ctx.imageSmoothingEnabled = false;
         var a = t.acc && pic('acc_' + t.acc);
-        if (a) ctx.drawImage(a, Math.round(t.x - a.width / 2), Math.round(top) + 4 - a.height);
+        if (a) { var head = headPoint(t.dog, t.dogId, t.x, top); ctx.drawImage(a, Math.round(head.x - a.width / 2), Math.round(head.y) + 4 - a.height); }   // 머리 꼭대기에(11/24)
         if (t.dog === reactDog) placeReact(t.x, top + 2);
         else if (t.dog === host) placeBubble(t.x, top + 2);
         return;
