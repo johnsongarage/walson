@@ -167,12 +167,22 @@
     for (var l = 1; l < 4; l++) if (n >= rankMin(l)) level = l;
     var prof = WalsonStore.profile(), visited = (p && p.visited) || {}, poop = 0, photos = 0;
     var night = 0, winter = 0, long = 0, sniff = 0;                // 11/23 밤 새 소품 조건 — 5분 넘는 산책만 센다(산책 횟수와 같은 결)
+    // 소품 조건의 산책 셈은 하루 2번까지(11/24 가르시아 — 하루에 여러 번 짧게 나가 빨리 모으지 않게, 사람마다 속도를 비슷하게).
+    // 등급(산책 입문자~핑크 앰배서더)은 워킹패스와 같게 RewardRules 셈 그대로
+    var perDay = {}, itemWalks = 0, DAY_CAP = 2;
+    walks.slice().sort(function (a, b) { return String((a && a.startedAt) || '').localeCompare(String((b && b.startedAt) || '')); }).forEach(function (w) {
+      if (!w || (Number(w.durationMin) || 0) < 5) return;
+      var d = w.date || String(w.startedAt || '').slice(0, 10);
+      perDay[d] = (perDay[d] || 0) + 1;
+      if (perDay[d] <= DAY_CAP) { itemWalks++; w.__cnt = 1; } else w.__cnt = 0;
+    });
     walks.forEach(function (w) {
       if (!w) return;
       if (w.photoKey) photos++;                                   // 오늘의 한 장을 남긴 산책
       var pp = Number(w.poop); if (pp === 1 || pp === 2) poop += pp;   // "응가 치웠나요" — 1번·2번 이상(2로 셈)
       var mins = Number(w.durationMin) || 0;
-      if (mins < 5) return;
+      var cnt = w.__cnt; delete w.__cnt;
+      if (mins < 5 || !cnt) return;                               // 하루 3번째부터는 밤·겨울·긴·킁킁 산책에도 안 셈
       var at = w.startedAt ? new Date(w.startedAt) : null, hr = at && !isNaN(at) ? at.getHours() : -1;
       if (hr >= 20 || (hr >= 0 && hr < 5)) night++;                // 밤 산책(저녁 8시~새벽 5시에 나감)
       var mo = /^\d{4}-(\d{2})/.exec(w.date || ''), m = mo ? Number(mo[1]) : 0;
@@ -183,7 +193,8 @@
     var park = ((RR && RR.PLACES) || []).filter(function (pl) { return pl.kind === 'park' && visited[pl.id]; }).length;
     var by = (st && st.byLevel) || [0, 0, 0];
     return {
-      walks: n,
+      walks: Math.min(n, itemWalks),                              // 소품 조건용(하루 2번까지). 등급은 level(n)
+      rankWalks: n,
       stamps: Object.keys(visited).length,
       shop: WalsonStore.visits().length,
       steady: (st && st.total) || 0,
@@ -195,14 +206,27 @@
     };
   }
   var NEED_KEYS = ['walks', 'level', 'stamps', 'shop', 'steady', 'pass', 'photos', 'poop', 'keyring', 'park', 'steady5', 'pals', 'night', 'winter', 'long', 'sniff'];
-  function met(need, p) {
+  // 발도장 조건은 지금 있는 장소 수까지만(11/24 — 장소가 5곳뿐이라 8·10곳 소품을 아무도 못 얻었음). 장소가 늘면 원래 수로 돌아간다
+  function placeCount() {
+    var RR = window.RewardRules;
+    return ((RR && RR.PLACES) || []).filter(function (pl) { return !pl.pending; }).length;
+  }
+  function eff(need) {
     need = need || {};
+    if (!need.stamps) return need;
+    var n = placeCount(), o = {};
+    for (var k in need) o[k] = need[k];
+    if (n > 0) o.stamps = Math.min(need.stamps, n);
+    return o;
+  }
+  function met(need, p) {
+    need = eff(need);
     for (var k = 0; k < NEED_KEYS.length; k++) { var key = NEED_KEYS[k]; if (need[key] && !((p[key] || 0) >= need[key])) return false; }
     return true;
   }
   // 소품을 누르면 뜨는 글(모델하우스·친구 방) — how: 어떻게 생기는지, mine: 나는 어떤지
   function howText(need, p) {
-    need = need || {};
+    need = eff(need);
     var how;
     if (need.level) { var rn = rankName(need.level), c = rn.charCodeAt(rn.length - 1); how = rn + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? '이' : '가') + ' 되면 생겨요'; }
     else if (need.walks) how = '산책 ' + need.walks + '번 하면 생겨요';
@@ -226,9 +250,9 @@
   }
   // 소품 칸 아래 작은 글씨 — 생겼으면 어떻게 생겼는지, 아니면 얼마나 남았는지
   function needText(need, p) {
-    need = need || {};
+    need = eff(need);
     var ok = met(need, p);
-    if (need.level) return ok ? rankName(need.level) : '산책 ' + (rankMin(need.level) - p.walks) + '번 더';
+    if (need.level) return ok ? rankName(need.level) : '산책 ' + (rankMin(need.level) - (p.rankWalks != null ? p.rankWalks : p.walks)) + '번 더';
     if (need.walks) return ok ? (need.walks === 1 ? '첫 산책' : '산책 ' + need.walks + '번') : '산책 ' + (need.walks - p.walks) + '번 더';
     if (need.stamps) return ok ? '발도장 ' + need.stamps + '곳' : '발도장 ' + (need.stamps - p.stamps) + '곳 더';
     if (need.shop) return need.shop > 1 ? (ok ? '가게 QR ' + need.shop + '번' : '가게 QR ' + (need.shop - (p.shop || 0)) + '번 더') : (ok ? '가게 QR' : '가게 QR 찍으면');

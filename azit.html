@@ -298,7 +298,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=10"></script>
+<script src="azit-room.js?v=11"></script>
 <script src="photo-dot.js?v=2"></script>
 <script>
 (function () {
@@ -1091,7 +1091,7 @@
     if (o.me) {
       var rc = WalsonStore.rewardCard() || {}, RR = window.RewardRules;
       // 특기는 워킹패스 뒷면 글 — 괄호 속 덧붙임("(방어력: +30)")은 말풍선엔 빼고
-      var skill = rc.skillT && prog.walks >= ((RR && RR.SLOT_RULES && RR.SLOT_RULES.skill) || 1) ? String(rc.skillT).replace(/\s*\([^)]*\)\s*$/, '') : '';
+      var skill = rc.skillT && prog.rankWalks >= ((RR && RR.SLOT_RULES && RR.SLOT_RULES.skill) || 1) ? String(rc.skillT).replace(/\s*\([^)]*\)\s*$/, '') : '';
       // 오늘 기분은 고른 말만(11/23 밤 가르시아 "'오늘 기분:' 이건 빼 줘"), 안 골랐으면 특기
       var line = state.mood ? state.mood : (skill ? '특기: ' + skill : '');
       if (line) b.appendChild(document.createTextNode(line));
@@ -1154,7 +1154,7 @@
     } else {
       $('title').textContent = o.me && !myName ? '우리 개 산책 아지트' : o.name + '네 산책 아지트';
       $('sub').textContent = o.me ? (myName ? '내 아지트' : '워킹패스를 만들면 우리 개 이름이 붙어요') : '마실 중 · ' + walker + ' 손님으로 놀러 왔어요';
-      $('count').textContent = o.me ? '산책 ' + prog.walks + '번' : (o.entry.days || 1) + '번 만남';
+      $('count').textContent = o.me ? '산책 ' + prog.rankWalks + '번' : (o.entry.days || 1) + '번 만남';
       var ra = o.me ? '' : (o.entry.roomAt || '');
       setSign(o.me ? [prog.rank] : (o.open ? [o.rank].concat(ra ? [Number(ra.slice(5, 7)) + '/' + Number(ra.slice(8, 10)) + ' 모습'] : []) : ['아직 방 구경 전']));
     }
