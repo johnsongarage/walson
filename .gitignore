@@ -2,3 +2,4 @@
 *.log
 test-results/
 _print/**/out/
+keyring-sample-order/

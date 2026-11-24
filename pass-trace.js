@@ -222,7 +222,7 @@
     // 값 앞뒤 여백도 좁혀 값 자리를 넓힘(원본 174 → 204점, "포메라니안"이 덜 작아짐). 칸끼리 간격도 40 → 30점.
     // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
     // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
-    kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+    kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 } }
   };
   function photoBox() {
@@ -274,7 +274,9 @@
     text(out, label, lx, y + (h - 16 * K.luy) / 2, K.lux, K.luy, COL.ink);
     var v = String(value || '').trim().toUpperCase();
     if (!v) return;
-    var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(V.ux, avail / textUnits(v)), uy = ux * V.uy / V.ux;
+    // 한글 값은 둥근모꼴 도트라 같은 크기면 영문보다 가늘고 작아 보여서 더 크게(11/24 가르시아 "이름 글씨 잘 안 보이네") — 칸 폭이 허락하는 만큼
+    var vmax = /[가-힣]/.test(v) ? K.kmax : V.ux;
+    var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
   }
 
