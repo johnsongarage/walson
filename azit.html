@@ -1919,6 +1919,7 @@
   moodSel.value = state.mood;
   moodSel.addEventListener('change', function () {
     state.mood = moodSel.value; state.moodDay = state.mood ? AZ.todayKey() : ''; save(); bubble(); kick();
+    if (state.mood && view === -1) sayFor(host, state.mood, 2.6);   // 바꾸면 우리 개가 그 기분을 한 번 말한다(11/24 가르시아)
     moodSel.blur();   // 고른 뒤 테두리가 남지 않게
   });
 
