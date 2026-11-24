@@ -73,7 +73,14 @@
   .field input { width: 100%; min-width: 0; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink); padding: 9px 10px;
     border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
   .field input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
-  #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden] { display: none; }
+  #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden], #card-clear[hidden] { display: none; }
+  .card-paste { display: flex; gap: 6px; align-items: center; }
+  .card-paste input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); padding: 9px 10px;
+    border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
+  .card-paste input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
+  .card-paste input.bad { border-color: var(--accent); }
+  #card-note.ok { color: var(--ink); font-weight: 700; }
+  #card-note.warn { color: var(--accent); font-weight: 700; }
   .saves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .saves .btn-sub { font-size: 14px; }
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
@@ -120,6 +127,17 @@
     <p class="note" style="margin-top:6px">영어는 대문자로, 한글은 도트 글씨로 들어가요. 길면 칸에 맞게 조금 작아져요.</p>
   </div>
   <button type="button" class="btn-sub" id="pass-back" hidden>도트 워킹패스 앞면으로 돌아가기</button>
+  <!-- 뒷면 QR · 주인 카드 주소(11/24 가르시아 "만들어 줘" — hq notes/petwalk-guestbook-server.md 6절): 한 번 뽑은 키링 QR은 못 고쳐서,
+       진짜 키링은 주인 폰 도감 [카드 주소 보내기]로 받은 주소를 QR에 그대로 넣는다(나중에 서버 방명록이 그 주인에게 가게).
+       붙여 넣으면 앞면 이름·뒷면 성향도 카드대로 채운다. 안 넣으면 이름으로 만든 샘플 번호 -->
+  <div class="row" id="card-row">
+    <p class="row-label">뒷면 QR · 주인 카드 주소</p>
+    <div class="card-paste">
+      <input type="url" id="f-card" placeholder="카톡으로 받은 카드 주소를 붙여 넣어요" autocomplete="off" inputmode="url" spellcheck="false">
+      <button type="button" class="chip" id="card-clear" hidden>지우기</button>
+    </div>
+    <p class="note" id="card-note" style="margin-top:6px"></p>
+  </div>
 
   <div class="row">
     <p class="row-label">장면</p>
@@ -173,7 +191,7 @@ const $ = (id) => document.getElementById(id);
 const KW = 50, KR = 6, HOLE_R = 1.9, EDGE = 2.2, TAB = 9;
 const PW = KW - EDGE * 2;
 // callName: 뒷면에 "OO라고 불러 주세요" · snack: 0 안 넣기 / 1 간식 좋아해요 / 2 간식은 주지 마세요(11/24 가르시아 "옵션에서 고를 수 있게")
-const state = { thick: 3, photo: null, backMode: 'friend', signal: 1, backPhoto: null, scene: 'air', callName: true, snack: 2 };
+const state = { thick: 3, photo: null, backMode: 'friend', signal: 1, card: null, backPhoto: null, scene: 'air', callName: true, snack: 2 };
 let L = null;   // 지금 모양: { KH, PH, printCY, holeY }
 function layout(aspect) {   // aspect = 그림 세로/가로
   const PH = Math.max(24, Math.min(120, PW * aspect)), KH = PH + EDGE * 2 + TAB;
@@ -314,13 +332,35 @@ function callText() {
   const batchim = ch >= 0xac00 && ch <= 0xd7a3 && (ch - 0xac00) % 28 > 0;
   return name + (batchim ? '이라고' : '라고') + ' 불러 주세요';
 }
+const QR_BASE = 'https://johnsongarage.co.kr/walson/';   // 인쇄물이라 늘 왈슨 주소(어디서 열어도)
+const SIG_I = { g: 0, y: 1, r: 2 };
+function encodeCard(card) { return btoa(unescape(encodeURIComponent(JSON.stringify(card)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+// 붙여 넣은 글에서 도감 카드를 읽는다(dex.html decode와 같은 검사). 주소 앞뒤에 말이 붙어 있어도(카톡 메시지) 된다.
+// 화면 QR(띄운 시각·한마디·방 모습)이 섞여 있어도 키링엔 시각 없는 카드만 넣는다.
+function parseCard(text) {
+  const s = String(text || '').trim();
+  const m = /(?:^|[#&?])d=([A-Za-z0-9_-]{16,})/.exec(s) || /^([A-Za-z0-9_-]{24,})$/.exec(s);
+  if (!m) return null;
+  try {
+    let b = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    const o = JSON.parse(decodeURIComponent(escape(atob(b))));
+    if (!o || o.v !== 1 || !/^[a-z0-9]{8}$/.test(o.i) || typeof o.n !== 'string' || !o.n.trim() || o.n.length > 12) return null;
+    if (!({ s: 1, m: 1, l: 1 })[o.s] || (o.g && SIG_I[o.g] == null) || !/^#[0-9a-f]{6}$/i.test(o.c)) return null;
+    return { v: 1, i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase() };
+  } catch (e) { return null; }
+}
 function cardQrUrl() {
+  // 진짜 키링: 붙여 넣은 주인 카드 그대로(번호·이름·크기·털색) — 성향만 뒷면에서 고른 칸과 맞춘다(뒷면 표시와 QR이 같게)
+  if (state.card) {
+    const k = state.card;
+    return QR_BASE + 'dex.html#d=' + encodeCard({ v: 1, i: k.i, n: k.n, s: k.s, g: ['g', 'y', 'r'][state.signal] || k.g || '', c: k.c });
+  }
   const name = ($('f-name').value || 'POM').trim().slice(0, 12) || 'POM';
   let h = 2166136261; for (const ch of name + '|' + ($('f-id').value || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
   const id = ('k' + h.toString(36) + '0000000').slice(0, 8);
   const card = { v: 1, i: id, n: name, s: 's', g: ['g', 'y', 'r'][state.signal] || '', c: '#f0efe9' };
-  const b = btoa(unescape(encodeURIComponent(JSON.stringify(card)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  return 'https://johnsongarage.co.kr/walson/dex.html#d=' + b;
+  return QR_BASE + 'dex.html#d=' + encodeCard(card);   // 샘플 번호(카드 주소를 안 넣었을 때)
 }
 
 // 1안 친구 QR 판(11/24 "시안1로 하자" → 기본 뒷면) — QR을 크게(키링 위 약 22mm), "찍으면 친구" + 강아지 성향 세 칸(고른 하나에 표시)
@@ -426,7 +466,7 @@ function drawSafeBack(g, W0, H, c, B) {
   const qs = sn(Math.min(300, bodyH * 0.36));
   box(M, bodyTop, qs + 4 * U, qs + 4 * U, '#ffffff');
   if (window.qrcode) {
-    const q = qrcode(0, 'M'); q.addData('https://johnsongarage.co.kr/walson/start.html'); q.make();
+    const q = qrcode(0, 'M'); q.addData(cardQrUrl()); q.make();
     const n = q.getModuleCount(), cell = Math.floor(qs / n), off = sn(M) + 2 * U + Math.floor((qs - cell * n) / 2), offY = sn(bodyTop) + 2 * U + Math.floor((qs - cell * n) / 2);
     g.fillStyle = '#121215';
     for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(off + k * cell, offY + r * cell, cell, cell);
@@ -730,7 +770,7 @@ function savePng(c, name) {
   $('file-out').hidden = false; $('file-out').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   const a = document.createElement('a'); a.download = name; a.href = url; a.click();   // 컴퓨터는 바로 내려받기
 }
-// 주소에 ?export=front|back 이면 그 인쇄 파일 그림 하나만 화면 가득(1:1) — 다른 프로그램으로 그대로 찍어 파일로 만들 때(&name=&type=&id=&signal=0~2&call=0|1&snack=0~2)
+// 주소에 ?export=front|back 이면 그 인쇄 파일 그림 하나만 화면 가득(1:1) — 다른 프로그램으로 그대로 찍어 파일로 만들 때(&name=&type=&id=&signal=0~2&call=0|1&snack=0~2&card=)
 const EXP = new URLSearchParams(location.search);
 if (EXP.get('export')) {
   ['id', 'name', 'type'].forEach((k) => { if (EXP.has(k)) $('f-' + k).value = EXP.get(k); });
@@ -748,7 +788,42 @@ $('save-front').addEventListener('click', () => {
   else savePng(art, 'walson-keyring-front.png');
 });
 $('save-back').addEventListener('click', () => savePng(backArt, 'walson-keyring-back.png'));
-paintChips(); drawArt(); passUi();
+// ── 카드 주소 칸 ──
+function cardUi() {
+  const c = state.card, v = $('f-card').value.trim(), note = $('card-note');
+  $('card-clear').hidden = !v;
+  $('f-card').classList.toggle('bad', !c && !!v);
+  note.className = 'note';
+  if (c) {
+    const front = ($('f-name').value || '').trim();
+    note.textContent = c.n + ' 카드예요 — 뒷면 QR을 찍으면 ' + c.n + ' 도감 카드가 열려요(번호 ' + c.i + ').' +
+      (front && front.toUpperCase() !== c.n.toUpperCase() ? ' 앞면 이름(' + front + ')은 카드 이름과 달라요.' : '');
+    note.classList.add('ok');
+  } else if (v) {
+    note.textContent = '도감 카드 주소가 아니에요. 주인 폰 도감의 [카드 주소 보내기]로 받은 주소를 그대로 붙여 넣어 주세요.';
+    note.classList.add('warn');
+  } else {
+    note.textContent = '진짜 키링은 주인 폰 도감의 [카드 주소 보내기]로 받은 주소를 꼭 넣어요. 안 넣으면 이름으로 만든 샘플 번호라, 나중에 방명록이 주인에게 안 가요.';
+  }
+}
+function setCard(text) {
+  const c = parseCard(text);
+  state.card = c;
+  if (c) {
+    if (c.g) state.signal = SIG_I[c.g];
+    $('f-name').value = c.n;   // 앞면 이름도 카드대로(다르게 쓰고 싶으면 이름 칸에서 다시)
+    drawPass();
+  }
+  cardUi(); paintChips(); build(false);
+}
+$('f-card').addEventListener('input', () => setCard($('f-card').value));
+$('card-clear').addEventListener('click', () => { $('f-card').value = ''; setCard(''); });
+$('f-name').addEventListener('input', cardUi);
+if (EXP.has('card')) {   // ?export=… &card=카드 주소의 d= 뒤 글자(또는 주소 전체를 encodeURIComponent로)
+  const c = parseCard(EXP.get('card'));
+  if (c) { state.card = c; if (c.g) state.signal = SIG_I[c.g]; if (!EXP.has('name')) $('f-name').value = c.n; $('f-card').value = QR_BASE + 'dex.html#d=' + encodeCard(c); }
+}
+paintChips(); drawArt(); passUi(); cardUi();
 loop();
 (() => {
   const im = new Image();
@@ -777,7 +852,7 @@ loop();
 })();
 // 뒷면 도트 글꼴이 늦게 오면 받은 뒤 한 번 더
 if (document.fonts && document.fonts.load) document.fonts.load("48px 'DungGeunMo'", '이 강아지를 만나면').then(() => build(false)).catch(() => {});
-window.__keyring3d = { cardQrUrl, state, scene, renderer, camera, controls, load, setPal, view, backArt, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
+window.__keyring3d = { cardQrUrl, parseCard, setCard, state, scene, renderer, camera, controls, load, setPal, view, backArt, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
 </script>
 </body>
 </html>
