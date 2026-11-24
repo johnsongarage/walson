@@ -11,6 +11,9 @@
 //  - 원본은 AI 그림이라 칸 크기가 곳곳에서 1~3px씩 흔들린다 — 같은 칸 크기로 반듯하게 맞추고, 차이는 겹쳐 보기에서 눈으로 확인.
 // 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. window.WalsonPassTrace.render(opts) → SVG 문자열
 // 11/24 밤: 키링판에 가로판(opts.landscape — 가로 사진용, 같은 칸 크기를 다시 배치)과 카드 색(opts.color — 기본 핑크, TINTS)
+// 같은 날 밤 가르시아 "키링 맨 아래 칸에 유의미한 산책 빼고 특기를 골라서, 또는 직접 적어 넣기 · 입력하는 텍스트는 뚜렷한 글씨체로 · 글씨 크기 조절":
+//   opts.skill(특기 칸 — 홍보 문구 알약 자리) · opts.vfont(칸 값 글씨체 'clear' 또렷하게 · 'bold' 굵게 · 'dot' 도트) · opts.sizes(칸마다 글씨 크기 배수).
+//   편집 창은 keyring-edit.js
 (function () {
   'use strict';
   var REF = { w: 1493, h: 2000 };
@@ -167,6 +170,40 @@
   // 한글이 든 글줄은 도트로 그리지 않고 자리만 적어 둔다(VEC) → paintText()가 캔버스에 그 글꼴로 덮어 쓴다.
   // SVG를 그림(Image)으로 그리면 웹 글꼴을 못 써서 캔버스에서 따로 그린다. 자리·크기는 도트 글자와 같은 칸.
   var VEC = null;
+  // ── 칸 값 글씨체(11/24 밤 가르시아 "키링에 입력하는 텍스트는 뚜렷한 글씨체로") ──
+  // render(o.vfont): 'clear' 또렷하게(Pretendard 800) · 'bold' 굵게(Black Han Sans) · 'dot'·없음 = 예전대로(영어·숫자는 도트, 한글은 o.hangul).
+  // clear·bold면 칸 값(ID·NAME·TYPE·SKILL)은 영어·숫자까지 그 글꼴로 캔버스에 덮어 쓰고(VEC), 영어를 대문자로 바꾸지 않는다.
+  // em: 글자 크기 1에 글자 폭(브라우저에서 잰 값 — 글꼴을 받기 전 어림용), fk: 같은 칸 높이에서 한글 높이가 Black Han Sans와 비슷하게 보이도록 줄이는 배수
+  var VFONTS = {
+    clear: { label: '또렷하게', family: "Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif", weight: 800, fk: 0.86,
+      em: { han: 0.864, up: 0.683, low: 0.551, dig: 0.626, sp: 0.224, etc: 0.6 } },
+    bold: { label: '굵게', family: "'Black Han Sans', Pretendard, sans-serif", weight: 0, fk: 1,
+      em: { han: 0.834, up: 0.696, low: 0.634, dig: 0.6, sp: 0.3, etc: 0.6 } }
+  };
+  var VF = null, SZ = {}, EST = false;   // 지금 그리는 칸 값 글씨체 · 칸마다 글씨 크기 배수 · 글꼴을 못 받아 어림으로 잰 적 있음
+  var HAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/, mctx = null;
+  function fontSpec(F, px) { return (F.weight ? F.weight + ' ' : '') + px + 'px ' + F.family; }
+  // 글줄 폭(글자 크기 1 기준) — 글꼴을 받아 뒀으면 재고, 아니면 어림
+  function emOf(str, F) {
+    str = String(str || '');
+    try {
+      if (document.fonts && document.fonts.check(fontSpec(F, 100), str)) {
+        mctx = mctx || document.createElement('canvas').getContext('2d');
+        mctx.font = fontSpec(F, 100);
+        return mctx.measureText(str).width / 100;
+      }
+    } catch (e) { /* 어림으로 */ }
+    EST = true;
+    var m = F.em;
+    return Array.from(str).reduce(function (a, c) {
+      return a + (HAN.test(c) ? m.han : c === ' ' ? m.sp : /[A-Z]/.test(c) ? m.up : /[a-z]/.test(c) ? m.low : /[0-9]/.test(c) ? m.dig : m.etc);
+    }, 0);
+  }
+  // 칸 값 글줄을 VEC에 — 지금 글씨체(VF)를 붙인다(paintText가 그 글꼴로 그림)
+  function vpush(it) {
+    if (VF) { it.font = VF.family; it.weight = VF.weight; it.fk = VF.fk; }
+    VEC.push(it);
+  }
   function text(out, str, x, y, ux, uy, fill, xs) {
     if (VEC && /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(String(str || ''))) { VEC.push({ s: String(str), x: x, y: y, w: textUnits(str) * ux, h: 16 * uy, fill: fill }); return; }
     // xs: 원본에서 잰 글자별 왼쪽 끝(띄어쓰기 빼고) — 원본 글자 자리를 그대로 따를 때. 없으면 글자 간격 14칸으로
@@ -232,7 +269,10 @@
       labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
-      light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
+      light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5,   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
+      // 특기 칸(11/24 밤 — 홍보 알약 자리를 사진 틀 아랫줄까지 키움, 등급 뱃지는 점선과 이 칸 사이 가운데): 위 분홍 띠(head)에 SKILL(hu = 글자 한 칸),
+      // 아래 흰 칸에 특기 — base는 한 줄일 때 글씨 높이(글씨 크기 배수 1), 두 줄이면 사이 gap. idH = 또렷하게·굵게일 때 ID 숫자 높이
+      skill: { top: 1473, bottom: 1688.5, head: 50, hu: 1.85, base: 72, gap: 10 }, idH: 76 }
   };
   var LP = L;   // 세로판(원본 자리) — render가 opts.landscape면 잠깐 가로판(LL)으로 바꿔 그린다
 
@@ -263,7 +303,9 @@
       kr: { nameH: 84 * fs, nameLatH: 62 * fs, nameFill: 0.5,   /* 값 칸이 넓어서 짧은 이름을 덜 벌림 */ typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8 * fs, ys: ys,
         labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3 * fs, lux: 3.1 * fs, luy: 3.25 * fs, pad: 14, lgap: 8, vgap: 12, vpad: 10,
         dashY: dashY, pill: { y: pillLow, h: pillH, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20, one: true },
-        light: { y: dashY + 35.5, h: 72, solo: 110, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow }
+        light: { y: dashY + 35.5, h: 72, solo: 110, soloSk: 92, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow,
+        // 특기 칸(11/24 밤): 알약(118)보다 높게 사진 틀 아랫줄부터 150 — 등급 뱃지는 그만큼 낮게(soloSk)
+        skill: { top: bot - 150, bottom: bot, head: 40, hu: 1.5, base: 56, gap: 6 }, idH: 76 * fs }
     };
   })();
   function photoBox() {
@@ -271,9 +313,10 @@
     return { x: F.ol + 4 * F.ux, y: F.ot + 4 * F.uy, w: F.or - F.ol - 8 * F.ux, h: F.ob - F.ot - 8 * F.uy };
   }
 
-  // 계단 모서리 상자(칸·알약): 모서리 한 칸 깎은 테두리 u, 안은 fills([[x0,x1,색],…])
-  function stepBox(out, x, y, w, h, u, fills) {
+  // 계단 모서리 상자(칸·알약): 모서리 한 칸 깎은 테두리 u, 안은 fills([[x0,x1,색],…]) — 세로로 나눈 칸. bands([[y0,y1,색],…])는 가로 띠(특기 칸 위 분홍 띠)
+  function stepBox(out, x, y, w, h, u, fills, bands) {
     fills.forEach(function (f) { rect(out, f[0], y + u, f[1] - f[0], h - 2 * u, f[2]); });
+    (bands || []).forEach(function (b) { rect(out, x + u, b[0], w - 2 * u, b[1] - b[0], b[2]); });
     // 테두리(위·아래·옆 + 귀퉁이 한 칸)를 경로 하나로 — 이음매에 틈이 안 생기게
     var d = sq(x + 2 * u, y, x + w - 2 * u, y + u) + sq(x + 2 * u, y + h - u, x + w - 2 * u, y + h) +
       sq(x, y + 2 * u, x + u, y + h - 2 * u) + sq(x + w - u, y + 2 * u, x + w, y + h - 2 * u) +
@@ -297,12 +340,13 @@
   }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
-  // 홍보 문구를 두 줄로 — 띄어쓰기 자리 중 두 줄 폭이 가장 비슷한 곳에서 나눈다(한 단어면 한 줄)
-  function twoLines(s) {
+  // 홍보 문구를 두 줄로 — 띄어쓰기 자리 중 두 줄 폭이 가장 비슷한 곳에서 나눈다(한 단어면 한 줄). wf = 글줄 폭 재는 법(없으면 도트 칸 수)
+  function twoLines(s, wf) {
+    wf = wf || textUnits;
     var words = String(s || '').trim().split(/\s+/), best = [words.join(' '), ''], bw = Infinity;
     for (var i = 1; i < words.length; i++) {
-      var a = words.slice(0, i).join(' '), b = words.slice(i).join(' '), w = Math.max(textUnits(a), textUnits(b));
-      if (w < bw) { bw = w; best = [a, b]; }
+      var a = words.slice(0, i).join(' '), b = words.slice(i).join(' '), w = Math.max(wf(a), wf(b));
+      if (w <= bw) { bw = w; best = [a, b]; }   // 같으면 윗줄이 긴 쪽("식탁 밑 아련한 / 눈빛 빔")
     }
     return best;
   }
@@ -312,21 +356,30 @@
   function vecEm(str) {
     return Array.from(str).reduce(function (a, c) { return a + (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(c) ? 0.84 : c === ' ' ? 0.3 : 0.7); }, 0);
   }
+  // 칸 글씨 크기(11/24 밤 가르시아 "글씨 크기 조절도 되면 좋겠어"): o.sizes = { id, name, type, skill } 배수(1 = 칸에 맞춘 기본, 0.5~1.6).
+  // 칸 높이보다 커지지 않고, 칸 폭보다 길면 칸에 맞게 줄어든다(그래서 아주 긴 글은 키워도 그대로일 수 있다)
+  function sizeOf(key) { var s = Number(SZ[key]); return isFinite(s) && s > 0 ? Math.max(0.5, Math.min(1.6, s)) : 1; }
+  // 또렷하게·굵게(VF)일 때 글줄 폭 — 글씨 높이 h로 그리면(paintText 글자 크기 = h × 1.02 × fk)
+  function vfW(str, h) { return emOf(str, VF) * 1.02 * VF.fk * h; }
   // 긴 견종(11/24 가르시아 "타입 칸도 가변적으로, 엄청 길면 두 줄로"): 견종 칸(center === 'fit')만
   //   ① 견종 글씨가 typeMin보다 작아질 만큼 길면 TYPE 글자·분홍 칸을 줄여(최소 typeShrink배) 흰 칸을 넓힌다
-  //   ② 그래도 작으면(한글만) 띄어쓰기에서 두 줄로. 보통 길이(포메라니안 등)는 그대로
-  function keyringBox(out, label, value, y, center) {
-    var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h;
-    var v = String(value || '').trim().toUpperCase();
+  //   ② 그래도 작으면(한글만 — 또렷하게·굵게면 영어도) 띄어쓰기에서 두 줄로. 보통 길이(포메라니안 등)는 그대로
+  // key: 글씨 크기 배수 이름(id·name·type)
+  function keyringBox(out, label, value, y, center, key) {
+    var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h, sz = sizeOf(key);
+    var raw = String(value || '').trim(), v = VF ? raw : raw.toUpperCase();   // 도트 글꼴은 대문자뿐
     var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;
-    var vh = 16 * K.kmax * V.uy / V.ux * 0.8, isHan = VEC && /[가-힣]/.test(v);
+    var vh = 16 * K.kmax * V.uy / V.ux * 0.8, isHan = VEC && /[가-힣]/.test(v), vec = !!VF || isHan;
+    var hmax = (h - 2 * u) * 0.92;   // 칸 안쪽 높이 — 글씨는 이보다 커지지 않게
+    if (vec) vh = Math.min(hmax, vh * sz);
+    function wEm(s) { return VF ? vfW(s, 1) : vecEm(s) * 1.02; }   // 글씨 높이 1일 때 폭(글꼴로 덮어 쓰는 글)
     if (center === 'fit' && v) {
       var full = x + w - u - (lx + lw * K.lux + K.lgap) - u;   // 지금 흰 칸에서 글씨가 쓸 수 있는 폭(가장자리 반 칸씩 뺌)
-      var need = isHan ? vecEm(v) * vh * 1.02 / 0.9 : textUnits(v) * V.ux;   // 제 크기로 쓰려면 필요한 폭
+      var need = vec ? wEm(v) * vh / 0.9 : textUnits(v) * V.ux * sz;   // 제 크기로 쓰려면 필요한 폭
       if (need * K.typeMin > full) {   // 제 크기의 typeMin배보다 작아질 만큼 길면 TYPE 칸을 줄인다
         ls = Math.max(K.typeShrink, 1 - (need * K.typeMin - full) / (lw * K.lux));
         var full2 = full + lw * K.lux * (1 - ls);
-        if (isHan && need * K.typeTwo > full2 && /\s/.test(v)) two = twoLines(v);
+        if (vec && need * K.typeTwo > full2 && /\s/.test(v)) two = twoLines(v, wEm);
       }
     }
     var sp = lx + lw * K.lux * ls + K.lgap;
@@ -335,23 +388,30 @@
     if (!v) return;
     if (two) {   // 두 줄: 한 줄 높이를 칸 안쪽 높이에 맞춰 나눔, 둘 다 같은 크기(긴 줄에 맞춤)
       var cl2 = sp + u * 0.5, cw2 = x + w - u - cl2 - u * 0.5, lh = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.86),
-        lw2 = Math.max(vecEm(two[0]), vecEm(two[1])) * 1.02;
+        lw2 = Math.max(wEm(two[0]), wEm(two[1]));
       lh = Math.min(lh, cw2 * 0.9 / lw2);
       var ty0 = y + (h - (2 * lh + K.twoGap)) / 2;
-      two.forEach(function (s, i) { VEC.push({ s: s, x: cl2, y: ty0 + i * (lh + K.twoGap), w: cw2, h: lh, fill: COL.ink, fit: true }); });
+      two.forEach(function (s, i) { vpush({ s: s, x: cl2, y: ty0 + i * (lh + K.twoGap), w: cw2, h: lh, fill: COL.ink, fit: true }); });
       return;
     }
+    if (VF) {   // 또렷하게·굵게: 영어·숫자도 글꼴로 — 이름은 크게(짧으면 자간을 벌려 칸을 채움), 견종은 흰 칸 가운데, ID는 왼쪽 맞춤
+      var vcl = sp + u * 0.5, vcw = x + w - u - vcl - u * 0.5;
+      if (center === 'grow') { var nh = Math.min(hmax, K.nameH * sz); vpush({ s: v, x: vcl, y: y + (h - nh) / 2, w: vcw, h: nh, fill: COL.ink, fit: true, spread: K.nameFill }); return; }
+      if (center) { vpush({ s: v, x: vcl, y: y + (h - vh) / 2, w: vcw, h: vh, fill: COL.ink, fit: true }); return; }
+      var ih = Math.min(hmax, K.idH * sz), ix = sp + K.vgap;
+      vpush({ s: v, x: ix, y: y + (h - ih) / 2, w: (x + w - u - K.vpad) - ix, h: ih, fill: COL.ink, left: true }); return;
+    }
     // 한글 값은 둥근모꼴 도트라 같은 크기면 영문보다 가늘고 작아 보여서 더 크게(11/24 가르시아 "이름 글씨 잘 안 보이네") — 칸 폭이 허락하는 만큼
-    var vmax = /[가-힣]/.test(v) ? K.kmax : V.ux;
-    var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
+    var vmax = /[가-힣]/.test(v) ? K.kmax : V.ux, uxMax = hmax / 16 * V.ux / V.uy;   // 도트 글씨도 칸 높이까지만
+    var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax * sz, uxMax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
     if (isHan) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
-      if (center === 'grow') vh = K.nameH;   // 이름: 크게 + 짧으면 자간을 벌려 칸을 채움(paintText spread)
+      if (center === 'grow') vh = Math.min(hmax, K.nameH * sz);   // 이름: 크게 + 짧으면 자간을 벌려 칸을 채움(paintText spread)
       if (center) { var cl = sp + u * 0.5, cw = x + w - u - cl - u * 0.5; VEC.push({ s: v, x: cl, y: y + (h - vh) / 2, w: cw, h: vh, fill: COL.ink, fit: true, spread: center === 'grow' ? K.nameFill : 0 }); return; }
       VEC.push({ s: v, x: vx, y: y + (h - vh) / 2, w: avail, h: vh, fill: COL.ink, left: true }); return;
     }
     if (center === 'grow') {   // 영문 이름도: 칸 높이가 허락하는 만큼 크게, 짧으면 글자 사이를 벌려 칸의 nameFill만큼 채움
       var aw = x + w - u - sp - 2 * K.vpad, nu = textUnits(v);
-      ux = Math.min(K.nameLatH / 16 * V.ux / V.uy, aw * 0.9 / nu); uy = ux * V.uy / V.ux;   // 도트 영문은 칸 높이 꽉 차 보여서 한글보다 낮게
+      ux = Math.min(K.nameLatH / 16 * V.ux / V.uy * sz, uxMax, aw * 0.9 / nu); uy = ux * V.uy / V.ux;   // 도트 영문은 칸 높이 꽉 차 보여서 한글보다 낮게
       var chars = Array.from(v), glyphs = chars.filter(function (c) { return c !== ' '; }).length,
         gapx = glyphs > 1 ? Math.max(0, Math.min(ux * 8, (aw * K.nameFill - nu * ux) / (chars.length - 1))) : 0,
         tw = nu * ux + gapx * (chars.length - 1), cx0 = sp + (x + w - u - sp - tw) / 2, xs = [];
@@ -360,6 +420,49 @@
     }
     if (center) vx = sp + (x + w - u - sp - textUnits(v) * ux) / 2;
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
+  }
+
+  // ── 특기 칸(11/24 밤 가르시아 "키링 맨 아래 칸에 유의미한 산책 빼고 특기를 골라서 넣는 걸로, 또는 직접 적어 넣기") ──
+  // 홍보 문구 알약 자리(사진 틀 아랫줄까지 키움). 위 분홍 띠에 SKILL · 아래 흰 칸에 특기 — 세로판·가로판 같은 모양
+  // (가로판도 처음엔 다른 칸처럼 왼쪽에 SKILL을 뒀더니 특기 글씨가 너무 작아서 위 띠로).
+  // 특기는 한 줄 — 칸보다 길면 띄어쓰기에서 두 줄(두 줄이 더 크게 보일 때), 그래도 길면 칸에 맞게 줄임. 비우면 빈 흰 칸(ID처럼)
+  function skillRect(o) {
+    var K = L.kr, FD = L.field, S = K.skill, LT = K.light, top = S.top;
+    if (o.signal != null) top = Math.max(top, LT.y + LT.h + (o.grade != null ? LT.gap + LT.h : 0) + 16);   // 신호등 줄까지 있으면 그 아래
+    return { x: FD.x, y: top, w: FD.w, h: S.bottom - top };
+  }
+  // 글줄 하나의 폭(글씨 높이 h로 그릴 때)·그리기 — 또렷하게·굵게(VF) / 한글(o.hangul 글꼴) / 도트 영문
+  function lineW(str, h) {
+    if (VF) return vfW(str, h);
+    if (VEC && HAN.test(str)) return vecEm(str) * 1.02 * h;
+    return textUnits(str) * h / 16 * L.value.ux / L.value.uy;
+  }
+  function lineDraw(out, str, cx, top, h, mw) {
+    if (VF || (VEC && HAN.test(str))) { vpush({ s: str, x: cx - mw / 2, y: top, w: mw, h: h, fill: COL.ink, fit: true, mw: mw }); return; }
+    var uy = h / 16, ux = uy * L.value.ux / L.value.uy;
+    text(out, str, cx - textUnits(str) * ux / 2, top, ux, uy, COL.ink);
+  }
+  function skillBox(out, value, R) {
+    var K = L.kr, S = K.skill, u = K.pill.u, x = R.x, y = R.y, w = R.w, h = R.h, A;
+    var raw = String(value || '').trim(), v = VF ? raw : raw.toUpperCase();
+    var hb = S.head, hy = y + u, hux = S.hu * K.lux / K.luy;
+    stepBox(out, x, y, w, h, u, [[x + u, x + w - u, COL.value]], [[hy, hy + hb, COL.label]]);
+    text(out, 'SKILL', x + w / 2 - textUnits('SKILL') * hux / 2, hy + (hb - 16 * S.hu) / 2, hux, S.hu, COL.ink);
+    A = { x: x + u, y: hy + hb, w: w - 2 * u, h: h - 2 * u - hb };
+    if (!v) return;
+    var px = A.w * 0.07, py = A.h * 0.07, W = A.w - 2 * px, H = A.h - 2 * py, cx = A.x + A.w / 2;
+    var want = Math.min(H, S.base * sizeOf('skill')), w1 = lineW(v, want), lines = [v], lh = want;
+    if (w1 > W) {
+      lh = want * W / w1;   // 한 줄로 줄이면 이 높이
+      if (/\s/.test(v)) {
+        var two = twoLines(v, function (s) { return lineW(s, 1); }), h2 = Math.min(want, (H - S.gap) / 2),
+          w2 = Math.max(lineW(two[0], h2), lineW(two[1], h2));
+        if (w2 > W) h2 *= W / w2;
+        if (h2 > lh * 1.04) { lines = two; lh = h2; }   // 두 줄이 조금이라도 크면 두 줄(칸이 높아서 두 줄이 꽉 차 보인다)
+      }
+    }
+    var tot = lines.length * lh + (lines.length - 1) * S.gap, ty = A.y + (A.h - tot) / 2;
+    lines.forEach(function (s, i) { lineDraw(out, s, cx, ty + i * (lh + S.gap), lh, W); });
   }
 
   // 성향 신호등(뒷면 성향 칸과 같은 색 — 0 다가와도 좋아요 초록 · 1 천천히 인사해요 노랑 · 2 눈으로만 빨강): 진한 판에 불 셋, 고른 불만 켬
@@ -435,20 +538,24 @@
   // opts: { photo: dataURL(사진 칸 크기 그대로 넣음), id, name, type, qr(주소), tagline(true/false), scene('ref'=바탕·그림자까지 | 'card'=카드만), brand,
   //         keyring(true = 키링판 — 칸 이름 짧게·간격 좁혀 값 자리 넓힘, 아래 알약에 홍보 문구),
   //         signal(0~2)·grade(0~3) — 키링판에서 주면 QR 대신 성향 신호등·산책 등급 뱃지,
-  //         landscape(true = 가로판, 키링판으로 그림) · color(TINTS id — 없으면 핑크) }
-  // 그리는 동안만 자리(L)·색(COL·GRADE_COL)을 바꿨다가 되돌린다(아래 도구들이 L·COL을 그대로 읽는다)
+  //         landscape(true = 가로판, 키링판으로 그림) · color(TINTS id — 없으면 핑크),
+  //         skill(키링판 맨 아래 특기 — 주면 홍보 문구 알약 대신 특기 칸, 빈 글자면 빈 칸) · vfont('clear'|'bold'|'dot' 칸 값 글씨체) ·
+  //         sizes({ id, name, type, skill } 칸마다 글씨 크기 배수) }
+  // 그리는 동안만 자리(L)·색(COL·GRADE_COL)·글씨체(VF)·크기(SZ)를 바꿨다가 되돌린다(아래 도구들이 그대로 읽는다)
   function render(o) {
     o = o || {};
     var keepL = L, keepC = COL, keepG = GRADE_COL, pc = colorsFor(o.color);
     L = o.landscape ? LL : LP; COL = pc.col; GRADE_COL = pc.grade;
-    try { return renderNow(o); } finally { L = keepL; COL = keepC; GRADE_COL = keepG; VEC = null; }
+    VF = VFONTS[o.vfont] || null; SZ = o.sizes || {}; EST = false;
+    try { return renderNow(o); } finally { L = keepL; COL = keepC; GRADE_COL = keepG; VEC = null; VF = null; SZ = {}; }
   }
   function renderNow(o) {
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
     var R = L.ref || REF, C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring || L === LL;
     var vb = card ? [C.x, C.y, C.w, C.h] : [0, 0, R.w, R.h];
-    VEC = o.hangul ? [] : null;
-    api.lastText = VEC ? { list: VEC, vb: vb, font: o.hangul } : null;
+    VEC = (o.hangul || VF) ? [] : null;
+    // est: 글꼴을 받기 전이라 글줄 폭을 어림으로 잰 적 있음 — 쓰는 쪽은 fontsReady 뒤에 한 번 더 그리면 줄 나눔까지 정확하다
+    api.lastText = VEC ? { list: VEC, vb: vb, font: o.hangul || VF.family, est: false } : null;
     out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb.join(' ') + '" width="' + vb[2] + '" height="' + vb[3] + '">');
     out.push('<defs><clipPath id="pt-card"><rect x="' + C.x + '" y="' + C.y + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '"/></clipPath>' +
       '<clipPath id="pt-photo"><rect x="' + n(P.x) + '" y="' + n(P.y) + '" width="' + n(P.w) + '" height="' + n(P.h) + '"/></clipPath></defs>');
@@ -498,7 +605,7 @@
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
-      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i === 1 ? 'grow' : i === 2 ? 'fit' : false); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
+      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i === 1 ? 'grow' : i === 2 ? 'fit' : false, ['id', 'name', 'type'][i]); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
       var sp = FD.splits[i], fx = FD.x, fu = FD.u;
       stepBox(g1, fx, fy, FD.w, FD.h, fu, [[fx + fu, sp, COL.label], [sp, fx + FD.w - fu, COL.value]]);
       var lb = L.labels[i];
@@ -512,10 +619,12 @@
     // 점선(양 끝은 옅게)
     var D = L.dash, dy = KR ? L.kr.dashY : D.y, dn = D.n == null ? 9 : D.n;   // 가로판은 칸 폭대로 개수(D.n)
     for (var k = -1; k <= dn; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === dn ? COL.dashSoft : COL.dash));
-    // 알약 — 키링판은 홍보 문구 두 줄(칸 폭 그대로), 아니면 원본처럼 WALSON
+    // 알약 — 키링판은 특기 칸(o.skill을 주면, 11/24 밤) 또는 홍보 문구 두 줄(칸 폭 그대로), 아니면 원본처럼 WALSON
     var PL = L.pill, KP = L.kr.pill, tag = o.tagline !== false && B.tagline;
     var rowsOn = KR && (o.signal != null || o.grade != null), pyy = rowsOn ? L.kr.pillLow : KP.y;
-    if (KR && tag) {
+    var SR = KR && o.skill != null ? skillRect(o) : null;
+    if (SR) skillBox(g1, o.skill, SR);
+    else if (KR && tag) {
       stepBox(g1, FD.x, pyy, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
       var ln = KP.one ? [B.tagline, ''] : twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),   // 가로판은 넓어서 한 줄
         pux = Math.min(KP.ux, (FD.w - 2 * KP.u - 2 * KP.pad) / lw), puy = pux * KP.uy / KP.ux,
@@ -535,9 +644,9 @@
       var LT = L.kr.light, rowY = LT.y;
       if (o.signal != null) { signalLight(g1, FD.x, rowY, FD.w, LT.h, +o.signal); rowY += LT.h + LT.gap; }
       if (o.grade != null) {
-        // 등급만 있으면(11/24 "신호등은 톤을 방해" → 뺌) 점선과 홍보 알약 사이 가운데에 조금 크게
-        var gh = o.signal != null ? LT.h : LT.solo;
-        if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + L.kr.pillLow) / 2 - gh / 2;
+        // 등급만 있으면(11/24 "신호등은 톤을 방해" → 뺌) 점선과 홍보 알약(특기 칸) 사이 가운데에 조금 크게
+        var gh = o.signal != null ? LT.h : (SR && LT.soloSk) || LT.solo;
+        if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + (SR ? SR.y : L.kr.pillLow)) / 2 - gh / 2;
         gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
       }
     } else if (L.qr) {   // 가로판은 QR 자리가 없다
@@ -553,16 +662,19 @@
     }
     out.push('<g shape-rendering="crispEdges">' + g1.join('') + '</g>');
     out.push('</svg>');
+    if (api.lastText) api.lastText.est = EST;
     return out.join('');
   }
-  // render(o.hangul) 뒤 그 SVG를 k배로 그린 캔버스에 한글을 덮어 쓴다 — 도트 글자 칸 가운데, 칸 높이만큼(넓으면 칸 폭에 맞게 줄임)
+  // render(o.hangul·o.vfont) 뒤 그 SVG를 k배로 그린 캔버스에 글자를 덮어 쓴다 — 칸 가운데, 칸 높이만큼(넓으면 칸 폭에 맞게 줄임).
+  // 글줄마다 글꼴(it.font·it.weight — 칸 값 글씨체)이 있으면 그것으로, 없으면 t.font. it.fk = 글씨 높이 배수, it.mw = 이 폭보다 넓으면 줄임
   function paintText(g, k, t) {
     t = t || api.lastText; if (!t) return;
     g.save(); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
     t.list.forEach(function (it) {
-      var fs = it.h * k * 1.02, font = function () { return fs + 'px ' + t.font; };
+      var fam = it.font || t.font, fs = it.h * k * 1.02 * (it.fk || 1),
+        font = function () { return (it.weight ? it.weight + ' ' : '') + fs + 'px ' + fam; };
       g.font = font();
-      var m = g.measureText(it.s), maxw = it.w * k * (it.left || it.fit ? 0.9 : 1.06);
+      var m = g.measureText(it.s), maxw = it.mw != null ? it.mw * k : it.w * k * (it.left || it.fit ? 0.9 : 1.06);
       if (m.width > maxw) { fs *= maxw / m.width; g.font = font(); m = g.measureText(it.s); }
       if (it.spread) {   // 짧으면 글자 사이를 벌려 칸 폭의 spread만큼 채움(글자 폭의 0.8배까지)
         var cs = Array.from(it.s), ws = cs.map(function (c) { return g.measureText(c).width; }), sum = ws.reduce(function (a, b) { return a + b; }, 0),
@@ -600,8 +712,35 @@
     L = keep;
     return g;
   }
+  // boxes(opts) — 키링판 칸 자리(카드 왼쪽 위 기준 [x, y, w, h]): id·name·type·skill + card [w, h].
+  // 편집 창(keyring-edit.js)이 고치는 칸을 크게 보여 줄 때. opts는 render와 같은 것(landscape·signal·grade만 본다)
+  function boxes(o) {
+    o = o || {};
+    var keep = L; L = o.landscape ? LL : LP;
+    try {
+      var C = L.card, FD = L.field, ys = L.kr.ys, S = skillRect(o), res = { card: [C.w, C.h] };
+      var r = function (x, y, w, h) { return [x - C.x, y - C.y, w, h]; };
+      ['id', 'name', 'type'].forEach(function (k, i) { res[k] = r(FD.x, ys[i], FD.w, FD.h); });
+      res.skill = r(S.x, S.y, S.w, S.h);
+      return res;
+    } finally { L = keep; }
+  }
+  // fontsReady(lastText) — 덮어 쓸 글자의 글꼴을 다 받은 뒤(웹 글꼴은 글자 묶음별로 나눠 받아서, 그릴 글자를 넘겨 받는다)
+  function fontsReady(t) {
+    t = t || api.lastText;
+    if (!t || !t.list.length || !document.fonts || !document.fonts.load) return Promise.resolve();
+    var by = {};
+    t.list.forEach(function (it) {
+      var spec = (it.weight ? it.weight + ' ' : '') + '48px ' + (it.font || t.font);
+      (by[spec] = by[spec] || []).push(it.s);
+    });
+    return Promise.all(Object.keys(by).map(function (spec) { return document.fonts.load(spec, by[spec].join('')).catch(function () {}); }));
+  }
   // 카드 색 고르는 칸용 — { id, label, swatch(머리띠 색) }
   var tintList = TINTS.map(function (x) { return { id: x.id, label: x.label, swatch: colorsFor(x.id).col.head }; });
-  var api = { REF: REF, L: L, LL: LL, COL: COL, FONT: FONT, TINTS: tintList, geom: geom, photoBox: photoBox, render: render, ready: ready, textUnits: textUnits, glyph: glyph, paintText: paintText, lastText: null };
+  // 칸 값 글씨체 고르는 칸용 — 또렷하게(기본) · 굵게 · 도트(영어·숫자만 도트, 한글은 o.hangul)
+  var fontList = [{ id: 'clear', label: VFONTS.clear.label }, { id: 'bold', label: VFONTS.bold.label }, { id: 'dot', label: '도트' }];
+  var api = { REF: REF, L: L, LL: LL, COL: COL, FONT: FONT, TINTS: tintList, VFONTS: fontList, geom: geom, boxes: boxes, photoBox: photoBox, render: render, ready: ready,
+    textUnits: textUnits, glyph: glyph, paintText: paintText, fontsReady: fontsReady, lastText: null };
   window.WalsonPassTrace = api;
 })();

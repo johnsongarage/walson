@@ -73,6 +73,7 @@
   .cv { position: relative; width: 100%; }
   .cv.is-dot { max-width: 340px; }
   .cv.is-dot #card-canvas { cursor: default; }
+  .cv.is-kr #card-canvas { cursor: pointer; }   /* 키링 카드는 글자 칸을 누르면 고치는 창(11/24 밤) */
   .dot-grab { position: absolute; cursor: grab; touch-action: none; outline-offset: -2px; }
   .dot-grab:hover, .dot-grab:focus-visible { outline: 2px dashed var(--accent); }
   .dot-grab.on { cursor: grabbing; outline: 2px solid var(--accent); }
@@ -108,6 +109,13 @@
     border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
   .tints button i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--ink-soft); }
   .tints button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+  /* 키링 글자·특기 고치기(11/24 밤 가르시아 "맨 아래 칸에 특기를 골라서, 또는 직접 적어 넣기 · 폰에서 키링 보면서 편집") —
+     누르면 keyring-edit.js 편집 창(위에 키링 미리 보기). 키링 카드에선 아래 카드 글자 칸 대신 이것 */
+  .kr-edit { display: grid; gap: 6px; }
+  #ct-box { display: grid; gap: 10px; }
+  .kr-edit .btn { margin-top: 0; }
+  .kr-edit-sum { margin: 0; text-align: center; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
+  .kr-edit-sum b { color: var(--ink); font-weight: 800; }
   #card-canvas {
     width: 100%; height: auto; cursor: pointer;
     filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
@@ -285,6 +293,11 @@
     <div class="canvas-hint" id="canvas-hint">워킹패스를 누르면 뒤집혀요</div>
     <!-- 도트 카드 — 사진을 어떻게 그릴지 · 사진 크기(사진 칸을 끌어서 옮기기는 카드 위에서) -->
     <div class="dot-tools" id="dot-tools" hidden>
+      <!-- 키링 카드만(11/24 밤) — 글자·특기 고치기: 키링을 보면서 고치는 창(keyring-edit.js) -->
+      <div class="kr-edit" id="kr-edit" hidden>
+        <button type="button" class="btn btn-primary" id="kr-edit-btn">글자 · 특기 고치기</button>
+        <p class="kr-edit-sum" id="kr-edit-sum"></p>
+      </div>
       <div class="dot-row" role="group" aria-label="사진을 어떻게 그릴지">
         <span class="lbl">사진</span>
         <div class="format" id="dot-photo-mode">
@@ -315,15 +328,18 @@
           <div class="tints" id="kr-tints"></div>
         </div>
       </div>
-      <!-- 카드 글자(11/24) — 도트 카드·키링 카드의 ID·NAME·TYPE. NAME·TYPE은 비우면 내 기록대로, ID는 비우면 빈칸 -->
-      <div class="card-text" role="group" aria-label="카드에 들어갈 글자">
-        <label><span>ID</span><input type="text" id="ct-id" maxlength="8" autocomplete="off" spellcheck="false" placeholder="빈칸"></label>
-        <label><span>NAME</span><input type="text" id="ct-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
-        <label><span>TYPE</span><input type="text" id="ct-type" maxlength="20" autocomplete="off" spellcheck="false"></label>
-      </div>
-      <div class="ct-foot">
-        <p>카드 그림에만 들어가요(프로필 이름·견종은 그대로). 영어는 대문자로 나와요.</p>
-        <button type="button" id="ct-reset">내 기록대로</button>
+      <!-- 카드 글자(11/24) — 도트 카드의 ID·NAME·TYPE. NAME·TYPE은 비우면 내 기록대로, ID는 비우면 빈칸.
+           키링 카드는 같은 글자를 위 [글자 · 특기 고치기] 창에서 고친다(11/24 밤 — 그래서 키링 카드에선 이 칸을 숨김) -->
+      <div id="ct-box">
+        <div class="card-text" role="group" aria-label="카드에 들어갈 글자">
+          <label><span>ID</span><input type="text" id="ct-id" maxlength="8" autocomplete="off" spellcheck="false" placeholder="빈칸"></label>
+          <label><span>NAME</span><input type="text" id="ct-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
+          <label><span>TYPE</span><input type="text" id="ct-type" maxlength="20" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="ct-foot">
+          <p>카드 그림에만 들어가요(프로필 이름·견종은 그대로). 영어는 대문자로 나와요.</p>
+          <button type="button" id="ct-reset">내 기록대로</button>
+        </div>
       </div>
     </div>
     <!-- 화면 정리(2026-11-18 밤 가르시아 "주민증 밑에 여러 개 더 있고 편집 화면은 밑에 있어, UI 좀 정리해 줘"):
@@ -405,8 +421,9 @@
 <script src="pass-pixel.js?v=8"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
-<!-- 키링 카드(11/24) 그림 — 3D 키링 시안 앞면과 같은 트레이싱판 -->
-<script src="pass-trace.js?v=14"></script>
+<!-- 키링 카드(11/24) 그림 — 3D 키링 시안 앞면과 같은 트레이싱판. 글자·특기 고치는 창(11/24 밤)은 keyring-edit.js -->
+<script src="pass-trace.js?v=15"></script>
+<script src="keyring-edit.js?v=1"></script>
 <script src="mock-server.js?v=2"></script>
 <script>
   (function () {
@@ -498,15 +515,20 @@
   // ── 카드 글자(11/24 가르시아 "들어가는 내용들도 수정할 수 있게") — 도트 카드·키링 카드의 ID·NAME·TYPE ──
   // 처음엔 내 기록(번호 끝 네 자리 · 이름 · 견종, 없으면 DOG). 고친 것만 dot.text에 남긴다 — 프로필 이름·견종은 그대로.
   // NAME·TYPE은 비우면 내 기록대로, ID는 비우면 빈칸(3D 키링 시안처럼 "비워도 돼요")
+  // 키링 맨 아래 특기(11/24 밤)도 같이: 처음엔 워킹패스 특기(칭호 · 특기와 특이 사항에서 고른 것, 산책 1회부터 — 괄호 속 게임 수치는 빼고 짧게).
+  // 키링에서 고르거나 직접 쓴 특기는 dot.text.skill에만(워킹패스 특기는 그대로), 비우면 빈 칸
   function textDefaults() {
-    return { id: String(profile.cardNo || '').split('-').pop() || '', name: profile.name || '', type: profile.breed || 'DOG' };
+    var sk = progress.walks >= RR.SLOT_RULES.skill ? skills[pick.skill] : null, KE = window.WalsonKeyringEdit;
+    return { id: String(profile.cardNo || '').split('-').pop() || '', name: profile.name || '', type: profile.breed || 'DOG',
+      skill: sk ? (KE ? KE.shortSkill(sk.title) : sk.title) : '' };
   }
   function cardText() {
     var d = textDefaults(), t = (dot.text && typeof dot.text === 'object') ? dot.text : {};
     return {
       id: typeof t.id === 'string' ? t.id : d.id,
       name: typeof t.name === 'string' && t.name.trim() ? t.name : d.name,
-      type: typeof t.type === 'string' && t.type.trim() ? t.type : d.type
+      type: typeof t.type === 'string' && t.type.trim() ? t.type : d.type,
+      skill: typeof t.skill === 'string' ? t.skill : d.skill
     };
   }
   function fillCardText() {
@@ -564,7 +586,8 @@
     Array.prototype.forEach.call($('dot-photo-mode').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-m') === m)); });
   }
   // ── 키링 카드(2026-11-24 가르시아 "지금 3D에서 만든 이미지 시안 앞면을 워킹패스에서 볼 수 있게 반영해 줘, 들어가는 내용들도 수정할 수 있게") ──
-  // 그림은 pass-trace.js 키링판 = 3D 키링 미리 보기(keyring-3d-sample.html) 앞면과 같은 것: ID·NAME·TYPE 칸 + 산책 등급 뱃지 + 홍보 두 줄 알약.
+  // 그림은 pass-trace.js 키링판 = 3D 키링 미리 보기(keyring-3d-sample.html) 앞면과 같은 것: ID·NAME·TYPE 칸 + 산책 등급 뱃지 + 맨 아래 특기 칸
+  // (11/24 밤 — 그 전엔 홍보 두 줄 알약). 글자·특기·글씨 크기·글씨체는 [글자 · 특기 고치기] 창(keyring-edit.js)에서.
   // 한글은 3D 시안처럼 Black Han Sans로 덮어 쓴다(SVG를 그림으로 그리면 웹 글꼴을 못 써서 캔버스에서 따로 — pass-trace.js paintText).
   // 카드 판(사진 칸은 흰 채로)은 글자·등급이 바뀔 때만 다시 그리고, 사진은 그 위 사진 칸의 흰 곳에만 얹는다(귀퉁이 뼈다귀 마디는 판 그대로) —
   // 사진을 끌어서 맞추는 동안 판을 다시 그리지 않아 빠르다. 사진 칸 비율(0.629)이 도트 카드(0.628)와 거의 같아서 사진 맞춤·사진 방식은 같이 쓴다.
@@ -583,11 +606,19 @@
     var id = dot.krTint;
     return PT && PT.TINTS && PT.TINTS.some(function (x) { return x.id === id; }) ? id : 'pink';
   }
+  // 칸 글씨체·글씨 크기(11/24 밤 가르시아 "키링에 입력하는 텍스트는 뚜렷한 글씨체로, 글씨 크기 조절도") — walson_pass_dot.krFont('clear' 또렷하게 기본 ·
+  // 'bold' 굵게 · 'dot' 도트) · krSize({ id, name, type, skill } 배수, 1이 아닌 것만)
+  function krFont() { return dot.krFont === 'bold' || dot.krFont === 'dot' ? dot.krFont : 'clear'; }
+  function krSizes() {
+    var z = (dot.krSize && typeof dot.krSize === 'object') ? dot.krSize : {}, out = {};
+    ['id', 'name', 'type', 'skill'].forEach(function (k) { var v = Number(z[k]); out[k] = isFinite(v) && v > 0 ? Math.max(0.5, Math.min(1.6, v)) : 1; });
+    return out;
+  }
   var krBases = {}, krDone = null, krGen = 0, krOut = document.createElement('canvas'), krTmp = document.createElement('canvas');
   function krOpts() {
     var t = cardText();
-    return { scene: 'card', keyring: true, tagline: true, id: t.id, name: t.name, type: t.type, grade: rank.level, hangul: KR_FONT,
-      landscape: krLand(), color: krTint() };
+    return { scene: 'card', keyring: true, id: t.id, name: t.name, type: t.type, skill: t.skill, grade: rank.level, hangul: KR_FONT,
+      vfont: krFont(), sizes: krSizes(), landscape: krLand(), color: krTint() };
   }
   function krKey() { return JSON.stringify(krOpts()); }
   function krBox(land) {   // 사진 칸(카드 판 캔버스 픽셀) — 판을 그린 모양대로
@@ -599,7 +630,10 @@
     var o = krOpts(), key = JSON.stringify(o), gen = krGen;
     if (krBases[key]) return krBases[key];
     var svg = PT.render(o), txt = PT.lastText;
-    var fonts = (txt && txt.list.length && document.fonts && document.fonts.load)
+    // 덮어 쓸 글자의 글꼴(Black Han Sans·Pretendard)을 받은 뒤 — 받기 전에 어림으로 줄을 나눴으면 정확한 폭으로 한 번 더 그린다(11/24 밤)
+    var fonts = PT.fontsReady ? PT.fontsReady(txt).then(function () {
+      if (txt && txt.est) { svg = PT.render(o); txt = PT.lastText; return PT.fontsReady(txt); }
+    }) : (txt && txt.list.length && document.fonts && document.fonts.load)
       ? document.fonts.load("48px 'Black Han Sans'", txt.list.map(function (t) { return t.s; }).join('')).catch(function () {}) : Promise.resolve();
     var p = fonts.then(function () {
       return new Promise(function (res, rej) {
@@ -698,7 +732,48 @@
     el.style.left = (r[0] * 100) + '%'; el.style.top = (r[1] * 100) + '%'; el.style.width = (r[2] * 100) + '%'; el.style.height = (r[3] * 100) + '%';
   }
   var DOT_NOTE = '고른 모양과 사진 맞춤은 이 휴대폰에만 기억해요. 실물로 뽑기·키링 파일은 아직 기본 카드로 나와요(도트 인쇄 크기는 정해지면).';
-  var KR_NOTE = '3D 키링 시안 앞면과 같은 그림이에요(가로 사진이면 처음엔 가로판). 고른 모양·색·글자·사진 맞춤은 이 휴대폰에만 기억하고, 산책 등급 뱃지는 산책 기록대로 바뀌어요.';
+  var KR_NOTE = '3D 키링 시안 앞면과 같은 그림이에요(가로 사진이면 처음엔 가로판). 고른 모양·색·글자·특기·글씨 크기·사진 맞춤은 이 휴대폰에만 기억하고, 산책 등급 뱃지는 산책 기록대로 바뀌어요.';
+  // [글자 · 특기 고치기] 아래 한 줄 — 지금 특기와 글씨체
+  function krEditSum() {
+    var t = cardText(), f = { clear: '또렷하게', bold: '굵게', dot: '도트' }[krFont()], box = $('kr-edit-sum');
+    box.textContent = '';
+    box.appendChild(document.createTextNode('특기 '));
+    var b = document.createElement('b'); b.textContent = t.skill.trim() || '비어 있어요'; box.appendChild(b);
+    box.appendChild(document.createTextNode(' · 글씨 ' + f));
+  }
+  // 키링 글자·특기 고치는 창(11/24 밤 가르시아 "폰에서 키링 편집할 때 키링 보면서 편집할 수 있도록") — keyring-edit.js.
+  // 고칠 때마다 dot.text(내 기록과 다른 글자만)·krSize·krFont에 바로 넣고 카드도 다시 그린다. focus = 처음부터 크게 볼 칸(카드에서 누른 칸)
+  var krEditOpen = false;
+  function openKrEdit(focus) {
+    var KE = window.WalsonKeyringEdit;
+    if (!KE || !PT || krEditOpen) return;
+    krEditOpen = true;
+    var t = cardText(), d = textDefaults(), saveT = null;
+    KE.open({
+      title: '키링 글자 · 특기',
+      state: { id: t.id, name: t.name, type: t.type, skill: t.skill, sizes: krSizes(), font: krFont() },
+      defaults: d, skills: KE.skillList(CS), focus: focus || null, resetLabel: '내 기록대로',
+      namesNote: '키링 그림에만 들어가요 · 이름·견종은 비우면 내 기록대로',
+      opts: function () { return krOpts(); },
+      draw: function () { return krFile(); },
+      onChange: function (s) {
+        var nt = {};
+        if (s.id !== d.id) nt.id = s.id;
+        ['name', 'type'].forEach(function (k) { if (s[k].trim() && s[k] !== d[k]) nt[k] = s[k]; });
+        if (s.skill !== d.skill) nt.skill = s.skill;   // 비운 것도 남김(빈 칸)
+        dot.text = nt;
+        var z = {};
+        ['id', 'name', 'type', 'skill'].forEach(function (k) { if (s.sizes[k] && s.sizes[k] !== 1) z[k] = s.sizes[k]; });
+        dot.krSize = z; dot.krFont = s.font;
+        clearTimeout(saveT);
+        saveT = setTimeout(function () { writeDot(); render(); }, 150);
+      },
+      onClose: function () {
+        krEditOpen = false;
+        clearTimeout(saveT); writeDot(); fillCardText(); krEditSum(); render();
+      }
+    });
+  }
   // 키링 카드 고르는 칸(모양·색)을 지금 상태대로 + 카드 칸 넓이(가로판은 화면 폭 가득) + 사진 끌기 칸 자리
   function krSync() {
     if (!PT) return;
@@ -727,16 +802,18 @@
     $('style-dot').setAttribute('aria-pressed', String(st === 'pixel'));
     $('style-kr').setAttribute('aria-pressed', String(isKr));
     $('side-toggle').hidden = isDot;
-    $('card-cv').classList.toggle('is-dot', isDot);
+    $('card-cv').classList.toggle('is-dot', isDot); $('card-cv').classList.toggle('is-kr', isKr);
     $('dot-grab').hidden = !isDot; $('dot-tools').hidden = !isDot; $('dot-save').hidden = !isDot; $('dot-note').hidden = !isDot;
     $('save-btn').hidden = isDot; $('color-note').hidden = isDot;
-    $('canvas-hint').textContent = isDot ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키우고 줄여요' : '워킹패스를 누르면 뒤집혀요';
+    $('canvas-hint').textContent = isKr ? '사진 칸은 끌어서 옮기고 두 손가락으로 키워요 · 글자 칸을 누르면 고쳐요'
+      : isDot ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키우고 줄여요' : '워킹패스를 누르면 뒤집혀요';
     $('dot-save-btn').textContent = isKr ? '키링 카드 저장' : '도트 워킹패스 저장';
     $('dot-note').textContent = isKr ? KR_NOTE : DOT_NOTE;
     $('kr-tools').hidden = !isKr;
+    $('kr-edit').hidden = !isKr; $('ct-box').hidden = isKr;   // 키링 카드 글자는 [글자 · 특기 고치기] 창에서(11/24 밤)
     $('card-cv').classList.toggle('is-land', false);
     if (isDot) placeGrab(isKr);
-    if (isKr) krSync();
+    if (isKr) { krSync(); krEditSum(); }
     render();
   }
   if (PP) {
@@ -753,6 +830,7 @@
           var v = $('ct-' + q).value;
           if (q === 'id' ? v !== d.id : (v.trim() && v !== d[q])) t[q] = v;
         });
+        if (dot.text && typeof dot.text.skill === 'string') t.skill = dot.text.skill;   // 키링 특기는 그대로
         dot.text = t;
         clearTimeout(ctT);
         ctT = setTimeout(function () { writeDot(); render(); }, 150);
@@ -760,6 +838,8 @@
     });
     $('ct-reset').addEventListener('click', function () { dot.text = {}; writeDot(); fillCardText(); render(); });
     fillCardText();
+    // 키링 글자·특기 고치기(11/24 밤)
+    $('kr-edit-btn').addEventListener('click', function () { openKrEdit(null); });
     // 키링 카드 모양 — 고르면 이 휴대폰에 기억(고른 적이 없으면 사진 비율대로)
     Array.prototype.forEach.call($('kr-orient').querySelectorAll('button'), function (b) {
       b.addEventListener('click', function () { dot.krOrient = b.getAttribute('data-o'); writeDot(); krSync(); render(); });
@@ -939,7 +1019,17 @@
   }
   $('side-front').addEventListener('click', function () { setSide('front'); });
   $('side-back').addEventListener('click', function () { setSide('back'); });
-  view.addEventListener('click', function () { if (cardStyle !== 'basic') return; setSide(side === 'front' ? 'back' : 'front'); });   // 도트·키링 카드는 한 면
+  view.addEventListener('click', function (e) {
+    // 키링 카드: 글자 칸(ID·NAME·TYPE·SKILL)을 누르면 그 칸을 크게 보며 고치는 창(11/24 밤) — 칸 밖이면 특기부터
+    if (cardStyle === 'keyring' && PT && PT.boxes) {
+      var r = view.getBoundingClientRect(), B = PT.boxes(krOpts()), cx = (e.clientX - r.left) / r.width * B.card[0], cy = (e.clientY - r.top) / r.height * B.card[1], hit = null;
+      ['id', 'name', 'type', 'skill'].forEach(function (k) { var b = B[k]; if (cx >= b[0] && cx <= b[0] + b[2] && cy >= b[1] && cy <= b[1] + b[3]) hit = k; });
+      openKrEdit(hit || 'skill');
+      return;
+    }
+    if (cardStyle !== 'basic') return;
+    setSide(side === 'front' ? 'back' : 'front');
+  });   // 도트 카드는 한 면
 
   // ── 꾸미고 저장하기(한 화면 편집기 — 오른쪽 위 [저장]은 사진첩·내려받기, [공유]는 공유 창) ──
   $('save-btn').addEventListener('click', function () {

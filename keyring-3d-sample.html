@@ -75,6 +75,8 @@
   .field input { width: 100%; min-width: 0; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink); padding: 9px 10px;
     border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
   .field input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
+  .fields[hidden] { display: none; }
+  #edit-text { margin-top: 0; }
   #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden], #card-clear[hidden], #card-row[hidden], #call-label[hidden], #snack-label[hidden], #calls[hidden], #snacks[hidden] { display: none; }
   .card-paste { display: flex; gap: 6px; align-items: center; }
   .card-paste input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); padding: 9px 10px;
@@ -97,7 +99,10 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
-<script src="pass-trace.js?v=14"></script>
+<script src="pass-trace.js?v=15"></script>
+<!-- 앞면 글자·특기 고치는 창(11/24 밤) — 특기 목록은 card-shared.js(워킹패스 특기·칭호와 같은 문구) -->
+<script src="card-shared.js?v=13"></script>
+<script src="keyring-edit.js?v=1"></script>
 </head>
 <body>
 <main class="wrap">
@@ -120,13 +125,16 @@
   <input type="file" id="file" accept="image/*">
   <!-- 앞면 글자(11/24) — 앞면이 도트 워킹패스일 때만 -->
   <div class="row" id="pass-row">
-    <p class="row-label">앞면 글자 · 도트 워킹패스</p>
-    <div class="fields">
+    <p class="row-label">앞면 글자 · 특기 · 도트 워킹패스</p>
+    <!-- 11/24 밤 가르시아 "맨 아래 칸에 유의미한 산책 빼고 특기를 골라서, 또는 직접 적어 넣기 · 폰에서 키링 보면서 편집 · 뚜렷한 글씨체 · 글씨 크기 조절":
+         번호·이름·견종·특기·글씨 크기·글씨체는 키링을 보면서 고치는 창(keyring-edit.js)에서. 아래 칸은 숨겨 둔 값 그릇(?export=·카드 주소가 채운다) -->
+    <button type="button" class="btn-sub" id="edit-text">글자 · 특기 고치기 — 키링 보면서</button>
+    <p class="note" id="edit-sum" style="margin-top:6px"></p>
+    <div class="fields" hidden>
       <label class="field"><span>번호</span><input type="text" id="f-id" maxlength="8" placeholder="비워도 돼요" autocomplete="off"></label>
-      <label class="field"><span>이름</span><input type="text" id="f-name" maxlength="10" value="POM" autocomplete="off"></label>
-      <label class="field"><span>견종</span><input type="text" id="f-type" maxlength="12" value="DOG" autocomplete="off"></label>
+      <label class="field"><span>이름</span><input type="text" id="f-name" maxlength="12" value="POM" autocomplete="off"></label>
+      <label class="field"><span>견종</span><input type="text" id="f-type" maxlength="20" value="DOG" autocomplete="off"></label>
     </div>
-    <p class="note" style="margin-top:6px">영어는 대문자로, 한글은 도트 글씨로 들어가요. 길면 칸에 맞게 조금 작아져요.</p>
     <!-- 앞면 모양·카드 색·카드 사진(11/24 밤 가르시아 "가로 버전 키링도 변형해서, 기본은 핑크고 색깔 변경 가능하게") -->
     <p class="row-label" style="margin-top:10px">앞면 모양 · 카드 색 · 카드 사진</p>
     <div class="chips" id="orients" role="group" aria-label="앞면 모양"></div>
@@ -205,7 +213,8 @@ const KR = 6, HOLE_R = 1.9, EDGE = 2.2, TAB = 9;
 let PW = KW - EDGE * 2;
 // callName: 뒷면에 "OO라고 불러 주세요" · snack: 0 안 넣기 / 1 간식 좋아해요 / 2 간식은 주지 마세요(11/24 가르시아 "옵션에서 고를 수 있게")
 const state = { thick: 3, photo: null, backMode: 'same', signal: 1, card: null, backPhoto: null, scene: 'air', callName: true, snack: 2, grade: 1,
-  land: false, tint: 'pink', cardPhoto: null };   // land: 앞면 가로판 · tint: 카드 색(pass-trace.js TINTS) · cardPhoto: 카드 사진 칸에 넣은 내 사진(11/24 밤)   // grade: 앞면 산책 등급 0 입문자 ~ 3 핑크 앰배서더
+  land: false, tint: 'pink', cardPhoto: null,
+  skill: '냄새 탐정 셜록 멍즈', sizes: {}, font: 'clear' };   // 앞면 맨 아래 특기 · 칸마다 글씨 크기 배수 · 칸 값 글씨체 'clear' 또렷하게 | 'bold' 굵게 | 'dot' 도트(11/24 밤)   // land: 앞면 가로판 · tint: 카드 색(pass-trace.js TINTS) · cardPhoto: 카드 사진 칸에 넣은 내 사진(11/24 밤)   // grade: 앞면 산책 등급 0 입문자 ~ 3 핑크 앰배서더
 let L = null;   // 지금 모양: { KH, PH, printCY, holeY }
 function layout(aspect) {   // aspect = 그림 세로/가로
   KW = aspect < 0.95 ? 60 : 50; PW = KW - EDGE * 2;
@@ -357,6 +366,7 @@ function drawMannerBack(g, W0, H, c, B) {
 
 // ── 뒷면 시안 셋(11/24 가르시아 "뒷쪽 디자인 보강 — 기획 3가지" → "시안으로 줘봐") ──
 // 1안 친구 QR 판(추천) · 2안 산책 도장판 · 3안 도트 그림. 앞면에 홍보 두 줄이 다 있어서 뒷면은 작은 WALSON만.
+// (11/24 밤부터 앞면 맨 아래는 홍보 문구 대신 특기 — 가르시아 "유의미한 산책 빼고". 기본 뒷면은 앞면과 같아서 키링엔 홍보 문구가 없다)
 // 모두 점 8px 칸에 맞춰 그린다(안전 뒷면과 같은 도트 결).
 function backKit(g, c) {
   const U = 8, sn = (v) => Math.round(v / U) * U;
@@ -859,18 +869,22 @@ function photoUrl() {
   return (pass.cache[key] = state.cardPhoto ? c.toDataURL('image/jpeg', 0.92) : c.toDataURL('image/png'));
 }
 function passOpts() {
-  return { scene: 'card', keyring: true, tagline: true, photo: photoUrl(), id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
+  return { scene: 'card', keyring: true, photo: photoUrl(), id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
+    skill: state.skill, vfont: state.font, sizes: state.sizes,   // 맨 아래 = 특기(홍보 문구 알약 대신, 11/24 밤)
     grade: state.grade, hangul: HANGUL_FONT, landscape: state.land, color: state.tint };   // 앞면 QR은 뺌(11/24 "너무 작아") → 산책 등급. 신호등은 "톤을 방해"해서 뺌(같은 날)
 }
 const HANGUL_FONT = "'Black Han Sans', 'Pretendard', sans-serif";
 // 웹 글꼴은 글자 묶음별로 나눠 받아서, 그릴 글자를 다 넘겨 받아 둔 뒤에 그린다(안 받은 글자는 다른 글꼴로 나옴)
 function hangulReady(txt) {
+  if (PT.fontsReady) return PT.fontsReady(txt);   // 칸마다 글꼴(Black Han Sans·Pretendard)을 다 받아 둔다(11/24 밤)
   if (!txt || !txt.list.length || !document.fonts || !document.fonts.load) return Promise.resolve();
   return document.fonts.load("48px 'Black Han Sans'", txt.list.map((t) => t.s).join('')).catch(() => {});
 }
 function passCanvas(k) {   // 트레이싱판 SVG → 캔버스(k배) + 한글은 캔버스에 글꼴로(또렷하게)
-  const svg = PT.render(passOpts()), txt = PT.lastText;
-  return hangulReady(txt).then(() => new Promise((res, rej) => {
+  const o = passOpts();
+  let svg = PT.render(o), txt = PT.lastText;
+  // 글꼴을 받기 전에 어림으로 줄을 나눴으면(txt.est) 받은 뒤 정확한 폭으로 한 번 더(11/24 밤)
+  return hangulReady(txt).then(() => { if (txt && txt.est) { svg = PT.render(o); txt = PT.lastText; return hangulReady(txt); } }).then(() => new Promise((res, rej) => {
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })), im = new Image();
     im.onload = () => {
       const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
@@ -892,6 +906,32 @@ function passUi() {
   $('pass-row').hidden = !on; $('pass-back').hidden = on || !PT;
 }
 ['f-id', 'f-name', 'f-type'].forEach((id) => $(id).addEventListener('input', () => { clearTimeout(pass.timer); pass.timer = setTimeout(() => { drawPass(); build(false); }, 120); }));
+// ── 앞면 글자·특기 고치는 창(11/24 밤, keyring-edit.js) — 위에 키링 앞면(평면) 미리 보기, 고치는 칸은 크게. 고칠 때마다 3D도 다시 그림 ──
+const KDEF = { id: '', name: 'POM', type: 'DOG', skill: '냄새 탐정 셜록 멍즈' };   // [처음대로] = 시안 그림 그대로
+const FONT_KO = { clear: '또렷하게', bold: '굵게', dot: '도트' };
+function editSum() {
+  $('edit-sum').textContent = '특기 ' + (String(state.skill || '').trim() || '비어 있어요') + ' · 이름 ' + (($('f-name').value || '').trim() || '빈칸') +
+    ' · 글씨 ' + (FONT_KO[state.font] || '또렷하게') + ' — 휴대폰에서도 키링을 보면서 고쳐요';
+}
+function openEdit(focus) {
+  const KE = window.WalsonKeyringEdit;
+  if (!KE || !PT) return;
+  KE.open({
+    title: '키링 앞면 글자 · 특기',
+    state: { id: $('f-id').value, name: $('f-name').value, type: $('f-type').value, skill: state.skill, sizes: state.sizes, font: state.font },
+    defaults: KDEF, skills: KE.skillList(window.CardShared), focus, resetLabel: '처음대로', namesNote: '비우면 그 칸이 비어요',
+    opts: () => passOpts(),
+    draw: () => passCanvas(1),
+    onChange: (s) => {
+      $('f-id').value = s.id; $('f-name').value = s.name; $('f-type').value = s.type;
+      state.skill = s.skill; state.sizes = s.sizes; state.font = s.font;
+      clearTimeout(pass.timer); pass.timer = setTimeout(() => { drawPass(); build(false); }, 120);
+      cardUi(); editSum();
+    },
+    onClose: editSum
+  });
+}
+$('edit-text').addEventListener('click', () => openEdit(null));
 $('pass-back').addEventListener('click', () => {
   state.isDefault = true; $('file').value = ''; $('pick').textContent = '그림 올리기'; passUi(); drawPass();
   setSpin(false); view(false);
@@ -903,7 +943,8 @@ function savePng(c, name) {
   $('file-out').hidden = false; $('file-out').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   const a = document.createElement('a'); a.download = name; a.href = url; a.click();   // 컴퓨터는 바로 내려받기
 }
-// 주소에 ?export=front|back 이면 그 인쇄 파일 그림 하나만 화면 가득(1:1) — 다른 프로그램으로 그대로 찍어 파일로 만들 때(&name=&type=&id=&signal=0~2&grade=0~3&call=0|1&snack=0~2&card=)
+// 주소에 ?export=front|back 이면 그 인쇄 파일 그림 하나만 화면 가득(1:1) — 다른 프로그램으로 그대로 찍어 파일로 만들 때(&name=&type=&id=&signal=0~2&grade=0~3&call=0|1&snack=0~2&card=
+// &skill=특기 &font=clear|bold|dot &sz=skill:1.2,name:0.9 — 11/24 밤)
 const EXP = new URLSearchParams(location.search);
 if (EXP.get('export')) {
   ['id', 'name', 'type'].forEach((k) => { if (EXP.has(k)) $('f-' + k).value = EXP.get(k); });
@@ -914,6 +955,9 @@ if (EXP.get('export')) {
   if (EXP.has('tint')) state.tint = EXP.get('tint');           // 카드 색(pink·mint·sky·lemon·lavender·gray)
   if (EXP.has('snack')) state.snack = Math.max(0, Math.min(2, Number(EXP.get('snack')) || 0));
   if (['same', 'manner', 'stamp'].indexOf(EXP.get('back')) >= 0) state.backMode = EXP.get('back');   // &back= 뒷면 고르기(11/24)
+  if (EXP.has('skill')) state.skill = EXP.get('skill');                                            // 앞면 맨 아래 특기(11/24 밤)
+  if (['clear', 'bold', 'dot'].indexOf(EXP.get('font')) >= 0) state.font = EXP.get('font');
+  if (EXP.has('sz')) EXP.get('sz').split(',').forEach((p) => { const a = p.split(':'), v = Number(a[1]); if (['id', 'name', 'type', 'skill'].indexOf(a[0]) >= 0 && v > 0) state.sizes[a[0]] = v; });
 }
 function exportOnly(c) {
   document.body.innerHTML = ''; document.body.style.cssText = 'margin:0;padding:0;background:#fff';
@@ -962,7 +1006,7 @@ if (EXP.has('card')) {   // ?export=… &card=카드 주소의 d= 뒤 글자(또
   const c = parseCard(EXP.get('card'));
   if (c) { state.card = c; if (c.g) state.signal = SIG_I[c.g]; if (!EXP.has('name')) $('f-name').value = c.n; $('f-card').value = QR_BASE + 'dex.html#d=' + encodeCard(c); }
 }
-paintChips(); drawArt(); passUi(); cardUi();
+paintChips(); drawArt(); passUi(); cardUi(); editSum();
 loop();
 (() => {
   const im = new Image();
