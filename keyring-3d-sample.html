@@ -75,7 +75,7 @@
   .field input { width: 100%; min-width: 0; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink); padding: 9px 10px;
     border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
   .field input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
-  #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden], #card-clear[hidden] { display: none; }
+  #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden], #card-clear[hidden], #card-row[hidden], #call-label[hidden], #snack-label[hidden], #calls[hidden], #snacks[hidden] { display: none; }
   .card-paste { display: flex; gap: 6px; align-items: center; }
   .card-paste input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); padding: 9px 10px;
     border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
@@ -131,8 +131,9 @@
   <button type="button" class="btn-sub" id="pass-back" hidden>도트 워킹패스 앞면으로 돌아가기</button>
   <!-- 뒷면 QR · 주인 카드 주소(11/24 가르시아 "만들어 줘" — hq notes/petwalk-guestbook-server.md 6절): 한 번 뽑은 키링 QR은 못 고쳐서,
        진짜 키링은 주인 폰 도감 [카드 주소 보내기]로 받은 주소를 QR에 그대로 넣는다(나중에 서버 방명록이 그 주인에게 가게).
-       붙여 넣으면 앞면 이름·뒷면 성향도 카드대로 채운다. 안 넣으면 이름으로 만든 샘플 번호 -->
-  <div class="row" id="card-row">
+       붙여 넣으면 앞면 이름·뒷면 성향도 카드대로 채운다. 안 넣으면 이름으로 만든 샘플 번호.
+       → 같은 날 가르시아 "뒷면에 큐알은 뺄 거야" — QR 뒷면을 칩에서 내려서 이 칸도 숨김(QR 뒷면을 되살리면 hidden만 뺀다) -->
+  <div class="row" id="card-row" hidden>
     <p class="row-label">뒷면 QR · 주인 카드 주소</p>
     <div class="card-paste">
       <input type="url" id="f-card" placeholder="카톡으로 받은 카드 주소를 붙여 넣어요" autocomplete="off" inputmode="url" spellcheck="false">
@@ -195,7 +196,7 @@ const $ = (id) => document.getElementById(id);
 const KW = 50, KR = 6, HOLE_R = 1.9, EDGE = 2.2, TAB = 9;
 const PW = KW - EDGE * 2;
 // callName: 뒷면에 "OO라고 불러 주세요" · snack: 0 안 넣기 / 1 간식 좋아해요 / 2 간식은 주지 마세요(11/24 가르시아 "옵션에서 고를 수 있게")
-const state = { thick: 3, photo: null, backMode: 'friend', signal: 1, card: null, backPhoto: null, scene: 'air', callName: true, snack: 2, grade: 1 };   // grade: 앞면 산책 등급 0 입문자 ~ 3 핑크 앰배서더
+const state = { thick: 3, photo: null, backMode: 'same', signal: 1, card: null, backPhoto: null, scene: 'air', callName: true, snack: 2, grade: 1 };   // grade: 앞면 산책 등급 0 입문자 ~ 3 핑크 앰배서더
 let L = null;   // 지금 모양: { KH, PH, printCY, holeY }
 function layout(aspect) {   // aspect = 그림 세로/가로
   const PH = Math.max(24, Math.min(120, PW * aspect)), KH = PH + EDGE * 2 + TAB;
@@ -267,6 +268,14 @@ const backArt = document.createElement('canvas');
 const BRAND = () => (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
 const PIX = "'DungGeunMo', 'Galmuri11', monospace";
 function drawBack() {
+  // 앞뒤 같게(11/24 가르시아 "앞뒤 같게 하는 걸로 할지 고민이야") — 앞면 그림 그대로, 크기도 앞면과 같게(줄이지 않아 도트가 번지지 않는다).
+  // 3D에선 뒷면 UV를 좌우로 뒤집어 붙여서(아래 build) 뒤에서 봐도 앞면처럼 똑바로 보인다 = 양면 같은 그림 인쇄
+  if (state.backMode === 'same') {
+    backArt.width = art.width; backArt.height = art.height;
+    backArt.getContext('2d').drawImage(art, 0, 0);
+    setBackTex();
+    return;
+  }
   const W0 = 1000, H = Math.round(W0 * L.PH / PW);
   backArt.width = W0; backArt.height = H;
   const g = backArt.getContext('2d'), c = pal(), B = BRAND();
@@ -281,12 +290,56 @@ function drawBack() {
     g.fillStyle = c.hl; g.fillRect(0, H - strip, W0, strip);
     g.fillStyle = c.hlInk; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = Math.round(strip * 0.42) + 'px ' + PIX;
     g.fillText(B.name + ' · ' + B.tagline, W0 / 2, H - strip / 2);
-  } else if (state.backMode === 'friend') drawFriendBack(g, W0, H, c, B);
+  } else if (state.backMode === 'manner') drawMannerBack(g, W0, H, c, B);
+  else if (state.backMode === 'friend') drawFriendBack(g, W0, H, c, B);
   else if (state.backMode === 'stamp') drawStampBack(g, W0, H, c, B);
   else if (state.backMode === 'scene') drawSceneBack(g, W0, H, c, B);
   else drawSafeBack(g, W0, H, c, B);
+  setBackTex();
+}
+function setBackTex() {
   if (backTex) backTex.dispose();
   backTex = new THREE.CanvasTexture(backArt); backTex.colorSpace = THREE.SRGBColorSpace; backTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+}
+
+// 성향 안내 뒷면(11/24 가르시아 "뒷면에 큐알은 뺄 거야") — 친구 QR 판에서 QR을 빼고, 만난 사람에게 하는 말만 크게.
+// 위 빈 칸(구멍 자리) · 머리띠 "이 강아지는요" · 신호등(고른 불만 켬) + 고른 성향 큰 글 · 이름 부르기 · 간식 안내 · 맨 아래 WALSON.
+// 글씨는 둥근모꼴 16px의 배수(48·64)로만 — 그래야 도트가 안 뭉개진다
+const LAMP7 = ['..XXX..', '.XXXXX.', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..'];
+function drawMannerBack(g, W0, H, c, B) {
+  const K = backKit(g, c), U = K.U;
+  g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
+  const top = K.sn(H * 0.11);   // 위 빈 칸(구멍 자리) — 친구 QR 판과 같게
+  const hh = K.head('이 강아지는요', H, W0, top);
+  const sig = [['다가와도 좋아요', '#3f9b5b'], ['천천히 인사해요', '#dfa21f'], ['눈으로만 예뻐해 주세요', '#d2493f']];
+  const on = Math.max(0, Math.min(2, state.signal | 0));
+  const rows = [];
+  if (state.callName) rows.push([callText(), c.accent]);
+  if (state.snack === 1) rows.push(['간식 좋아해요', '#3f9b5b']);
+  if (state.snack === 2) rows.push(['간식은 주지 마세요', '#d2493f']);
+  // 큰 성향 칸(신호등 판 + 글) 아래로 줄들 — 남는 세로를 위아래로 나눠 가운데에
+  const M = 64, bw = W0 - 2 * M, ls = 20, lw = 7 * ls, lgap = 48, panW = 3 * lw + 4 * lgap, panH = lw + 2 * 32;
+  const sh = 40 + panH + 40 + 64 + 48, rh = 104, gap = 24;
+  const total = sh + rows.length * (gap + rh), room = (H - 96) - (hh + U);
+  let y = K.sn(hh + U + Math.max(32, (room - total) / 2));
+  K.box(M, y, bw, sh, '#ffffff');
+  const px = K.sn(W0 / 2 - panW / 2), py = K.sn(y + 40);
+  K.box(px, py, panW, panH, '#5c2a25', c.ink);
+  for (let i = 0; i < 3; i++) {
+    const lx = px + lgap + i * (lw + lgap), ly = py + 32, lit = i === on;
+    K.bitmap(LAMP7, { X: lit ? sig[i][1] : '#7a4b45' }, lx, ly, ls);
+    if (lit) { g.fillStyle = '#ffffff'; g.fillRect(K.sn(lx) + 2 * ls, K.sn(ly) + ls, ls, ls); }   // 반짝 한 칸
+  }
+  K.txt(sig[on][0], W0 / 2, py + panH + 40 + 32 + 4, 64, c.ink);
+  y += sh;
+  rows.forEach(([txt, col]) => {
+    y += gap;
+    K.box(M, y, bw, rh, '#ffffff', c.ink);
+    g.fillStyle = col; g.fillRect(K.sn(M + 4 * U), K.sn(y + rh / 2 - 3 * U), 6 * U, 6 * U);
+    K.txt(txt, M + 13 * U, y + rh / 2 + 3, 48, c.ink, 'left');
+    y += rh;
+  });
+  K.txt(String(B.name || 'WALSON').toUpperCase(), W0 / 2, H - 46, 32, c.inkSoft);
 }
 
 // ── 뒷면 시안 셋(11/24 가르시아 "뒷쪽 디자인 보강 — 기획 3가지" → "시안으로 줘봐") ──
@@ -661,8 +714,10 @@ function paintChips() {
   const t = $('thick'); t.innerHTML = '';
   [3, 5].forEach((mm) => t.appendChild(chip(mm + 'mm', state.thick === mm, () => { state.thick = mm; paintChips(); build(false); })));
   const bk = $('backs'); bk.innerHTML = '';
-  // 11/24 가르시아 "시안1로 하자" → 기본 뒷면 = 친구 QR 판. 나머지는 비교용으로 남김
-  [['friend', '친구 QR 판(기본)'], ['safe', '안전 뒷면'], ['stamp', '시안2 도장판'], ['scene', '시안3 도트 그림']].forEach(([id, label]) =>
+  // 11/24 가르시아 "시안1로 하자" → 기본 뒷면 = 친구 QR 판이었다가, 같은 날 "뒷면에 큐알은 뺄 거야, 앞뒤 같게 하는 걸로 할지 고민이야" →
+  // 뒷면은 QR 없는 것만: 앞면과 같게(기본) · 성향 안내(친구 QR 판에서 QR 뺀 것) · 도장판 · 내 그림.
+  // QR이 든 뒷면(친구 QR 판·안전 뒷면·도트 그림)은 칩에서 내렸다 — 그리는 코드는 그대로 둠(다시 쓰면 여기 칩만 되살린다)
+  [['same', '앞면과 같게(기본)'], ['manner', '성향 안내'], ['stamp', '도장판']].forEach(([id, label]) =>
     bk.appendChild(chip(label, state.backMode === id, () => { state.backMode = id; paintChips(); build(false); view(true); })));
   bk.appendChild(chip(state.backPhoto ? '올린 뒷면 그림' : '뒷면 그림 올리기', state.backMode === 'photo', () => {
     if (!state.backPhoto) { $('back-file').click(); return; }
@@ -670,8 +725,9 @@ function paintChips() {
   }));
   if (state.backPhoto) bk.appendChild(chip('다른 뒷면 그림', false, () => $('back-file').click()));
   const sg = $('signals'); sg.innerHTML = '';
-  const onFriend = state.backMode === 'friend';
+  const onFriend = state.backMode === 'friend' || state.backMode === 'manner';   // 성향·이름 부르기·간식 칸을 쓰는 뒷면
   sg.hidden = $('signal-label').hidden = !onFriend;
+  $('save-back').textContent = state.backMode === 'same' ? '뒷면 = 앞면 파일' : '뒷면 인쇄 파일(PNG)';
   ['다가와도 좋아요', '천천히 인사해요', '눈으로만 예뻐해 주세요'].forEach((s, i) =>
     sg.appendChild(chip(s, state.signal === i, () => { state.signal = i; paintChips(); build(false); view(true); })));
   const gr = $('grades'); gr.innerHTML = '';
@@ -797,17 +853,20 @@ if (EXP.get('export')) {
   if (EXP.has('call')) state.callName = EXP.get('call') !== '0';
   if (EXP.has('grade')) state.grade = Math.max(0, Math.min(3, Number(EXP.get('grade')) || 0));
   if (EXP.has('snack')) state.snack = Math.max(0, Math.min(2, Number(EXP.get('snack')) || 0));
+  if (['same', 'manner', 'stamp'].indexOf(EXP.get('back')) >= 0) state.backMode = EXP.get('back');   // &back= 뒷면 고르기(11/24)
 }
 function exportOnly(c) {
   document.body.innerHTML = ''; document.body.style.cssText = 'margin:0;padding:0;background:#fff';
   c.style.cssText = 'display:block;width:' + c.width + 'px;height:' + c.height + 'px';
   document.body.appendChild(c); document.title = 'export-ready ' + c.width + 'x' + c.height;
 }
-$('save-front').addEventListener('click', () => {
-  if (state.isDefault !== false && PT && pass.refPhoto) passCanvas(2).then((c) => savePng(c, 'walson-keyring-front.png')).catch(() => savePng(art, 'walson-keyring-front.png'));
-  else savePng(art, 'walson-keyring-front.png');
-});
-$('save-back').addEventListener('click', () => savePng(backArt, 'walson-keyring-back.png'));
+function saveFront(name) {
+  if (state.isDefault !== false && PT && pass.refPhoto) passCanvas(2).then((c) => savePng(c, name)).catch(() => savePng(art, name));
+  else savePng(art, name);
+}
+$('save-front').addEventListener('click', () => saveFront('walson-keyring-front.png'));
+// 앞뒤 같게면 뒷면 파일도 앞면 인쇄 파일과 같은 그림(인쇄소엔 "양면 같은 그림"이라고 — 파일 하나만 보내도 된다)
+$('save-back').addEventListener('click', () => { if (state.backMode === 'same') saveFront('walson-keyring-back.png'); else savePng(backArt, 'walson-keyring-back.png'); });
 // ── 카드 주소 칸 ──
 function cardUi() {
   const c = state.card, v = $('f-card').value.trim(), note = $('card-note');
