@@ -336,13 +336,16 @@
   function sampleState() {
     var room = SHOWROOMS[0];
     var all = ITEMS.map(function (it) { return it.id; }).concat(ACCS.map(function (a) { return a.id; }));
-    return { sample: true, sampleV: SAMPLE_V, dog: 'chihuahua', dogAuto: false, theme: 'lilac', acc: 'crown',
+    return { sample: true, sampleV: SAMPLE_V, dog: 'chihuahua', dogAuto: false, dogPhoto: false, photoDog: null, theme: 'lilac', acc: 'crown',
       hidden: ITEMS.filter(function (it) { return !room.pos[it.id]; }).map(function (it) { return it.id; }),
       pos: copyPosOf(room.pos), seen: all, mood: '산책 가고 싶어', moodDay: todayKey() };
   }
 
   // ── 내 방 상태(petwalk_azit) ──
-  // {dog, dogAuto(우리가 골라 준 것 — 사용자가 고르면 false), theme, acc, hidden[빼 둔 소품], pos{소품: 옮긴 자리}, seen[본 적 있는 소품], mood, moodDay, sample}
+  // {dog, dogAuto(우리가 골라 준 것 — 사용자가 고르면 false), theme, acc, hidden[빼 둔 소품], pos{소품: 옮긴 자리}, seen[본 적 있는 소품], mood, moodDay, sample,
+  //  dogPhoto(우리 개 = 워킹패스 사진으로 만든 도트), photoDog{sig(만든 사진 표), png(도트 그림 — 1칸 = 1점)}}
+  // 워킹패스 사진 도트(11/24 가르시아 "나의 워킹패스를 가져와서 고를 수 있게")는 이 휴대폰 방에서만 그린다 — 방 모습 QR엔 dog(닮은 도트 강아지)만,
+  // 서버 백업엔 빼고 보낸다(cloud-backup.js — 사진처럼)
   // 샘플 모드인데 샘플용 상태가 아니면(샘플을 막 켰거나, 이 규칙 전에 샘플로 연 아지트) 샘플 방으로 시작한다
   function cleanPos(raw) {
     var pos = {};
@@ -357,6 +360,11 @@
   }
   function cleanHidden(raw) { return Array.isArray(raw) ? raw.filter(function (id) { return !!byId(ITEMS, id); }) : []; }
   function cleanAcc(a) { return (a === '' || byId(ACCS, a)) ? a : 'ribbon'; }
+  // 워킹패스 사진 도트 — 작은 PNG(점 그림이라 몇 KB)만 받는다. 모양이 이상하면 없는 것으로
+  function cleanPhotoDog(p) {
+    return p && typeof p === 'object' && typeof p.sig === 'string' && typeof p.png === 'string' &&
+      p.png.indexOf('data:image/png;base64,') === 0 && p.png.length < 80000 ? { sig: p.sig.slice(0, 40), png: p.png } : null;
+  }
   function loadState() {
     var s = WalsonStore.object(KEY) || {};
     if (WalsonStore.sampleOn && WalsonStore.sampleOn() && (s.sample !== true || s.sampleV !== SAMPLE_V)) return sampleState();
@@ -365,6 +373,8 @@
     return {
       dog: byId(DOGS, s.dog) ? s.dog : null,
       dogAuto: s.dogAuto !== false,
+      photoDog: cleanPhotoDog(s.photoDog),
+      dogPhoto: s.dogPhoto === true && !!cleanPhotoDog(s.photoDog),
       theme: THEMES.indexOf(s.theme) >= 0 ? s.theme : 'jelly',
       acc: cleanAcc(s.acc),
       hidden: cleanHidden(s.hidden),
@@ -382,6 +392,7 @@
     var o = { dog: st.dog, dogAuto: !!st.dogAuto, theme: st.theme, acc: st.acc, hidden: st.hidden, pos: st.pos, posV: POS_V, seen: st.seen || [], mood: st.mood, moodDay: st.moodDay };
     if (st.sample) { o.sample = true; o.sampleV = st.sampleV; }
     if (st.undo) o.undo = st.undo;
+    if (st.photoDog) { o.photoDog = st.photoDog; if (st.dogPhoto) o.dogPhoto = true; }
     return WalsonStore.setJSON(KEY, o);
   }
   // [이 방처럼 놓기](11/23 모델하우스 2단계) — 모델하우스 room의 벽지·머리 장식·자리를 내 방으로. 그 방 소품 자리를 모두 옮기고(빼 뒀으면 다시 넣음 —

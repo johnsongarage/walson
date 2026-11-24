@@ -84,6 +84,9 @@
     if (data.petwalk_profile) {
       try { var p = JSON.parse(data.petwalk_profile) || {}; delete p.photo; delete p.photoOrig; delete p.photoFrame; data.petwalk_profile = JSON.stringify(p); } catch (e) { delete data.petwalk_profile; }
     }
+    if (data.petwalk_azit) {   // 아지트의 워킹패스 사진 도트(사진에서 만든 그림, 11/24)도 사진처럼 빼고 보낸다
+      try { var az = JSON.parse(data.petwalk_azit) || {}; delete az.photoDog; delete az.dogPhoto; data.petwalk_azit = JSON.stringify(az); } catch (e) { delete data.petwalk_azit; }
+    }
     return data;
   }
   function summaryOf(data) { var s = JSON.stringify(data), h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return s.length + ':' + h; }

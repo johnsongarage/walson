@@ -159,6 +159,21 @@
   .dogs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .dogpick { font: inherit; font-size: 12px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 5px 3px 4px; text-align: center; cursor: pointer; line-height: 1.3; word-break: keep-all; }
   .dogpick[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
+  /* 우리 개 = 워킹패스 사진 도트(11/24) — 강아지 고르기 맨 위 한 줄 */
+  .dogphoto { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; color: var(--ink); background: var(--bg);
+    border: 2px solid var(--line); padding: 6px 10px; margin: 0 0 6px; text-align: left; cursor: pointer; line-height: 1.3; }
+  .dogphoto[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 0 0 0 2px var(--hl); }
+  .dogphoto:disabled { cursor: progress; }
+  .dogphoto .pic { flex: none; width: 46px; height: 46px; display: flex; align-items: flex-end; justify-content: center; }
+  .dogphoto .pic img { max-width: 100%; max-height: 100%; display: block; }
+  .dogphoto .pic img.ph { width: 42px; height: 42px; object-fit: cover; border: 2px solid var(--line); }
+  .dogphoto .ph0 { width: 38px; height: 38px; border: 2px dashed var(--line); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--ink-soft); }
+  .dogphoto .tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .dogphoto .tx small { font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 12px; color: var(--ink-soft); line-height: 1.4; word-break: keep-all; }
+  img.px { image-rendering: pixelated; }
+  .dog-msg { font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin: 6px 0 0; word-break: keep-all; }
+  .dog-msg[hidden] { display: none; }
+  .dog-msg a { color: var(--ink); font-weight: 700; }
   .tray { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   .slot { font: inherit; font-size: 12px; color: var(--ink); background: var(--bg); border: 2px solid var(--line); padding: 6px 3px 5px; text-align: center; cursor: pointer; line-height: 1.3; word-break: keep-all; }
   .slot canvas { display: block; margin: 0 auto 3px; image-rendering: pixelated; height: 30px; width: auto; max-width: 100%; object-fit: contain; }
@@ -260,7 +275,9 @@
     <details class="box px deco" id="mine-box">
       <summary class="deco-sum"><span>방 꾸미기</span><small id="deco-note">강아지 · 소품 · 장식 · 벽지</small></summary>
       <div class="box-title"><span>우리 개 도트 강아지</span><small id="dog-note"></small></div>
+      <div id="dog-photo"></div>
       <div class="dogs" id="dogs"></div>
+      <p class="dog-msg" id="dog-msg" hidden></p>
       <div class="box-title"><span>내 소품</span><small id="tray-note">산책으로 생긴 것 · 눌러서 넣고 빼기</small></div>
       <div class="tray" id="tray"></div>
       <details class="tray-more" id="tray-more" hidden><summary id="tray-more-sum"></summary><div class="tray" id="tray-locked"></div></details>
@@ -270,14 +287,16 @@
       <div class="walls" id="walls"></div>
     </details>
     <p class="foot-note">아지트는 이 휴대폰에만 있어요. 내 카드(화면 QR)를 그 자리에서 찍은 단짝 휴대폰에는 방 모습 —
-      도트 강아지·벽지·놓은 소품·머리 장식·산책 등급만 가요. 놓은 자리·산책 횟수·장소는 가지 않아요.</p>
+      도트 강아지·벽지·놓은 소품·머리 장식·산책 등급만 가요. 놓은 자리·산책 횟수·장소는 가지 않아요.
+      워킹패스 사진으로 만든 우리 개는 이 휴대폰에서만 보이고, 단짝 휴대폰엔 닮은 도트 강아지로 가요.</p>
   </div>
 </main>
 
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=8"></script>
+<script src="azit-room.js?v=9"></script>
+<script src="photo-dot.js?v=2"></script>
 <script>
 (function () {
   'use strict';
@@ -287,6 +306,7 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function batchim(s) { s = String(s); var c = s.charCodeAt(s.length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 > 0; }
   function ga(s) { return s + (batchim(s) ? '이' : '가'); }
+  function ro(s) { s = String(s); var c = s.charCodeAt(s.length - 1); return s + (batchim(s) && (c - 0xAC00) % 28 !== 8 ? '으로' : '로'); }   // ㄹ 받침은 "로"
   function dayLabel(k) { return k ? Number(k.slice(5, 7)) + '월 ' + Number(k.slice(8, 10)) + '일' : ''; }
   function toast(msg) {
     var t = el('div', 'toast', msg); t.setAttribute('role', 'status');
@@ -406,7 +426,7 @@
   // 벽 소품 그림 — 액자 둘은 속을 채운 것
   function wallSprite(o, it, side) {
     if (it.id === 'photo') {   // 사진이 없으면(워킹패스에 사진을 안 넣음) 우리 개 도트 강아지로
-      var ps = photoSrcOf(o) || AZ.dogPxSrc(o.dog);
+      var ps = photoSrcOf(o) || AZ.dogPxSrc(o.dog === PHOTO_ID ? state.dog : o.dog);
       return filledFrame(it, side, ps, ps.indexOf('dot-dogs') < 0);
     }
     if (it.id === 'palframe') return filledFrame(it, side, AZ.dogPxSrc(palDogsOf(o)[0]), false);
@@ -438,6 +458,7 @@
   // 원래 점 격자로 되돌린 그림(icons/dot-dogs/px, 점 하나 = 한 픽셀)을 지금 화면 픽셀(R)에 맞춰 가장 가까운 점으로 키운다.
   // 화면 픽셀이 점보다 적을 때(PC 등)만 곱게 줄인다. 점 그림을 못 받으면 받은 그림(webp)을 곱게 줄여서.
   var dogSrc = {}, dogCache = {};
+  var PHOTO_ID = 'photo';   // 우리 개 = 워킹패스 사진으로 만든 도트(11/24) — dogSrc·dogCache·그리기에서 이 이름으로(방 모습 QR엔 안 감)
   var dogsReady = Promise.all(AZ.DOGS.map(function (d) {
     return loadImg(AZ.dogPxSrc(d.id)).then(function (im) {
       if (im && im.naturalWidth) { dogSrc[d.id] = { im: im, px: true }; return null; }
@@ -460,7 +481,10 @@
     if (key in dogCache) return dogCache[key];
     var s = dogSrc[id];
     if (!s) return null;
-    var im = s.im, hd = Math.round(DOG_VIS * R), wd = Math.round(im.naturalWidth * hd / im.naturalHeight), c;
+    var im = s.im, vis = DOG_VIS;
+    // 워킹패스 사진 도트가 옆으로 길면(누운 사진) 너무 넓어지지 않게 — 폭을 키의 1.4배까지로
+    if (id === PHOTO_ID && im.naturalWidth > im.naturalHeight * 1.4) vis = DOG_VIS * 1.4 * im.naturalHeight / im.naturalWidth;
+    var hd = Math.round(vis * R), wd = Math.round(im.naturalWidth * hd / im.naturalHeight), c;
     if (s.px && hd >= im.naturalHeight) {
       c = document.createElement('canvas'); c.width = wd; c.height = hd;
       var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hd);
@@ -519,9 +543,89 @@
   if (!state.dog || state.dogAuto) { state.dog = AZ.myDog(state, null); state.dogAuto = true; }
   function save() { if (!AZ.saveState(state)) toast('저장하지 못했어요. 저장 공간을 확인해 주세요.'); }
 
+  // ── 우리 개 = 워킹패스 사진 도트(11/24 가르시아 "나의 워킹패스를 가져와서 고를 수 있게도 해 줘") ──
+  // 워킹패스 사진(맞추기 전 원본이 있으면 원본)에서 강아지만 찾아(photo-dot.js — 배경 지운 PNG면 그대로, 보통 사진이면 MediaPipe 모델을
+  // 받아 와서) 1칸 = 방 1점인 작은 도트 그림으로 만든다. 누를 때만 만든다(모델 받기가 무거워서). 사진은 이 휴대폰 안에서만 다루고,
+  // 만든 그림도 이 휴대폰 방에서만 그린다 — 방 모습 QR엔 닮은 도트 강아지(state.dog), 서버 백업엔 빼고(cloud-backup.js)
+  function photoSrcNow() { return profile.photoOrig || profile.photo || ''; }
+  function photoKey(src) {   // 사진이 바뀌었는지 — my-card.html 도트 카드와 같은 짧은 표
+    if (!src) return '';
+    var h = 5381;
+    for (var i = 0; i < src.length; i++) h = ((h << 5) + h + src.charCodeAt(i)) | 0;
+    return src.length + ':' + (h >>> 0).toString(36);
+  }
+  var photoSig = photoKey(photoSrcNow()), photoBusy = false, photoMsg = '';
+  function setPhotoSprite(png) {
+    return loadImg(png).then(function (im) {
+      Object.keys(dogCache).forEach(function (k) { if (k.indexOf(PHOTO_ID + '@') === 0) delete dogCache[k]; });
+      if (im && im.naturalWidth) dogSrc[PHOTO_ID] = { im: im, px: true }; else delete dogSrc[PHOTO_ID];
+    });
+  }
+  var photoReady = state.photoDog ? setPhotoSprite(state.photoDog.png) : Promise.resolve();
+  function usingPhoto() { return !!(state.dogPhoto && state.photoDog && dogSrc[PHOTO_ID]); }
+  function myDogId() { return usingPhoto() ? PHOTO_ID : state.dog; }
+  // 강아지만 도트로 — 강아지 키를 방 강아지 키(DOG_VIS점, 위아래 테두리 한 칸씩 포함)에 맞춰 칸을 나누고, 강아지·테두리 칸만 남겨 꼭 맞게 자른다
+  function photoSprite(img, mask) {
+    var x0 = mask.w, x1 = -1, y0 = mask.h, y1 = -1, x, y, i;
+    for (y = 0; y < mask.h; y++) for (x = 0; x < mask.w; x++) if (mask.data[y * mask.w + x] > 0.4) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0) return null;
+    var fw = (x1 - x0 + 1) / mask.w, fh = (y1 - y0 + 1) / mask.h;
+    var dogCols = Math.max(12, Math.min(60, Math.round((DOG_VIS - 2) * fw * img.width / (fh * img.height))));
+    var cs = WalsonPhotoDot.render(img, mask, { cols: dogCols, colors: 10, bg: 'none', width: 2 })._cells;   // 칸만 쓴다
+    var bx0 = cs.cols, bx1 = -1, by0 = cs.rows, by1 = -1;
+    for (y = 0; y < cs.rows; y++) for (x = 0; x < cs.cols; x++) {
+      i = y * cs.cols + x;
+      if (cs.dog[i] || cs.outline[i]) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+    }
+    if (bx1 < 0) return null;
+    var c = document.createElement('canvas'); c.width = bx1 - bx0 + 1; c.height = by1 - by0 + 1;
+    var g = c.getContext('2d');
+    for (y = by0; y <= by1; y++) for (x = bx0; x <= bx1; x++) {
+      i = y * cs.cols + x;
+      if (cs.dog[i]) g.fillStyle = 'rgb(' + cs.col[i].map(function (v) { return Math.round(v); }).join(',') + ')';
+      else if (cs.outline[i]) g.fillStyle = '#1c1a2b';   // photo-dot.js 테두리 색 그대로
+      else continue;
+      g.fillRect(x - bx0, y - by0, 1, 1);
+    }
+    return c.toDataURL('image/png');
+  }
+  // [내 워킹패스 강아지] — 만든 그림이 지금 사진 것이면 바로 방에, 아니면 만들고 나서 방에
+  function pickPhotoDog() {
+    var src = photoSrcNow();
+    if (!src) { photoMsg = 'none'; dogPicker(); return; }
+    if (state.photoDog && state.photoDog.sig === photoSig && dogSrc[PHOTO_ID]) {
+      state.dogPhoto = true; photoMsg = ''; save(); refreshModel(); ui(); return;
+    }
+    if (photoBusy) return;
+    if (!window.WalsonPhotoDot) { photoMsg = 'model'; dogPicker(); return; }
+    photoBusy = true; photoMsg = ''; dogPicker();
+    var sig = photoSig;
+    loadImg(src).then(function (img) {
+      if (!img || !img.naturalWidth) throw new Error('img');
+      return WalsonPhotoDot.findDog(img).then(function (mask) {
+        if (!mask || mask.source === 'none') throw new Error('nodog');
+        var png = photoSprite(img, mask);
+        if (!png) throw new Error('nodog');
+        return png;
+      }, function () { throw new Error('model'); });
+    }).then(function (png) {
+      state.photoDog = { sig: sig, png: png }; state.dogPhoto = true;
+      return setPhotoSprite(png);
+    }).then(function () {
+      photoBusy = false; save(); refreshModel(); ui();
+      toast('워킹패스 사진으로 우리 개를 데려왔어요');
+    }).catch(function (e) {
+      photoBusy = false;
+      photoMsg = e && /^(img|nodog|model)$/.test(e.message) ? e.message : 'model';
+      dogPicker();
+    });
+  }
+
   var view = -1, cur = null;   // view: -1 내 방, 0~ 친구(friends 순서), -2부터 아래로 왈슨 모델하우스(-2 = 첫 채)
   function meModel() {
-    return { me: true, name: myName || '우리 개', dog: state.dog, theme: state.theme, acc: AZ.accOn(state, prog),
+    return { me: true, name: myName || '우리 개', dog: myDogId(), theme: state.theme, acc: AZ.accOn(state, prog),
       level: prog.level, rank: prog.rank, items: AZ.placedItems(state, prog), open: true };
   }
   function friendModel(e) {
@@ -704,7 +808,12 @@
   }
 
   // ── 화면 글자 ──
-  function dogThumb(id) { var im = document.createElement('img'); im.src = AZ.dogSrc(id); im.alt = ''; im.decoding = 'async'; return im; }
+  function dogThumb(id) {
+    var im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
+    if (id === PHOTO_ID && state.photoDog) { im.src = state.photoDog.png; im.className = 'px'; }   // 워킹패스 사진 도트(작은 점 그림 — 또렷하게 키운다)
+    else im.src = AZ.dogSrc(id);
+    return im;
+  }
   function friendsRow() {
     var f = $('friends'); f.innerHTML = '';
     // 내 방 다음에 왈슨 모델하우스(누구에게나 — 친구 칸과 헷갈리지 않게 색·글자를 다르게 "예시").
@@ -743,17 +852,52 @@
     for (var n = view < 0 ? 0 : view + 1; n < friends.length; n++) if (AZ.parseRoom(friends[n].room)) return n;
     return -1;
   }
+  // 고르면 바로 방에(11/24 가르시아 "고르면 즉각 방에 변경되게" — 전엔 저장만 하고 방 모습(cur)을 다시 만들지 않아서, 다른 방에 다녀와야 바뀌었다)
   function dogPicker() {
     var t = $('dogs'); t.innerHTML = '';
     AZ.DOGS.forEach(function (d) {
       var b = el('button', 'dogpick'); b.type = 'button';
-      b.setAttribute('aria-pressed', state.dog === d.id ? 'true' : 'false');
+      b.setAttribute('aria-pressed', !usingPhoto() && state.dog === d.id ? 'true' : 'false');
       var pic = el('div', 'pic'); pic.appendChild(dogThumb(d.id)); b.appendChild(pic);
       b.appendChild(document.createTextNode(d.breed));
-      b.addEventListener('click', function () { state.dog = d.id; state.dogAuto = false; save(); ui(); });
+      b.addEventListener('click', function () { state.dog = d.id; state.dogAuto = false; state.dogPhoto = false; photoMsg = ''; save(); refreshModel(); ui(); });
       t.appendChild(b);
     });
-    $('dog-note').textContent = state.dogAuto ? '견종·털색으로 골라 뒀어요 — 닮은 강아지로 바꿔 주세요' : '단짝 휴대폰에도 이 강아지로 보여요';
+    photoButton();
+    var dn = AZ.byId(AZ.DOGS, state.dog);
+    $('dog-note').textContent = usingPhoto() ? '단짝 휴대폰엔 닮은 ' + ro(dn ? dn.breed : '도트 강아지') + ' 보여요'
+      : state.dogAuto ? '견종·털색으로 골라 뒀어요 — 닮은 강아지로 바꿔 주세요' : '단짝 휴대폰에도 이 강아지로 보여요';
+    var m = $('dog-msg'), link = null;
+    m.textContent = '';
+    if (photoMsg === 'none') { m.textContent = '워킹패스에 우리 개 사진이 아직 없어요.'; link = profile.name ? ['my-card.html', '워킹패스에서 사진 넣기 →'] : ['start.html', '워킹패스 만들기 →']; }
+    else if (photoMsg === 'nodog') { m.textContent = '사진에서 강아지를 못 찾았어요. 강아지가 크게, 몸 전체가 나온 사진이면 잘 돼요.'; link = ['my-card.html', '워킹패스 사진 바꾸기 →']; }
+    else if (photoMsg === 'img') m.textContent = '워킹패스 사진을 읽지 못했어요.';
+    else if (photoMsg === 'model') m.textContent = '강아지 찾는 모델을 받아 오지 못했어요. 인터넷이 될 때 다시 눌러 주세요.';
+    if (link) { var a = el('a', '', link[1]); a.href = link[0]; m.appendChild(document.createTextNode(' ')); m.appendChild(a); }
+    m.hidden = !m.textContent;
+  }
+  function photoButton() {
+    var box = $('dog-photo'); box.innerHTML = '';
+    var src = photoSrcNow(), made = state.photoDog, fresh = !!(made && made.sig === photoSig);
+    var b = el('button', 'dogphoto'); b.type = 'button';
+    b.setAttribute('aria-pressed', usingPhoto() ? 'true' : 'false');
+    var pic = el('div', 'pic');
+    if (made) pic.appendChild(dogThumb(PHOTO_ID));
+    else if (src) { var im = document.createElement('img'); im.src = profile.photo || src; im.alt = ''; im.className = 'ph'; pic.appendChild(im); }
+    else pic.appendChild(el('span', 'ph0', '+'));
+    b.appendChild(pic);
+    var tx = el('span', 'tx');
+    tx.appendChild(el('span', '', '내 워킹패스 강아지'));
+    tx.appendChild(el('small', '', photoBusy ? '도트로 만드는 중… 처음엔 강아지 찾는 모델을 받아 와서 조금 걸려요'
+      : !src ? '워킹패스에 우리 개 사진을 넣으면 도트로 데려와요'
+      : !made ? '워킹패스 사진 속 우리 개를 도트로 만들어 방에 데려와요'
+      : !fresh ? '워킹패스 사진이 바뀌었어요 — 누르면 새 사진으로 다시 만들어요'
+      : usingPhoto() ? '워킹패스 사진으로 만든 우리 개예요'
+      : '누르면 워킹패스 사진으로 만든 우리 개가 방에 와요'));
+    b.appendChild(tx);
+    b.disabled = photoBusy;
+    b.addEventListener('click', pickPhotoDog);
+    box.appendChild(b);
   }
   // 소품·머리 장식 작은 그림(칸 높이 CSS 30점 — 화면 점에 맞춰: 키울 땐 가장 가까운 점, 줄일 땐 곱게). 아직 안 생긴 것은 옅은 회색으로
   function slotCanvas(name, dim, cssH) {
@@ -1185,9 +1329,9 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureBubble(); kick(); if (signParts && signParts.length) setSign(signParts); });   // 도트 글꼴이 늦게 오면 폭이 바뀐다
   fit(); refreshModel();
   if (!fromHash()) ui();
-  Promise.all([picsReady, dogsReady]).then(function () { dogCache = {}; fillCache = {}; staticDirty = true; ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시
+  Promise.all([picsReady, dogsReady, photoReady]).then(function () { dogCache = {}; fillCache = {}; refreshModel(); ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시(워킹패스 사진 도트도)
   // 시험용 — 지금 보는 방·그리는 배율
-  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog,
+  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog, photo: usingPhoto(),
     to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; } };
 })();
 </script>

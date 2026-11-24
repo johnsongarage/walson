@@ -19,7 +19,7 @@
     pins: 'petwalk_pins',                 // 산책 중 메모 핀 [{id,lat,lng,memo}] — 위치
     dex: 'petwalk_dex',                   // 강아지 도감 [{i,n,s,g,c,first,last,days}]
     dexMe: 'petwalk_dex_me',              // 내 도감 번호(8글자)
-    azit: 'petwalk_azit',                 // 산책 아지트 내 방(2026-11-23, azit-room.js) {dog,dogAuto,theme,acc,hidden,pos,seen,mood,moodDay} — 위치 없음(방 안 칸 자리뿐)
+    azit: 'petwalk_azit',                 // 산책 아지트 내 방(2026-11-23, azit-room.js) {dog,dogAuto,theme,acc,hidden,pos,seen,mood,moodDay,dogPhoto,photoDog(워킹패스 사진 도트 — 서버 백업엔 빼고)} — 위치 없음(방 안 칸 자리뿐)
     receipts: 'walson_receipts',          // 영수증 꾸미기 {영수증키:{note,custom,photo,pos,px,zoom,stickers}}
     walkType: 'petwalk_walk_type',        // 산책 유형 테스트 결과 {type,at}
     // 설정
