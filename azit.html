@@ -298,7 +298,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=9"></script>
+<script src="azit-room.js?v=10"></script>
 <script src="photo-dot.js?v=2"></script>
 <script>
 (function () {
@@ -344,14 +344,15 @@
   var ROOM = {
     jelly: { name: '크림 발바닥', img: 'room', paper: '#f3e9da', ink: '#2a2026' },   // 11/24 가르시아 받은 그림으로 기본 벽지·바닥 교체(_dev/azit-cream-room.py) — 방 모습 글자 j 그대로
     lilac: { name: '라일락', img: 'room_lilac', paper: '#e4d2f4', ink: '#2a2026' },
-    night: { name: '밤 블랙 핑크', img: 'room_night', paper: '#3b2a3e', ink: '#ffffff' }
+    night: { name: '밤 블랙 핑크', img: 'room_night', paper: '#3b2a3e', ink: '#ffffff' },
+    pink: { name: '분홍 줄무늬', img: 'room_pink', paper: '#ffbcba', ink: '#2a2026' }   // 옛 기본 방 그대로(11/24 가르시아 "네 번째 벽지로 남겨줘")
   };
   var WIN_AT = [316, 121], GARLAND_AT = [199, 30];   // 창(붙박이 창이 있던 자리)·모서리 가랜드 — 그림 아래 가운데
 
   // ── 그림 불러오기 ──
   var pics = {};
   function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
-  var picNames = ['room', 'room_lilac', 'room_night', 'window_day', 'window_night', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
+  var picNames = ['room', 'room_lilac', 'room_night', 'room_pink', 'window_day', 'window_night', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
     .concat(AZ.ITEMS.map(function (it) { return it.spr; }))
     .concat(AZ.ITEMS.filter(function (it) { return it.both; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
     .filter(function (n, k, a) { return a.indexOf(n) === k; });

@@ -30,7 +30,7 @@
     [/말티|maltese|비숑|bichon/i, 'maltese'], [/치와와|chihuahua/i, 'chihuahua'], [/닥스|dachs/i, 'dachs'],
     [/진돗|진도|jindo/i, 'jindo'], [/시바|shiba/i, 'shiba']
   ];
-  var THEMES = ['jelly', 'lilac', 'night'];      // 벽지(그림 색은 azit.html). 방 모습에는 첫 글자 j·l·n
+  var THEMES = ['jelly', 'lilac', 'night', 'pink'];      // 벽지(그림 색은 azit.html). 방 모습에는 첫 글자 j·l·n·p — pink = 옛 분홍 방(11/24 기본이 크림으로 바뀌며 네 번째로 남김)
 
   // 소품 — 순서 고정(방 모습에 자리 번호로 실려 간다). 새 소품은 맨 뒤에.
   // need: 생기는 조건 — walks 산책 횟수(워킹패스 성장과 같은 셈, 5분 이상) · level 산책 등급(1 산책 러버 · 2 프로 산책러 · 3 핑크 앰배서더)
@@ -276,7 +276,7 @@
   //    1단계(11/23)는 한 채, 2단계(같은 날 "2단계로 가자")에 새 소품 10개를 그리고 세 채로.
   //    방마다 그 방에 놓은 소품과 자리(pos) — 자리는 손으로 하나하나 화면에 띄워 보며 맞춘 것.
   //    11/23 밤 새 방부터는 처음 자리(ITEMS)를 그대로 쓰고 방마다 몇 개만 옮긴다(over) — 세 채를 그려 보며 맞춘 자리.
-  //    벽지: 핑크 앰배서더 = 분홍 방, 밤산책 라운지 = 밤 블랙 핑크 방, 공원 피크닉 = 라일락 방.
+  //    벽지: 핑크 앰배서더 = 분홍 방(11/24부터 theme 'pink' — 기본 jelly는 크림 방), 밤산책 라운지 = 밤 블랙 핑크 방, 공원 피크닉 = 라일락 방.
   function roomPos(ids, over) {
     var pos = {};
     ids.forEach(function (id) {
@@ -290,7 +290,7 @@
     return pos;
   }
   var SHOWROOMS = [
-    { id: 'pink', name: '핑크 앰배서더의 방', owner: '왈슨', dog: 'chihuahua', theme: 'jelly', acc: 'crown', level: 3,
+    { id: 'pink', name: '핑크 앰배서더의 방', owner: '왈슨', dog: 'chihuahua', theme: 'pink', acc: 'crown', level: 3,
       line: '산책 30번이면 이렇게 돼요',   // 등급·꾸준함 — 오른쪽 선반에 트로피·옆에 깃발, 벽엔 액자·엽서와 모서리 가랜드, 두 선반 사이에 우리 개 사진
       pos: roomPos(['garland', 'frame', 'card0', 'photo', 'card1', 'palframe', 'rug', 'trophy', 'flag', 'bed', 'bowl', 'bone', 'plant', 'house', 'ball', 'carrot']) },
     { id: 'night', name: '밤산책 라운지', owner: '왈슨', dog: 'chihuahua', theme: 'night', acc: 'cap', level: 2,
