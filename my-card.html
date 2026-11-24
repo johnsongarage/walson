@@ -218,7 +218,7 @@
   }
 </style>
 <script src="store.js?v=1"></script>
-<script src="dex-card.js?v=4"></script>
+<script src="dex-card.js?v=5"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
@@ -730,6 +730,8 @@
     btn.disabled = true;
     WalsonDexCard.myCard().then(function (card) {
       btn.disabled = false;
+      var bad = !card && WalsonDexCard.nameProblem(profile.name);
+      if (bad) { alert('강아지 이름에 ' + bad + '가 들어 있어서 QR을 만들 수 없어요. 프로필에서 이름을 고쳐 주세요.'); return; }
       if (!card) { alert('워킹패스 이름이 있어야 QR을 만들 수 있어요.'); return; }
       var url = WalsonDexCard.cardUrl(card, IC.SHARE_URL.replace(/[^/]*$/, ''));
       var c = document.createElement('canvas');

@@ -118,7 +118,7 @@
 <script src="device.js?v=1"></script>
 <script src="qr-scan.js?v=5"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
-<script src="dex-card.js?v=4"></script>
+<script src="dex-card.js?v=5"></script>
 <!-- 화면 QR에 싣는 내 아지트 방 모습(2026-11-23 개방명록 2단계) — 산책 기록으로 생긴 소품을 세려고 reward-rules.js(앞에 spots-data.js)까지 -->
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
@@ -371,7 +371,17 @@
     $('my-msgs').hidden = !$('my-msgs').hidden;
     drawPick();
   });
+  // 이름에 연락처·주소가 있으면 카드 QR을 만들지 않는다(11/24 — 예전에 저장된 이름. 새로 저장할 땐 워킹패스·프로필에서 막음)
+  function nameBlocked() {
+    var bad = DC.nameProblem((WalsonStore.profile() || {}).name);
+    if (!bad) return false;
+    if (confirm('강아지 이름에 ' + bad + '가 들어 있어서 카드 QR을 만들 수 없어요. 모르는 사람 휴대폰에도 보이는 이름이라서요. 프로필에서 이름을 고칠까요?')) location.href = 'profile.html';
+    return true;
+  }
+  // 받은 카드의 이름에 연락처·주소가 있으면 넣지 않고, 그 이름도 보여 주지 않는다
+  var BAD_CARD = '이름에 전화번호나 인터넷 주소가 든 카드라 넣지 않았어요.';
   function showMyCard() {
+    if (nameBlocked()) return;
     myCard().then(function (card) {
       closeAll();
       if (!card) {
@@ -550,6 +560,7 @@
       onText: function (text) {
         var p = payloadFromText(text), dog = p && decode(p);
         if (!dog) return '왈슨 도감 QR이 아니에요. 상대에게 "내 카드 보여 주기"를 눌러 달라고 해 주세요.';
+        if (DC.nameProblem(dog.n)) return BAD_CARD;
         offerAdd(dog);
         return true;
       }
@@ -565,6 +576,7 @@
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* 무시 */ }
     var dog = decode(m[1]);
     if (!dog) { toast('QR 내용을 읽지 못했어요'); return; }
+    if (DC.nameProblem(dog.n)) { toast(BAD_CARD); return; }
     offerAdd(dog);
   }
   window.addEventListener('hashchange', fromHash);

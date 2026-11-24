@@ -179,6 +179,7 @@
 <link rel="stylesheet" href="splash.css?v=2">
 <link rel="preload" as="image" href="icons/walson-logo.webp">
 <script src="store.js?v=1"></script>
+<script src="dex-card.js?v=5"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
@@ -468,6 +469,9 @@
   makeBtn.addEventListener('click', function () {
     var name = fName.value.trim();
     if (!name || !signal) return;
+    // 이름에 전화번호·인터넷 주소는 안 받는다(11/24 — 친구 QR로 모르는 사람 휴대폰에도 보이는 이름, dex-card.js nameProblem)
+    var bad = window.WalsonDexCard && WalsonDexCard.nameProblem(name);
+    if (bad) { alert('강아지 이름에 ' + bad + '는 넣을 수 없어요. 친구 QR로 모르는 사람 휴대폰에도 보이는 이름이라서요.'); fName.focus(); return; }
     // 샘플을 보는 중이면 샘플을 끄고(원래 기록으로 되돌리고) 그 위에 내 카드를 만든다 — 샘플 프로필에 저장하면 끌 때 사라지므로
     if (window.PetwalkSample && PetwalkSample.isOn()) PetwalkSample.turnOff();
     // 다른 화면이 저장해 둔 값(크기 등)을 지우지 않게 기존 프로필에 덮어쓴다

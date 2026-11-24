@@ -37,10 +37,22 @@
       img.src = src;
     });
   }
-  // 내 카드 — 주민증(이름)이 없으면 null
+  // 강아지 이름에 연락처·주소를 싣지 못하게(2026-11-24 가르시아 "3번은 할 거야" — hq notes/petwalk-park-trouble.md 6-1 G).
+  // 카드 QR의 이름은 모르는 사람 휴대폰에도 보이는 자유 글(12자)이라 "01012345678"·인터넷 주소 같은 걸 실어 보낼 수 있었다.
+  // 막는 것: 숫자 7개 이상(전화번호) · 인터넷 주소(http·www·도메인 꼴·@). "1004"·"초코2"·"보리 3세" 같은 이름은 통과.
+  // 카톡·인스타 아이디(abc123 등)는 강아지 이름과 구별이 안 돼 못 막는다.
+  // 쓰는 곳: 워킹패스 만들기(start.html)·프로필 저장(profile.html)·내 카드(아래 myCard — 예전에 저장된 이름도)·받은 카드(dex.html).
+  // 돌려주는 값: 막는 까닭('전화번호' / '인터넷 주소'), 괜찮으면 ''.
+  function nameProblem(name) {
+    var s = String(name == null ? '' : name);
+    if ((s.match(/[0-9\uFF10-\uFF19]/g) || []).length >= 7) return '전화번호';
+    if (/https?:|www\.|@|[a-z0-9-]\.(com|net|org|kr|co|me|io|ly|gl|link|page|app|site|shop|xyz)(\b|$)/i.test(s)) return '인터넷 주소';
+    return '';
+  }
+  // 내 카드 — 주민증(이름)이 없으면 null. 이름에 연락처·주소가 있어도 null(QR로 내보내지 않는다 — 부르는 쪽이 nameProblem으로 까닭을 알린다)
   function myCard() {
     var p = WalsonStore.profile();
-    if (!p || !p.name) return Promise.resolve(null);
+    if (!p || !p.name || nameProblem(p.name)) return Promise.resolve(null);
     var id = myId();
     return photoColor(p.photo).then(function (c) {
       return { v: 1, i: id, n: String(p.name).slice(0, 12), s: SIZE_FROM[p.size] || 'm', g: SIG_FROM[p.signal] || '', c: c || hashColor(id) };
@@ -118,7 +130,7 @@
 
   window.WalsonDexCard = {
     SIZE_FROM: SIZE_FROM, SIG_FROM: SIG_FROM, PALETTE: PALETTE,
-    myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl,
+    myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl, nameProblem: nameProblem,
     LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveUrl: liveUrl, kindOf: kindOf
   };
 })();
