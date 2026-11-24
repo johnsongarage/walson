@@ -6,6 +6,8 @@
 //   사진을 꽉 채우고, 아래에 영수증 조각 한 장만 붙인다(docs/receipt-drafts 시안 2). 예전엔 줄이 20개 안팎이라 종이를 줄여 그려서
 //   [기록] 미리 보기에서 본문이 8px쯤이었다. 조각에는 큰 숫자(분·km는 작게), 알약 몇 개, 특이 사항, 브랜드 줄만 둔다.
 //   도장(상환 완료·응가 "오늘도 해냈다")은 조각 모서리에 스티커처럼 걸친다. 산책 빚 줄·농담 줄·품목표는 뺐다.
+// 2026-11-24 가르시아 "세로를 좀 더 줄여 봐, 위에 사진이 더 많이 나오게 · 날짜와 몇 분 사이 여백·몇 분 글씨 줄이고 ·
+//   홈페이지 주소 대신 산책 뒤에 왈슨": 조각 키를 줄이고(피드 590→480px쯤), 아래 줄은 "당신과 강아지의 유의미한 산책 · WALSON" 한 줄.
 //
 // 넣는 것: 사진, 강아지 이름, 날짜(요일까지), 몇 번째 산책인지, 걸은 시간, 거리(길 기록만), 응가·킁킁·발도장(또는 꾸준함)·오늘 목표 달성 알약,
 //         특이 사항, 상환 도장(충분했나), 응가 도장. 다녀와서 적은 산책은 "자진 신고"라고 숨기지 않는다.
@@ -24,13 +26,16 @@
     feed:  { w: 1080, h: 1350, label: '피드 4:5' },
     story: { w: 1080, h: 1920, label: '스토리 9:16' }
   };
-  // 형식별 크기 — 휴대폰에서 1080px 그림이 3분의 1쯤으로 보이니 본문 44~50px(화면 15px 안팎), 숫자 130~150px
+  // 형식별 크기 — 휴대폰에서 1080px 그림이 3분의 1쯤으로 보이니 본문 44~50px(화면 15px 안팎), 숫자 110~130px
+  // 2026-11-24 가르시아 "세로를 좀 더 줄여, 위에 사진이 더 나오게 · 날짜와 몇 분 사이 여백 줄이고 몇 분 글씨 줄여":
+  //   숫자 128→108(스토리 150→126)·단위도 같이, 큰 숫자 칸은 숫자 키(재 본 값)에 맞춰서 위아래로 남던 자리를 없앴다.
+  //   top: 톱니 아래 → 날짜 줄, metaGap: 날짜 줄 → 숫자 윗선(가운데에 점선), heroBot: 숫자 바닥선 → 알약, end: 브랜드 줄 → 톱니
   var SIZES = {
-    story: { pw: 860, pad: 50, tooth: 14, toothW: 28, bottom: 120, meta: 38, num: 150, unit: 58, sep: 60, heroH: 168,
-             pill: 36, pillH: 66, pillGap: 18, note: 50, noteLine: 66, bar: 46, barW: 380, brand: 28, url: 26,
+    story: { pw: 860, pad: 50, tooth: 14, toothW: 28, bottom: 120, top: 26, meta: 38, metaGap: 46, num: 126, unit: 52, sep: 54, heroBot: 24,
+             pill: 36, pillH: 66, pillGap: 18, note: 50, noteLine: 66, bar: 40, barW: 380, brand: 28, end: 26,
              stampR: 118, title: 36, titleX: 56, titleY: 72, minPhoto: 0.40 },
-    feed:  { pw: 840, pad: 44, tooth: 13, toothW: 26, bottom: 64, meta: 34, num: 128, unit: 50, sep: 52, heroH: 144,
-             pill: 32, pillH: 58, pillGap: 14, note: 44, noteLine: 58, bar: 40, barW: 340, brand: 26, url: 24,
+    feed:  { pw: 840, pad: 44, tooth: 13, toothW: 26, bottom: 64, top: 24, meta: 34, metaGap: 40, num: 108, unit: 44, sep: 46, heroBot: 20,
+             pill: 32, pillH: 58, pillGap: 14, note: 44, noteLine: 58, bar: 34, barW: 340, brand: 26, end: 24,
              stampR: 100, title: 32, titleX: 48, titleY: 52, minPhoto: 0.38 }
   };
   // 글꼴: 숫자·도장 = 블랙한산스, 날짜·브랜드 줄 = 나눔고딕코딩(영수증 고정폭), 알약·특이 사항 = 프리텐다드(작아도 잘 읽힌다).
@@ -43,7 +48,7 @@
   var POOP_INK = '#7a4a26';   // 응가 도장 — 빨간 도장(상환)과 갈리게 갈색 한 색
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
   var SHOP = '다산동 산책 상회';   // 2026-11-17 가르시아 "다산동 산책 상회로 가 일단". 앱 이름은 아래 브랜드 줄(site-config.js brand)로
-  var URL_TEXT = 'johnsongarage.co.kr/walson';
+  // 아래 홈페이지 주소 줄(johnsongarage.co.kr/walson)은 뺐다 — 2026-11-24 가르시아 "홈페이지 주소 대신 산책 뒤에 왈슨 붙여 줘"
 
   function pad4(n) { var s = String(Math.max(0, n | 0)); while (s.length < 4) s = '0' + s; return s; }
   function dateText(d) {
@@ -83,7 +88,8 @@
       // "충분했어요"·답 없음 = 상환 완료, "조금 아쉬워요" = 일부 상환(연체가 아니라 이월 — 죄책감을 키우지 않게)
       stamp: d.feel === 'short' ? ['일부', '상환'] : ['상환', '완료'],
       poop: typeof d.poop === 'number' ? d.poop : 0,
-      brand: B && B.name ? B.name + (B.tagline ? ' · ' + B.tagline : '') : '',
+      // 브랜드 줄: 문구 뒤에 이름 — "당신과 강아지의 유의미한 산책 · WALSON"(11/24 가르시아 "산책 뒤에 왈슨"). 글자는 site-config.js에서
+      brand: B && B.name ? (B.tagline ? B.tagline + ' · ' : '') + B.name : '',
       seed: hash(String(d.no) + '#' + d.date)
     };
   }
@@ -91,7 +97,7 @@
   // 글꼴을 미리 불러올 때 쓰는 글자 모음 — 한글 글꼴은 글자 묶음별로 나뉘어 있어서, 그릴 글자를 같이 넘겨야 받아 온다
   function textOf(d) {
     var p = parts(d);
-    return [SHOP, p.meta, p.note, p.noteEmpty, p.brand, URL_TEXT].concat(p.pills.map(function (x) { return x.t; }), p.stamp).join('') +
+    return [SHOP, p.meta, p.note, p.noteEmpty, p.brand].concat(p.pills.map(function (x) { return x.t; }), p.stamp).join('') +
       p.hero.map(function (h) { return h.t; }).join('') + '0123456789.·/분km건곳일째응가킁킁발도장꾸준함오늘도해냈다×2+';
   }
   function ensureFonts(text) {
@@ -161,7 +167,14 @@
     }
     measure(k);
     while (total > maxW && k > 0.55) { k -= 0.04; measure(k); }
-    return { items: items, total: total };
+    // 숫자 윗선까지 높이 — 글꼴마다 달라서 재 본다(블랙한산스는 글자 크기의 0.64쯤). 못 재면 0.7로
+    var asc = 0;
+    items.forEach(function (it) {
+      if (!it.h.num) return;
+      ctx.font = it.font;
+      asc = Math.max(asc, ctx.measureText(it.h.t).actualBoundingBoxAscent || 0);
+    });
+    return { items: items, total: total, asc: asc || S.num * k * 0.7 };
   }
   function drawHero(ctx, L, cx, baseline, S) {
     var x = cx - L.total / 2;
@@ -328,8 +341,9 @@
     ctx.font = '800 ' + S.note + 'px ' + SANS;
     var noteLines = wrap(ctx, P.note || P.noteEmpty, inner, 2);
     var PR = pillRows(ctx, P.pills, S, inner);
-    var pillsH = PR.rows.length ? PR.rows.length * S.pillH + (PR.rows.length - 1) * 12 + 26 : 0;
-    var PH = S.tooth + 30 + S.meta + 14 + 22 + S.heroH + pillsH + noteLines.length * S.noteLine + 18 + 22 + S.bar + 12 + S.brand + 10 + S.url + 26 + S.tooth;
+    var pillsH = PR.rows.length ? PR.rows.length * S.pillH + (PR.rows.length - 1) * 12 + 22 : 0;
+    var heroH = S.metaGap + hero.asc + S.heroBot;   // 날짜 줄 아래 → 숫자 바닥선 아래 여백까지
+    var PH = S.tooth + S.top + S.meta + heroH + pillsH + noteLines.length * S.noteLine + 14 + 18 + S.bar + 12 + S.brand + S.end + S.tooth;
     // 사진이 너무 가려지면(특이 사항 두 줄 등) 조각을 줄인다
     var maxPH = H - S.bottom - H * S.minPhoto, scale = PH > maxPH ? maxPH / PH : 1;
     var stubTop = H - S.bottom - PH * scale;
@@ -354,18 +368,19 @@
     ctx.scale(scale, scale);
     ctx.translate(-S.pw / 2, -PH);
     drawPaper(ctx, S, PH);
-    var L = S.pad, R = S.pw - S.pad, C = S.pw / 2, y = S.tooth + 30;
+    var L = S.pad, R = S.pw - S.pad, C = S.pw / 2, y = S.tooth + S.top;
     // 이름 · 날짜 · 번호
     ctx.fillStyle = SOFT_INK; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     var ms = S.meta;
     ctx.font = '700 ' + ms + 'px ' + MONO;
     while (ms > S.meta * 0.7 && ctx.measureText(P.meta).width > inner) { ms -= 1; ctx.font = '700 ' + ms + 'px ' + MONO; }
     ctx.fillText(P.meta, L, y + S.meta * 0.92);
-    y += S.meta + 14;
-    dashed(ctx, L, R, y + 8); y += 22;
-    // 큰 숫자
-    drawHero(ctx, hero, C, y + S.heroH * 0.84, S);
-    y += S.heroH;
+    y += S.meta;
+    // 점선은 날짜 줄과 숫자 사이 가운데쯤(날짜 줄 글자 아래 끝이 칸 밑으로 조금 내려오는 만큼 아래로)
+    dashed(ctx, L, R, y + S.metaGap * 0.45);
+    // 큰 숫자 — 숫자 윗선이 날짜 줄에서 metaGap만큼 아래
+    drawHero(ctx, hero, C, y + S.metaGap + hero.asc, S);
+    y += heroH;
     // 알약(한 줄 또는 두 줄)
     if (PR.rows.length) {
       ctx.font = '800 ' + PR.fs + 'px ' + SANS; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -376,7 +391,7 @@
           ctx.fillStyle = x.p.goal ? STAMP : INK; ctx.fillText(x.p.t, px + x.w / 2, y + S.pillH / 2 + 1);
           px += x.w + S.pillGap;
         });
-        y += S.pillH + (ri < PR.rows.length - 1 ? 12 : 26);
+        y += S.pillH + (ri < PR.rows.length - 1 ? 12 : 22);
       });
     }
     // 특이 사항
@@ -385,15 +400,12 @@
     ctx.fillStyle = P.note ? INK : SOFT_INK;
     noteLines.forEach(function (t) { ctx.fillText(t, C, y + S.note * 0.95); y += S.noteLine; });
     var n1 = y;
-    y += 18;
-    dashed(ctx, L, R, y + 8); y += 22;
-    // 바코드 · 브랜드 줄(site-config.js brand) · 주소
+    y += 14;
+    dashed(ctx, L, R, y + 6); y += 18;
+    // 바코드 · 브랜드 줄(site-config.js brand — "문구 · WALSON"). 홈페이지 주소 줄은 11/24에 뺐다
     drawBarcode(ctx, C - S.barW / 2, y, S.barW, S.bar, P.seed); y += S.bar + 12;
     ctx.fillStyle = INK; ctx.font = '700 ' + S.brand + 'px ' + MONO; ctx.textAlign = 'center';
     if (P.brand) ctx.fillText(P.brand, C, y + S.brand * 0.9);
-    y += S.brand + 10;
-    ctx.fillStyle = SOFT_INK; ctx.font = '400 ' + S.url + 'px ' + MONO;
-    ctx.fillText(URL_TEXT, C, y + S.url * 0.9);
     // 도장 — 조각 오른쪽 위 모서리에 스티커처럼 걸친다(응가를 적은 날은 갈색 응가 도장도). 받침 아래 끝이 조각 위 여백까지만
     // 내려오게 해서 이름·날짜 줄을 가리지 않는다
     var edge = S.tooth + 16, sx = S.pw - S.stampR * 0.62, sy = edge - S.stampR * 1.12;
