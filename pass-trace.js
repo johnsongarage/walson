@@ -14,6 +14,10 @@
 // 같은 날 밤 가르시아 "키링 맨 아래 칸에 유의미한 산책 빼고 특기를 골라서, 또는 직접 적어 넣기 · 입력하는 텍스트는 뚜렷한 글씨체로 · 글씨 크기 조절":
 //   opts.skill(특기 — 홍보 문구 알약 대신, 같은 날 "4안으로" 등급 뱃지와 한 상자) · opts.vfont(칸 값 글씨체 'clear' 또렷하게 · 'bold' 굵게 · 'dot' 도트) · opts.sizes(칸마다 글씨 크기 배수).
 //   편집 창은 keyring-edit.js
+// 같은 날 밤 가르시아 "키링 카드 상단에 핑크 남는 영역 가운데 구멍 내 줘 · 맨 아래 공간 내서 당신과 강아지의 유의미한 산책 넣어 줘 ·
+//   가로 버전에서 상단에 구멍 낼 여유 공간 만들어 주고 구멍 내 줘": 키링판(특기를 주는 것 — [워킹패스] 키링 카드·3D 키링)은
+//   머리띠 제목 위 빈 분홍 가운데에 고리 구멍(도트 동그라미 테두리, 안은 투명 — 3D에선 그 자리를 뚫음, geom().hole) +
+//   사진 틀 아래를 늘려 홍보 한 줄(site-config.js brand.tagline). 세로판은 아래만 늘리고(LK), 가로판은 위·아래 둘 다 늘림(LL)
 (function () {
   'use strict';
   var REF = { w: 1493, h: 2000 };
@@ -148,6 +152,12 @@
   function n(v) { return Math.round(v * 100) / 100; }
   function sq(x0, y0, x1, y1) { return 'M' + n(x0) + ' ' + n(y0) + 'H' + n(x1) + 'V' + n(y1) + 'H' + n(x0) + 'Z'; }
   function rect(out, x, y, w, h, fill) { out.push('<path fill="' + fill + '" d="' + sq(x, y, x + w, y + h) + '"/>'); }
+  // 둥근 네모 경로(카드 판 자르기 — 고리 구멍을 even-odd로 빼려고 rect 대신 경로로)
+  function rrPath(x, y, w, h, r) {
+    var a = 'A' + r + ' ' + r + ' 0 0 1 ';
+    return 'M' + n(x + r) + ' ' + n(y) + 'H' + n(x + w - r) + a + n(x + w) + ' ' + n(y + r) + 'V' + n(y + h - r) + a + n(x + w - r) + ' ' + n(y + h) +
+      'H' + n(x + r) + a + n(x) + ' ' + n(y + h - r) + 'V' + n(y + r) + a + n(x + r) + ' ' + n(y) + 'Z';
+  }
   function paths(out, byCol, order) { order.forEach(function (col) { out.push('<path fill="' + col + '" d="' + byCol[col].join('') + '"/>'); }); }
   // 도트 그림: rows(글자 지도) + map(글자→색), 한 칸 ux×uy. 가로로 이어진 같은 색 칸은 한 칸으로, 색마다 경로 하나
   function bitmap(out, rows, map, x, y, ux, uy, flipX, flipY) {
@@ -279,21 +289,57 @@
   };
   var LP = L;   // 세로판(원본 자리) — render가 opts.landscape면 잠깐 가로판(LL)으로 바꿔 그린다
 
+  // ── 고리 구멍(11/24 밤 가르시아 "키링 카드 상단에 핑크 남는 영역 가운데 구멍 내 줘") ──
+  // 12×12칸 도트 동그라미 — 테두리 한 칸(진한 갈색), 안은 비움(카드 판을 그 자리만 잘라 투명: 저장 그림에도 구멍으로 남고,
+  // 3D 키링은 그 안 동그라미(holeGeo r)를 실제로 뚫는다). 한 칸 크기는 판마다 hole.u(세로 11 · 가로 12.6 — 실물 지름이 같게)
+  var HOLE = ['....####....', '..##....##..', '.#........#.', '.#........#.', '#..........#', '#..........#', '#..........#', '#..........#',
+    '.#........#.', '.#........#.', '..##....##..', '....####....'];
+  var HOLE_IN = HOLE.map(function (row) {   // 테두리 안쪽 칸만 '#'
+    var a = row.indexOf('#'), b = row.lastIndexOf('#'), s = '';
+    for (var i = 0; i < row.length; i++) s += (i > a && i < b && row[i] === '.') ? '#' : '.';
+    return s;
+  });
+  // 구멍 자리(원본 좌표) — x·y 가운데, r = 테두리 안에 들어가는 동그라미 반지름(3D가 뚫는 크기), s = 바깥 반 폭
+  function holeGeo(H) {
+    var u = H.u, r = Infinity;
+    HOLE.forEach(function (row, j) {
+      for (var i = 0; i < row.length; i++) if (row[i] === '#') {
+        var dx = Math.max(i * u - 6 * u, 0, 6 * u - (i + 1) * u), dy = Math.max(j * u - 6 * u, 0, 6 * u - (j + 1) * u);
+        r = Math.min(r, Math.sqrt(dx * dx + dy * dy));
+      }
+    });
+    return { x: H.cx, y: H.cy, r: r, s: 6 * u };
+  }
+  // ── 키링 세로판(11/24 밤) — 원본 자리(LP) 그대로에 고리 구멍·맨 아래 홍보 한 줄만 더함 ──
+  // 구멍: 카드 위 끝 ~ 제목 WALSON 위 사이 빈 분홍의 가운데. 홍보 한 줄: 카드를 아래로 FOOT만큼 늘려 사진 틀 아래 ~ 카드 아래 끝 가운데
+  var FOOT = 56;
+  var LK = Object.assign({}, LP, {
+    card: Object.assign({}, LP.card, { h: LP.card.h + FOOT }),
+    ref: { w: REF.w, h: REF.h + FOOT },
+    hole: { cx: LP.card.x + LP.card.w / 2, cy: (LP.card.y + LP.title1.y) / 2, u: 11 },
+    foot: { h: 60 }   // 홍보 한 줄 글씨 높이
+  });
+
   // ── 가로 키링판(11/24 가르시아 "사진을 첨부할 때 가로 버전도 있을 수 있어서 가로 버전 키링도 변형해서 만들자") ──
   // 같은 칸 크기·글꼴을 다시 배치: 위 머리띠(제목 두 줄을 0.9배로) · 왼쪽 가로 사진 틀(사진 칸 4:3 — 휴대폰 가로 사진 비율) ·
-  // 오른쪽 ID·NAME·TYPE 칸(세로판의 0.93배 높이) + 점선 + 등급 뱃지 + 홍보 알약(한 줄). 카드 1700×1150(세로판 1214×1618.5).
+  // 오른쪽 ID·NAME·TYPE 칸(세로판의 0.93배 높이) + 점선 + 등급 뱃지 + 홍보 알약(한 줄). 카드 1700×1150(세로판 1214×1618.5) → 아래 구멍·홍보 한 줄 자리를 더해 1700×약 1427.
   // 원점(카드 왼쪽 위 153.5, 171)은 세로판과 같아서 바탕·그림자 장면도 그대로. 키링판에서만 쓴다(원본 칸·QR 자리는 없음)
+  // 11/24 밤 가르시아 "가로 버전에서 상단에 구멍 낼 여유 공간 만들어 주고 구멍 내 줘" + "맨 아래 공간 내서 유의미한 산책": 머리띠 위에 구멍 자리(holeA —
+  // 구멍 테두리 + 위아래 33점, 세로판과 같은 여백)를 더하고, 사진 틀 아래 여백을 50 → footA(홍보 한 줄 자리)로. 그 사이(사진 틀·칸)는 그 전 그대로
   var LL = (function () {
-    var x0 = 153.5, y0 = 171, W = 1700, H = 1150, s = 0.9, headH = 270, div = 15;
-    var top = y0 + headH + div + 44, bot = y0 + H - 50, ux = 11.6, uy = 12.3;
+    var x0 = 153.5, y0 = 171, W = 1700, s = 0.9, div = 15;
+    var t1v = 5.835 * s, t2v = 4.96 * s, tgap = 39 * s, titH = 16 * t1v + tgap + 16 * t2v, tpad = (270 - titH) / 2;   // 그 전 머리띠(270) 안 제목 위아래 여백
+    var holeU = 12.6, holeA = 12 * holeU + 66, headH = holeA + titH + tpad, bodyH = 830, footA = 150, H = headH + bodyH + footA;
+    var top = y0 + headH + div + 44, bot = y0 + headH + bodyH, ux = 11.6, uy = 12.3;
     var ph = bot - top - 8 * uy, fw = ph * 4 / 3 + 8 * ux, ol = x0 + 49, or = ol + fw, fx = or + 33.5, fw2 = x0 + W - 32 - fx;
-    var t1v = 5.835 * s, t2v = 4.96 * s, tgap = 39 * s, ty1 = y0 + (headH - (16 * t1v + tgap + 16 * t2v)) / 2;
+    var ty1 = y0 + holeA;
     var rowH = 140, rowGap = 24, fs = rowH / 150, ys = [top, top + rowH + rowGap, top + 2 * (rowH + rowGap)];
     var dashY = ys[2] + rowH + 20, pillH = 118, pillLow = bot - pillH;
     return {
       ref: { w: W + 2 * x0, h: y0 + H + 210.5 },
       card: { x: x0, y: y0, w: W, h: H, r: 74 }, shadow: { dx: -29, dy: 39 },
       headB: y0 + headH, divB: y0 + headH + div,
+      hole: { cx: x0 + W / 2, cy: y0 + holeA / 2, u: holeU }, foot: { h: 62 },
       frame: { ol: ol, or: or, ot: top, ob: bot, ux: ux, uy: uy },
       knot: { tl: [0, 0], tr: [0, 0], bl: [0, 0], br: [0, 0] },
       opaw: { x: ol + 34, y: top + 35, u: 3.3 },
@@ -504,7 +550,8 @@
     if (o.signal != null || o.grade == null) return 'box';
     return o.skillAt === 'box' ? 'box' : 'badge';
   }
-  function layoutFor(o) { return o.landscape ? LL : LP; }
+  // 판 고르기 — 가로판 · 키링 세로판(특기를 주는 것 = [워킹패스] 키링 카드·3D 키링: 구멍·홍보 한 줄) · 원본 자리(트레이싱 비교 시안)
+  function layoutFor(o) { return o.landscape ? LL : (o.keyring && o.skill != null ? LK : LP); }
   function comboRect() {
     var K = L.kr, C = K.combo, top = K.dashY + L.dash.h + C.gap;
     return { x: L.field.x, y: top, w: L.field.w, h: L.frame.ob - top };
@@ -623,7 +670,22 @@
     // est: 글꼴을 받기 전이라 글줄 폭을 어림으로 잰 적 있음 — 쓰는 쪽은 fontsReady 뒤에 한 번 더 그리면 줄 나눔까지 정확하다
     api.lastText = VEC ? { list: VEC, vb: vb, font: o.hangul || VF.family, est: false } : null;
     out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb.join(' ') + '" width="' + vb[2] + '" height="' + vb[3] + '">');
-    out.push('<defs><clipPath id="pt-card"><rect x="' + C.x + '" y="' + C.y + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '"/></clipPath>' +
+    // 고리 구멍(11/24 밤, 키링판) — 카드 판(머리띠)을 구멍 안쪽 칸만큼 잘라 낸다(even-odd: 둥근 네모 + 안쪽 칸 줄 — 그 자리는 투명)
+    var HG = KR && L.hole ? holeGeo(L.hole) : null,
+      cardClip = '<rect x="' + C.x + '" y="' + C.y + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '"/>';
+    if (HG) {
+      var hu = L.hole.u, hx0 = HG.x - HG.s, hy0 = HG.y - HG.s, hd = rrPath(C.x, C.y, C.w, C.h, C.r);
+      HOLE_IN.forEach(function (row, j) {
+        var c = 0;
+        while (c < row.length) {
+          if (row[c] !== '#') { c++; continue; }
+          var s0 = c; while (c < row.length && row[c] === '#') c++;
+          hd += sq(hx0 + s0 * hu, hy0 + j * hu, hx0 + c * hu, hy0 + (j + 1) * hu);
+        }
+      });
+      cardClip = '<path clip-rule="evenodd" d="' + hd + '"/>';
+    }
+    out.push('<defs><clipPath id="pt-card">' + cardClip + '</clipPath>' +
       '<clipPath id="pt-photo"><rect x="' + n(P.x) + '" y="' + n(P.y) + '" width="' + n(P.w) + '" height="' + n(P.h) + '"/></clipPath></defs>');
     if (!card) {
       rect(out, 0, 0, R.w, R.h, COL.bg);
@@ -654,6 +716,7 @@
       var cx = (f[1] ? F.ol + F.or - L.opaw.x : L.opaw.x) + off[0], cy = (f[2] ? F.ot + F.ob - L.opaw.y : L.opaw.y) + off[1];
       bitmap(g1, OPAW, { '#': COL.opaw }, cx - 11 * L.opaw.u / 2, cy - 9 * L.opaw.u / 2, L.opaw.u, L.opaw.u);
     });
+    if (HG) bitmap(g1, HOLE, { '#': COL.ink }, HG.x - HG.s, HG.y - HG.s, L.hole.u, L.hole.u);   // 고리 구멍 테두리(안은 위에서 잘라 냄)
     // 제목
     var T1 = L.title1, T2 = L.title2, t1 = String(B.name || 'WALSON').toUpperCase();
     if (T1.center) {   // 가로판: 카드 가운데 · 발바닥은 제목 양옆
@@ -692,7 +755,7 @@
     var SR = SK === 'box' ? skillRect(o) : null;
     if (SR) skillBox(g1, o.skill, SR);
     else if (SK) { /* badge: 아래 등급 자리에서 같이 */ }
-    else if (KR && tag) {
+    else if (KR && tag && !L.foot) {   // 맨 아래 홍보 한 줄 자리(L.foot)가 있는 판은 거기에(아래)
       stepBox(g1, FD.x, pyy, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
       var ln = KP.one ? [B.tagline, ''] : twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),   // 가로판은 넓어서 한 줄
         pux = Math.min(KP.ux, (FD.w - 2 * KP.u - 2 * KP.pad) / lw), puy = pux * KP.uy / KP.ux,
@@ -726,7 +789,18 @@
       rect(g1, Q.x, Q.y, Q.w, Q.h, COL.white);
       qrRects(g1, o.qr || (C && C.cardQrText) || "WALSON · 카카오톡에서 '왈슨' 검색", Q.x + (Q.w - Q.size) / 2, Q.y + (Q.h - Q.size) / 2, Q.size);
     }
-    // 홍보 문구(원본엔 없음 — 밖에 나가는 굿즈엔 필수, site-config.js brand): 사진 틀 아래 가운데(키링판은 알약 안에 있어서 뺌)
+    // 맨 아래 홍보 한 줄(11/24 밤 가르시아 "키링 카드 맨 아래 공간 내서 당신과 강아지의 유의미한 산책 넣어 줘") — 사진 틀 아래 ~ 카드 아래 끝 가운데,
+    // 카드 폭 가운데. 한글은 칸 이름·등급과 같은 굵은 글꼴(o.hangul)로 캔버스에 덮어 쓰고, 글꼴이 없으면 도트로
+    if (KR && L.foot && tag) {
+      var fh = L.foot.h, fcy = (F.ob + C.y + C.h) / 2, fmw = C.w - 180, ts = String(B.tagline);
+      if (VEC) VEC.push({ s: ts, x: C.x + (C.w - fmw) / 2, y: fcy - fh / 2, w: fmw, h: fh, fill: COL.ink, fit: true, mw: fmw });
+      else {
+        var fu = fh / 16, fw0 = textUnits(ts) * fu;
+        if (fw0 > fmw) { fu *= fmw / fw0; fw0 = fmw; }
+        text(g1, ts, C.x + (C.w - fw0) / 2, fcy - 8 * fu, fu, fu, COL.ink);
+      }
+    }
+    // 홍보 문구(원본엔 없음 — 밖에 나가는 굿즈엔 필수, site-config.js brand): 사진 틀 아래 가운데(키링판은 알약 안·맨 아래 한 줄이라 뺌)
     if (!KR && tag) {
       var tu = L.tagline.u, tw = textUnits(B.tagline) * tu;
       text(g1, B.tagline, (F.ol + F.or) / 2 - tw / 2, L.tagline.y, tu, tu, COL.ink);
@@ -777,9 +851,10 @@
   }
 
   // geom(가로판?) — 카드·사진 칸 자리(쓰는 쪽이 사진 칸 위에 끌기 칸을 얹거나 사진을 칸 크기로 만들 때)
+  // 키링판(세로는 LK — 구멍·아래 홍보 한 줄 자리까지 든 카드)만. hole = 고리 구멍 { x, y 가운데, r 3D가 뚫는 반지름, s 테두리 바깥 반 폭 }(원본 좌표)
   function geom(land) {
-    var keep = L; L = land ? LL : LP;
-    var g = { card: L.card, photo: photoBox(), ref: L.ref || REF };
+    var keep = L; L = land ? LL : LK;
+    var g = { card: L.card, photo: photoBox(), ref: L.ref || REF, hole: L.hole ? holeGeo(L.hole) : null };
     L = keep;
     return g;
   }
@@ -811,7 +886,7 @@
   var tintList = TINTS.map(function (x) { return { id: x.id, label: x.label, swatch: colorsFor(x.id).col.head }; });
   // 칸 값 글씨체 고르는 칸용 — 또렷하게(기본) · 굵게 · 도트(영어·숫자만 도트, 한글은 o.hangul)
   var fontList = [{ id: 'clear', label: VFONTS.clear.label }, { id: 'bold', label: VFONTS.bold.label }, { id: 'dot', label: '도트' }];
-  var api = { REF: REF, L: L, LL: LL, COL: COL, FONT: FONT, TINTS: tintList, VFONTS: fontList, geom: geom, boxes: boxes, photoBox: photoBox, render: render, ready: ready,
+  var api = { REF: REF, L: L, LL: LL, LK: LK, COL: COL, FONT: FONT, TINTS: tintList, VFONTS: fontList, geom: geom, boxes: boxes, photoBox: photoBox, render: render, ready: ready,
     textUnits: textUnits, glyph: glyph, paintText: paintText, fontsReady: fontsReady, lastText: null };
   window.WalsonPassTrace = api;
 })();

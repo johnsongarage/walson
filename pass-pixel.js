@@ -8,7 +8,7 @@
 //   ② QR은 진짜 QR — 11/24부터 링크 아닌 글자(data.qr = id-card.js cardQrText, "카카오톡에서 '왈슨' 검색") ③ 칸 값은 이 휴대폰 기록(번호 끝 네 자리 · 이름 · 견종, 없으면 DOG)
 //   ④ 사진은 도트로 바꿀 수 있고(가늘게 56칸 · 굵게 32칸 · 원래 사진) 끌어서 맞춘다 — 처음엔 칸을 꽉 채움(디자인은 통째로 보이기)
 // 사진은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. window.WalsonPassPixel.draw(canvas, data)
-// 쓰는 곳: 시안 화면 pass-pixel-sample.html, [워킹패스] my-card.html의 [도트 카드]
+// 쓰는 곳: 시안 화면 pass-pixel-sample.html, [워킹패스] my-card.html 키링 카드의 사진 맞추기·사진 도트(그 화면의 [도트 카드]는 11/24 밤 뺌)
 (function () {
   var W = 1200, H = 1500;
   var DW = 424, DH = 530, S = W / DW;   // 디자인 단위(CSS px) → 판

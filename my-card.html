@@ -63,17 +63,33 @@
   .side-toggle button.active { background: var(--ink); color: var(--bg); }
 
   .canvas-holder { display: flex; justify-content: center; }
-  /* 카드 모양(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘"): [기본 카드] [도트 카드]. 도트 카드는 pass-pixel.js(도트 워킹패스 시안과 같은 그림, 1200×1500).
-     도트 카드는 한 면이라 앞면·뒷면 대신 사진 맞추기(사진 칸 끌기·두 손가락·막대)와 저장·공유. 고른 것은 이 휴대폰에만(walson_pass_dot) */
+  /* 카드 모양(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘"): 그땐 [기본 카드] [도트 카드](pass-pixel.js).
+     11/24 밤 가르시아 "도트 카드는 없애 줘 … 대신 3D로 키링 시안 보는 탭을 만들어 줘" → [기본 카드] [키링 카드] [3D 키링].
+     키링 카드는 한 면이라 앞면·뒷면 대신 사진 맞추기(사진 칸 끌기·두 손가락·막대)와 저장·공유, 3D 키링은 보기만. 고른 것은 이 휴대폰에만(walson_pass_dot —
+     이름은 도트 카드 때 그대로, 예전에 도트 카드를 골랐던 사람은 키링 카드로) */
   .style-toggle { display: flex; gap: 4px; padding: 4px; margin: 0 auto 10px; width: max-content;
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: 999px; }
   .style-toggle button { border: none; background: transparent; color: var(--ink-soft); border-radius: 999px;
     padding: 7px 16px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
   .style-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
   .cv { position: relative; width: 100%; }
-  .cv.is-dot { max-width: 340px; }
-  .cv.is-dot #card-canvas { cursor: default; }
+  .cv.is-kr { max-width: 340px; }
   .cv.is-kr #card-canvas { cursor: pointer; }   /* 키링 카드는 글자 칸을 누르면 고치는 창(11/24 밤) */
+  /* 3D 키링(11/24 밤) — [키링 카드]에서 고친 그대로 투명 아크릴 키링(앞뒤 같은 그림)으로 돌려 보기만. 그림은 keyring-3d-view.js */
+  .k3d { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--panel-border); background: var(--panel); }
+  .k3d canvas { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1.08; touch-action: none; cursor: grab; }
+  .k3d-quick { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+  .k3d-quick button { min-height: 32px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--panel-border); background: var(--panel);
+    color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .k3d-quick button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+  .k3d-hint { position: absolute; left: 0; right: 0; bottom: 8px; margin: 0; text-align: center; font-size: 12px; font-weight: 700;
+    color: var(--ink-soft); pointer-events: none; transition: opacity 0.3s; }
+  .k3d-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; margin: 0;
+    text-align: center; font-size: 14px; line-height: 1.6; color: var(--ink-soft); background: var(--panel); word-break: keep-all; }
+  .k3d-note { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 10px; }
+  .k3d-note p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--ink-soft); word-break: keep-all; }
+  .k3d-note button { flex-shrink: 0; height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--panel-border);
+    background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
   .dot-grab { position: absolute; cursor: grab; touch-action: none; outline-offset: -2px; }
   .dot-grab:hover, .dot-grab:focus-visible { outline: 2px dashed var(--accent); }
   .dot-grab.on { cursor: grabbing; outline: 2px solid var(--accent); }
@@ -88,22 +104,11 @@
   .dot-save { display: flex; gap: 8px; }
   .dot-save .btn { flex: 1; }
   /* [키링 카드](2026-11-24 가르시아 "3D에서 만든 이미지 시안 앞면을 워킹패스에서 볼 수 있게, 들어가는 내용들도 수정할 수 있게"):
-     pass-trace.js 키링판 — 3D 키링 미리 보기(keyring-3d-sample.html) 앞면과 같은 그림. 사진 맞추기·사진 방식은 도트 카드와 같이 쓴다.
-     카드 글자(ID·NAME·TYPE)는 도트 카드·키링 카드 그림에만 들어간다(프로필 이름·견종은 그대로), 이 휴대폰에만(walson_pass_dot.text) */
-  .card-text { display: grid; grid-template-columns: 0.8fr 1fr 1.2fr; gap: 6px; }
-  .card-text label { display: grid; gap: 3px; min-width: 0; }
-  .card-text label span { font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.04em; }
-  .card-text input { width: 100%; min-width: 0; font-family: inherit; font-size: 16px; font-weight: 700; color: var(--ink);
-    padding: 8px 9px; border-radius: 10px; border: 1px solid var(--panel-border); background: var(--panel); }
-  .card-text input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .card-text input::placeholder { color: var(--ink-soft); opacity: 0.6; font-weight: 600; }
-  .ct-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .ct-foot p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
-  .ct-foot button { flex-shrink: 0; height: 30px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--panel-border);
-    background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+     pass-trace.js 키링판 — 3D 키링 미리 보기(keyring-3d-sample.html) 앞면과 같은 그림. 사진 맞추기·사진 방식(도트 가늘게·굵게·원래 사진)은 도트 카드 때 것 그대로.
+     카드 글자(ID·NAME·TYPE·특기)는 키링 그림에만 들어간다(프로필 이름·견종은 그대로), 이 휴대폰에만(walson_pass_dot.text) */
   /* 키링 카드만(11/24 밤 가르시아 "가로 버전 키링도 변형해서, 기본은 핑크고 색깔 변경 가능하게") — 세로·가로 · 카드 색 */
   .kr-tools { display: grid; gap: 10px; }
-  .cv.is-dot.is-land { max-width: 100%; }
+  .cv.is-kr.is-land { max-width: 100%; }
   .tints { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; flex: 1 1 0; min-width: 0; }   /* 칸 이름(색) 옆에서 줄바꿈 */
   .tints button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px 0 7px; border-radius: 999px;
     border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
@@ -112,7 +117,6 @@
   /* 키링 글자·특기 고치기(11/24 밤 가르시아 "맨 아래 칸에 특기를 골라서, 또는 직접 적어 넣기 · 폰에서 키링 보면서 편집") —
      누르면 keyring-edit.js 편집 창(위에 키링 미리 보기). 키링 카드에선 아래 카드 글자 칸 대신 이것 */
   .kr-edit { display: grid; gap: 6px; }
-  #ct-box { display: grid; gap: 10px; }
   .kr-edit .btn { margin-top: 0; }
   .kr-edit-sum { margin: 0; text-align: center; font-size: 12px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
   .kr-edit-sum b { color: var(--ink); font-weight: 800; }
@@ -274,24 +278,42 @@
   </div>
 
   <div id="card-area" hidden>
-    <!-- 카드 모양(2026-11-22): 처음엔 [산책]·[동네] 지도에서 [도트]를 고른 사람이면 도트 카드, 아니면 기본 카드 -->
+    <!-- 카드 모양(2026-11-22 → 11/24 밤 도트 카드 빼고 3D 키링): 처음엔 [산책]·[동네] 지도에서 [도트]를 고른 사람이면 키링 카드(도트 그림), 아니면 기본 카드 -->
     <div class="style-toggle" role="group" aria-label="카드 모양">
       <button type="button" id="style-basic" aria-pressed="true">기본 카드</button>
-      <button type="button" id="style-dot" aria-pressed="false">도트 카드</button>
       <button type="button" id="style-kr" aria-pressed="false">키링 카드</button>
+      <button type="button" id="style-3d" aria-pressed="false">3D 키링</button>
     </div>
     <div class="side-toggle" id="side-toggle" role="tablist">
       <button type="button" id="side-front" class="active">앞면</button>
       <button type="button" id="side-back">뒷면 · 산책 경력</button>
     </div>
-    <div class="canvas-holder">
+    <div class="canvas-holder" id="cv-holder">
       <div class="cv" id="card-cv">
         <canvas id="card-canvas" width="1600" height="1000" role="img" aria-label="강아지 워킹패스 앞면"></canvas>
         <div class="dot-grab" id="dot-grab" tabindex="0" role="group" aria-label="사진 칸 — 끌어서 옮기기, 두 손가락이나 휠로 확대·축소, 방향키와 +·− 키도 돼요" hidden></div>
       </div>
     </div>
     <div class="canvas-hint" id="canvas-hint">워킹패스를 누르면 뒤집혀요</div>
-    <!-- 도트 카드 — 사진을 어떻게 그릴지 · 사진 크기(사진 칸을 끌어서 옮기기는 카드 위에서) -->
+    <!-- 3D 키링(11/24 밤 가르시아 "대신 3D로 키링 시안 보는 탭을 만들어 줘, 거기선 편집할 거 없어, 기존 편집한 거 그대로 보여 줘") —
+         [키링 카드] 그림 그대로 앞뒤 같은 투명 아크릴 키링. 돌려 보기만(고치는 건 [키링 카드]에서). 그림은 keyring-3d-view.js(처음 누를 때 불러옴) -->
+    <div id="k3d-area" hidden>
+      <div class="k3d">
+        <canvas id="k3d-c" role="img" aria-label="3D 아크릴 키링 — 키링 카드 그대로, 앞뒤 같은 그림"></canvas>
+        <div class="k3d-quick">
+          <button type="button" id="k3d-spin" aria-pressed="true">빙글빙글</button>
+          <button type="button" id="k3d-front">앞면</button>
+          <button type="button" id="k3d-back">뒷면</button>
+        </div>
+        <p class="k3d-hint" id="k3d-hint">끌어서 돌려 보세요</p>
+        <p class="k3d-msg" id="k3d-msg" hidden></p>
+      </div>
+      <div class="k3d-note">
+        <p>[키링 카드]에서 고친 그대로예요. 앞뒤 같은 그림이고, 고리 구멍은 카드 위 분홍 칸 가운데예요. 크기는 예시(가로 50mm · 가로판 60mm).</p>
+        <button type="button" id="k3d-edit">키링 카드 고치기</button>
+      </div>
+    </div>
+    <!-- 키링 카드 — 사진을 어떻게 그릴지 · 사진 크기(사진 칸을 끌어서 옮기기는 카드 위에서) -->
     <div class="dot-tools" id="dot-tools" hidden>
       <!-- 키링 카드만(11/24 밤) — 글자·특기 고치기: 키링을 보면서 고치는 창(keyring-edit.js) -->
       <div class="kr-edit" id="kr-edit" hidden>
@@ -328,19 +350,7 @@
           <div class="tints" id="kr-tints"></div>
         </div>
       </div>
-      <!-- 카드 글자(11/24) — 도트 카드의 ID·NAME·TYPE. NAME·TYPE은 비우면 내 기록대로, ID는 비우면 빈칸.
-           키링 카드는 같은 글자를 위 [글자 · 특기 고치기] 창에서 고친다(11/24 밤 — 그래서 키링 카드에선 이 칸을 숨김) -->
-      <div id="ct-box">
-        <div class="card-text" role="group" aria-label="카드에 들어갈 글자">
-          <label><span>ID</span><input type="text" id="ct-id" maxlength="8" autocomplete="off" spellcheck="false" placeholder="빈칸"></label>
-          <label><span>NAME</span><input type="text" id="ct-name" maxlength="12" autocomplete="off" spellcheck="false"></label>
-          <label><span>TYPE</span><input type="text" id="ct-type" maxlength="20" autocomplete="off" spellcheck="false"></label>
-        </div>
-        <div class="ct-foot">
-          <p>카드 그림에만 들어가요(프로필 이름·견종은 그대로). 영어는 대문자로 나와요.</p>
-          <button type="button" id="ct-reset">내 기록대로</button>
-        </div>
-      </div>
+      <!-- 카드 글자(ID·NAME·TYPE·특기)는 위 [글자 · 특기 고치기] 창에서(11/24 밤 — 도트 카드의 한 줄 칸은 도트 카드와 같이 뺐다) -->
     </div>
     <!-- 화면 정리(2026-11-18 밤 가르시아 "주민증 밑에 여러 개 더 있고 편집 화면은 밑에 있어, UI 좀 정리해 줘"):
          카드 바로 아래에 꾸미고 저장하기(편집기 — 11/19부터 테두리 색도 그 안), 인쇄·키링 파일은 맨 아래 접는 칸 -->
@@ -350,10 +360,10 @@
          카드 아래 접는 줄(11/18 밤)은 뺐다. 고르는 칩·색 막대는 id-card.js openEditor + card-color.js -->
     <p class="color-note" id="color-note">테두리 색은 [꾸미고 저장하기] 안 [테두리]에서 바꿔요.</p>
     <div class="dot-save" id="dot-save" hidden>
-      <button type="button" class="btn btn-primary" id="dot-save-btn">도트 워킹패스 저장</button>
+      <button type="button" class="btn btn-primary" id="dot-save-btn">키링 카드 저장</button>
       <button type="button" class="btn btn-secondary" id="dot-share-btn" hidden>공유</button>
     </div>
-    <p class="color-note" id="dot-note" hidden>고른 모양과 사진 맞춤은 이 휴대폰에만 기억해요. 실물로 뽑기·키링 파일은 아직 기본 카드로 나와요(도트 인쇄 크기는 정해지면).</p>
+    <p class="color-note" id="dot-note" hidden></p>
   </div>
 
   <!-- 등급 한 줄(11/23 탭 정리 — 누적 산책 횟수·km 칸과 꾸준함 도장판은 [기록] '통계·통찰'로) + 산책 유형(누구인지) -->
@@ -392,16 +402,13 @@
   <details class="panel tools" id="save-panel" hidden>
     <summary>실물로 뽑기 · 인쇄용 파일</summary>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
-    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형, 11/18 양면 + NFC → 11/24 NFC 뺌): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080.
-         앞면은 QR 대신 브랜드 문구(site-config.js brand), 뒷면은 도감 카드 글자 QR(링크 아님) + 연락처·예방접종·메모 손글씨 칸(id-card.js drawKeyringBack) -->
-    <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 앞면 파일 저장</button>
-    <button type="button" class="btn btn-secondary" id="keyring-back-btn">키링 뒷면 파일 저장 · QR·연락처 칸</button>
+    <!-- 키링 인쇄소에 보낼 파일(2026-11-16 카드형 → 11/24 밤 가르시아 "키링 앞뒤 같게 해"): [키링 카드] 그림 하나를 앞뒤에 같이 — 판 크기 그대로(세로 1214×1675 · 가로 1700×1427),
+         고리 구멍 자리는 비워 둔 동그라미. 그 전 카드형 키링(기본 카드 앞면 1680×1080 + 도감 QR·손글씨 칸 뒷면, id-card.js drawKeyringBack)은 뺐다 -->
+    <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 인쇄 파일 저장 · 앞뒤 같은 그림</button>
     <p class="hint">A4에 앞·뒷면이 네 쌍 실제 크기(85.6×54mm)로 나와요. 인쇄 배율은 100%(실제 크기)로. 오려서 등을 맞대고 포토카드 홀더에 넣으면 리드줄에 달 수 있어요.
     인식표(보호자 연락처·동물등록번호)는 따로 달아 주세요.<br>
-    키링 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 워킹패스 그대로(QR 자리에 "WALSON" 문구),
-    뒷면은 왈슨 앱으로 찍으면 친구가 되는 QR과 보호자 연락처·예방접종·메모를 손으로 적는 칸이에요.
-    뒷면 QR은 링크가 아니라서 휴대폰 카메라로 찍으면 아무것도 열리지 않아요(모르는 사람 QR을 찍어 여는 일을 만들지 않으려고).
-    인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로, 뒷면은 펜으로 쓸 수 있게, NFC는 넣지 않음"이라고 전해 주세요.</p>
+    키링 인쇄 파일은 [키링 카드] 그림 그대로예요(사진·글자·특기·모양·색은 [키링 카드]에서 고쳐요). 앞뒤 같은 그림이라 파일 하나면 돼요.
+    인쇄소에 "투명 아크릴 양면 같은 그림, 고리 구멍은 그림 위 빈 동그라미 자리, NFC는 넣지 않음"이라고 전해 주세요. 크기는 3D 키링처럼 가로 50mm(가로판 60mm)가 예시예요.</p>
   </details>
 
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
@@ -422,7 +429,7 @@
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <!-- 키링 카드(11/24) 그림 — 3D 키링 시안 앞면과 같은 트레이싱판. 글자·특기 고치는 창(11/24 밤)은 keyring-edit.js -->
-<script src="pass-trace.js?v=18"></script>
+<script src="pass-trace.js?v=19"></script>
 <script src="keyring-edit.js?v=3"></script>
 <script src="mock-server.js?v=2"></script>
 <script>
@@ -479,14 +486,8 @@
   }
   function render() {
     if (!hasCard) return;
+    if (cardStyle === 'k3d') { k3dRender(); return; }   // 3D 키링(보기만, 아래 k3dRender)
     if (cardStyle === 'keyring' && PT && PP) { krRender(); return; }   // 키링 카드(한 면, 아래 krRender)
-    if (cardStyle === 'pixel' && PP) {   // 도트 카드(한 면)
-      PP.draw(dotCanvas, dotData());
-      if (window.WalsonView) WalsonView.show(view, dotCanvas);
-      else { view.width = dotCanvas.width; view.height = dotCanvas.height; view.getContext('2d').drawImage(dotCanvas, 0, 0); }
-      view.setAttribute('aria-label', '강아지 도트 워킹패스');
-      return;
-    }
     if (side === 'front') IC.drawFront(canvas, profile, frontOpts());
     else IC.drawBack(canvas, profile, progress, backOpts());
     if (window.WalsonView) WalsonView.show(view, canvas);
@@ -499,20 +500,23 @@
   try { pixelOn = localStorage.getItem('walson_map_style') === 'pixel'; } catch (e) { /* 기본 모양 */ }
   if (pixelOn) document.body.classList.add('is-pixel');
 
-  // ── 도트 카드(2026-11-22 가르시아 "실제 워킹패스에도 도트 버전 넣어줘") ──
-  // 그림은 pass-pixel.js(11/22 가르시아가 준 아크릴 키링 디자인 — ID No.·NAME·TYPE·WALSON·QR). 고른 모양·사진 방식·사진 맞춤은 이 휴대폰에만(localStorage walson_pass_dot) —
-  // 어디로도 안 보낸다. 처음 모양은 지도에서 [도트]를 고른 사람이면 도트 카드. 사진은 원본(photoOrig)이 있으면 그것으로(세로 칸이라 덜 잘림).
+  // ── 키링 카드 · 3D 키링 설정(2026-11-22 도트 카드 때부터 — 11/24 밤 가르시아 "도트 카드는 없애 줘"로 도트 카드는 뺐다) ──
+  // 고른 모양·사진 방식·사진 맞춤·카드 글자는 이 휴대폰에만(localStorage walson_pass_dot — 이름은 그대로) — 어디로도 안 보낸다.
+  // 사진 맞추기·사진 방식은 pass-pixel.js(도트 카드 때 그림 파일 — 사진 맞춤 셈·사진 도트로 바꾸기만 쓴다). 사진은 원본(photoOrig)이 있으면 그것으로(덜 잘림).
   var PP = window.WalsonPassPixel, PT = window.WalsonPassTrace, DOT_KEY = 'walson_pass_dot';
-  var dotCanvas = document.createElement('canvas'), dotPhoto = null;
+  var dotPhoto = null;
   function readDot() { try { var v = JSON.parse(localStorage.getItem(DOT_KEY)); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
   function writeDot() { try { localStorage.setItem(DOT_KEY, JSON.stringify(dot)); } catch (e) { /* 못 남겨도 이번 화면은 그대로 */ } }
   var dot = readDot();
-  // 모양: 'basic' 기본 카드 · 'pixel' 도트 카드 · 'keyring' 키링 카드(11/24)
-  var cardStyle = (dot.style === 'pixel' || dot.style === 'basic' || dot.style === 'keyring') ? dot.style : (pixelOn ? 'pixel' : 'basic');
-  if (!PP) cardStyle = 'basic';
-  if (cardStyle === 'keyring' && !PT) cardStyle = 'pixel';   // 트레이싱 그림 파일을 못 받았으면 도트 카드로
+  // 모양: 'basic' 기본 카드 · 'keyring' 키링 카드(11/24) · 'k3d' 3D 키링(11/24 밤, 보기만). 예전 'pixel'(도트 카드)을 골랐던 사람과
+  // 지도에서 [도트]를 고른 사람은 처음에 키링 카드(도트 그림)로
+  var cardStyle = (dot.style === 'basic' || dot.style === 'keyring' || dot.style === 'k3d') ? dot.style
+    : (dot.style === 'pixel' || pixelOn) ? 'keyring' : 'basic';
+  if (!PP || !PT) cardStyle = 'basic';   // 그림 파일을 못 받았으면 기본 카드만
+  var can3d = !!PT && 'noModule' in document.createElement('script');   // 3D는 모듈 스크립트(three.js)를 읽는 브라우저만
+  if (cardStyle === 'k3d' && !can3d) cardStyle = 'keyring';
 
-  // ── 카드 글자(11/24 가르시아 "들어가는 내용들도 수정할 수 있게") — 도트 카드·키링 카드의 ID·NAME·TYPE ──
+  // ── 카드 글자(11/24 가르시아 "들어가는 내용들도 수정할 수 있게") — 키링 카드의 ID·NAME·TYPE ──
   // 처음엔 내 기록(번호 끝 네 자리 · 이름 · 견종, 없으면 DOG). 고친 것만 dot.text에 남긴다 — 프로필 이름·견종은 그대로.
   // NAME·TYPE은 비우면 내 기록대로, ID는 비우면 빈칸(3D 키링 시안처럼 "비워도 돼요")
   // 키링 맨 아래 특기(11/24 밤)도 같이: 처음엔 워킹패스 특기(칭호 · 특기와 특이 사항에서 고른 것, 산책 1회부터 — 괄호 속 게임 수치는 빼고 짧게).
@@ -531,13 +535,6 @@
       skill: typeof t.skill === 'string' ? t.skill : d.skill
     };
   }
-  // 견종 줄바꿈(11/24 밤 — 키링 글자 고치는 창에서 엔터로 두 줄)은 키링 그림에만 — 도트 카드·아래 한 줄 칸에선 띄어쓰기로
-  function oneLine(s) { return String(s || '').replace(/\s*\n\s*/g, ' '); }
-  function fillCardText() {
-    var t = cardText(), d = textDefaults();
-    $('ct-id').value = t.id; $('ct-name').value = t.name; $('ct-type').value = oneLine(t.type);
-    $('ct-name').placeholder = d.name || '이름'; $('ct-type').placeholder = d.type;
-  }
   // 사진이 바뀌면 예전 맞춤을 쓰지 않으려고 사진 글자로 짧은 표를 만든다(id-card.js 카드 사진 맞춤과 같은 방식)
   function photoKey(src) {
     if (!src || typeof src !== 'string') return '';
@@ -550,20 +547,6 @@
   var fit = (PP && dot.fit && dotSig && dot.fit.sig === dotSig)
     ? { zoom: num(dot.fit.zoom, 1, PP.FIT.MIN, PP.FIT.MAX), qx: num(dot.fit.qx, 0.5, 0, 1), qy: num(dot.fit.qy, 0.5, 0, 1) }
     : { zoom: 1, qx: 0.5, qy: 0.5 };
-  function dotData() {
-    var frac = next ? (progress.walks - rank.minWalks) / (next.minWalks - rank.minWalks) : 1;
-    var sg = IC.SIGNALS && IC.SIGNALS[profile.signal];
-    var m = dot.photo === 'photo' ? { mode: 'photo' } : { mode: 'dot', cols: dot.photo === 'coarse' ? 32 : 56 };
-    var t = cardText();
-    return Object.assign({
-      name: t.name, idNo: t.id || ' ', type: oneLine(t.type),   // 카드 글자(11/24) — ID를 비우면 빈칸
-      breed: profile.breed, sex: profile.sex, signal: profile.signal,
-      signalLine: sg ? sg.line : '', signalColor: sg ? sg.color : '',   // 성향이 없거나 지킴이 카드면 그 문구·색으로(초록으로 그리지 않음)
-      rankName: rank.name, rankFrac: Math.max(0, Math.min(1, frac)), cardNo: profile.cardNo,
-      photo: dotPhoto || photo, colors: 12, qr: IC.cardQrText(), zoom: fit.zoom, qx: fit.qx, qy: fit.qy,   // QR은 링크 아닌 글자(11/24)
-      emptyText: '여기를 눌러\n사진 넣기'
-    }, m);
-  }
   function syncZoom() {
     $('dz-range').value = Math.round(fit.zoom * 100);
     $('dz-val').textContent = Math.round(fit.zoom * 100) + '%';
@@ -576,9 +559,9 @@
     clearTimeout(dotSaveT);
     dotSaveT = setTimeout(function () { dot.fit = { zoom: fit.zoom, qx: fit.qx, qy: fit.qy, sig: dotSig }; writeDot(); }, 300);
   }
-  // 사진 맞춤 셈에 쓸 사진 칸 크기 — 키링 카드면 지금 모양(세로·가로)의 사진 칸, 도트 카드면 null(pass-pixel.js 사진 칸)
+  // 사진 맞춤 셈에 쓸 사진 칸 크기 — 키링 카드 지금 모양(세로·가로)의 사진 칸
   function fitBox() {
-    if (cardStyle !== 'keyring' || !PT) return null;
+    if (!PT) return null;
     var P = PT.geom(krLand()).photo;
     return { w: P.w, h: P.h };
   }
@@ -726,15 +709,13 @@
     return krBase().then(function (B) { return krCompose(B, document.createElement('canvas')); });
   }
   function krName() { return (cardText().name || profile.name || 'dog') + '-키링-워킹패스.png'; }
-  // 사진 칸(끌어서 옮기기·확대)을 지금 카드 그림의 사진 자리에(키링 카드 · 도트 카드가 다름)
-  function placeGrab(isKr) {
-    var el = $('dot-grab'), r;
-    if (isKr) { var G = PT.geom(krLand()), C = G.card, P = G.photo; r = [(P.x - C.x) / C.w, (P.y - C.y) / C.h, P.w / C.w, P.h / C.h]; }
-    else r = [PP.PHOTO.x / PP.W, PP.PHOTO.y / PP.H, PP.PHOTO.w / PP.W, PP.PHOTO.h / PP.H];
+  // 사진 칸(끌어서 옮기기·확대)을 지금 키링 카드 그림의 사진 자리에(세로·가로가 다름)
+  function placeGrab() {
+    var el = $('dot-grab'), G = PT.geom(krLand()), C = G.card, P = G.photo, r = [(P.x - C.x) / C.w, (P.y - C.y) / C.h, P.w / C.w, P.h / C.h];
     el.style.left = (r[0] * 100) + '%'; el.style.top = (r[1] * 100) + '%'; el.style.width = (r[2] * 100) + '%'; el.style.height = (r[3] * 100) + '%';
   }
-  var DOT_NOTE = '고른 모양과 사진 맞춤은 이 휴대폰에만 기억해요. 실물로 뽑기·키링 파일은 아직 기본 카드로 나와요(도트 인쇄 크기는 정해지면).';
-  var KR_NOTE = '3D 키링 시안 앞면과 같은 그림이에요(가로 사진이면 처음엔 가로판). 고른 모양·색·글자·특기·글씨 크기·사진 맞춤은 이 휴대폰에만 기억하고, 산책 등급 뱃지는 산책 기록대로 바뀌어요.';
+  var KR_NOTE = '키링 앞뒤에 같이 들어가는 그림이에요(가로 사진이면 처음엔 가로판, 위 동그라미는 고리 구멍 자리). 고른 모양·색·글자·특기·글씨 크기·사진 맞춤은 ' +
+    '이 휴대폰에만 기억하고, 산책 등급 뱃지는 산책 기록대로 바뀌어요. [3D 키링]에서 돌려 봐요.';
   // [글자 · 특기 고치기] 아래 한 줄 — 지금 특기와 글씨체
   function krEditSum() {
     var t = cardText(), f = { clear: '또렷하게', bold: '굵게', dot: '도트' }[krFont()], box = $('kr-edit-sum');
@@ -772,7 +753,7 @@
       },
       onClose: function () {
         krEditOpen = false;
-        clearTimeout(saveT); writeDot(); fillCardText(); krEditSum(); render();
+        clearTimeout(saveT); writeDot(); krEditSum(); render();
       }
     });
   }
@@ -792,55 +773,79 @@
     });
     Array.prototype.forEach.call(box.children, function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === cur)); });
     $('card-cv').classList.toggle('is-land', on && land);
-    if (on) placeGrab(true);
+    if (on) placeGrab();
+  }
+
+  // ── 3D 키링(11/24 밤 가르시아 "대신 3D로 키링 시안 보는 탭을 만들어 줘, 거기선 편집할 거 없어, 기존 편집한 거 그대로 보여 줘") ──
+  // [키링 카드] 그림(krFile — 고친 사진·글자·특기·모양·색 그대로)을 keyring-3d-view.js가 투명 아크릴 키링 앞·뒷면(같은 그림)에 넣는다.
+  // three.js가 무거워서(약 700KB) [3D 키링]을 처음 누를 때만 불러온다. 고리 구멍은 pass-trace.js geom().hole 자리. 그림은 이 휴대폰 안에서만
+  var k3d = null, k3dP = null, k3dGen = 0, loaded = null;
+  function k3dMsg(s) { var m = $('k3d-msg'); m.textContent = s || ''; m.hidden = !s; }
+  function load3d() {
+    if (k3dP) return k3dP;
+    k3dP = new Promise(function (res, rej) {
+      if (window.WalsonKeyring3D) { res(window.WalsonKeyring3D); return; }
+      var s = document.createElement('script');
+      s.type = 'module'; s.src = 'keyring-3d-view.js?v=1';
+      s.onload = function () { if (window.WalsonKeyring3D) res(window.WalsonKeyring3D); else rej(new Error('3d')); };
+      s.onerror = function () { rej(new Error('load')); };
+      document.head.appendChild(s);
+    });
+    k3dP.catch(function () { k3dP = null; });   // 못 받았으면 다음에 누를 때 다시
+    return k3dP;
+  }
+  function k3dSpinUi() { $('k3d-spin').setAttribute('aria-pressed', String(!!(k3d && k3d.isSpinning()))); }
+  function k3dRender() {
+    var gen = ++k3dGen, land = krLand();
+    if (!k3d) k3dMsg('3D 키링을 만들고 있어요…');
+    Promise.all([load3d(), loaded]).then(function (r) {
+      return krFile().then(function (art) { return [r[0], art]; });
+    }).then(function (r) {
+      if (gen !== k3dGen || cardStyle !== 'k3d') return;
+      if (!k3d) {
+        try { k3d = r[0].create($('k3d-c'), { bg: getComputedStyle(document.querySelector('.k3d')).backgroundColor }); }
+        catch (e) { k3dMsg('이 휴대폰(브라우저)에서는 3D를 그릴 수 없어요. 크롬이나 사파리 최신판에서 열어 주세요.'); return; }
+        k3d.on(function (why) { if (why === 'touch') $('k3d-hint').style.opacity = 0; k3dSpinUi(); });
+      }
+      var G = PT.geom(land), C = G.card, h = G.hole;
+      k3d.setArt(r[1], { land: land, hole: h ? { fx: (h.x - C.x) / C.w, fy: (h.y - C.y) / C.h, fr: h.r / C.w } : null });
+      k3d.start(); k3dSpinUi(); k3dMsg('');
+    }, function () {
+      if (gen === k3dGen && cardStyle === 'k3d') k3dMsg('3D 키링을 불러오지 못했어요. 인터넷 연결을 확인하고 [3D 키링]을 다시 눌러 주세요.');
+    });
   }
 
   // 모양 바꾸기 — save가 true일 때(직접 눌렀을 때)만 기억한다. 그래야 안 고른 사람은 지도 모양을 따라간다
   function applyStyle(st, save) {
     cardStyle = st;
     if (save) { dot.style = st; writeDot(); }
-    var isKr = st === 'keyring', isDot = st === 'pixel' || isKr;   // 키링 카드도 도트 카드처럼 한 면 + 사진 맞추기 + 카드 글자
+    var isKr = st === 'keyring', is3d = st === 'k3d';   // 키링 카드 = 한 면 + 사진 맞추기 + 글자 고치기 · 3D 키링 = 보기만
     $('style-basic').setAttribute('aria-pressed', String(st === 'basic'));
-    $('style-dot').setAttribute('aria-pressed', String(st === 'pixel'));
     $('style-kr').setAttribute('aria-pressed', String(isKr));
-    $('side-toggle').hidden = isDot;
-    $('card-cv').classList.toggle('is-dot', isDot); $('card-cv').classList.toggle('is-kr', isKr);
-    $('dot-grab').hidden = !isDot; $('dot-tools').hidden = !isDot; $('dot-save').hidden = !isDot; $('dot-note').hidden = !isDot;
-    $('save-btn').hidden = isDot; $('color-note').hidden = isDot;
-    $('canvas-hint').textContent = isKr ? '사진 칸은 끌어서 옮기고 두 손가락으로 키워요 · 글자 칸을 누르면 고쳐요'
-      : isDot ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키우고 줄여요' : '워킹패스를 누르면 뒤집혀요';
-    $('dot-save-btn').textContent = isKr ? '키링 카드 저장' : '도트 워킹패스 저장';
-    $('dot-note').textContent = isKr ? KR_NOTE : DOT_NOTE;
-    $('kr-tools').hidden = !isKr;
-    $('kr-edit').hidden = !isKr; $('ct-box').hidden = isKr;   // 키링 카드 글자는 [글자 · 특기 고치기] 창에서(11/24 밤)
+    $('style-3d').setAttribute('aria-pressed', String(is3d));
+    $('side-toggle').hidden = st !== 'basic';
+    $('cv-holder').hidden = is3d; $('canvas-hint').hidden = is3d; $('k3d-area').hidden = !is3d;
+    $('card-cv').classList.toggle('is-kr', isKr);
+    $('dot-grab').hidden = !isKr; $('dot-tools').hidden = !isKr; $('dot-save').hidden = !isKr; $('dot-note').hidden = !isKr;
+    $('save-btn').hidden = st !== 'basic'; $('color-note').hidden = st !== 'basic';
+    $('canvas-hint').textContent = isKr ? '사진 칸은 끌어서 옮기고 두 손가락으로 키워요 · 글자 칸을 누르면 고쳐요' : '워킹패스를 누르면 뒤집혀요';
+    $('dot-note').textContent = KR_NOTE;
+    $('kr-tools').hidden = !isKr; $('kr-edit').hidden = !isKr;
     $('card-cv').classList.toggle('is-land', false);
-    if (isDot) placeGrab(isKr);
-    if (isKr) { krSync(); krEditSum(); }
+    if (!is3d && k3d) k3d.stop();   // 안 보이면 3D는 멈춤
+    if (isKr) { placeGrab(); krSync(); krEditSum(); }
     render();
   }
-  if (PP) {
+  if (PP && PT) {
     $('style-basic').addEventListener('click', function () { applyStyle('basic', true); });
-    $('style-dot').addEventListener('click', function () { applyStyle('pixel', true); });
-    if (PT) $('style-kr').addEventListener('click', function () { applyStyle('keyring', true); });
-    else $('style-kr').hidden = true;   // 트레이싱 그림 파일을 못 받았으면 키링 카드 없이
-    // 카드 글자 — 고치면 잠깐 뒤 다시 그리고 기억(이 휴대폰에만)
-    var ctT = null;
-    ['id', 'name', 'type'].forEach(function (k) {
-      $('ct-' + k).addEventListener('input', function () {
-        var d = textDefaults(), t = {};
-        ['id', 'name', 'type'].forEach(function (q) {
-          var v = $('ct-' + q).value, old = dot.text && dot.text[q];
-          if (typeof old === 'string' && old.indexOf('\n') >= 0 && v === oneLine(old)) v = old;   // 한 줄 칸에 띄어쓰기로 보이던 견종 줄바꿈은 그대로
-          if (q === 'id' ? v !== d.id : (v.trim() && v !== d[q])) t[q] = v;
-        });
-        if (dot.text && typeof dot.text.skill === 'string') t.skill = dot.text.skill;   // 키링 특기는 그대로
-        dot.text = t;
-        clearTimeout(ctT);
-        ctT = setTimeout(function () { writeDot(); render(); }, 150);
-      });
-    });
-    $('ct-reset').addEventListener('click', function () { dot.text = {}; writeDot(); fillCardText(); render(); });
-    fillCardText();
+    $('style-kr').addEventListener('click', function () { applyStyle('keyring', true); });
+    if (can3d) $('style-3d').addEventListener('click', function () { applyStyle('k3d', true); });
+    else $('style-3d').hidden = true;
+    // 3D 키링 — 빙글빙글 · 앞면 · 뒷면(보기만) · [키링 카드 고치기]
+    $('k3d-spin').addEventListener('click', function () { if (k3d) { k3d.spin(!k3d.isSpinning()); k3dSpinUi(); } });
+    $('k3d-front').addEventListener('click', function () { if (k3d) { k3d.view(false); k3dSpinUi(); } });
+    $('k3d-back').addEventListener('click', function () { if (k3d) { k3d.view(true); k3dSpinUi(); } });
+    $('k3d-edit').addEventListener('click', function () { applyStyle('keyring', true); });
     // 키링 글자·특기 고치기(11/24 밤)
     $('kr-edit-btn').addEventListener('click', function () { openKrEdit(null); });
     // 키링 카드 모양 — 고르면 이 휴대폰에 기억(고른 적이 없으면 사진 비율대로)
@@ -858,7 +863,7 @@
       onEmpty: function () { location.href = 'profile.html'; } });   // 사진이 없으면 사진 칸을 눌러 프로필에서 넣는다
     syncPhotoMode(); syncZoom();
   } else {
-    document.querySelector('.style-toggle').hidden = true;   // 도트 그림 파일을 못 받았으면 기본 카드만
+    document.querySelector('.style-toggle').hidden = true;   // 그림 파일(pass-pixel.js·pass-trace.js)을 못 받았으면 기본 카드만
   }
 
   // ── 등급 한 줄 · 발도장 모음판(11/23 탭 정리 — 누적 km·횟수 칸은 [기록] '통계·통찰' 모두 합쳐로) ──
@@ -1047,69 +1052,27 @@
     });
   });
 
-  // ── 키링 인쇄소용 파일(2026-11-16, 11/18 양면 + NFC → 11/24 NFC 뺌) — 앞면은 QR 없이(브랜드 문구), 뒷면은 키링 전용(글자 QR·손글씨 칸) ──
+  // ── 키링 카드 저장·공유 · 키링 인쇄 파일(11/24 밤 가르시아 "키링 앞뒤 같게 해" — [키링 카드] 그림 하나를 앞뒤에 같이) ──
   function saveFile(c, name) {
     // 저장은 저장으로(2026-11-16 저장·공유 분리) — 예전엔 휴대폰에서 공유 창만 떠서 안드로이드는 사진첩에 넣을 수 없었다
     if (window.WalsonSave.save) { WalsonSave.save(c, name); return; }
     c.toBlob(function (blob) { if (blob) window.WalsonSave.blob(blob, name); }, 'image/png');
   }
-  // 도트 카드 저장·공유(원래 크기 1200×1500) — 그림은 이 휴대폰 안에서만 만든다
-  function dotFile() { var c = document.createElement('canvas'); PP.draw(c, dotData()); return c; }
-  function dotName() { return (profile.name || 'dog') + '-도트-워킹패스.png'; }
-  if (PP) {
-    // 도트 카드 · 키링 카드(11/24 — 판 크기 그대로 1214×1619) 저장·공유
-    $('dot-save-btn').addEventListener('click', function () {
-      if (cardStyle === 'keyring' && PT) {
-        window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_keyring', format: 'keyring', how: 'save' });
-        krFile().then(function (c) { saveFile(c, krName()); }, function () { alert('그림을 만들지 못했어요. 잠시 뒤 다시 눌러 주세요.'); });
-        return;
-      }
-      window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_dot', format: 'dot', how: 'save' });
-      saveFile(dotFile(), dotName());
-    });
+  // 판 크기 그대로(세로 1214×1675 · 가로 1700×1427 — 고리 구멍 자리는 투명) — 그림은 이 휴대폰 안에서만 만든다
+  function krSave(what, how) {
+    window.WalsonTrack && WalsonTrack.send('card_saved', { what: what, format: 'keyring', how: how });
+    krFile().then(function (c) { if (how === 'share') WalsonSave.share(c, krName()); else saveFile(c, krName()); },
+      function () { if (how !== 'share') alert('그림을 만들지 못했어요. 잠시 뒤 다시 눌러 주세요.'); });
+  }
+  if (PP && PT) {
+    $('dot-save-btn').addEventListener('click', function () { krSave('id_card_keyring', 'save'); });
     if (window.WalsonSave && WalsonSave.canShare && WalsonSave.canShare()) {
       $('dot-share-btn').hidden = false;
-      $('dot-share-btn').addEventListener('click', function () {
-        if (cardStyle === 'keyring' && PT) {
-          window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_keyring', format: 'keyring', how: 'share' });
-          krFile().then(function (c) { WalsonSave.share(c, krName()); }, function () { /* 못 만들면 그대로 */ });
-          return;
-        }
-        window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'id_card_dot', format: 'dot', how: 'share' });
-        WalsonSave.share(dotFile(), dotName());
-      });
+      $('dot-share-btn').addEventListener('click', function () { krSave('id_card_keyring', 'share'); });
     }
-  }
-
-  $('keyring-file-btn').addEventListener('click', function () {
-    var c = document.createElement('canvas');
-    IC.drawFront(c, profile, Object.assign({}, frontOpts(), { noQr: true }));
-    window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'keyring_front', format: 'card', how: 'save' });
-    // 인쇄 여유(2026-11-17 키링 = 주민증 카드형으로 결정): 카드 60×37.5mm(1600×1000) 사방에 1.5mm(40px)를 테두리 색(카드 색)으로 더 칠해
-    // 1680×1080으로 — 재단이 조금 밀려도 흰 테두리·투명 귀퉁이가 안 남는다. 인쇄소엔 "재단 60×37.5mm, 모서리 둥글게"
-    var BLEED = 40, out = document.createElement('canvas');
-    out.width = c.width + BLEED * 2; out.height = c.height + BLEED * 2;
-    var og = out.getContext('2d');
-    og.fillStyle = IC.cardColor(profile); og.fillRect(0, 0, out.width, out.height);
-    og.drawImage(c, BLEED, BLEED);
-    saveFile(out, (profile.name || 'dog') + '-워킹패스-키링용-앞면.png');
-  });
-  // 뒷면 QR = 도감 카드(dex-card.js — 도감 "카드 주소 보내기"와 같은 카드). 11/24부터 링크가 아니라 글자(cardText) —
-  // 휴대폰 카메라로 찍으면 글자만 보이고, 왈슨 앱 [상대 QR 찍기]로만 친구(발자국)가 된다(hq DECISIONS 11/24)
-  $('keyring-back-btn').addEventListener('click', function () {
-    var btn = this;
-    btn.disabled = true;
-    WalsonDexCard.myCard().then(function (card) {
-      btn.disabled = false;
-      var bad = !card && WalsonDexCard.nameProblem(profile.name);
-      if (bad) { alert('강아지 이름에 ' + bad + '가 들어 있어서 QR을 만들 수 없어요. 프로필에서 이름을 고쳐 주세요.'); return; }
-      if (!card) { alert('워킹패스 이름이 있어야 QR을 만들 수 있어요.'); return; }
-      var c = document.createElement('canvas');
-      if (!IC.drawKeyringBack(c, profile, WalsonDexCard.cardText(card), 40)) { alert('QR을 그리지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'); return; }
-      window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'keyring_back', format: 'card', how: 'save' });
-      saveFile(c, (profile.name || 'dog') + '-워킹패스-키링용-뒷면.png');
-    }, function () { btn.disabled = false; });
-  });
+    // 인쇄용 파일 칸의 키링 파일 = [키링 카드] 그림 그대로(앞뒤 같은 그림이라 파일 하나). 그 전 카드형 키링(기본 카드 앞면 + 도감 QR·손글씨 뒷면)은 뺐다
+    $('keyring-file-btn').addEventListener('click', function () { krSave('keyring_front', 'save'); });
+  } else $('keyring-file-btn').hidden = true;
 
   // ── 실물로 뽑기: A4에 앞·뒷면 네 쌍(실제 크기) ──
   $('print-btn').addEventListener('click', function () {
@@ -1159,15 +1122,16 @@
   // 꾸준함 도장판(최근 8주)은 11/23 [기록] '통계·통찰'로 옮겼다 — 카드 뒷면의 도장 수(steadyInfo.total)는 그대로
   renderSummary();
   renderTraits();
-  if (hasCard) applyStyle(cardStyle, false); else render();
-  window.__passDot = { fit: function () { return fit; }, style: function () { return cardStyle; }, krFile: krFile };   // 시험용
-  Promise.all([IC.loadImage(profile.photo), IC.fontsReady(), profile.photoOrig ? IC.loadImage(profile.photoOrig) : null, PP ? PP.fontsReady() : null, PT ? PT.ready() : null])
+  // 사진·글꼴을 받은 뒤 다시 그린다 — 3D 키링은 이것(loaded)을 기다렸다가 그린다(받기 전 그림으로 한 번 더 만들지 않게)
+  loaded = Promise.all([IC.loadImage(profile.photo), IC.fontsReady(), profile.photoOrig ? IC.loadImage(profile.photoOrig) : null, PP ? PP.fontsReady() : null, PT ? PT.ready() : null])
     .then(function (res) {
       photo = res[0]; dotPhoto = res[2];
       krBases = {}; krDone = null; krGen++;   // 글꼴을 받은 뒤 키링 판을 다시(받기 전에 그린 글자는 다른 글꼴일 수 있다)
       if (cardStyle === 'keyring') krSync();   // 사진 비율로 정하는 모양(가로 사진 → 가로판)
-      render();
-    });
+    }, function () { /* 못 받은 건 없는 채로 */ });
+  if (hasCard) applyStyle(cardStyle, false); else render();
+  loaded.then(function () { if (cardStyle !== 'k3d') render(); });
+  window.__passDot = { fit: function () { return fit; }, style: function () { return cardStyle; }, krFile: krFile, k3d: function () { return k3d; } };   // 시험용
 })();
 </script>
 <script>

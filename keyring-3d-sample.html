@@ -37,7 +37,11 @@
      - 처음 앞면 = 그 그림을 같은 자리에 다시 그린 트레이싱판(pass-trace.js, 키링판) — 번호·이름·견종을 아래 칸에서 고쳐 쓴다(사진 칸 강아지는 그림에서 잘라 그대로).
        키링판: 칸은 원본처럼 한 줄, 칸 이름은 짧게(ID · NAME · TYPE, 분홍 칸 같은 폭)·간격을 좁혀 값 자리를 넓힘(같은 날 가르시아 "ID.만 쓰자, NAME이 왼쪽에,
        타입도, 간격을 조금 줄여서" — 처음엔 두 줄 칸이었음), 점선 아래 알약은 WALSON 대신 홍보 문구 두 줄.
-     - 앞면·뒷면 인쇄 파일(PNG) 저장 — 인쇄소에 보낼 그림. 그림을 올렸다가 [도트 워킹패스 앞면으로] 돌아올 수 있다. */
+     - 앞면·뒷면 인쇄 파일(PNG) 저장 — 인쇄소에 보낼 그림. 그림을 올렸다가 [도트 워킹패스 앞면으로] 돌아올 수 있다.
+     11/24 밤 가르시아 "키링 앞뒤 같게 해 · 키링 카드 상단에 핑크 남는 영역 가운데 구멍 내 줘 · 맨 아래 공간 내서 유의미한 산책 · 가로 버전도 위에 구멍" →
+     - 뒷면 = 앞면과 같은 그림으로 정함(뒷면 고르는 칸은 내림, 그리는 코드는 그대로). 앞면이 키링 카드면 위 구멍 칸(TAB) 없이 카드 안 구멍 자리
+       (pass-trace.js geom().hole)를 아크릴·인쇄 판까지 뚫고 작은 고리를 건다. 맨 아래 홍보 한 줄은 pass-trace.js가 그린다.
+       같은 3D 키링을 [워킹패스] [3D 키링] 탭(keyring-3d-view.js — 보기만)에서도 본다. */
   :root {
     --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
     --accent: #ff5c9d; --accent-tint: #ffe4ef; --hl: #ff5c9d; --hl-ink: #ffffff; --line: #2a2026; --shadow-rgb: 74, 40, 58;
@@ -77,7 +81,7 @@
   .field input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
   .fields[hidden] { display: none; }
   #edit-text { margin-top: 0; }
-  #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden], #card-clear[hidden], #card-row[hidden], #call-label[hidden], #snack-label[hidden], #calls[hidden], #snacks[hidden] { display: none; }
+  #pass-row[hidden], #pass-back[hidden], #backs[hidden], #signals[hidden], #signal-label[hidden], #card-clear[hidden], #card-row[hidden], #call-label[hidden], #snack-label[hidden], #calls[hidden], #snacks[hidden] { display: none; }
   .card-paste { display: flex; gap: 6px; align-items: center; }
   .card-paste input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); padding: 9px 10px;
     border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
@@ -99,7 +103,7 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
-<script src="pass-trace.js?v=18"></script>
+<script src="pass-trace.js?v=19"></script>
 <!-- 앞면 글자·특기 고치는 창(11/24 밤) — 특기 목록은 card-shared.js(워킹패스 특기·칭호와 같은 문구) -->
 <script src="card-shared.js?v=13"></script>
 <script src="keyring-edit.js?v=3"></script>
@@ -108,7 +112,7 @@
 <main class="wrap">
   <p class="kicker">시안 · 주소로만 열려요</p>
   <h1>3D 키링 미리 보기</h1>
-  <p class="lead">처음엔 도트 워킹패스가 들어 있어요 — 아래에서 번호·이름·견종을 고쳐 쓸 수 있어요. 그림을 올리면 그 그림 <b>그대로</b> 투명 아크릴 키링 앞면에 넣어 돌려 봐요. 키링 세로 길이는 그림 비율에 맞춰지고, 고리 구멍은 그림 위에 붙어요. 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
+  <p class="lead">처음엔 도트 워킹패스가 들어 있어요 — 아래에서 번호·이름·견종을 고쳐 쓸 수 있어요. 앞뒤 같은 그림이고, 고리 구멍은 카드 위 분홍 칸 가운데에 뚫려요. 그림을 올리면 그 그림 <b>그대로</b> 투명 아크릴 키링에 넣어 돌려 봐요(올린 그림은 고리 구멍 칸이 그림 위에 붙어요). 손가락으로 끌어서 돌리고, 두 손가락으로 키워요.</p>
 
   <div class="stage" id="stage">
     <canvas id="c" aria-label="3D 아크릴 키링"></canvas>
@@ -163,8 +167,10 @@
     <div class="chips" id="scenes" role="group" aria-label="장면"></div>
   </div>
   <div class="row">
-    <p class="row-label">뒷면</p>
-    <div class="chips" id="backs" role="group" aria-label="뒷면"></div>
+    <!-- 뒷면 = 앞면과 같은 그림(11/24 밤 가르시아 "키링 앞뒤 같게 해") — 뒷면 고르는 칸은 내림. 성향 안내·도장판·내 그림을 그리는 코드는 그대로
+         (다시 쓰면 hidden만 뺀다 · 인쇄 파일 주소 &back=로는 아직 볼 수 있음) -->
+    <p class="row-label" hidden>뒷면</p>
+    <div class="chips" id="backs" role="group" aria-label="뒷면" hidden></div>
     <p class="row-label" id="signal-label" style="margin-top:10px">이 강아지는요(뒷면 성향 칸)</p>
     <div class="chips" id="signals" role="group" aria-label="강아지 성향"></div>
     <p class="row-label" style="margin-top:10px">산책 등급(앞면 뱃지)</p>
@@ -216,11 +222,25 @@ let PW = KW - EDGE * 2;
 const state = { thick: 3, photo: null, backMode: 'same', signal: 1, card: null, backPhoto: null, scene: 'air', callName: true, snack: 2, grade: 1,
   land: false, tint: 'pink', cardPhoto: null,
   skill: '냄새 탐정 셜록 멍즈', sizes: {}, font: 'clear' };   // 앞면 맨 아래 특기 · 칸마다 글씨 크기 배수 · 칸 값 글씨체 'clear' 또렷하게 | 'bold' 굵게 | 'dot' 도트(11/24 밤)   // land: 앞면 가로판 · tint: 카드 색(pass-trace.js TINTS) · cardPhoto: 카드 사진 칸에 넣은 내 사진(11/24 밤)   // grade: 앞면 산책 등급 0 입문자 ~ 3 핑크 앰배서더
-let L = null;   // 지금 모양: { KH, PH, printCY, holeY }
-function layout(aspect) {   // aspect = 그림 세로/가로
+let L = null;   // 지금 모양: { KH, PH, printCY, holeX, holeY, holeR, inArt }
+// hole: 그림 안 고리 구멍 자리({ fx, fy, fr } — 그림 폭·높이에 대한 비율). 앞면이 키링 카드(트레이싱판)면 카드 위 분홍 칸 가운데에 구멍이 있어서
+// (11/24 밤 가르시아 "키링 카드 상단에 핑크 남는 영역 가운데 구멍 내 줘") 위 구멍 칸(TAB) 없이 그 자리를 뚫는다. 올린 그림이면 예전처럼 그림 위 칸
+function layout(aspect, hole) {   // aspect = 그림 세로/가로
   KW = aspect < 0.95 ? 60 : 50; PW = KW - EDGE * 2;
-  const PH = Math.max(24, Math.min(120, PW * aspect)), KH = PH + EDGE * 2 + TAB;
-  L = { KH, PH, printCY: -KH / 2 + EDGE + PH / 2, holeY: KH / 2 - TAB / 2 - 0.3 };
+  const PH = Math.max(24, Math.min(120, PW * aspect));
+  if (hole) {
+    const KH = PH + EDGE * 2;
+    L = { KH, PH, printCY: 0, holeX: -PW / 2 + hole.fx * PW, holeY: PH / 2 - hole.fy * PH, holeR: Math.max(1.2, hole.fr * PW * 0.94), inArt: true };
+  } else {
+    const KH = PH + EDGE * 2 + TAB;
+    L = { KH, PH, printCY: -KH / 2 + EDGE + PH / 2, holeX: 0, holeY: KH / 2 - TAB / 2 - 0.3, holeR: HOLE_R, inArt: false };
+  }
+}
+// 앞면이 키링 카드(트레이싱판)일 때 그 안 고리 구멍 자리(pass-trace.js geom().hole) — 올린 그림·빈 판이면 없음
+function artHole() {
+  if (!state.photo || state.isDefault === false || !window.WalsonPassTrace || !WalsonPassTrace.geom) return null;
+  const G = WalsonPassTrace.geom(state.land), C = G.card, h = G.hole;
+  return h ? { fx: (h.x - C.x) / C.w, fy: (h.y - C.y) / C.h, fr: h.r / C.w } : null;
 }
 
 // ── 3D 준비 ──
@@ -276,7 +296,7 @@ function drawArt() {
     g.clearRect(0, 0, art.width, art.height);
     g.drawImage(im, 0, 0, art.width, art.height);
   }
-  layout(art.height / art.width);
+  layout(art.height / art.width, artHole());
   if (artTex) artTex.dispose();
   artTex = new THREE.CanvasTexture(art);
   artTex.colorSpace = THREE.SRGBColorSpace;
@@ -621,32 +641,39 @@ function build(reframe) {
   drawBack();
   const t = state.thick, KH = L.KH, bev = 0.35;
   const outer = rrShape(KW, KH, KR, 0);
-  const hole = new THREE.Path(); hole.absarc(0, L.holeY, HOLE_R, 0, Math.PI * 2, true); outer.holes.push(hole);
+  const holeAt = (r) => { const p = new THREE.Path(); p.absarc(L.holeX, L.holeY, r, 0, Math.PI * 2, true); return p; };
+  outer.holes.push(holeAt(L.holeR));
   const geo = new THREE.ExtrudeGeometry(outer, { depth: t, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 3, curveSegments: 32 });
   geo.translate(0, 0, -t / 2);
   acrylic.thickness = t;
   keyring.add(new THREE.Mesh(geo, acrylic));
-  // 인쇄 판 — 아크릴 겉면에 바로(투명 재질 너머로 그리면 흐려져서), 조명 영향 없이 그림 색 그대로
-  const pg = new THREE.ShapeGeometry(rrShape(PW, L.PH, Math.max(1, KR - EDGE), L.printCY), 32);
+  // 인쇄 판 — 아크릴 겉면에 바로(투명 재질 너머로 그리면 흐려져서), 조명 영향 없이 그림 색 그대로.
+  // 키링 카드 구멍(그림 안)이면 인쇄 판도 같이 뚫고, 그림의 투명한 곳(구멍 둘레)은 버려서 아크릴이 보이게(alphaTest)
+  const ps = rrShape(PW, L.PH, Math.max(1, KR - EDGE), L.printCY);
+  if (L.inArt) ps.holes.push(holeAt(L.holeR));
+  const pg = new THREE.ShapeGeometry(ps, 32);
   const pos = pg.attributes.position, uv = pg.attributes.uv, y0 = L.printCY - L.PH / 2;
   for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) + PW / 2) / PW, (pos.getY(i) - y0) / L.PH);
   uv.needsUpdate = true;
-  const front = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ map: artTex, toneMapped: false }));
+  const front = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ map: artTex, toneMapped: false, alphaTest: 0.5 }));
   front.position.z = t / 2 + bev + 0.02; keyring.add(front);
-  // 인쇄 위 광택 한 겹(빛 반사만 보이게) — 아크릴 윤기
-  const gloss = new THREE.Mesh(new THREE.ShapeGeometry(rrShape(KW - 0.6, KH - 0.6, KR, 0), 32),
+  // 인쇄 위 광택 한 겹(빛 반사만 보이게) — 아크릴 윤기. 구멍 자리는 비움
+  const gs = rrShape(KW - 0.6, KH - 0.6, KR, 0); gs.holes.push(holeAt(L.holeR + 0.3));
+  const gloss = new THREE.Mesh(new THREE.ShapeGeometry(gs, 32),
     new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.08, roughness: 0.04, clearcoat: 1, envMapIntensity: 2, depthWrite: false }));
   gloss.position.z = t / 2 + bev + 0.06; keyring.add(gloss);
   const bgeo = pg.clone(), buv = bgeo.attributes.uv;
   for (let i = 0; i < buv.count; i++) buv.setX(i, 1 - buv.getX(i));   // 뒤에서 보면 좌우가 뒤집혀서
   buv.needsUpdate = true;
-  const back = new THREE.Mesh(bgeo, new THREE.MeshBasicMaterial({ map: backTex, side: THREE.BackSide, toneMapped: false }));
+  const back = new THREE.Mesh(bgeo, new THREE.MeshBasicMaterial({ map: backTex, side: THREE.BackSide, toneMapped: false, alphaTest: 0.5 }));
   back.position.z = -(t / 2 + bev + 0.02); keyring.add(back);
-  // 금속 고리 — 실물처럼: 구멍을 지나는 작은 고리 → 집게(랍스터) → 열쇠고리(두 바퀴)
-  const JR = 3.2, SR = 11;
-  const jump = new THREE.Mesh(new THREE.TorusGeometry(JR, 0.55, 18, 64), metal);
-  jump.rotation.y = Math.PI / 2; jump.position.set(0, L.holeY + JR - 0.7, 0); keyring.add(jump);
-  const jumpTop = L.holeY + JR * 2 - 1.2;
+  // 금속 고리 — 실물처럼: 구멍을 지나는 작은 고리 → 집게(랍스터) → 열쇠고리(두 바퀴).
+  // 그림 안 구멍이면 작은 고리를 구멍 위쪽에 걸고, 판 위 끝을 넘어가게 크기를 맞춘다(구멍이 위 끝에서 더 아래라서)
+  const tube = 0.55, cross = L.inArt ? L.holeY + L.holeR - tube - 0.15 : L.holeY - 0.7;
+  const JR = L.inArt ? Math.max(3.2, (KH / 2 + tube + 0.6 - cross) / 2) : 3.2, SR = 11;
+  const jump = new THREE.Mesh(new THREE.TorusGeometry(JR, tube, 18, 64), metal);
+  jump.rotation.y = Math.PI / 2; jump.position.set(L.holeX, cross + JR, 0); keyring.add(jump);
+  const jumpTop = cross + JR * 2 - 0.5;
   const clasp = new THREE.Group();
   const eye = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.45, 12, 40), metal); eye.position.y = 1.2; clasp.add(eye);   // 아래 눈(작은 고리가 걸림)
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.9, 6.5, 8, 24), metal); body.scale.set(1, 1, 0.62); body.position.y = 7.2; clasp.add(body);
