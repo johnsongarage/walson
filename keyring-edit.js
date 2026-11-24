@@ -25,7 +25,7 @@
   var ROWS = [
     { k: 'name', ko: '이름', en: 'NAME', max: 12 },
     { k: 'type', ko: '견종', en: 'TYPE', max: 20 },
-    { k: 'id', ko: '번호', en: 'ID', max: 8 }
+    { k: 'id', ko: '번호', en: 'ID No.', max: 8 }
   ];
   var KO = { skill: '특기', name: '이름', type: '견종', id: '번호' };
   var FONTS = [{ id: 'clear', label: '또렷하게' }, { id: 'bold', label: '굵게' }, { id: 'dot', label: '도트' }];

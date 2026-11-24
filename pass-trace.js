@@ -266,7 +266,7 @@
     // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
     // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
     kr: { nameH: 84, nameLatH: 62, nameFill: 0.74, typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8, ys: [702.5, 882.5, 1062.5],   // nameH·nameFill: 이름 글씨 높이·짧은 이름이 채울 칸 폭 비율(11/24 "두 글자면 더 차게, 자간 벌려")
-      labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+      labels: ['ID No.', 'NAME', 'TYPE'], lcol: ['NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
       light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5,   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
@@ -304,7 +304,7 @@
       title1: { y: ty1, ux: 5.877 * s, uy: t1v, center: true }, title2: { y: ty1 + 16 * t1v + tgap, ux: 5.06 * s, uy: t2v, center: true },
       pawU: { x: 83 / 29 * s, y: 80 / 27 * s }, pawGap: 34 * s,
       kr: { nameH: 84 * fs, nameLatH: 62 * fs, nameFill: 0.5,   /* 값 칸이 넓어서 짧은 이름을 덜 벌림 */ typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8 * fs, ys: ys,
-        labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3 * fs, lux: 3.1 * fs, luy: 3.25 * fs, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+        labels: ['ID No.', 'NAME', 'TYPE'], lcol: ['NAME', 'TYPE'], kmax: 4.3 * fs, lux: 3.1 * fs, luy: 3.25 * fs, pad: 14, lgap: 8, vgap: 12, vpad: 10,
         dashY: dashY, pill: { y: pillLow, h: pillH, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20, one: true },
         light: { y: dashY + 35.5, h: 72, solo: 110, soloSk: 92, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow,
         // 특기 칸(11/24 밤): 알약(118)보다 높게 사진 틀 아랫줄부터 150 — 등급 뱃지는 그만큼 낮게(soloSk)
@@ -374,7 +374,7 @@
     var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h, sz = sizeOf(key);
     var T = splitText(value), manual = center === 'fit' && Array.isArray(T) ? T : null;
     var v = Array.isArray(T) ? T.join(' ') : T;
-    var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;
+    var lw = Math.max.apply(null, (K.lcol || K.labels).map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;   // 분홍 칸 폭 = NAME·TYPE 바로 뒤까지
     var lf = Math.min(1, lw / textUnits(label));   // 칸 이름이 분홍 칸보다 길면(SKILL) 글자만 줄임 — 분홍 칸 폭은 다른 칸과 같게
     var vh = 16 * K.kmax * V.uy / V.ux * 0.8, isHan = VEC && /[가-힣]/.test(v), vec = !!VF || isHan;
     var hmax = (h - 2 * u) * 0.92;   // 칸 안쪽 높이 — 글씨는 이보다 커지지 않게
@@ -411,8 +411,8 @@
       var vcl = sp + u * 0.5, vcw = x + w - u - vcl - u * 0.5;
       if (center === 'grow') { var nh = Math.min(hmax, K.nameH * sz); vpush({ s: v, x: vcl, y: y + (h - nh) / 2, w: vcw, h: nh, fill: COL.ink, fit: true, spread: K.nameFill }); return; }
       if (center) { vpush({ s: v, x: vcl, y: y + (h - vh) / 2, w: vcw, h: vh, fill: COL.ink, fit: true }); return; }
-      var ih = Math.min(hmax, K.idH * sz), ix = sp + K.vgap;
-      vpush({ s: v, x: ix, y: y + (h - ih) / 2, w: (x + w - u - K.vpad) - ix, h: ih, fill: COL.ink, left: true }); return;
+      var ih = Math.min(hmax, K.idH * sz);   // ID: 흰 칸 가운데(11/24 밤 "숫자도 가운데 정렬로")
+      vpush({ s: v, x: vcl, y: y + (h - ih) / 2, w: vcw, h: ih, fill: COL.ink, fit: true }); return;
     }
     // 한글 값은 둥근모꼴 도트라 같은 크기면 영문보다 가늘고 작아 보여서 더 크게(11/24 가르시아 "이름 글씨 잘 안 보이네") — 칸 폭이 허락하는 만큼
     var vmax = /[가-힣]/.test(v) ? K.kmax : V.ux, uxMax = hmax / 16 * V.ux / V.uy;   // 도트 글씨도 칸 높이까지만
@@ -420,7 +420,7 @@
     if (isHan) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
       if (center === 'grow') vh = Math.min(hmax, K.nameH * sz);   // 이름: 크게 + 짧으면 자간을 벌려 칸을 채움(paintText spread)
       if (center) { var cl = sp + u * 0.5, cw = x + w - u - cl - u * 0.5; VEC.push({ s: v, x: cl, y: y + (h - vh) / 2, w: cw, h: vh, fill: COL.ink, fit: true, spread: center === 'grow' ? K.nameFill : 0 }); return; }
-      VEC.push({ s: v, x: vx, y: y + (h - vh) / 2, w: avail, h: vh, fill: COL.ink, left: true }); return;
+      var icl = sp + u * 0.5; VEC.push({ s: v, x: icl, y: y + (h - vh) / 2, w: x + w - u - icl - u * 0.5, h: vh, fill: COL.ink, fit: true }); return;   // ID도 가운데
     }
     if (center === 'grow') {   // 영문 이름도: 칸 높이가 허락하는 만큼 크게, 짧으면 글자 사이를 벌려 칸의 nameFill만큼 채움
       var aw = x + w - u - sp - 2 * K.vpad, nu = textUnits(v);
@@ -431,7 +431,7 @@
       chars.forEach(function (c) { var gl = glyph(c); if (gl.rows) xs.push(cx0 + gl.lb * ux); cx0 += gl.adv * ux + gapx; });
       text(out, v, 0, y + (h - 16 * uy) / 2, ux, uy, COL.ink, xs); return;
     }
-    if (center) vx = sp + (x + w - u - sp - textUnits(v) * ux) / 2;
+    vx = sp + (x + w - u - sp - textUnits(v) * ux) / 2;   // 견종·ID 모두 흰 칸 가운데
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
   }
 
