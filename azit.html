@@ -301,7 +301,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=3"></script>
-<script src="azit-room.js?v=11"></script>
+<script src="azit-room.js?v=12"></script>
 <script src="photo-dot.js?v=2"></script>
 <script>
 (function () {
@@ -752,6 +752,26 @@
       if (d < bd) { bd = d; best = n; }
     });
     return best;
+  }
+
+  // 선반 가까이 놓았는데 안 올라갔을 때 왜인지(11/24 가르시아 "선반에 올리려고 끌었는데 안 올라가") — 가까운 선반이 없으면 ''
+  function shelfWhy(it, x, y) {
+    var near = -1, bd = 1.6;
+    AZ.SHELVES.forEach(function (sl, n) { var dx = (x - sl.x) / 18, dy = (y - sl.y) / 12, d = dx * dx + dy * dy; if (d < bd) { bd = d; near = n; } });
+    if (near < 0) return '';
+    var c = it.name.charCodeAt(it.name.length - 1), nm = it.name + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? '은' : '는');
+    if (!it.shelf) return nm + ' 선반에 못 올려요 — 작은 인형·공·화분 같은 것만 올라가요';
+    if (!shelfFits(it, near)) return nm + ' 이 선반보다 커요 — 왼쪽 위 긴 선반에 올려 보세요';
+    if (shelfBlocked(cur)[near]) return '벽에 건 소품이 이 선반을 가리고 있어요 — 그 소품을 옮기면 올릴 수 있어요';
+    if (shelfTaken(near, it.id)) return '이 선반 자리에는 이미 다른 소품이 있어요';
+    return '';
+  }
+  function dropTip(msg, x, y) {
+    var t = $('tip'); t.textContent = msg; t.hidden = false;
+    var tw = t.offsetWidth, th = t.offsetHeight, rw = VW * K;
+    t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, (x - OX) * K)) + 'px';
+    t.style.top = Math.max(th + 2, (y - 20) * K) + 'px';
+    tipFor = null; clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; }, 3500);
   }
 
   // ── 그리기 ──
@@ -1385,6 +1405,7 @@
       state.pos[drag.id] = { i: Math.round(dq.i * 10) / 10, j: Math.round(dq.j * 10) / 10 };
       staticDirty = true;
     } else if (!it.decal && !it.corner) {
+      drag.ax = ax; drag.ay = ay;
       var n = it.shelf ? nearShelf(it, ax, ay) : -1;   // 선반에 올릴 수 있는 소품 — 빈 선반 자리 가까이 끌면 선반 위로(11/24)
       if (n >= 0) state.pos[drag.id] = { shelf: n };
       else {
@@ -1398,7 +1419,14 @@
   });
   canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
   canvas.addEventListener('pointerup', function (e) {
-    if (drag) { if (drag.moved) save(); else tapOn(drag.s); drag = null; return; }   // 내 방 소품을 끌지 않고 톡 누르면 안내(한 번 더 누르면 놀러 가기)
+    if (drag) {
+      if (drag.moved) {
+        save();
+        var dit = AZ.byId(AZ.ITEMS, drag.id), dp = state.pos[drag.id];
+        if (dit && drag.ax != null && !(dp && dp.shelf != null)) { var why = shelfWhy(dit, drag.ax, drag.ay); if (why) dropTip(why, drag.ax, drag.ay); }
+      } else tapOn(drag.s);
+      drag = null; return;
+    }   // 내 방 소품을 끌지 않고 톡 누르면 안내(한 번 더 누르면 놀러 가기)
     if (tapItem) { tapItem = null; downAt = null; return; }
     var p = at(e); if (!downAt) return; downAt = null;
     var q = unP(p.x, p.y);

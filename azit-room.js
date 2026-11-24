@@ -53,9 +53,9 @@
     { id: 'trophy', spr: 'trophy_shelf', face: 'R', wall: 'R', u: 31.5, h: 56.5, name: '트로피', need: { steady: 3 } },
     { id: 'plant',  spr: 'plant_pot', i: 4, j: 12, name: '화분', need: { walks: 10 } },
     { id: 'bowl',   spr: 'feeder_wood_2bowl', i: 7, j: 48, name: '밥그릇', need: {} },
-    { id: 'bone',   spr: 'toy_bone', i: 75, j: 47, name: '뼈다귀', need: { walks: 1 } },
+    { id: 'bone',   spr: 'toy_bone', shelf: true, i: 75, j: 47, name: '뼈다귀', need: { walks: 1 } },
     { id: 'carrot', spr: 'carrot_plush', shelf: true, i: 62, j: 66, name: '당근 인형', need: { walks: 5 } },
-    { id: 'ball',   spr: 'ball_yellow', i: 80, j: 32, name: '공', need: {} },
+    { id: 'ball',   spr: 'ball_yellow', shelf: true, i: 80, j: 32, name: '공', need: {} },
     { id: 'flag',   spr: 'flag_stand', i: 36, j: 6, name: '앰배서더 깃발', need: { level: 3 } },
     // ── 11/23 모델하우스 2단계 ──
     { id: 'rug',     spr: 'rug_pattern', i: 55, j: 39, decal: true, name: '러그', need: { walks: 3 } },
@@ -81,9 +81,9 @@
     { id: 'bubble_visited', spr: 'bubble_visited', face: 'R', both: true, wall: 'L', u: 41.5, h: 85.5, name: '다녀감 말풍선', need: { walks: 2 }, stash: true },
     { id: 'sign_snack', spr: 'sign_snack', i: 10, j: 48, name: '간식 내놔라 팻말', need: { walks: 4 }, stash: true },
     { id: 'board_refuse', spr: 'board_refuse', i: 26, j: 70, name: '안가 안걸어 대자보', need: { walks: 6 }, stash: true },
-    { id: 'toy_chicken', spr: 'toy_chicken', i: 58, j: 60, name: '삑삑이 닭 인형', need: { walks: 8 }, stash: true },
+    { id: 'toy_chicken', spr: 'toy_chicken', shelf: true, i: 58, j: 60, name: '삑삑이 닭 인형', need: { walks: 8 }, stash: true },
     { id: 'food_box', spr: 'food_box', i: 6, j: 34, name: '사료통', need: { walks: 12 }, stash: true },
-    { id: 'grooming_basket', spr: 'grooming_basket', i: 40, j: 62, name: '미용 바구니', need: { walks: 22 }, stash: true },
+    { id: 'grooming_basket', spr: 'grooming_basket', shelf: true, i: 40, j: 62, name: '미용 바구니', need: { walks: 22 }, stash: true },
     { id: 'bubble_interior', spr: 'bubble_interior', face: 'R', both: true, wall: 'L', u: 24.5, h: 58.5, name: '인테리어 맛집 말풍선', need: { walks: 25 }, stash: true },
     { id: 'pet_stairs', spr: 'pet_stairs', i: 52, j: 22, name: '강아지 계단', need: { walks: 30 }, stash: true },
     { id: 'panel_guestbook', spr: 'panel_guestbook', face: 'R', both: true, wall: 'R', u: 84.5, h: 66.5, name: '집사의 삶 판넬', need: { walks: 40 }, stash: true },
@@ -108,6 +108,7 @@
     // ── 11/24 꽉 찬 방(가르시아 "이런 느낌의 배치 가능하겠냐? 꽉 차 있고 선반 위에도 화분과 풀들이 … 선반 사이에 액자도" → "앱에 넣어 줘") — 19개 ──
     // 받은 그림(11/23 밤 시트)에 있었는데 아직 소품이 아니던 것(분홍 가시 공은 두 장이 같은 그림이라 하나). 모두 stash.
     // shelf: 붙박이 선반(SHELVES)에 올릴 수 있는 작은 것 — 끌어서 선반 가까이 놓으면 선반 위로(당근 인형·카페 컵·황금 똥 트로피·간식 통도).
+    //   11/24 가르시아 "선반에 올리려고 끌었는데 안 올라가" → 뼈다귀·공 다섯·닭 인형·미용 바구니·물그릇·파란 식기도(선반 폭에 맞는 작은 것)
     //   sh = 처음 놓이는 선반 자리 번호(그 자리가 차 있으면 i·j 바닥에).
     // 생기는 조건은 Claude 제안(11/24) — 모두 "한 것". 산책 횟수 사이사이(2·6·7·9·11 …)를 채워 걸을수록 방이 꾸준히 찬다.
     { id: 'daisy', spr: 'plant_daisy', shelf: true, sh: 0, i: 18, j: 64, name: '데이지 화분', need: { stamps: 3 }, stash: true },
@@ -122,14 +123,14 @@
     { id: 'cushion_blue', spr: 'cushion_blue', i: 40, j: 76, name: '파란 줄무늬 방석', need: { walks: 14 }, stash: true },
     { id: 'cushion_pink', spr: 'cushion_pink', i: 58, j: 76, name: '분홍 꽃 방석', need: { walks: 18 }, stash: true },
     { id: 'cushion_mint', spr: 'cushion_cafe_mint', i: 84, j: 12, name: '민트 뼈다귀 방석', need: { shop: 4 }, stash: true },
-    { id: 'water_bowl', spr: 'water_bowl_blue', i: 58, j: 4, name: '물그릇', need: { walks: 2 }, stash: true },
-    { id: 'feeder_blue', spr: 'feeder_blue_2bowl', i: 6, j: 70, name: '파란 식기', need: { walks: 24 }, stash: true },
+    { id: 'water_bowl', spr: 'water_bowl_blue', shelf: true, i: 58, j: 4, name: '물그릇', need: { walks: 2 }, stash: true },
+    { id: 'feeder_blue', spr: 'feeder_blue_2bowl', shelf: true, i: 6, j: 70, name: '파란 식기', need: { walks: 24 }, stash: true },
     { id: 'basket_wicker', spr: 'basket_wicker_carrot', i: 90, j: 30, name: '당근 라탄 바구니', need: { walks: 27 }, stash: true },
     { id: 'rope', spr: 'toy_rope_blue', i: 30, j: 58, name: '밧줄 장난감', need: { walks: 6 }, stash: true },
-    { id: 'ball_tennis', spr: 'ball_tennis', i: 76, j: 24, name: '테니스공', need: { walks: 11 }, stash: true },
-    { id: 'ball_watermelon', spr: 'ball_watermelon', i: 94, j: 46, name: '수박 공', need: { walks: 13 }, stash: true },
-    { id: 'ball_pastel', spr: 'ball_pastel', i: 84, j: 50, name: '무지개 공', need: { walks: 17 }, stash: true },
-    { id: 'ball_spiky', spr: 'ball_spiky_pink_1', i: 66, j: 60, name: '분홍 가시 공', need: { walks: 21 }, stash: true }
+    { id: 'ball_tennis', spr: 'ball_tennis', shelf: true, i: 76, j: 24, name: '테니스공', need: { walks: 11 }, stash: true },
+    { id: 'ball_watermelon', spr: 'ball_watermelon', shelf: true, i: 94, j: 46, name: '수박 공', need: { walks: 13 }, stash: true },
+    { id: 'ball_pastel', spr: 'ball_pastel', shelf: true, i: 84, j: 50, name: '무지개 공', need: { walks: 17 }, stash: true },
+    { id: 'ball_spiky', spr: 'ball_spiky_pink_1', shelf: true, i: 66, j: 60, name: '분홍 가시 공', need: { walks: 21 }, stash: true }
   ];
   // 붙박이 선반 자리(11/24 꽉 찬 방) — 방 그림에 있는 선반 셋의 윗면. shelf 소품을 올려놓는 곳, 한 자리에 하나.
   // x·y = 올린 그림의 아래 가운데(방 점), w = 올릴 수 있는 그림 폭. 0·1 = 왼쪽 아래 선반(둘), 2 = 왼쪽 위 선반, 3 = 오른쪽 선반
