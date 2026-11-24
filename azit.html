@@ -135,7 +135,9 @@
     font-size: 12px; line-height: 1.4; width: max-content; max-width: 86%; text-align: center; word-break: keep-all; z-index: 4; pointer-events: none;
     box-shadow: 0 3px 10px rgba(var(--shadow-rgb), .25); }
   .tip[hidden] { display: none; }
-  .tip .more { display: block; margin-top: 2px; opacity: .82; }   /* "한 번 더 누르면 우리 개가 가 봐요" */
+  /* 둘째 줄("한 번 더 누르면 우리 개가 가 봐요") — 이름을 tip-sub로(11/24 가르시아 "설명 칸이 항상 한 줄 더 보여": 예전 이름 more가
+     아래 "더 보기" 단추 모양(진한 글씨·밑줄)을 같이 받아 검은 말풍선 위에서 글씨가 안 보이고 빈 줄만 남았다) */
+  .tip .tip-sub { display: block; margin-top: 2px; opacity: .82; }
   .tip .throw { pointer-events: auto; display: inline-block; margin: 5px 0 1px; font: inherit; font-weight: 700; font-size: 12px; line-height: 1.2;
     color: var(--bg); background: var(--accent); border: 0; border-radius: 999px; padding: 5px 14px; cursor: pointer; }   /* 공 던지기(11/24) — 말풍선 안에서 이것만 눌린다 */
   #room.aim { cursor: crosshair; }
@@ -143,7 +145,7 @@
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
   .closed[hidden] { display: none; }
-  .hint { font-size: 12px; color: var(--ink-soft); text-align: center; margin: -4px 0 0; }
+  .hint { font-size: 12px; color: var(--ink-soft); text-align: center; margin: -4px 0 0; word-break: keep-all; }   /* 넘쳐도 낱말 가운데서 자르지 않게 */
   /* 모델하우스 방 고르기 · 이 방처럼 놓기 */
   .show-bar { display: flex; flex-direction: column; gap: 8px; margin-top: -2px; }
   .show-bar[hidden] { display: none; }
@@ -1278,7 +1280,7 @@
     var nx = nextOpen();
     $('visit').textContent = view >= 0 && nx < 0 ? '내 아지트로 ◀' : '마실 가기 ▶';
     $('mine-box').hidden = !o.me;
-    $('hint').textContent = o.me ? '바닥을 누르면 걸어가요 · 소품은 톡 누르면 놀고, 꾹 누르면 옮겨요'
+    $('hint').textContent = o.me ? '바닥 톡 걸어가기 · 소품 톡 놀기 · 꾹 옮기기'   // 휴대폰에서 한 줄에(11/24 — 길어서 두 줄로 넘쳤다)
       : (o.open && o.items.length ? '소품을 누르면 어떻게 생기는지 보여요' : '바닥을 누르면 ' + walker + ' 걸어가요');
     var closed = $('closed');
     closed.textContent = o.open ? '' : (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
@@ -1340,7 +1342,7 @@
       tb.addEventListener('click', function (e) { e.stopPropagation(); startAim(s.id); });
       t.appendChild(document.createElement('br')); t.appendChild(tb);
     }
-    t.appendChild(el('span', 'more', '한 번 더 누르면 우리 개가 가 봐요'));
+    t.appendChild(el('span', 'tip-sub', '한 번 더 누르면 우리 개가 가 봐요'));
     t.hidden = false;
     var tw = t.offsetWidth, th = t.offsetHeight, rw = VW * K, cx = (s.x + s.w / 2 - OX) * K;
     t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, cx)) + 'px';
@@ -1649,7 +1651,7 @@
   }
   function startAim(id) {
     aim = { id: id }; clearTimeout(tipTimer); tipFor = null;
-    var t = $('tip'); t.textContent = '던질 곳을 눌러요'; t.appendChild(el('span', 'more', '바닥 말고 다른 곳을 누르면 그만'));
+    var t = $('tip'); t.textContent = '던질 곳을 눌러요'; t.appendChild(el('span', 'tip-sub', '바닥 말고 다른 곳을 누르면 그만'));
     t.hidden = false;
     var th = t.offsetHeight; t.style.left = Math.round(VW * K / 2) + 'px'; t.style.top = (th + 6) + 'px';
     canvas.classList.add('aim');
