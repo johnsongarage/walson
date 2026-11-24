@@ -409,6 +409,7 @@
       mood: (s.moodDay === todayKey() && MOODS.indexOf(s.mood) >= 0) ? s.mood : '',   // 오늘 기분은 그날만
       moodDay: s.moodDay === todayKey() ? s.moodDay : '',
       sample: s.sample === true, sampleV: s.sampleV,
+      lampOn: s.lampOn === true,   // 스탠드 조명 켬(11/24 — 톡 누르면 켜고 끔)
       // [이 방처럼 놓기] 전 모습(되돌리기용, 11/23) — 벽지·머리 장식·자리·빼 둔 소품
       undo: u ? { theme: THEMES.indexOf(u.theme) >= 0 ? u.theme : 'jelly', acc: cleanAcc(u.acc), pos: cleanPos(u.pos), hidden: cleanHidden(u.hidden),
         from: typeof u.from === 'string' ? u.from.slice(0, 20) : '' } : null
@@ -416,6 +417,7 @@
   }
   function saveState(st) {
     var o = { dog: st.dog, dogAuto: !!st.dogAuto, theme: st.theme, acc: st.acc, hidden: st.hidden, pos: st.pos, posV: POS_V, seen: st.seen || [], mood: st.mood, moodDay: st.moodDay };
+    if (st.lampOn) o.lampOn = true;
     if (st.sample) { o.sample = true; o.sampleV = st.sampleV; }
     if (st.undo) o.undo = st.undo;
     if (st.photoDog) { o.photoDog = st.photoDog; if (st.dogPhoto) o.dogPhoto = true; }

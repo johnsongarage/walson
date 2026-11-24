@@ -302,7 +302,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dex-card.js?v=5"></script>
-<script src="azit-room.js?v=12"></script>
+<script src="azit-room.js?v=13"></script>
 <script src="photo-dot.js?v=2"></script>
 <script>
 (function () {
@@ -356,14 +356,17 @@
   // ── 그림 불러오기 ──
   var pics = {};
   function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
-  var picNames = ['room', 'room_lilac', 'room_night', 'room_pink', 'window_day', 'window_night', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
+  var picNames = ['room', 'room_lilac', 'room_night', 'room_pink', 'lamp_stand_on', 'window_day', 'window_night', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
     .concat(AZ.ITEMS.map(function (it) { return it.spr; }))
     .concat(AZ.ITEMS.filter(function (it) { return it.both; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
     .filter(function (n, k, a) { return a.indexOf(n) === k; });
   // 11/24 글씨를 한글 도트 글꼴로 다시 쓴 글자 소품(_dev/azit-letter.py) — 예전 그림이 브라우저 캐시에 남지 않게 주소를 v2로(왼쪽 벽용 _L도)
   var LETTER_V2 = ['sign_snack', 'board_refuse', 'sign_meetup', 'bubble_visited', 'bubble_interior', 'bubble_poop', 'bubble_chihuahua',
     'panel_guestbook', 'stamp_regular', 'scroll_dogslife'];
-  function picV(n) { return /^room(_|$)/.test(n) ? 5 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // 방 그림 v5 = 크림 발바닥 방·선반 모서리 고침·왼쪽 토끼 귀 입구를 벽으로(11/24, _dev/azit-close-door.py)
+  // 11/24 새로 받은 그림으로 바꾼 소품 12개(_dev/azit-redo-items.py) — 예전 그림이 캐시에 남지 않게 v3
+  var REDO_V3 = ['neon_chihuahua', 'bag_dispenser', 'leash_hook', 'grooming_basket', 'cafe_cup', 'carrot_plush', 'keyhook_rail', 'flag_stand',
+    'picnic_mat', 'lamp_stand', 'lamp_stand_on', 'postcard_paw'];
+  function picV(n) { return REDO_V3.indexOf(n) >= 0 ? 3 : /^room(_|$)/.test(n) ? 5 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // 방 그림 v5 = 크림 발바닥 방·선반 모서리 고침·왼쪽 토끼 귀 입구를 벽으로(11/24, _dev/azit-close-door.py)
   var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) pics[n] = im; }); }));
   function pic(n) { return pics[n] || null; }
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
@@ -855,6 +858,54 @@
     });
     staticLayer = c; staticDirty = false;
   }
+  // ── 스탠드 조명(11/24 가르시아 "조명은 액션 취하면 불이 들어와야", "켜진 등이 아래로 빛을 쏴 주는 효과") ──
+  // 톡 누르면 켜고 끈다(내 방은 저장, 친구 방·모델하우스는 보는 동안만). 켜면 갓이 밝은 그림으로 바뀌고, 방을 다 그린 뒤
+  // 빛을 '더하기'로 덧칠 — 바닥에 2:1 타원 웅덩이 + 갓 둘레 동그란 빛, 각각 3겹 계단(점 그림 느낌). 벽지·바닥 색이 무엇이든 그 색이 밝아진다.
+  // 밤(창밖이 밤)이면 방을 조금 어둡게 한 뒤 빛을 더 세게.
+  var guestLamp = false, glowCache = { key: '', c: null };
+  function lampLit() { return view === -1 ? !!state.lampOn : guestLamp; }
+  function lampFoot(o) {
+    var it = AZ.byId(AZ.ITEMS, 'lamp');
+    if (!it || o.items.indexOf('lamp') < 0) return null;
+    var p = posOf(o, it); if (!p || p.i == null) return null;
+    return P(p.i, p.j);
+  }
+  function glowLayer(fx, fy, night) {
+    var key = fx + ',' + fy + ',' + night;
+    if (glowCache.key === key) return glowCache.c;
+    var c = document.createElement('canvas'); c.width = RW; c.height = RH;
+    var g = c.getContext('2d'), img = g.createImageData(RW, RH), d = img.data, k = night ? 1.6 : 1;
+    var sx = fx, sy = fy - 41;   // 갓 가운데(조명 키 51점)
+    for (var y = Math.max(0, fy - 70); y < Math.min(RH, fy + 30); y++) {
+      for (var x = Math.max(0, fx - 60); x < Math.min(RW, fx + 60); x++) {
+        var a = 0, ex = (x - fx) / 46, ey = (y - fy) / 23, e = ex * ex + ey * ey;   // 바닥 웅덩이(2:1)
+        if (e < 0.28) a = 0.24; else if (e < 0.6) a = 0.15; else if (e < 1) a = 0.08;
+        var dx = x - sx, dy = y - sy, r = Math.sqrt(dx * dx + dy * dy);   // 갓 둘레
+        var b = r < 10 ? 0.30 : r < 17 ? 0.17 : r < 25 ? 0.08 : 0;
+        a = Math.max(a, b) * k;
+        if (!a) continue;
+        var n = (y * RW + x) * 4; d[n] = 255; d[n + 1] = 196; d[n + 2] = 112; d[n + 3] = Math.round(Math.min(1, a) * 255);
+      }
+    }
+    g.putImageData(img, 0, 0);
+    glowCache = { key: key, c: c };
+    return c;
+  }
+  function drawLampLight(o) {
+    if (!lampLit()) return;
+    var f = lampFoot(o); if (!f) return;
+    var night = isNight();
+    if (night) { ctx.fillStyle = 'rgba(24,18,52,0.30)'; ctx.fillRect(0, 0, RW, RH); }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(glowLayer(Math.round(f.x), Math.round(f.y), night), 0, 0);
+    ctx.restore();
+  }
+  function toggleLamp() {
+    if (view === -1) { state.lampOn = !state.lampOn; save(); } else guestLamp = !guestLamp;
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { /* 무시 */ }
+    kick();
+  }
+
   function render() {
     var o = cur;
     if (!o) return;
@@ -865,7 +916,7 @@
     sprites = wallHits.slice();
     var things = [];
     itemsOf(o, 'floor').forEach(function (it) {
-      var p = posOf(o, it), q = P(p.i, p.j); things.push({ id: it.id, z: q.y, x: q.x, y: q.y, spr: pic(it.spr) });
+      var p = posOf(o, it), q = P(p.i, p.j); things.push({ id: it.id, z: q.y, x: q.x, y: q.y, spr: (it.id === 'lamp' && lampLit() && pic('lamp_stand_on')) || pic(it.spr) });
     });
     var hp = P(host.i, host.j); things.push({ dog: host, z: host.seat ? host.seat.z : hp.y + 0.5, x: hp.x, y: hp.y, dogId: o.dog, acc: o.acc });   // 방석 위면 방석 바로 다음(11/24)
     if (view !== -1) {   // 친구 방·모델하우스엔 우리 개가 손님으로
@@ -888,6 +939,7 @@
       ctx.drawImage(t.spr, x, y);
       sprites.push({ id: t.id, x: x, y: y, w: t.spr.width, h: t.spr.height, foot: { x: t.x, y: t.y }, img: t.spr });
     });
+    drawLampLight(o);   // 켠 스탠드 빛(방·소품·강아지를 다 그린 뒤 덧칠)
     if (drag && drag.armed && !drag.moved) {   // 꾹 눌러 집은 소품 — 둘레에 흰 테두리(아직 안 움직였을 때)
       var hs = drag.s; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 1;
       ctx.strokeRect(hs.x - 1.5, hs.y - 1.5, hs.w + 3, hs.h + 3);
@@ -1287,6 +1339,7 @@
   };
   var ACT_LEN = { play: 2.4, eat: 2.4, rest: 2.8, read: 2.6, look: 2.4, walk: 2.4 };   // 한마디가 떠 있는 초
   function tapOn(s) {
+    if (s.id === 'lamp') { toggleLamp(); return; }   // 조명은 톡 = 켜고 끄기
     if (tipFor === s.id && !$('tip').hidden) { clearTimeout(tipTimer); $('tip').hidden = true; tipFor = null; goPlay(s); return; }
     showTip(s);
   }
