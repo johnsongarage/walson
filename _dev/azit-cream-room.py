@@ -62,39 +62,58 @@ def is_floorish(c):   # 옛 마루(주황 나무) — 끝 띠(진한 보라)·�
     return r > 140 and r - b > 70 and g > 70 and g < 160 and r - g > 40
 
 
-# 붙박이 선반 = 나무색·진한 점이 뭉친 곳(5×5 안에 8점 이상). 옛 벽지의 흩어진 분홍 점은 선반이 아니다
-solid = np.zeros((H, W), bool)
-for y in range(H):
-    for x in range(W):
-        c = old[y, x, :3]
-        solid[y, x] = old[y, x, 3] > 0 and (is_wood(c) or (int(c.astype(int).sum()) < 330 and not (int(c[0]) - int(c[1]) > 65 and int(c[2]) > int(c[1]))))   # 옛 벽 테두리 줄(붉은 분홍)은 선반 아님
+# 붙박이 선반(11/24 가르시아 "선반 모서리 깨지는 거" 고침): 나무색 덩어리(40점 이상)에서 시작해, 그 둘레 칸(좌우·위 3점, 아래 14점 —
+# 받침 다리) 안에서 벽지 색이 아닌 점(나무·진한 테두리·붉은 갈색 받침)을 이어서 모두 선반으로. 선반 밑 분홍 그림자는 따로(shade)
+def paperish(c):   # 옛 벽지(밝은 분홍·크림) — 나무와 달리 g≈b
+    return int(c[0]) >= 235 and int(c[1]) - int(c[2]) <= 18
+
+
+def shadowish(c):  # 선반 밑 분홍 그림자(벽지보다 조금 어두운 분홍, b≥g)
+    c = [int(v) for v in c]
+    return c[0] >= 195 and c[2] >= c[1] - 6 and sum(c) > 480 and not paperish(c)
+
+
 wood = np.zeros((H, W), bool)
 for y in range(H):
     for x in range(W):
-        wood[y, x] = old[y, x, 3] > 0 and is_wood(old[y, x, :3])
+        wood[y, x] = old[y, x, 3] > 0 and is_wood(old[y, x, :3]) and (CY + abs(x - CX) / 2.0 - y) > WAIN + 2 and x >= 46   # 징두리(옛 판벽 나무)와 안 붙게 벽지 칸에서만
 shelf = np.zeros((H, W), bool)
-for y in range(H):
-    for x in range(W):
-        if solid[y, x] and solid[max(0, y - 2):y + 3, max(0, x - 2):x + 3].sum() >= 12 and wood[max(0, y - 3):y + 4, max(0, x - 3):x + 4].sum() >= 10:
-            shelf[y, x] = True   # 나무 판 가까이의 진한 테두리만(옛 벽 테두리 줄 끝은 빠짐)
-# 가는 점선(옛 테두리 줄 끝)은 3×3 안에 이웃이 적다 — 덩어리만 남김
-shelf = shelf & np.array([[shelf[max(0, y - 1):y + 2, max(0, x - 1):x + 2].sum() >= 5 for x in range(W)] for y in range(H)])
-seen = np.zeros((H, W), bool)   # 이어진 덩어리 중 큰 것(선반 판)만 — 40점 미만 부스러기는 버림
+shade = np.zeros((H, W), bool)
+seen = np.zeros((H, W), bool)
 for y0 in range(H):
     for x0 in range(W):
-        if shelf[y0, x0] and not seen[y0, x0]:
-            st, comp = [(y0, x0)], []
-            seen[y0, x0] = True
-            while st:
-                y, x = st.pop(); comp.append((y, x))
-                for dy in (-1, 0, 1):
-                    for dx in (-1, 0, 1):
-                        yy, xx = y + dy, x + dx
-                        if 0 <= yy < H and 0 <= xx < W and shelf[yy, xx] and not seen[yy, xx]:
-                            seen[yy, xx] = True; st.append((yy, xx))
-            if len(comp) < 40:
-                for y, x in comp:
-                    shelf[y, x] = False
+        if not wood[y0, x0] or seen[y0, x0]:
+            continue
+        st, comp = [(y0, x0)], []
+        seen[y0, x0] = True
+        while st:
+            y, x = st.pop(); comp.append((y, x))
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < H and 0 <= xx < W and wood[yy, xx] and not seen[yy, xx]:
+                        seen[yy, xx] = True; st.append((yy, xx))
+        ys, xs = [p[0] for p in comp], [p[1] for p in comp]
+        if len(comp) < 40:
+            continue   # 작은 부스러기는 선반이 아님
+        bx0, bx1, by0, by1 = min(xs) - 3, max(xs) + 3, min(ys) - 3, max(ys) + 14
+        ok = lambda yy, xx: (CY + abs(xx - CX) / 2.0 - yy) > WAIN + 1   # 받침은 징두리 위까지만
+        st = list(comp)
+        for y, x in comp:
+            shelf[y, x] = True
+        while st:   # 둘레 칸 안에서 벽지·그림자가 아닌 점을 이어 붙임
+            y, x = st.pop()
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if bx0 <= xx <= bx1 and by0 <= yy <= by1 and 0 <= yy < H and 0 <= xx < W and not shelf[yy, xx] and ok(yy, xx):
+                        c = old[yy, xx, :3]
+                        if old[yy, xx, 3] > 0 and not paperish(c) and not shadowish(c):
+                            shelf[yy, xx] = True; st.append((yy, xx))
+        for yy in range(max(0, by0), min(H, by1 + 1)):
+            for xx in range(max(0, bx0), min(W, bx1 + 1)):
+                if not shelf[yy, xx] and shadowish(old[yy, xx, :3]):
+                    shade[yy, xx] = True
 
 
 def creamy(c):   # 왼쪽 계단 칸막이·계단(분홍) → 같은 밝기의 크림·베이지
@@ -127,7 +146,8 @@ for y in range(H):
                 out[y, x, :3] = (176, 132, 96) if sum(c) < 400 else (250, 244, 234)
             elif v > WAIN:               # 벽지(붙박이 선반만 남김)
                 if not shelf[y, x] or v < WAIN + 4:   # 징두리 위 옛 테두리 줄도 지움
-                    out[y, x, :3] = PLAIN if right else left_wall(U, (v - WAIN) * K + 194 + 6).clip(0, 255)
+                    col = PLAIN if right else left_wall(U, (v - WAIN) * K + 194 + 6)
+                    out[y, x, :3] = (col * (0.86 if shade[y, x] else 1.0)).clip(0, 255)   # 선반 밑 그림자는 벽지를 조금 어둡게
             else:                        # 징두리(두 벽 다 받은 그림 왼쪽 벽 판넬)
                 out[y, x, :3] = left_wall(U, max(-14.0, v * K)).clip(0, 255)
         elif c[0] < 140 and c[2] > c[1] and v < -4.5:   # 바닥 끝 띠(진한 보라) → 마루 옆면 같은 진한 나무색(밝기 따라)
