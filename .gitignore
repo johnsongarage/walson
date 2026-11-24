@@ -3,3 +3,4 @@
 test-results/
 _print/**/out/
 keyring-sample-order/
+__pycache__/
