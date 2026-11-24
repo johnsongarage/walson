@@ -23,13 +23,15 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 강아지 도감 — QR 교환(2026-11-15, 가르시아 "QR 교환 도감으로 만들어줘"). 서버 없음.
-     - 내 카드 QR = 이 화면 주소 + #d=(강아지 이름·크기·신호등·털색·무작위 번호). 위치·사진·견주 정보는 안 담는다.
-     - 상대가 휴대폰 카메라로 찍으면 이 화면이 열리며 "도감에 넣을까요?"를 묻는다(#뒤는 서버로 가지 않음).
-       왈슨 안의 "상대 QR 찍기"(카메라)로 찍어도 같다 — 아이폰 홈 화면 앱은 기록이 사파리와 따로라 이쪽을 권한다.
+     - 내 카드 = #d=(강아지 이름·크기·신호등·털색·무작위 번호). 위치·사진·견주 정보는 안 담는다.
+     - 2026-11-24부터 QR은 링크가 아니라 글자("WALSON 친구카드 #d=…", dex-card.js 친구 QR 글자) — 휴대폰 카메라로 찍으면 아무것도 안 열린다.
+       왈슨 안의 "상대 QR 찍기"로만 읽는다(모르는 사람 QR을 찍어 링크를 여는 큐싱 습관을 만들지 않게 — hq DECISIONS 11/24).
+       앱이 없는 견주에겐 QR 대신 "앱 없는 분께 보여 주기"(카톡에서 '왈슨' 검색)를 보여 준다.
+     - 이 화면 주소 + #d=(링크)는 "카드 주소 보내기"로 아는 사람에게 보낸 것·예전 QR·캡처 — 열면 "도감에 넣을까요?"(#뒤는 서버로 가지 않음).
      - 저장: petwalk_dex(배열, 기록 옮기기 때 번호로 합침), petwalk_dex_me(내 무작위 번호). 이 폰에만.
      - 서로 넣으려면 둘 다 찍어야 한다(서버가 없어서 상대에게 알릴 길이 없음). 상대가 나중에 이름을 바꿔도 다시 찍기 전엔 그대로.
      - 2026-11-23 개방명록 1단계(hq DECISIONS 11/23 "교환은 앱 QR이 기본, 키링은 필수 아님"):
-       내 카드 화면 QR = 위 카드 + 띄운 시각 + 고른 한마디(dex-card.js liveUrl, 30초마다 새로 그림).
+       내 카드 화면 QR = 위 카드 + 띄운 시각 + 고른 한마디(dex-card.js liveText, 30초마다 새로 그림).
        찍은 쪽은 몇 분 안의 화면 QR이면 단짝(pal) + 한마디, 키링·카드 주소·지난 캡처는 발자국으로 적는다.
        만난 날마다 log에 {날짜, 단짝/발자국, 한마디 번호} — 날짜만, 시각·장소 X. 교환엔 보상을 걸지 않는다(치팅해도 이 폰 기록만). */
   :root {
@@ -78,7 +80,7 @@
   .sheet[hidden] { display: none; }
   .sheet .card { width: 100%; max-width: 480px; background: var(--panel); border-radius: 22px 22px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px)); text-align: center; max-height: 100%; overflow-y: auto; }
   .sheet h2 { margin: 10px 0 4px; font-size: 22px; font-weight: 900; }
-  .sheet .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+  .sheet .sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-soft); line-height: 1.55; word-break: keep-all; }   /* 11/24 "카메라/로"처럼 낱말 중간에서 안 끊기게 */
   .sheet .who { display: flex; flex-direction: column; align-items: center; }
   .qr { background: #fff; border-radius: 16px; padding: 12px; margin: 6px auto 10px; width: min(78vw, 300px); }
   .qr svg { display: block; width: 100%; height: auto; }
@@ -104,6 +106,14 @@
   .msg { display: flex; align-items: center; gap: 6px; padding: 9px 9px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; text-align: left; line-height: 1.3; word-break: keep-all; cursor: pointer; }
   .msg[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
   .qr-note { margin: -2px 0 12px; font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+  .qr-note[hidden], .pick[hidden], .qr[hidden] { display: none; }
+  /* 앱 없는 분께 보여 주기(11/24) — QR 대신 이 판을 보여 준다. 크게, 한눈에 */
+  .nonuser { margin: 6px auto 12px; padding: 20px 14px 16px; border-radius: 16px; background: var(--accent-tint); color: var(--ink); text-align: center; width: min(82vw, 320px); }
+  .nonuser[hidden] { display: none; }
+  .nonuser .nu-small { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+  .nonuser .nu-big { margin: 0 0 10px; font-size: 28px; font-weight: 900; line-height: 1.3; word-break: keep-all; }
+  .nonuser .nu-sub { margin: 0 0 8px; font-size: 13px; font-weight: 600; line-height: 1.55; word-break: keep-all; }
+  .nonuser .nu-brand { margin: 0; font-size: 12px; font-weight: 800; color: var(--accent); }
   .manners { margin: -4px 0 10px; padding: 7px 10px; border-radius: 10px; background: var(--accent-tint); color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1.5; word-break: keep-all; }
   .sheet .safe { margin: -4px 0 10px; font-size: 12px; color: var(--ink-soft); line-height: 1.5; word-break: keep-all; }
   .bubble { display: inline-flex; align-items: center; gap: 6px; margin: 0 auto 10px; padding: 9px 14px; border-radius: 16px; background: var(--accent-tint); color: var(--accent); font-size: 15px; font-weight: 800; word-break: keep-all; }
@@ -157,18 +167,27 @@
 <div class="sheet" id="my-sheet" hidden>
   <div class="card">
     <div class="who compact" id="my-who"></div>
-    <p class="sub">상대가 왈슨의 "상대 QR 찍기"나 휴대폰 카메라로 찍으면 돼요. 앱이 없어도 설치·가입 없이 바로 열려요.</p>
+    <!-- 11/24 가르시아 "그렇게 바꿔 줘 — 큐싱" — 이 QR은 링크가 아니라 왈슨 앱만 읽는 글자. 휴대폰 카메라로 찍으라고 하지 않는다 -->
+    <p class="sub">상대가 왈슨 앱의 [상대 QR 찍기]로 찍어요. 휴대폰 카메라로 찍으면 아무것도 열리지 않아요.</p>
     <!-- 만날 때 예절(11/24 — 앱을 안 쓰는 견주와 만났을 때 생길 일을 미리, hq notes/petwalk-park-trouble.md).
          같은 날 가르시아 "교환하는 와중에 강아지에 소홀해지는 순간" — QR은 강아지 인사가 끝나고 줄을 짧게 잡은 뒤에 -->
-    <p class="manners">강아지 인사는 견주에게 먼저 묻고, QR은 인사가 끝나 줄을 짧게 잡은 뒤에 꺼내요. 앱이 없는 견주에겐 한&nbsp;번만 권해요.</p>
+    <p class="manners">강아지 인사는 견주에게 먼저 묻고, QR은 인사가 끝나 줄을 짧게 잡은 뒤에 꺼내요. 앱이 없는 견주에겐 QR 말고 아래 [앱 없는 분께]를 보여 드려요.</p>
     <!-- 한마디 고르기(2026-11-23) — 고른 말이 QR에 실려 상대 폰으로 간다. 누르면 아래에 여덟 가지가 펼쳐진다 -->
     <button type="button" class="pick" id="my-pick" aria-expanded="false" aria-controls="my-msgs"></button>
     <div class="msgs" id="my-msgs" hidden></div>
     <div class="qr" id="my-qr"></div>
+    <!-- 앱 없는 분께 보여 주기(11/24) — 모르는 사람에게 QR을 찍게 하지 않고, 왈슨이 직접 내놓은 입구(카톡 채널 검색)를 글로 -->
+    <div class="nonuser" id="nonuser" hidden>
+      <p class="nu-small">앱이 없으면 이렇게 찾아요</p>
+      <p class="nu-big">카카오톡에서<br>'왈슨' 검색</p>
+      <p class="nu-sub">채널을 추가하면 설치·가입 없이 시작해요. 모르는 사람 QR은 찍지 않아도 돼요.</p>
+      <p class="nu-brand" id="nu-brand"></p>
+    </div>
     <p class="qr-note">이 QR은 30초마다 새로 바뀌어요. 그 자리에서 찍으면 단짝이 되고 한마디가 남아요 — 캡처해서 보내면 발자국만 남아요.</p>
-    <!-- 카드 주소 보내기(2026-11-16 가르시아): 키링을 신청할 때 운영자에게 이 주소를 보낸다 — 키링 뒷면 QR·NFC에 그대로 들어간다 -->
+    <button type="button" class="btn btn-sub" id="nonuser-btn" style="margin-bottom:10px;">앱 없는 분께 보여 주기</button>
+    <!-- 카드 주소 보내기(2026-11-16 가르시아): 키링을 신청할 때 운영자에게 이 주소를 보낸다 — 키링 뒷면 QR에는 같은 카드가 글자로 들어간다(11/24부터 링크·NFC X) -->
     <button type="button" class="btn btn-main" id="share-btn">카드 주소 보내기</button>
-    <p class="sub" style="margin:8px 0 12px;">이 주소에는 강아지 이름·크기·성향·털색만 들어가요. 주소를 받은 사람은 누구나 열어 볼 수 있어요.</p>
+    <p class="sub" style="margin:8px 0 12px;">아는 사람에게만 카톡으로 보내요(키링 신청 땐 운영자에게). 강아지 이름·크기·성향·털색만 들어가고, 받은 사람은 누구나 열어 볼 수 있어요.</p>
     <button type="button" class="btn btn-sub" data-close>닫기</button>
   </div>
 </div>
@@ -198,7 +217,7 @@
   </div>
 </div>
 
-<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
 <script>
 (function () {
   // 도감(petwalk_dex)·내 번호(petwalk_dex_me)·주민증은 store.js(WalsonStore)로 읽고 쓴다
@@ -222,7 +241,7 @@
   function eul(name) { var c = name.charCodeAt(name.length - 1); return name + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? '을' : '를'); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
-  // ── 내 번호 · 내 카드 내용 · 주소 ── dex-card.js(WalsonDexCard, 2026-11-18) — 주민증 탭 키링 뒷면 QR·NFC와 같은 주소
+  // ── 내 번호 · 내 카드 내용 · 주소 ── dex-card.js(WalsonDexCard, 2026-11-18) — 주민증 탭 키링 뒷면 QR과 같은 카드
   var DC = window.WalsonDexCard;
   var myId = DC.myId, myCard = DC.myCard, cardUrl = function (card) { return DC.cardUrl(card); };
 
@@ -259,10 +278,7 @@
     for (var i = log.length - 1; i >= 0; i--) if (log[i] && DC.MSGS[log[i].m]) return log[i].m;
     return null;
   }
-  function payloadFromText(text) {
-    var m = /dex\.html#d=([A-Za-z0-9_-]+)/.exec(text || '');
-    return m ? m[1] : null;
-  }
+  function payloadFromText(text) { return DC.payloadOf(text); }   // 새 글자 꼴(WALSON 친구카드 #d=)·예전 링크 꼴 둘 다
 
   // ── 그리기 ──
   function avatar(dog, xl) {
@@ -318,7 +334,7 @@
   document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeAll); });
   document.querySelectorAll('.sheet').forEach(function (s) { s.addEventListener('click', function (e) { if (e.target === s) closeAll(); }); });
 
-  // ── 카드 주소 보내기(2026-11-16) ── 키링 뒷면 QR·NFC에 넣을 주소를 운영자에게(카톡 1:1 등).
+  // ── 카드 주소 보내기(2026-11-16) ── 키링 뒷면 QR에 넣을 카드를 운영자에게(카톡 1:1 등) — 링크는 아는 사람에게 보낼 때만(11/24).
   // 휴대폰 공유 창이 있으면 그걸로, 없으면 복사, 그것도 안 되면 주소를 띄워 길게 눌러 복사하게 한다.
   var shareUrl = '', shareName = '';
   function copyFallback() { window.prompt('이 주소를 길게 눌러 복사해 주세요', shareUrl); }
@@ -329,7 +345,7 @@
   }
 
   // ── 내 카드(화면 QR) ── 2026-11-23: 고른 한마디 + 띄운 시각을 담고 30초마다 새로 그린다(캡처는 몇 분 뒤 발자국만).
-  // 카드 주소 보내기(키링 신청용)는 예전 그대로 시각 없는 주소 — 키링 뒷면 QR·NFC에 들어가는 주소라서.
+  // 카드 주소 보내기(키링 신청용)는 예전 그대로 시각 없는 주소 — 키링 뒷면 QR에 들어가는 카드라서(QR엔 글자로).
   var MSG_KEY = 'petwalk_dex_msg';   // 마지막으로 고른 한마디 번호(다음에 띄울 때 그대로)
   // liveRoom: 내 아지트 방 모습 몇 글자(azit-room.js) — 띄울 때 한 번 세어 QR에 같이 싣는다(그 자리에서 찍은 단짝이 마실 올 때 보이는 방)
   var liveCard = null, liveTimer = null, pickedMsg = 0, liveRoom = null;
@@ -341,7 +357,7 @@
     var box = $('my-qr');
     if (!liveCard) return;
     if (!window.qrcode) { box.textContent = 'QR을 그리지 못했어요(인터넷 연결 확인).'; return; }
-    var qr = qrcode(0, 'M'); qr.addData(DC.liveUrl(liveCard, pickedMsg, liveRoom)); qr.make();
+    var qr = qrcode(0, 'M'); qr.addData(DC.liveText(liveCard, pickedMsg, liveRoom)); qr.make();   // 링크 아닌 글자(11/24 — dex-card.js 친구 QR 글자)
     box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
   }
   function drawPick() {
@@ -380,6 +396,17 @@
   }
   // 받은 카드의 이름에 연락처·주소가 있으면 넣지 않고, 그 이름도 보여 주지 않는다
   var BAD_CARD = '이름에 전화번호나 인터넷 주소가 든 카드라 넣지 않았어요.';
+  // 앱 없는 분께 보여 주기(11/24) — QR·한마디 자리를 큰 글씨 판으로 바꾼다(QR을 보여 주지 않게). 다시 누르면 내 QR
+  function showNonuser(on) {
+    $('nonuser').hidden = !on;
+    $('my-qr').hidden = on; $('my-pick').hidden = on;
+    document.querySelector('#my-sheet .qr-note').hidden = on;
+    if (on) $('my-msgs').hidden = true;
+    $('nonuser-btn').textContent = on ? '내 QR 다시 보기' : '앱 없는 분께 보여 주기';
+    var B = window.WALSON_CONFIG && WALSON_CONFIG.brand;
+    $('nu-brand').textContent = B ? B.name + ' · ' + B.tagline : '';
+  }
+  $('nonuser-btn').addEventListener('click', function () { showNonuser($('nonuser').hidden); });
   function showMyCard() {
     if (nameBlocked()) return;
     myCard().then(function (card) {
@@ -393,6 +420,7 @@
       liveCard = card; pickedMsg = savedMsg();
       liveRoom = window.WalsonAzit ? WalsonAzit.mySnapshot(card.c) : null;   // 못 세면 방 모습 없이(받은 쪽은 빈 방으로)
       $('my-msgs').hidden = true;
+      showNonuser(false);
       drawPick(); drawLiveQr();
       liveTimer = setInterval(drawLiveQr, 30000);
       open('my-sheet');
@@ -541,8 +569,9 @@
 
   // ── QR 찍기(카메라) ── 앱 공통 QR 찍기(qr-scan.js — 가게 QR과 같은 카메라 코드)로. 화면에서 QR 글자만 읽고 사진은 저장·전송하지 않는다.
   // 도감 글(카메라 설명·권한 안내)과 모양(아래에서 올라오는 판)은 예전 이 화면 그대로 넘긴다.
-  // 읽은 글이 도감 카드 주소면 "넣을까요"로(찍히면 진동 — qr-scan.js), 아니면 안내만 띄우고 바로 다시 읽는다.
-  var CAMERA_FAILED = '카메라를 켜지 못했어요. 휴대폰 기본 카메라 앱으로 상대 QR을 찍어 주세요.';
+  // 읽은 글이 도감 카드(새 글자 꼴·예전 링크 꼴)면 "넣을까요"로(찍히면 진동 — qr-scan.js), 아니면 안내만 띄우고 바로 다시 읽는다.
+  // 11/24부터 친구 QR은 링크가 아니라 휴대폰 기본 카메라로는 안 열린다 — "기본 카메라로 찍어 주세요"라고 하지 않는다
+  var CAMERA_FAILED = '카메라를 켜지 못했어요. 친구 QR은 왈슨 안에서만 읽혀요 — 왈슨을 닫았다 다시 열거나, 브라우저 설정에서 카메라를 허용해 주세요.';
   function startScan() {
     WalsonQR.scan({
       title: '상대 QR 찍기',
@@ -551,14 +580,15 @@
       pauseMs: 0,
       texts: {
         explain: '상대 QR을 찍으려면 카메라가 필요해요.\n화면에서 QR 글자만 읽고, 사진은 저장하거나 보내지 않아요. 카메라를 켤까요?',
-        noCamera: '이 브라우저에서는 카메라를 쓸 수 없어요. 휴대폰 기본 카메라 앱으로 상대 QR을 찍어 주세요.',
-        denied: '카메라 권한이 꺼져 있어요. 주소창 왼쪽 자물쇠(또는 설정 > 브라우저 > 카메라)에서 허용해 주세요. 휴대폰 기본 카메라로 찍어도 돼요.',
+        noCamera: '이 브라우저에서는 카메라를 쓸 수 없어요. 크롬이나 사파리에서 왈슨을 열어 찍어 주세요(친구 QR은 왈슨 안에서만 읽혀요).',
+        denied: '카메라 권한이 꺼져 있어요. 주소창 왼쪽 자물쇠(또는 설정 > 브라우저 > 카메라)에서 허용해 주세요. 친구 QR은 왈슨 안에서만 읽혀요.',
         failed: CAMERA_FAILED,
         noReader: CAMERA_FAILED   // QR 읽기 도구를 못 불러와도 예전처럼 같은 글
       },
       onOpen: closeAll,   // 카메라 판을 띄우기 바로 전에 다른 판을 닫는다(예전 그대로 — 설명을 취소하면 그대로 둔다)
       onText: function (text) {
         var p = payloadFromText(text), dog = p && decode(p);
+        if (!p && /^WALSON/.test(text)) return '워킹패스 그림에 있는 QR이에요. 친구가 되려면 상대가 띄운 화면 QR이나 키링 뒷면 QR을 찍어 주세요.';
         if (!dog) return '왈슨 도감 QR이 아니에요. 상대에게 "내 카드 보여 주기"를 눌러 달라고 해 주세요.';
         if (DC.nameProblem(dog.n)) return BAD_CARD;
         offerAdd(dog);
@@ -568,7 +598,7 @@
   }
   $('scan-btn').addEventListener('click', startScan);
 
-  // ── 휴대폰 카메라로 찍고 들어온 경우(#d=...) ──
+  // ── 카드 링크로 들어온 경우(#d=...) — "카드 주소 보내기"로 받은 것·예전 QR·캡처(11/24부터 새 QR은 링크가 아니라 카메라로는 안 들어온다) ──
   function fromHash() {
     var m = /[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);
     if (!m) return;

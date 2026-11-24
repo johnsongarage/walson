@@ -1,7 +1,9 @@
 // 도감 카드 내용·주소(2026-11-18, dex.html에서 뺌). 전역 window.WalsonDexCard.
-// 키링 뒷면 QR·NFC(주민증 탭 — id-card.js drawKeyringBack)와 도감의 "카드 주소 보내기"가 같은 주소를 쓰게 한 곳에 둔다.
-// 주소 = 화면 주소 + dex.html#d=(강아지 이름·크기·성향·털색·무작위 번호). 위치·사진·견주 정보·성별·견종은 안 담는다.
-// #뒤는 서버로 가지 않는다. 내 번호는 store.js(WalsonStore, petwalk_dex_me) — 이 파일보다 store.js를 먼저 불러야 한다.
+// 도감 화면 QR · 키링 뒷면 QR(주민증 탭 — id-card.js drawKeyringBack) · 도감의 "카드 주소 보내기"가 같은 카드를 쓰게 한 곳에 둔다.
+// 카드 = #d=(강아지 이름·크기·성향·털색·무작위 번호). 위치·사진·견주 정보·성별·견종은 안 담는다.
+// 2026-11-24부터 QR에는 링크가 아니라 글자(cardText — "WALSON 친구카드 #d=…")를 넣는다 — 아래 "친구 QR 글자".
+// 링크(cardUrl, dex.html#d=…)는 "카드 주소 보내기"에만. #뒤는 서버로 가지 않는다.
+// 내 번호는 store.js(WalsonStore, petwalk_dex_me) — 이 파일보다 store.js를 먼저 불러야 한다.
 (function () {
   var SIZE_FROM = { small: 's', medium: 'm', large: 'l' };
   var SIG_FROM = { green: 'g', yellow: 'y', red: 'r' };
@@ -63,9 +65,24 @@
     var b = btoa(unescape(encodeURIComponent(JSON.stringify(card))));
     return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  // base: 'https://…/walson/'처럼 끝이 /인 주소. 없으면 지금 화면이 있는 곳(앱 안 QR 교환은 이쪽)
+  // base: 'https://…/walson/'처럼 끝이 /인 주소. 없으면 지금 화면이 있는 곳.
+  // 링크는 "카드 주소 보내기"(아는 사람에게·키링 신청 때 운영자에게 카톡으로)에만 쓴다 — QR에는 넣지 않는다(아래 cardText)
   function cardUrl(card, base) {
     return (base || location.origin + location.pathname.replace(/[^/]*$/, '')) + 'dex.html#d=' + encode(card);
+  }
+  // ── 친구 QR 글자(2026-11-24 가르시아 "그렇게 바꿔 줘. 괜히 누가 악용해서 큐싱당했다고 피곤한 일 생기는 것보다 낫지") ──
+  // 견주끼리 보여 주는 QR(도감 화면 QR · 키링 뒷면)은 링크가 아니라 글자다. 휴대폰 카메라로 찍으면 이 글자만 보이고 아무 데도 열리지 않는다.
+  // 왈슨 앱 안 [QR 찍기]만 #d= 뒤의 카드를 읽는다(payloadOf). 모르는 사람이 내민 QR을 찍어 링크를 여는 행동(큐싱)을 가르치지 않으려고 —
+  // hq DECISIONS 11/24, notes/petwalk-park-trouble.md 7절. 머리 'WALSON 친구카드 '는 글자 꼴 표시라 바꾸지 말 것(뽑은 키링이 이 꼴로 읽힌다).
+  // 링크 주소보다 짧아서 QR도 덜 빽빽하다.
+  var QR_HEAD = 'WALSON 친구카드 ';
+  function cardText(card) { return QR_HEAD + '#d=' + encode(card); }
+  // 찍은 글에서 카드 글자(#d= 뒤)만 꺼낸다 — 새 글자 꼴과 예전 링크 꼴(dex.html#d= — 이미 퍼진 캡처·키링 샘플·카드 주소) 둘 다.
+  // town.html(동네 QR 찍기)·walk-screen.js(산책 중 가게 QR 찍기)도 같은 꼴을 본다 — 바꾸면 거기도 같이.
+  // 표시는 영문 'WALSON'으로 본다 — 한글(친구카드)은 읽는 쪽 글자 변환에 따라 깨질 수 있어서(카드 글자 #d= 뒤는 영문·숫자뿐이라 늘 그대로).
+  function payloadOf(text) {
+    var m = /(?:dex\.html|WALSON[^#]{0,40})#d=([A-Za-z0-9_-]+)/.exec(String(text || ''));
+    return m ? m[1] : null;
   }
 
   // ── 화면 QR(2026-11-23 개방명록 1단계, hq DECISIONS 11/23) ──
@@ -111,16 +128,19 @@
     return '<svg viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="' + d + '"/></svg>';
   }
   function nowMin() { return Math.floor(Date.now() / 60000); }
-  // 화면 QR 주소 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고) + 내 아지트 방 모습 몇 글자(r, azit-room.js snapshot — 없으면 빼고)
+  // 화면 QR 카드 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고) + 내 아지트 방 모습 몇 글자(r, azit-room.js snapshot — 없으면 빼고)
   // 방 모습(2026-11-23 개방명록 2단계)은 그 자리에서 찍은 단짝 폰에만 남아 마실 갈 때 그 방으로 보인다. 키링·카드 주소 보내기에는 안 싣는다.
-  function liveUrl(card, m, r) {
+  function liveCard(card, m, r) {
     var c = {};
     for (var k in card) if (Object.prototype.hasOwnProperty.call(card, k)) c[k] = card[k];
     c.t = nowMin();
     if (m != null && MSGS[m]) c.m = m;
     if (typeof r === 'string' && r) c.r = r;
-    return cardUrl(c);
+    return c;
   }
+  // 화면 QR에 넣는 글자(11/24부터 링크 아님). liveUrl은 예전 꼴 — 이미 퍼진 링크가 열리는지 시험할 때만
+  function liveText(card, m, r) { return cardText(liveCard(card, m, r)); }
+  function liveUrl(card, m, r) { return cardUrl(liveCard(card, m, r)); }
   // 받은 카드가 어떤 QR이었나: 'live' 몇 분 안에 띄운 화면 · 'stale' 지난 캡처 · 'static' 시각 없음(키링·카드 주소·예전 QR)
   function kindOf(t) {
     if (typeof t !== 'number' || !isFinite(t)) return 'static';
@@ -131,6 +151,7 @@
   window.WalsonDexCard = {
     SIZE_FROM: SIZE_FROM, SIG_FROM: SIG_FROM, PALETTE: PALETTE,
     myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl, nameProblem: nameProblem,
-    LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveUrl: liveUrl, kindOf: kindOf
+    QR_HEAD: QR_HEAD, cardText: cardText, payloadOf: payloadOf,
+    LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveText: liveText, liveUrl: liveUrl, kindOf: kindOf
   };
 })();

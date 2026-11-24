@@ -51,7 +51,7 @@
 <script src="store.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
 <script src="pass-vertical.js?v=2"></script>
 </head>
 <body>
@@ -242,7 +242,7 @@
       V.draw(canvases[k[0]], {
         signal: k[0], photo: photo, name: $('f-name').value.trim(), nameEn: $('f-en').value.trim(), breed: $('f-breed').value.trim(),
         level: lv + 1, rankName: r.name, place: '남양주 다산동', cardNo: (prof && prof.cardNo) || 'DASAN-0001',
-        qr: 'https://johnsongarage.co.kr/walson/start.html', design: d
+        qr: "WALSON · 카카오톡에서 '왈슨' 검색", design: d   // 11/24부터 그림 속 QR은 링크 아닌 글자(site-config.js cardQrText)
       });
     });
   }

@@ -2284,6 +2284,11 @@ var qrcode = function() {
     return toUTF8Array(s);
   };
 
+  // ── 왈슨에서 바꾼 한 줄(2026-11-24) ── 기본 글자 변환을 UTF-8로.
+  // 친구 QR 글자("WALSON 친구카드 #d=…")·그림 QR 글자("카카오톡에서 '왈슨' 검색")에 한글이 들어가는데, 원래 기본('default')은
+  // 한 글자를 한 바이트로 잘라 한글이 깨진다. 영문·숫자만 있는 링크 QR(공원 안내판·가게 카운터)은 UTF-8이나 기본이나 같은 바이트라 그대로.
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+
 }();
 
 (function (factory) {
