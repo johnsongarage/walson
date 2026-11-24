@@ -1613,15 +1613,16 @@
     r.style.left = left + 'px'; r.style.top = Math.max(0, (y - 6) * K) + 'px';
   }
   // ── 공 던지기(11/24 가르시아 "공을 상호작용하면 던지기 버튼이 뜨게, 누르고 던질 곳을 찍으면 강쥐가 물어 오게. 여러 번 하면 반항도") ──
-  // 내 방 공(다섯 가지)·뼈다귀·밧줄 장난감을 톡 → 안내에 [던지기] → 바닥을 누르면 화면 앞 가운데(보는 사람 손)에서 포물선으로 날아가 통통 튀고 →
+  // 내 방 공(다섯 가지)·뼈다귀·밧줄 장난감·당근 인형·닭 인형을 톡 → 안내에 [던지기] → 바닥을 누르면 화면 앞 가운데(보는 사람 손)에서 포물선으로 날아가 통통 튀고 →
   // 우리 개가 뛰어가 물고 와서 앞에 내려놓는다. 1분 반 안에 던진 횟수로 기분이 바뀐다: 1~3번째 신나서(뛰어서), 4번째 헥헥(걸어서),
   // 5번째 반반, 6번째부터는 반항 — 못 들은 척 "흥!" · 공 옆에 버티기 · 물고 구석으로 도망. 1분 반 동안 안 던지면 다시 신난다.
   // 공은 내려놓은(떨어진) 자리로 저장된다. 친구 방·모델하우스에서도 던질 수 있다(11/24 가르시아 "친구 방에서도") — 거기선 손님으로 간
   // 우리 개가 물어 오고, 옮긴 공 자리는 그 방에 있는 동안만(visitPos — 남의 방 소품 자리는 저장하지 않는다)
-  // 던질 수 있는 것 — 공 다섯 + 뼈다귀·밧줄 장난감(11/24 가르시아 "뼈다귀랑 밧줄 장난감도 던질 수 있게").
-  // bounce = 떨어질 때 튀는 정도(공 1), carry = 입에 물 때 크기(밧줄은 길어서 작게)
-  var BALLS = ['ball', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky', 'bone', 'rope'];
-  var TOSS = { bone: { bounce: 0.5, carry: 0.75 }, rope: { bounce: 0.3, carry: 0.6 } };
+  // 던질 수 있는 것 — 공 다섯 + 뼈다귀·밧줄 장난감(11/24 가르시아 "뼈다귀랑 밧줄 장난감도 던질 수 있게") + 당근 인형·삑삑이 닭 인형(같은 날 "당근 인형이랑 닭 인형도").
+  // bounce = 떨어질 때 튀는 정도(공 1), carry = 입에 물 때 크기(길쭉한 건 작게), grab = 물 때 한마디(닭 인형은 삑!)
+  var BALLS = ['ball', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky', 'bone', 'rope', 'carrot', 'toy_chicken'];
+  var TOSS = { bone: { bounce: 0.5, carry: 0.75 }, rope: { bounce: 0.3, carry: 0.6 },
+    carrot: { bounce: 0.6, carry: 0.6 }, toy_chicken: { bounce: 0.5, carry: 0.6, grab: '삑!' } };
   var FLY = 0.75, BOUNCE = 0.4, TIRED_SEC = 90;
   var aim = null, fetchJob = null, throwLog = [], ballSmall = {};
   function canThrow(id) { return BALLS.indexOf(id) >= 0 && !!cur && cur.items.indexOf(id) >= 0; }
@@ -1677,7 +1678,9 @@
     if (f.phase === 'chase') {
       if (d.mode || !arrived(d)) return;   // 아직 가는 중(방석·개모차에서 일어나는 중 포함)
       if (f.mood === 'stay') { sayFor(d, pick(['안 갖다 줄 거야~', '여기 있을래', '공은 내 거']), 2.8); d.rest = 16; fetchJob = null; saveIfMine(); return; }   // 공 옆에 버티기
-      f.phase = 'grab'; f.t0 = now; d.hop = -1; return;   // 고개 숙여 물기
+      f.phase = 'grab'; f.t0 = now; d.hop = -1;   // 고개 숙여 물기
+      if (TOSS[f.id] && TOSS[f.id].grab) sayFor(d, TOSS[f.id].grab, 0.8);   // 닭 인형 — 물면 삑!
+      return;
     }
     if (f.phase === 'grab') {
       if (t < 0.3) return;
