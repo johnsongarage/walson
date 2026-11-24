@@ -61,9 +61,11 @@
       if (/^(petwalk_|walson_)/.test(k) && !SKIP.test(k)) data[k] = localStorage.getItem(k);
     }
     if (data.petwalk_walks) {
-      // 발도장 장소를 알아야 하므로 장소 목록(reward-rules.js)이 없는 화면에서는 올리지 않는다(발도장 없는 백업으로 덮어쓰지 않게)
-      var places = window.RewardRules && RewardRules.PLACES;
-      if (!places || !places.length) return null;
+      // 발도장 장소를 알아야 하므로 장소 목록(reward-rules.js)이 없는 화면에서는 올리지 않는다(발도장 없는 백업으로 덮어쓰지 않게).
+      // 11/24 전국판 — 발도장이 꺼져 있으면(STAMPS_ON false) 목록이 비어 있는 게 맞다: 그때는 받은 발도장 점 없이 올린다
+      // (예전엔 빈 목록이면 "못 읽었어요"로 멈춰서 백업이 늘 실패했을 것)
+      var RRb = window.RewardRules, places = RRb && RRb.PLACES;
+      if (!places || (!places.length && RRb.STAMPS_ON !== false)) return null;
       try {
         data.petwalk_walks = JSON.stringify((JSON.parse(data.petwalk_walks) || []).map(function (w) {
           var o = {}; Object.keys(w || {}).forEach(function (f) { if (f !== 'route' && f !== 'stampRoute' && f !== 'photoKey') o[f] = w[f]; });

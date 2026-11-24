@@ -243,7 +243,7 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=11"></script>
+<script src="reward-rules.js?v=12"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=4"></script>
 <script src="mock-server.js?v=2"></script>
@@ -373,7 +373,7 @@
       // 위치를 쓰기로 했지만 위치를 거의 못 받은 산책(walk.html) — 걸은 시간만 남았다
       if (counted) cardRows();
       goalAndReceipt();
-      note('위치를 못 받아 시간만 남겼어요 · 발도장 없음' + (counted ? '' : ' · ' + shortNote), 'got-hint');
+      note('위치를 못 받아 시간만 남겼어요' + (R.STAMPS_ON ? ' · 발도장 없음' : '') + (counted ? '' : ' · ' + shortNote), 'got-hint');
       // 진짜 이유는 대개 화면 꺼짐·다른 앱(웹앱은 그동안 위치를 못 받는다) — 11/17 고지, 11/18 한 줄로 줄임
       note('화면이 꺼지거나 다른 앱을 쓰면 위치가 끊겨요 · 앱을 켜 두거나 "여기 찍기"', 'got-hint');
       showGot();
@@ -382,14 +382,20 @@
     if (timeOnly) {
       if (counted) cardRows();
       goalAndReceipt();
-      note((loggedAfter ? '다녀와서 적은' : '시간만 잰') + ' 산책이라 발도장 없음' + (counted ? '' : ' · ' + shortNote) + (loggedAfter ? '' : ' · 위치를 쓰면 발도장도 찍혀요'), 'got-hint');
+      if (R.STAMPS_ON) note((loggedAfter ? '다녀와서 적은' : '시간만 잰') + ' 산책이라 발도장 없음' + (counted ? '' : ' · ' + shortNote) + (loggedAfter ? '' : ' · 위치를 쓰면 발도장도 찍혀요'), 'got-hint');
+      else {   // 11/24 전국판 — 발도장이 없으니 남는 것만(짧았으면 그 까닭 · 위치를 쓰면 길도 남는다)
+        var tn = [];
+        if (!counted) tn.push(shortNote);
+        if (!loggedAfter) tn.push('위치를 쓰면 걸은 길도 남아요');
+        if (tn.length) note(tn.join(' · '), 'got-hint');
+      }
       showGot();
       return;
     }
     if (walk.rewardEligible === false) {
       // 짧은 길 기록 산책 — 5분은 넘었지만 200m가 안 됐으면 주민증만 자라고 발도장은 없다
-      if (counted) { cardRows(); note('200m 미만이라 발도장 없음', 'got-hint'); }
-      else note('5분 미만이라 발도장·워킹패스 성장 제외', 'got-hint');
+      if (counted) { cardRows(); if (R.STAMPS_ON) note('200m 미만이라 발도장 없음', 'got-hint'); }
+      else note('5분 미만이라 ' + (R.STAMPS_ON ? '발도장·' : '') + '워킹패스 성장 제외', 'got-hint');
       // 화면이 꺼져 있던(다른 앱) 동안 길이 끊겨 거리가 모자랐을 수 있다 — 앱을 켜 두거나 여기 찍기(11/17)
       if (walk.gapMin > 0) note('화면이 꺼진 동안은 길이 끊겨요 · 앱을 켜 두거나 "여기 찍기"', 'got-hint');
     } else {
@@ -408,7 +414,7 @@
     next.className = 'got-next';
     next.innerHTML = ARROW + '<span></span>';
     next.lastChild.textContent = m ? '다음 미션: ' + m.place.name + (m.place.kind === 'building' ? ' 앞까지' : '까지')
-      : goal && goal !== '모든 보상을 모았어요' ? '다음 보상: ' + goal : '미션을 다 했어요';
+      : goal && goal !== '모든 보상을 모았어요' ? '다음 보상: ' + goal : R.STAMPS_ON ? '미션을 다 했어요' : '모든 보상을 모았어요';
     box.appendChild(next);
     if (hintEl) box.appendChild(hintEl);
     showGot();

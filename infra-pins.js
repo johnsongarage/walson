@@ -128,7 +128,7 @@
   // 설정은 spots-data.js의 window.PETWALK_MAP_GROUPS = [{ id, label, layers: [{ key, zoom, off }] }].
   // 스팟 편집 페이지가 쓴다. 없으면 DEFAULT_GROUPS.
   var SYSTEM_LAYERS = [
-    { key: 'stamp', label: '우리 개 발도장', color: '#b8563a', system: true },
+    { key: 'stamp', label: '우리 개 다녀간 곳', color: '#b8563a', system: true },
     { key: 'mine', label: '내 핀', color: '#b8563a', system: true },
     { key: 'deco', label: '그림 강아지', color: '#e9c46a', system: true },
     // 수호견 가게(2026-11-17): 동반 가게와 같은 레벨. 가게 중 수호견이 있는 곳 — 핀은 강아지 동그라미

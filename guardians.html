@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 지역별 수호지킴이 목록(2026-11-15, 가르시아 "나중에 리스트로 뿌리는 기능"). [동네] 지도의 "모아 보기"에서 온다.
-     동네 이름은 스팟 편집의 "동네 이름" 칸(spot.area) — 비어 있으면 "다산동"으로 묶는다.
+     동네 이름은 스팟 편집의 "동네 이름" 칸(spot.area) — 비어 있으면 "기타 동네"로 묶는다(11/24 전국판 — 예전엔 "다산동").
      수호견 v2(재택 명예 / 출근) — infra-pins.js의 GUARDIANS_ON이 false면 비어 보인다. */
   :root {
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -58,7 +58,7 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=28"></script>
+<script src="infra-pins.js?v=29"></script>
 </head>
 <body>
 
@@ -75,7 +75,7 @@
 
 <script>
 (function () {
-  var DEFAULT_AREA = '다산동';
+  var DEFAULT_AREA = '기타 동네';   // 11/24 전국판 — 여러 동네를 모아 보는 화면이라 '우리 동네'는 다른 동네 사람에게 틀림
   var list = InfraPins.all().filter(function (p) { return p.cat === 'spot' && InfraPins.hasGuardian(p); });
   if (!list.length) { document.getElementById('empty').hidden = false; return; }
 

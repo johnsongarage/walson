@@ -48,7 +48,7 @@
   var GOAL_PILL = '#fde4df';   // 오늘 목표 달성 알약 바탕(글씨는 도장 빨강)
   var POOP_INK = '#7a4a26';   // 응가 도장 — 빨간 도장(상환)과 갈리게 갈색 한 색
   var DOW = ['일', '월', '화', '수', '목', '금', '토'];
-  var SHOP = '다산동 산책 상회';   // 2026-11-17 가르시아 "다산동 산책 상회로 가 일단". 앱 이름은 아래 브랜드 줄(site-config.js brand)로
+  var SHOP = '동네 산책 상회';   // 2026-11-17 가르시아 "다산동 산책 상회로 가 일단" → 11/24 전국판이라 "동네 산책 상회"(가르시아 "다산동 들어간 건 빼 줘"). 앱 이름은 아래 브랜드 줄(site-config.js brand)로
   // 아래 홈페이지 주소 줄(johnsongarage.co.kr/walson)은 뺐다 — 2026-11-24 가르시아 "홈페이지 주소 대신 산책 뒤에 왈슨 붙여 줘"
 
   function pad4(n) { var s = String(Math.max(0, n | 0)); while (s.length < 4) s = '0' + s; return s; }

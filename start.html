@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>강아지 워킹패스 만들기</title>
 <!-- 카톡·SNS 링크 미리보기(2026-11-16, 시안 1-B). 이미지를 바꾸면 ?v= 번호를 올릴 것 — 카톡이 예전 이미지를 오래 기억한다 -->
-<meta name="description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
+<meta name="description" content="우리 동네 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="왈슨">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="왈슨 · 강아지 워킹패스 만들기">
-<meta property="og:description" content="다산동 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
+<meta property="og:description" content="우리 동네 강아지 산책 앱. 다녀와서 몇 분인지만 누르면 끝, 설치·가입 없이 바로 써요.">
 <meta property="og:url" content="https://johnsongarage.co.kr/walson/start.html">
 <meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=5">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="800">
-<meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 다산동 강아지 산책 앱">
+<meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 우리 동네 강아지 산책 앱">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
@@ -190,11 +190,11 @@
 <script src="canvas-view.js?v=1"></script>
 </head>
 <body>
-<div id="splash" role="img" aria-label="왈슨, 다산동 강아지 산책 앱. 제작 johnsongarage">
+<div id="splash" role="img" aria-label="왈슨, 우리 동네 강아지 산책 앱. 제작 johnsongarage">
   <div class="splash-main">
     <img src="icons/walson-logo.webp" alt="" width="900" height="732">
     <div class="splash-name">왈슨</div>
-    <div class="splash-tag">다산동 강아지 산책 앱</div>
+    <div class="splash-tag">우리 동네 강아지 산책 앱</div>
   </div>
   <div class="splash-by">제작자 johnsongarage</div>
 </div>
@@ -323,12 +323,12 @@
 <script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
 
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=8"></script>
+<script src="sample-data.js?v=9"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=28"></script>
+<script src="infra-pins.js?v=29"></script>
 <script src="dog-tags.js?v=2"></script>
-<script src="reward-rules.js?v=11"></script>
-<script src="id-card.js?v=15"></script>
+<script src="reward-rules.js?v=12"></script>
+<script src="id-card.js?v=17"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script>
@@ -462,7 +462,7 @@
   // 카드 꾸밈용 번호다(신청·본인 확인에 쓰는 번호가 아니다).
   function makeCardNo() {
     var n = Math.floor(Math.random() * 9000) + 1000;
-    return 'DASAN-' + new Date().getFullYear() + '-' + n;
+    return 'WALSON-' + new Date().getFullYear() + '-' + n;   // 11/24 전국판 — 예전 DASAN-
   }
   var todayText = IC.todayText;
 

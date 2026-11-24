@@ -163,8 +163,8 @@
 <body>
 <div class="wrap">
   <a class="back" id="back" href="town.html">‹ 돌아가기</a>
-  <h1>미션을 하려면<br>‘정확한 위치’를 켜 주세요</h1>
-  <p class="lead">발도장은 미션 장소의 동그라미 안에 들어가야 찍혀요. 휴대폰이 ‘대략적인 위치’만 알려 주면 오차가 2km 넘게 생겨서, 장소에 와도 왈슨이 알 수 없어요. 웹에서는 켜 달라고 물어볼 수가 없어서 설정에서 한 번만 켜 주시면 돼요.</p>
+  <h1>걸은 길을 또렷하게 남기려면<br>‘정확한 위치’를 켜 주세요</h1>
+  <p class="lead">휴대폰이 ‘대략적인 위치’만 알려 주면 오차가 2km 넘게 생겨서, 걸은 길이 엉뚱하게 그려지고 거리도 틀려요. 웹에서는 켜 달라고 물어볼 수가 없어서 설정에서 한 번만 켜 주시면 돼요.</p>
 
   <section class="check" id="check" data-state="idle" aria-live="polite">
     <div class="ck-head">
@@ -200,11 +200,11 @@
     </details>
     <details>
       <summary>왈슨은 내 위치를 어디로 보내나요?</summary>
-      <p>보내지 않아요. 위치는 이 휴대폰 안에서 발도장과 거리를 계산하는 데만 쓰고, 걸은 길은 이 휴대폰에만 저장돼요. 지도 그림을 받아 올 때 보고 있는 지역이 지도 서버(OpenStreetMap)에 전달되는 것까지 <a href="privacy.html">개인정보 안내</a>에 적어 두었어요.</p>
+      <p>보내지 않아요. 위치는 이 휴대폰 안에서 걸은 길과 거리를 계산하는 데만 쓰고, 걸은 길은 이 휴대폰에만 저장돼요. 지도 그림을 받아 올 때 보고 있는 지역이 지도 서버(OpenStreetMap)에 전달되는 것까지 <a href="privacy.html">개인정보 안내</a>에 적어 두었어요.</p>
     </details>
     <details>
       <summary>다시 끄고 싶으면요?</summary>
-      <p>같은 곳에서 언제든 끌 수 있어요. 꺼도 기록·워킹패스·지도는 그대로 쓰고, 발도장·길 기록·도착 알림만 안 돼요.</p>
+      <p>같은 곳에서 언제든 끌 수 있어요. 꺼도 기록·워킹패스·지도는 그대로 쓰고, 길 기록만 안 돼요.</p>
     </details>
   </section>
 
@@ -328,11 +328,11 @@
         return from && acc != null ? [from + '는 ', { b: '오차 약 ' + accText(acc) }, '였어요. 다시 재는 중이에요 — 최대 10초, 창가나 밖이면 더 빨라요.']
           : ['최대 10초 걸려요. 창가나 밖이면 더 빨라요.'];
       case 'good':
-        return head.concat(['이제 미션 장소에 가면 왈슨이 알 수 있어요.']);
+        return head.concat(['이제 걸은 길이 또렷하게 남아요.']);
       case 'blurry':
         return head.concat(['실내라서 그럴 수 있어요. 창가나 밖에서 [다시 확인]을 눌러 보세요. 밖에서도 그대로면 아래 순서대로 설정을 확인해 주세요.']);
       case 'approx':
-        return head.concat(['이대로는 미션 장소에 와도 알 수 없어요. 아래 순서대로 ‘정확한 위치’를 켜 주세요.']);
+        return head.concat(['이대로는 걸은 길이 엉뚱하게 그려질 수 있어요. 아래 순서대로 ‘정확한 위치’를 켜 주세요.']);
       case 'denied':
         return ['왈슨이 위치를 읽지 못하게 막혀 있어요. 아래 순서대로 위치를 허용하고 ‘정확한 위치’도 같이 켜 주세요.'];
       case 'fail':
@@ -415,7 +415,7 @@
         WalsonMissionAlert.show({
           icon: 'pin', tone: 'good', badge: '오차 약 ' + accText(acc),
           title: '정확한 위치가 켜졌어요!',
-          lines: ['이제 미션 장소에 가면', '화면 가운데로 알려 드려요.'],
+          lines: ['이제 걸은 길이', '또렷하게 남아요.'],
           primary: { label: back ? back[1] : '확인', href: back ? (fromHere ? undefined : back[0]) : undefined,
             onClick: back && fromHere ? function () { history.back(); } : undefined },
           secondary: back ? { label: '닫기' } : undefined

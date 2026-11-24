@@ -242,7 +242,7 @@
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
-<script src="cloud-backup.js?v=4" defer></script>
+<script src="cloud-backup.js?v=5" defer></script>
 <script src="inapp.js?v=5"></script>
 <script src="install.js?v=1"></script>
 <script src="quick-set.js?v=4"></script>
@@ -363,11 +363,11 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=11"></script>
+<script src="reward-rules.js?v=12"></script>
 <script src="steady-stamp.js?v=5"></script>
-<script src="month-report.js?v=6"></script>
+<script src="month-report.js?v=7"></script>
 <script src="receipt-info.js?v=1"></script>
-<script src="walk-receipt.js?v=12"></script>
+<script src="walk-receipt.js?v=13"></script>
 <script src="image-editor.js?v=7"></script>
 <script>
 (function () {
@@ -840,7 +840,7 @@
     var streak = streakAt(walkedDays, w.date);
     var sub = kind + (w.sniff ? ' · 킁킁 ' + w.sniff : '') + (streak > 1 ? ' · 연속 ' + streak + '일째' : '');   // 영수증 번호는 일기 창에
     var tags = (w.demo ? '<span class="demo-tag">데모</span>' : '') +
-      (w.mode !== 'time' && w.rewardEligible === false ? '<span class="tag">발도장 제외</span>' : '');   // 5분·200m 미만 길 기록 산책(walk.html WALK_RULES)
+      (w.mode !== 'time' && w.rewardEligible === false && window.RewardRules && RewardRules.STAMPS_ON ? '<span class="tag">발도장 제외</span>' : '');   // 11/24 전국판 — 발도장이 꺼져 있으면 안 붙임   // 5분·200m 미만 길 기록 산책(walk.html WALK_RULES)
     row.innerHTML = '<span class="dg">' + dg + '</span>' +
       '<span style="min-width:0"><b>' + dayText(w.date) + ' - ' + (w.durationMin || 0) + '분' + (feelText ? ' · ' + feelText : '') + '</b>' +
       '<span class="s">' + tags + esc(sub) + '</span></span><i>›</i>';   // 표시는 앞에(말줄임에 안 잘리게)

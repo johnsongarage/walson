@@ -116,7 +116,7 @@
     go.href = 'go.html';
     go.appendChild(el('b', '', '지금 나가기'));
     // 2026-11-16 1단계: 산책 나가기는 "산책 시작" 하나 — 위치를 쓰면 길도 남고, 안 쓰면 시간만(처음 한 번 묻는다)
-    go.appendChild(el('span', '', '위치를 쓰면 길·발도장까지, 안 쓰면 시간만 재요'));
+    go.appendChild(el('span', '', '위치를 쓰면 길·거리까지, 안 쓰면 시간만 재요'));
     var after = el('button', 'wf-choice');
     after.type = 'button';
     after.appendChild(el('b', '', '다녀왔어요'));

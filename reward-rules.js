@@ -47,8 +47,14 @@
       };
     });
   }
-  var PLACES = (Array.isArray(window.PETWALK_STAMP_PLACES) && window.PETWALK_STAMP_PLACES.length)
+  // 11/24 전국판(가르시아 "남양주 다산동 들어간 건 빼 줘, 전국 버전으로" → "추천대로"): 다산동 발도장 장소 세 곳은 데이터로만 남기고
+  // 화면·판정에선 뺀다 — PLACES는 빈 목록이라 미션·발도장 모음판·워킹패스 뒷면 발도장·산책 중 도착 알림·[오늘] 발도장 칸이 같이 꺼진다.
+  // 예전 장소(스팟 편집이 고친 것 포함)는 LOCAL_PLACES. 걸은 길은 그대로라 STAMPS_ON을 켜면 예전 발도장도 다시 셈해진다.
+  // 전국용 발도장("어느 동네든 공원에 가면" 등)은 다시 기획(hq DECISIONS 11/24).
+  var STAMPS_ON = false;
+  var LOCAL_PLACES = (Array.isArray(window.PETWALK_STAMP_PLACES) && window.PETWALK_STAMP_PLACES.length)
     ? fromData(window.PETWALK_STAMP_PLACES) : DEFAULT_PLACES;
+  var PLACES = STAMPS_ON ? LOCAL_PLACES : [];
 
   // 키링 나눔(2026-11-15, keyring.html). 조건·수량·받는 날은 가르시아가 정한다(hq 남은 일) — 정하기 전에는
   // open: false로 두어 앱 어디에도 약속하지 않는다(카드 탭의 "키링 받기" 링크도 숨김). 운영자는 keyring.html?preview=1로 미리 본다.
@@ -58,7 +64,7 @@
   // 발도장·산책 횟수 모두 길 기록 산책(5분·200m 이상)만 센다 — 시간만 잰 산책은 안 들어감.
   var KEYRING = {
     open: false,
-    mode: 'stamps',
+    mode: 'walks',   // 11/24 전국판 — 발도장 장소가 없어서 'stamps' → 'walks'(11/23 결정 조건은 "산책한 날 5칸 + 결산 영수증 1번", 키링 화면을 열 때 다시)
     minStamps: 3,
     minWalks: 5,
     where: '',   // 예: '다산중앙공원 놀이터 옆'
@@ -249,6 +255,8 @@
     SLOT_RULES: SLOT_RULES,
     RECORD_MIN_MINUTES: RECORD_MIN_MINUTES,
     PLACES: PLACES,
+    STAMPS_ON: STAMPS_ON,
+    LOCAL_PLACES: LOCAL_PLACES,
     DEFAULT_PLACES: DEFAULT_PLACES,
     computeProgress: computeProgress,
     tierFor: tierFor,

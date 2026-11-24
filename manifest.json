@@ -2,7 +2,7 @@
   "id": "./index.html",
   "name": "왈슨",
   "short_name": "왈슨",
-  "description": "다산동 강아지 산책 앱 — 산책 다녀오면 영수증 한 장",
+  "description": "우리 동네 강아지 산책 앱 — 산책 다녀오면 영수증 한 장",
   "lang": "ko",
   "start_url": "./index.html",
   "scope": "./",

@@ -126,11 +126,11 @@
 <script src="save-image.js?v=3"></script>
 <script src="canvas-view.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=11"></script>
+<script src="reward-rules.js?v=12"></script>
 <script src="backup.js?v=9"></script>
-<script src="cloud-backup.js?v=4"></script>
+<script src="cloud-backup.js?v=5"></script>
 <script src="image-editor.js?v=7"></script>
-<script src="sample-data.js?v=8"></script>
+<script src="sample-data.js?v=9"></script>
 <script src="dog-tags.js?v=2"></script>
 </head>
 <body>
@@ -225,7 +225,7 @@
   <!-- 산책할 때 위치(2026-11-16 1단계): 산책 나가기는 "산책 시작" 하나 — 위치를 쓸지는 처음 산책 때 묻고 여기서도 바꾼다(go.html과 같은 값) -->
   <div class="card theme-card" id="walk-loc">
     <h2>산책할 때 위치</h2>
-    <p class="sub">위치를 쓰면 길·거리가 남고 발도장·미션이 찍혀요. 위치는 이 휴대폰 안에서만 써요.</p>
+    <p class="sub">위치를 쓰면 길·거리가 남아요. 위치는 이 휴대폰 안에서만 써요.</p>
     <div class="theme-opts">
       <button type="button" class="theme-opt" id="loc-on" aria-pressed="false"><span class="name">위치 쓰기</span><span class="desc">길도 기록해요</span></button>
       <button type="button" class="theme-opt" id="loc-off" aria-pressed="false"><span class="name">시간만</span><span class="desc">위치를 쓰지 않아요</span></button>
@@ -257,7 +257,7 @@
       <button type="button" class="theme-opt" id="cl-start" style="width:100%;"><span class="name">서버에 백업하기</span><span class="desc">무엇을 보내는지 먼저 보여 드려요</span></button>
       <div id="cl-consent" hidden style="margin-top:12px;">
         <ul class="cl-list">
-          <li><b>보내는 것</b>: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·남긴 답·특이 사항), 산책마다 받은 발도장 장소, 앱 설정</li>
+          <li><b>보내는 것</b>: 워킹패스(사진 빼고), 산책 기록(날짜·시간·거리·남긴 답·특이 사항), 앱 설정</li>
           <li><b>보내지 않는 것</b>: 걸은 길·실제 좌표·내 핀·가게 방문 도장, 사진, 이름·전화번호</li>
           <li><b>왜</b>: 폰을 바꾸거나 기록이 지워졌을 때 되찾기 위해서</li>
           <li><b>어떻게</b>: 이 휴대폰에서 복구 코드로 잠가서 보내요. 서버에서는 운영자도 내용을 읽을 수 없어요.</li>

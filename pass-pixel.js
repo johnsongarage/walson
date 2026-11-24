@@ -319,19 +319,21 @@
   // 나머지 곳에서는 화면이 그대로 스크롤된다. 사진은 이 휴대폰 안에서만 다룬다.
   var FIT = { MIN: 0.5, MAX: 4, DEFAULT: { zoom: 1, qx: 0.5, qy: 0.5 } };
   function clampN(v, a, b) { return Math.max(a, Math.min(b, v)); }
-  function fitMath(photo) {
+  // box: 사진 칸 크기 { w, h }(없으면 이 그림의 사진 칸) — [워킹패스] 키링 카드 가로판처럼 다른 칸에서도 같은 맞춤 셈을 쓰려고(11/24)
+  function fitMath(photo, box) {
+    var PB = box || PHOTO;
     // 이 크기에서 사진이 사진 칸 안에 그려지는 너비·높이(판 단위) — draw()와 같은 셈(꽉 채움 × zoom)
     function imgSize(z) {
-      var w0 = photo ? (photo.naturalWidth || photo.width) : PHOTO.w, h0 = photo ? (photo.naturalHeight || photo.height) : PHOTO.h;
-      var sc = Math.max(PHOTO.w / w0, PHOTO.h / h0) * z;
+      var w0 = photo ? (photo.naturalWidth || photo.width) : PB.w, h0 = photo ? (photo.naturalHeight || photo.height) : PB.h;
+      var sc = Math.max(PB.w / w0, PB.h / h0) * z;
       return { w: w0 * sc, h: h0 * sc };
     }
     // 사진 왼쪽 위가 사진 칸 왼쪽 위에서 떨어진 거리(판 단위) ↔ qx·qy
-    function offsetOf(st) { var m = imgSize(st.zoom); return { x: (PHOTO.w - m.w) * st.qx, y: (PHOTO.h - m.h) * st.qy, w: m.w, h: m.h }; }
+    function offsetOf(st) { var m = imgSize(st.zoom); return { x: (PB.w - m.w) * st.qx, y: (PB.h - m.h) * st.qy, w: m.w, h: m.h }; }
     // 크기와 떨어진 거리로 qx·qy를 다시 셈 — 0~1로 묶어 사진이 칸 밖으로 빠져 빈 곳이 생기지 않게(줌아웃이면 칸 안에서만 움직임)
     function placeAt(z, ox, oy) {
       z = clampN(z, FIT.MIN, FIT.MAX);
-      var m = imgSize(z), sx = PHOTO.w - m.w, sy = PHOTO.h - m.h;
+      var m = imgSize(z), sx = PB.w - m.w, sy = PB.h - m.h;
       return { zoom: z, qx: Math.abs(sx) < 0.5 ? 0.5 : clampN(ox / sx, 0, 1), qy: Math.abs(sy) < 0.5 ? 0.5 : clampN(oy / sy, 0, 1) };
     }
     // 사진 칸의 한 점(fx, fy)을 붙잡은 채 크기를 바꾼다 — 그 점은 (tx, ty)로 간다(두 손가락 사이·휠 자리·칸 가운데)
@@ -342,13 +344,15 @@
     return { imgSize: imgSize, offsetOf: offsetOf, placeAt: placeAt, zoomAround: zoomAround };
   }
   // 지금 맞춤에서 칸 가운데를 붙잡고 크기만 바꾸기(막대·[−][+] 버튼)
-  function zoomCenter(photo, fit, z) { return fitMath(photo).zoomAround(fit, z, PHOTO.w / 2, PHOTO.h / 2); }
-  // o: { photo(): 지금 사진, get(): 지금 맞춤, set(fit): 바꾼 맞춤, onEmpty(): 사진이 없을 때 사진 칸을 누르면(사진 넣기) }
+  function zoomCenter(photo, fit, z, box) { var PB = box || PHOTO; return fitMath(photo, PB).zoomAround(fit, z, PB.w / 2, PB.h / 2); }
+  // o: { photo(): 지금 사진, get(): 지금 맞춤, set(fit): 바꾼 맞춤, onEmpty(): 사진이 없을 때 사진 칸을 누르면(사진 넣기),
+  //      box(): 지금 사진 칸 크기 { w, h }(없거나 null이면 이 그림의 사진 칸 — 11/24) }
   function bindFit(el, o) {
     el.style.left = (PHOTO.x / W * 100) + '%'; el.style.top = (PHOTO.y / H * 100) + '%';
     el.style.width = (PHOTO.w / W * 100) + '%'; el.style.height = (PHOTO.h / H * 100) + '%';
     var ptrs = {}, g = null;
-    function toFrame(cx, cy) { var r = el.getBoundingClientRect(), k = PHOTO.w / (r.width || 1); return { x: (cx - r.left) * k, y: (cy - r.top) * k }; }
+    function box() { return (o.box && o.box()) || PHOTO; }
+    function toFrame(cx, cy) { var r = el.getBoundingClientRect(), k = box().w / (r.width || 1); return { x: (cx - r.left) * k, y: (cy - r.top) * k }; }
     function list() { return Object.keys(ptrs).map(function (id) { return ptrs[id]; }); }
     // 손가락 수가 바뀔 때마다 지금 상태에서 새로 시작(한 손가락 = 옮기기, 두 손가락 = 크기 + 옮기기)
     function begin() {
@@ -370,7 +374,7 @@
     el.addEventListener('pointermove', function (e) {
       if (!ptrs[e.pointerId] || !g) return;
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-      var ps = list(), fm = fitMath(o.photo());
+      var ps = list(), fm = fitMath(o.photo(), box());
       if (g.kind === 'drag' && ps.length === 1) {
         var p = toFrame(ps[0].x, ps[0].y), q = fm.offsetOf(g.base);
         o.set(fm.placeAt(g.base.zoom, q.x + p.x - g.p0.x, q.y + p.y - g.p0.y));
@@ -391,17 +395,17 @@
       if (!o.photo()) return;
       e.preventDefault();   // 사진 칸 위에서만 휠이 확대·축소 — 다른 곳에서는 그대로 스크롤
       var p = toFrame(e.clientX, e.clientY), cur = o.get();
-      o.set(fitMath(o.photo()).zoomAround(cur, cur.zoom * Math.exp(-e.deltaY * 0.0015), p.x, p.y));
+      o.set(fitMath(o.photo(), box()).zoomAround(cur, cur.zoom * Math.exp(-e.deltaY * 0.0015), p.x, p.y));
     }, { passive: false });
     el.addEventListener('keydown', function (e) {
       if (!o.photo()) return;
-      var cur = o.get(), fm = fitMath(o.photo()), q = fm.offsetOf(cur), step = 18, k = e.key;
+      var cur = o.get(), fm = fitMath(o.photo(), box()), q = fm.offsetOf(cur), step = 18, k = e.key;
       if (k === 'ArrowLeft') o.set(fm.placeAt(cur.zoom, q.x - step, q.y));
       else if (k === 'ArrowRight') o.set(fm.placeAt(cur.zoom, q.x + step, q.y));
       else if (k === 'ArrowUp') o.set(fm.placeAt(cur.zoom, q.x, q.y - step));
       else if (k === 'ArrowDown') o.set(fm.placeAt(cur.zoom, q.x, q.y + step));
-      else if (k === '+' || k === '=') o.set(zoomCenter(o.photo(), cur, cur.zoom * 1.2));
-      else if (k === '-' || k === '_') o.set(zoomCenter(o.photo(), cur, cur.zoom / 1.2));
+      else if (k === '+' || k === '=') o.set(zoomCenter(o.photo(), cur, cur.zoom * 1.2, box()));
+      else if (k === '-' || k === '_') o.set(zoomCenter(o.photo(), cur, cur.zoom / 1.2, box()));
       else return;
       e.preventDefault();
     });

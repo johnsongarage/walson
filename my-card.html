@@ -100,6 +100,14 @@
   .ct-foot p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
   .ct-foot button { flex-shrink: 0; height: 30px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--panel-border);
     background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+  /* 키링 카드만(11/24 밤 가르시아 "가로 버전 키링도 변형해서, 기본은 핑크고 색깔 변경 가능하게") — 세로·가로 · 카드 색 */
+  .kr-tools { display: grid; gap: 10px; }
+  .cv.is-dot.is-land { max-width: 100%; }
+  .tints { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; flex: 1 1 0; min-width: 0; }   /* 칸 이름(색) 옆에서 줄바꿈 */
+  .tints button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px 0 7px; border-radius: 999px;
+    border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .tints button i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--ink-soft); }
+  .tints button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
   #card-canvas {
     width: 100%; height: auto; cursor: pointer;
     filter: drop-shadow(0 8px 18px rgba(var(--shadow-rgb), 0.18));
@@ -293,6 +301,20 @@
         <output id="dz-val" for="dz-range">100%</output>
         <button type="button" class="zb txt" id="dz-reset">처음대로</button>
       </div>
+      <!-- 키링 카드만(11/24 밤) — 세로·가로(고른 적이 없으면 사진 비율대로 — 가로 사진이면 가로판) · 카드 색(기본 핑크) -->
+      <div class="kr-tools" id="kr-tools" hidden>
+        <div class="dot-row" role="group" aria-label="키링 카드 모양">
+          <span class="lbl">모양</span>
+          <div class="format" id="kr-orient">
+            <button type="button" data-o="v" aria-pressed="true">세로</button>
+            <button type="button" data-o="h" aria-pressed="false">가로</button>
+          </div>
+        </div>
+        <div class="dot-row" role="group" aria-label="카드 색">
+          <span class="lbl">색</span>
+          <div class="tints" id="kr-tints"></div>
+        </div>
+      </div>
       <!-- 카드 글자(11/24) — 도트 카드·키링 카드의 ID·NAME·TYPE. NAME·TYPE은 비우면 내 기록대로, ID는 비우면 빈칸 -->
       <div class="card-text" role="group" aria-label="카드에 들어갈 글자">
         <label><span>ID</span><input type="text" id="ct-id" maxlength="8" autocomplete="off" spellcheck="false" placeholder="빈칸"></label>
@@ -367,7 +389,7 @@
   </details>
 
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
-  5분 이상 산책은 어떻게 기록했든 산책 등급에 들어가요. 발도장은 길 기록 산책에서만 찍혀요.</p>
+  5분 이상 산책은 어떻게 기록했든 산책 등급에 들어가요.</p>
 </div>
 
 <!-- 실물로 뽑기 — 인쇄할 때만 보인다 -->
@@ -375,16 +397,16 @@
 
 <!-- 앞면 "나도 만들기" QR(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다. 못 받아오면 QR 없이. -->
 <script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
-<script src="card-shared.js?v=12"></script>
+<script src="card-shared.js?v=13"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=11"></script>
+<script src="reward-rules.js?v=12"></script>
 <script src="dog-tags.js?v=2"></script>
-<script src="id-card.js?v=15"></script>
-<script src="pass-pixel.js?v=7"></script>
+<script src="id-card.js?v=17"></script>
+<script src="pass-pixel.js?v=8"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <!-- 키링 카드(11/24) 그림 — 3D 키링 시안 앞면과 같은 트레이싱판 -->
-<script src="pass-trace.js?v=13"></script>
+<script src="pass-trace.js?v=14"></script>
 <script src="mock-server.js?v=2"></script>
 <script>
   (function () {
@@ -435,7 +457,8 @@
   function frontOpts() { return { photo: IC.framedPhoto ? IC.framedPhoto(photo, profile) : photo, rank: rank, since: progress.rankDates ? progress.rankDates[rank.level] : null }; }
   function backOpts() {
     return { ranks: RR.RANKS, places: RR.PLACES, slots: RR.SLOT_RULES, skill: skills[pick.skill], passive: passives[pick.passive],
-      steadyTotal: steadyInfo ? steadyInfo.total : 0 };
+      steadyTotal: steadyInfo ? steadyInfo.total : 0,
+      steady: steadyInfo ? { steps: RR.STEADY_STEPS, byLevel: steadyInfo.byLevel } : null };   // 발도장 장소가 없으면 뒷면 오른쪽은 꾸준함 도장(11/24 전국판)
   }
   function render() {
     if (!hasCard) return;
@@ -529,7 +552,13 @@
     clearTimeout(dotSaveT);
     dotSaveT = setTimeout(function () { dot.fit = { zoom: fit.zoom, qx: fit.qx, qy: fit.qy, sig: dotSig }; writeDot(); }, 300);
   }
-  function dotZoom(z) { setFit(PP.zoomCenter(dotPhoto || photo, fit, z)); }
+  // 사진 맞춤 셈에 쓸 사진 칸 크기 — 키링 카드면 지금 모양(세로·가로)의 사진 칸, 도트 카드면 null(pass-pixel.js 사진 칸)
+  function fitBox() {
+    if (cardStyle !== 'keyring' || !PT) return null;
+    var P = PT.geom(krLand()).photo;
+    return { w: P.w, h: P.h };
+  }
+  function dotZoom(z) { setFit(PP.zoomCenter(dotPhoto || photo, fit, z, fitBox())); }
   function syncPhotoMode() {
     var m = dot.photo === 'coarse' || dot.photo === 'photo' ? dot.photo : 'fine';
     Array.prototype.forEach.call($('dot-photo-mode').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-m') === m)); });
@@ -540,15 +569,29 @@
   // 카드 판(사진 칸은 흰 채로)은 글자·등급이 바뀔 때만 다시 그리고, 사진은 그 위 사진 칸의 흰 곳에만 얹는다(귀퉁이 뼈다귀 마디는 판 그대로) —
   // 사진을 끌어서 맞추는 동안 판을 다시 그리지 않아 빠르다. 사진 칸 비율(0.629)이 도트 카드(0.628)와 거의 같아서 사진 맞춤·사진 방식은 같이 쓴다.
   // 저장은 판 크기 그대로(1214×1619 — 가로 50mm 키링이면 600dpi 넘음). 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다.
+  // 11/24 밤 가르시아 "사진을 첨부할 때 가로 버전도 있을 수 있어서 가로 버전 키링도, 기본은 핑크고 색깔 변경 가능하게":
+  // 모양 [세로][가로](가로판 1700×1150, 사진 칸 4:3 — 고른 적이 없으면 사진 비율대로) · 색 6가지(pass-trace.js TINTS). 고른 것은 이 휴대폰에만
+  // (walson_pass_dot.krOrient·krTint). 사진 맞춤(fit)은 두 모양이 같이 쓴다 — 꽉 채움 기준 배수·자리 비율이라 모양을 바꿔도 비슷한 곳이 보인다
   var KR_FONT = "'Black Han Sans', 'Pretendard', sans-serif";
+  function krLand() {
+    if (dot.krOrient === 'h') return true;
+    if (dot.krOrient === 'v') return false;
+    var im = dotPhoto || photo;   // 원본 사진(있으면)이 가로면 가로판
+    return !!(im && im.width > im.height * 1.05);
+  }
+  function krTint() {
+    var id = dot.krTint;
+    return PT && PT.TINTS && PT.TINTS.some(function (x) { return x.id === id; }) ? id : 'pink';
+  }
   var krBases = {}, krDone = null, krGen = 0, krOut = document.createElement('canvas'), krTmp = document.createElement('canvas');
   function krOpts() {
     var t = cardText();
-    return { scene: 'card', keyring: true, tagline: true, id: t.id, name: t.name, type: t.type, grade: rank.level, hangul: KR_FONT };
+    return { scene: 'card', keyring: true, tagline: true, id: t.id, name: t.name, type: t.type, grade: rank.level, hangul: KR_FONT,
+      landscape: krLand(), color: krTint() };
   }
   function krKey() { return JSON.stringify(krOpts()); }
-  function krBox() {   // 사진 칸(카드 판 캔버스 픽셀)
-    var C = PT.L.card, P = PT.photoBox();
+  function krBox(land) {   // 사진 칸(카드 판 캔버스 픽셀) — 판을 그린 모양대로
+    var G = PT.geom(land), C = G.card, P = G.photo;
     return { x: P.x - C.x, y: P.y - C.y, w: P.w, h: P.h };
   }
   // 카드 판 그리기 → { key, c: 판 캔버스, mask: 사진 칸의 흰 곳만 남긴 가면(못 읽으면 null), mx, my }
@@ -566,7 +609,7 @@
           var c = document.createElement('canvas'); c.width = Math.round(im.width); c.height = Math.round(im.height);
           var g = c.getContext('2d'); g.drawImage(im, 0, 0, c.width, c.height);
           if (PT.paintText && txt) PT.paintText(g, c.width / txt.vb[2], txt);
-          var b = krBox(), mx = Math.max(0, Math.floor(b.x) - 1), my = Math.max(0, Math.floor(b.y) - 1),
+          var b = krBox(o.landscape), mx = Math.max(0, Math.floor(b.x) - 1), my = Math.max(0, Math.floor(b.y) - 1),
             mw = Math.min(c.width - mx, Math.ceil(b.w) + 3), mh = Math.min(c.height - my, Math.ceil(b.h) + 3), mask = null;
           try {   // 사진 칸에서 흰 곳만(귀퉁이 마디·테두리는 빼고) — 사진은 여기에만 얹는다
             var d = g.getImageData(mx, my, mw, mh), px = d.data;
@@ -576,7 +619,7 @@
             }
             mask = document.createElement('canvas'); mask.width = mw; mask.height = mh; mask.getContext('2d').putImageData(d, 0, 0);
           } catch (e) { mask = null; }   // 그림을 못 읽는 브라우저 — 사진을 칸에 그대로 얹는다(귀퉁이 마디 안쪽이 조금 가려짐)
-          res({ key: key, gen: gen, c: c, mask: mask, mx: mx, my: my });
+          res({ key: key, gen: gen, land: !!o.landscape, c: c, mask: mask, mx: mx, my: my });
         };
         im.onerror = function (e) { URL.revokeObjectURL(url); rej(e); };
         im.src = url;
@@ -596,7 +639,8 @@
         var sc = Math.max(w / img.width, h / img.height) * fit.zoom, iw = img.width * sc, ih = img.height * sc;
         g.drawImage(img, x + (w - iw) * fit.qx, y + (h - ih) * fit.qy, iw, ih);
       } else {
-        var small = PP.dotPhoto(img, w, h, dot.photo === 'coarse' ? 32 : 56, 12, fit.zoom, fit.qx, fit.qy, '#ffffff');
+        // 도트 칸 수는 칸 너비에 비례(세로판 567점에 56·32칸) — 가로판도 점 하나 크기가 같게
+        var small = PP.dotPhoto(img, w, h, Math.round((dot.photo === 'coarse' ? 32 : 56) * w / 567.2), 12, fit.zoom, fit.qx, fit.qy, '#ffffff');
         g.imageSmoothingEnabled = false; g.drawImage(small, x, y, w, h);
       }
     } else if (!profile.photo && !profile.photoOrig) {   // 사진이 없을 때만 안내(받아 오는 중엔 흰 칸)
@@ -613,7 +657,7 @@
     var g = out.getContext('2d');
     g.clearRect(0, 0, out.width, out.height);
     g.drawImage(B.c, 0, 0);
-    var b = krBox(), M = B.mask, ox = M ? B.mx : Math.floor(b.x), oy = M ? B.my : Math.floor(b.y);
+    var b = krBox(B.land), M = B.mask, ox = M ? B.mx : Math.floor(b.x), oy = M ? B.my : Math.floor(b.y);
     krTmp.width = M ? M.width : Math.ceil(b.w) + 1; krTmp.height = M ? M.height : Math.ceil(b.h) + 1;
     var tg = krTmp.getContext('2d');
     tg.globalCompositeOperation = 'source-over';
@@ -649,12 +693,30 @@
   // 사진 칸(끌어서 옮기기·확대)을 지금 카드 그림의 사진 자리에(키링 카드 · 도트 카드가 다름)
   function placeGrab(isKr) {
     var el = $('dot-grab'), r;
-    if (isKr) { var C = PT.L.card, P = PT.photoBox(); r = [(P.x - C.x) / C.w, (P.y - C.y) / C.h, P.w / C.w, P.h / C.h]; }
+    if (isKr) { var G = PT.geom(krLand()), C = G.card, P = G.photo; r = [(P.x - C.x) / C.w, (P.y - C.y) / C.h, P.w / C.w, P.h / C.h]; }
     else r = [PP.PHOTO.x / PP.W, PP.PHOTO.y / PP.H, PP.PHOTO.w / PP.W, PP.PHOTO.h / PP.H];
     el.style.left = (r[0] * 100) + '%'; el.style.top = (r[1] * 100) + '%'; el.style.width = (r[2] * 100) + '%'; el.style.height = (r[3] * 100) + '%';
   }
   var DOT_NOTE = '고른 모양과 사진 맞춤은 이 휴대폰에만 기억해요. 실물로 뽑기·키링 파일은 아직 기본 카드로 나와요(도트 인쇄 크기는 정해지면).';
-  var KR_NOTE = '3D 키링 시안 앞면과 같은 그림이에요. 고친 글자·사진 맞춤은 이 휴대폰에만 기억하고, 산책 등급 뱃지는 산책 기록대로 바뀌어요.';
+  var KR_NOTE = '3D 키링 시안 앞면과 같은 그림이에요(가로 사진이면 처음엔 가로판). 고른 모양·색·글자·사진 맞춤은 이 휴대폰에만 기억하고, 산책 등급 뱃지는 산책 기록대로 바뀌어요.';
+  // 키링 카드 고르는 칸(모양·색)을 지금 상태대로 + 카드 칸 넓이(가로판은 화면 폭 가득) + 사진 끌기 칸 자리
+  function krSync() {
+    if (!PT) return;
+    var land = krLand(), on = cardStyle === 'keyring';
+    Array.prototype.forEach.call($('kr-orient').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String((b.getAttribute('data-o') === 'h') === land)); });
+    var box = $('kr-tints'), cur = krTint();
+    if (!box.children.length) PT.TINTS.forEach(function (x) {
+      var b = document.createElement('button'), i = document.createElement('i');
+      b.type = 'button'; b.setAttribute('data-t', x.id);
+      i.style.background = x.swatch;   // 카드 머리띠 색(화면 색과 상관없는 카드 색이라 블랙에서도 그대로)
+      b.appendChild(i); b.appendChild(document.createTextNode(x.label));
+      b.addEventListener('click', function () { dot.krTint = x.id; writeDot(); krSync(); render(); });
+      box.appendChild(b);
+    });
+    Array.prototype.forEach.call(box.children, function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === cur)); });
+    $('card-cv').classList.toggle('is-land', on && land);
+    if (on) placeGrab(true);
+  }
 
   // 모양 바꾸기 — save가 true일 때(직접 눌렀을 때)만 기억한다. 그래야 안 고른 사람은 지도 모양을 따라간다
   function applyStyle(st, save) {
@@ -671,7 +733,10 @@
     $('canvas-hint').textContent = isDot ? '사진 칸을 끌어서 옮기고, 두 손가락으로 키우고 줄여요' : '워킹패스를 누르면 뒤집혀요';
     $('dot-save-btn').textContent = isKr ? '키링 카드 저장' : '도트 워킹패스 저장';
     $('dot-note').textContent = isKr ? KR_NOTE : DOT_NOTE;
+    $('kr-tools').hidden = !isKr;
+    $('card-cv').classList.toggle('is-land', false);
     if (isDot) placeGrab(isKr);
+    if (isKr) krSync();
     render();
   }
   if (PP) {
@@ -695,6 +760,10 @@
     });
     $('ct-reset').addEventListener('click', function () { dot.text = {}; writeDot(); fillCardText(); render(); });
     fillCardText();
+    // 키링 카드 모양 — 고르면 이 휴대폰에 기억(고른 적이 없으면 사진 비율대로)
+    Array.prototype.forEach.call($('kr-orient').querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () { dot.krOrient = b.getAttribute('data-o'); writeDot(); krSync(); render(); });
+    });
     Array.prototype.forEach.call($('dot-photo-mode').querySelectorAll('button'), function (b) {
       b.addEventListener('click', function () { dot.photo = b.getAttribute('data-m'); writeDot(); syncPhotoMode(); render(); });
     });
@@ -702,7 +771,7 @@
     $('dz-in').addEventListener('click', function () { dotZoom(fit.zoom * 1.2); });
     $('dz-out').addEventListener('click', function () { dotZoom(fit.zoom / 1.2); });
     $('dz-reset').addEventListener('click', function () { setFit({ zoom: 1, qx: 0.5, qy: 0.5 }); });
-    PP.bindFit($('dot-grab'), { photo: function () { return dotPhoto || photo; }, get: function () { return fit; }, set: setFit,
+    PP.bindFit($('dot-grab'), { photo: function () { return dotPhoto || photo; }, get: function () { return fit; }, set: setFit, box: fitBox,
       onEmpty: function () { location.href = 'profile.html'; } });   // 사진이 없으면 사진 칸을 눌러 프로필에서 넣는다
     syncPhotoMode(); syncZoom();
   } else {
@@ -739,6 +808,7 @@
       placesEl.appendChild(chip);
     });
     $('places-sum').textContent = '모은 발도장 ' + gotN + '/' + allPlaces.length;
+    $('places-fold').hidden = !allPlaces.length;   // 11/24 전국판 — 발도장 장소가 없으면 모음판도 숨김
     // "다음 · …" 한 줄(RR.nextGoalText)은 11/23 뺐다 — 등급 막대·칭호 칸·이 판·[동네] 미션이 같은 걸 보여 준다
   }
 
@@ -1002,6 +1072,7 @@
     .then(function (res) {
       photo = res[0]; dotPhoto = res[2];
       krBases = {}; krDone = null; krGen++;   // 글꼴을 받은 뒤 키링 판을 다시(받기 전에 그린 글자는 다른 글꼴일 수 있다)
+      if (cardStyle === 'keyring') krSync();   // 사진 비율로 정하는 모양(가로 사진 → 가로판)
       render();
     });
 })();

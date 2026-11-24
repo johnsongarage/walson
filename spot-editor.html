@@ -11,9 +11,9 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="site-config.js?v=11"></script>
 <script src="spots-data.js"></script>
-<script src="infra-pins.js?v=28"></script>
-<script src="reward-rules.js?v=11"></script>
-<script src="card-shared.js?v=12"></script>
+<script src="infra-pins.js?v=29"></script>
+<script src="reward-rules.js?v=12"></script>
+<script src="card-shared.js?v=13"></script>
 <script src="map-deco.js?v=2"></script>
 <script src="spot-github.js?v=5"></script>
 <style>
@@ -236,7 +236,7 @@
           <button type="button" id="newcat-cancel">취소</button>
         </div>
       </div>
-      <div class="field"><label for="f-name">이름 (예: 다산 수제간식 공방)</label><input id="f-name" maxlength="40"></div>
+      <div class="field"><label for="f-name">이름 (예: ○○ 수제간식 공방)</label><input id="f-name" maxlength="40"></div>
       <div class="field"><label for="f-tags">태그 (쉼표로 구분, 예: 그늘 있음, 주차 가능)</label><input id="f-tags" maxlength="80"></div>
       <div class="field"><label for="f-note">메모 (예: 봉투가 자주 비어 있음)</label><input id="f-note" maxlength="80"></div>
       <div class="field"><label for="f-phone">전화번호 (가게·병원만, 선택)</label><input id="f-phone" inputmode="tel" maxlength="20"></div>
@@ -281,7 +281,7 @@
             <p class="hint" style="margin:4px 0 0;">동반도 안 되고 지킴이도 없는 가게는 이걸 켜야 지도에 "응원 가게"(하트)로 나와요. 동반 가게·지킴이 가게라면 팝업에 한마디·해 주는 것만 붙어요. 사장님 본인이 원할 때만 켜 주세요.</p>
           </div>
         </div>
-        <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: 다산1동, 아울렛 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
+        <div class="field"><label for="f-area">동네 이름 (수호지킴이 목록에서 묶는 이름, 예: ○○1동, 공원 주변)</label><input id="f-area" maxlength="20" list="area-list"><datalist id="area-list"></datalist></div>
         <h3>가게 이미지 (로고·간판 사진, 선택)</h3>
         <p class="hint">지킴이가 없는 동반 가게는 지도에 이 이미지가 둥근 네모로 나오고(강아지 동그라미와 구분), 지킴이가 있으면 팝업의 가게 줄에 작게 나와요. 고르면 보여 줄 부분을 고를 수 있어요.</p>
         <div class="photo-row">
@@ -852,7 +852,7 @@
     var name = gName.value.trim() || '(강아지 이름)';
     var kindText = kind === 'home' ? '재택 명예 지킴이(가게엔 출근 안 하는 사장님 댁 반려견)' : '출근 지킴이';
     $('g-consent').value =
-      '안녕하세요, 다산동 산책 앱 "왈슨"을 만들고 있어요. 사장님네 강아지 ' + name + '를 왈슨 동네 지도에 "' + kindText + '"로 소개하고 싶어요.\n' +
+      '안녕하세요, 강아지 산책 앱 "왈슨"을 만들고 있어요. 사장님네 강아지 ' + name + '를 왈슨 동네 지도에 "' + kindText + '"로 소개하고 싶어요.\n' +
       '- 올리는 것: 강아지 이름, 사진(또는 만화·그림으로 바꾼 것), 한마디, 가게 이름과 위치\n' +
       (kind === 'home' ? '- 음식점·카페는 "매장에 두지 않는 사장님 댁 반려견"으로 소개해요. 매장 안 사진은 올리지 않아요\n' : '') +
       '- 왈슨은 가게·브랜드와 제휴 관계가 아니라고 함께 적어요\n' +
@@ -899,7 +899,7 @@
     if (style !== 'drawn' && !gPhoto) { alert('사진을 고르거나, 사진 모양을 "닮은꼴 그림"으로 바꿔 주세요.'); return Promise.resolve(false); }
     if (!demoOn && style !== 'drawn' && !$('g-c3').checked) { alert('사진에 매장 안·사람 얼굴·영수증이 없는지 확인해 주세요.'); return Promise.resolve(false); }
     var brand = franchiseIn(fName.value) || franchiseIn(gName.value) || franchiseIn(gLine.value);
-    if (brand && !confirm('"' + brand + '"처럼 브랜드 이름이 들어 있어요. 제휴·공식 캐릭터로 오해받을 수 있어요.\n그래도 이대로 저장할까요? (취소하고 "다산동 치킨집"처럼 일반 이름으로 바꾸기를 권해요)')) {
+    if (brand && !confirm('"' + brand + '"처럼 브랜드 이름이 들어 있어요. 제휴·공식 캐릭터로 오해받을 수 있어요.\n그래도 이대로 저장할까요? (취소하고 "○○동 치킨집"처럼 일반 이름으로 바꾸기를 권해요)')) {
       return Promise.resolve(false);
     }
     var g = { name: gName.value.trim(), kind: gKind(), style: style };

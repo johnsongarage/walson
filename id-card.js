@@ -145,6 +145,8 @@
     return m ? m[1] + '. ' + (+m[2]) + '. ' + (+m[3]) + '.' : (key || '');
   }
 
+  // 카드 번호 — 11/24 전국판부터 새 번호는 WALSON-연도-네 자리(start.html). 예전 DASAN- 번호도 화면·그림엔 WALSON-으로(저장된 값은 그대로)
+  function cardNoText(no) { return String(no || '').replace(/^DASAN-/, 'WALSON-'); }
   // 그림 속 QR 글자(11/24부터 링크 아님 — site-config.js cardQrText). 카메라로 찍으면 "카카오톡에서 '왈슨' 검색"만 보인다
   function cardQrText() { var C = window.WALSON_CONFIG; return (C && C.cardQrText) || "WALSON · 카카오톡에서 '왈슨' 검색"; }
   // QR을 size×size 칸 오른쪽 위에 맞춰 그린다. 라이브러리가 없으면 아무것도 그리지 않는다.
@@ -225,7 +227,7 @@
     ctx.textAlign = 'left';
     ctx.font = font(800, 76);
     ctx.fillText('강아지 워킹패스', 96, 168);   // 2026-11-16 "댕댕이" → "강아지"(가르시아: 못 알아듣는 사람이 있을 것)
-    var subtitle = opts.subtitle || ('남양주 다산동 ' + (rank ? rank.name : '산책 메이트'));
+    var subtitle = opts.subtitle || ('우리 동네 ' + (rank ? rank.name : '산책 메이트'));   // 11/24 전국판 — 예전 "남양주 다산동 ○○"
     ctx.fillStyle = SOFT;
     ctx.font = font(600, fitText(ctx, subtitle, 900, 34, 600));
     ctx.fillText(subtitle, 100, 222);
@@ -320,7 +322,7 @@
     // 아래 칸 — 승급했으면 승급일 한 줄(진짜 주민증 재발급 패러디, 카드 번호는 그대로)
     var rows = [['발급일', profile.cardIssued || todayText()]];
     if (rank && rank.level >= 1 && opts.since) rows.push(['승급일', dateText(opts.since)]);
-    rows.push(['카드 번호', profile.cardNo || '']);
+    rows.push(['카드 번호', cardNoText(profile.cardNo)]);
     var y0 = rows.length > 2 ? 716 : 730, gap = rows.length > 2 ? 56 : 62;
     rows.forEach(function (row, i) {
       var y = y0 + i * gap;
@@ -416,7 +418,9 @@
     ctx.fillStyle = INK;
     ctx.font = font(700, 34);
     ctx.fillText('승급 기록', colL, headY);
-    ctx.fillText('발도장 기록', colR, headY);
+    // 11/24 전국판 — 발도장 장소가 없으면(다산동 세 곳을 화면에서 뺌) 오른쪽은 꾸준함 도장 기록
+    var steadyCol = !places.length && !!opts.steady;
+    ctx.fillText(steadyCol ? '꾸준함 도장' : '발도장 기록', colR, headY);
     ranks.forEach(function (r, i) {
       var y = 392 + i * 70;
       var reached = n >= r.minWalks;
@@ -438,7 +442,21 @@
     });
 
     // 오른쪽: 발도장 기록 — 장소 · 찍은 날 · 확인 도장(장소는 공원·건물 이름뿐, 산책한 시각·길은 안 넣는다)
-    var shown = places.slice(0, 5), step = shown.length > 4 ? 56 : 70;
+    // 꾸준함 도장: 한 주에 3·5·7일 산책한 주가 몇 주인지(그 이상 걸은 주도 같이 셈) · 받았으면 확인 도장
+    if (steadyCol) {
+      var stp = opts.steady.steps || [3, 5, 7], byLv = opts.steady.byLevel || [];
+      stp.forEach(function (d, i) {
+        var y = 392 + i * 70, cnt = byLv.slice(i).reduce(function (s, v) { return s + (v || 0); }, 0), got = cnt > 0;
+        ctx.fillStyle = got ? INK : DIM;
+        ctx.font = font(700, 34);
+        ctx.fillText('주 ' + d + '일 산책', colR, y);
+        ctx.fillStyle = got ? SOFT : DIM;
+        ctx.font = font(600, 30);
+        ctx.fillText(got ? cnt + '주' : '아직', colR + 350, y);
+        if (got) seal(ctx, W - 132, y - 12, 32, '확인', -0.2);
+      });
+    }
+    var shown = steadyCol ? [] : places.slice(0, 5), step = shown.length > 4 ? 56 : 70;
     shown.forEach(function (pl, i) {
       var y = 392 + i * step;
       var at = visitedAt[pl.id];
@@ -451,7 +469,7 @@
       ctx.fillText(got ? (dateText(at) || '찍음') : '아직', colR + 350, y);
       if (got) seal(ctx, W - 132, y - 12, 32, '확인', -0.2);
     });
-    if (!shown.length) {
+    if (!shown.length && !steadyCol) {
       ctx.fillStyle = DIM;
       ctx.font = font(600, 30);
       ctx.fillText('발도장 장소가 아직 없어요', colR, 392);
@@ -482,7 +500,7 @@
     ctx.strokeStyle = LINE;
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
-    footer(ctx, '꾸준함 도장 ' + (opts.steadyTotal || 0) + '개' + (profile.cardNo ? ' · ' + profile.cardNo : ''));
+    footer(ctx, '꾸준함 도장 ' + (opts.steadyTotal || 0) + '개' + (profile.cardNo ? ' · ' + cardNoText(profile.cardNo) : ''));
     return canvas;
   }
 
@@ -590,8 +608,8 @@
     if (B && B.name) { ctx.fillStyle = INK; ctx.font = '46px ' + BIG; ctx.textAlign = 'left'; ctx.fillText(B.name, x0, 924); }
     if (profile.cardNo) {
       ctx.fillStyle = SOFT; ctx.textAlign = 'right';
-      ctx.font = font(600, fitText(ctx, 'No. ' + profile.cardNo, 420, 32, 600));
-      ctx.fillText('No. ' + profile.cardNo, x1, 922);
+      ctx.font = font(600, fitText(ctx, 'No. ' + cardNoText(profile.cardNo), 420, 32, 600));
+      ctx.fillText('No. ' + cardNoText(profile.cardNo), x1, 922);
     }
     ctx.restore();
     return info;
@@ -703,7 +721,7 @@
     ctx.font = font(800, fitText(ctx, head, 900, 60, 800));
     ctx.fillText(head, 64, 140);
     ctx.fillStyle = SOFT; ctx.font = font(600, 32);
-    ctx.fillText(st ? '남양주 다산동에서 산책 중' : sigLine, 66, 192);
+    ctx.fillText(st ? '우리 동네에서 산책 중' : sigLine, 66, 192);
     var cy = 236;
     placeCard(ctx, cardCanvas, cc, 60, cy, 960, 600);
     if (x.photo && !x.back) out._photoBox = { x: 60 + PHOTO_BOX.x * k, y: cy + PHOTO_BOX.y * k, w: PHOTO_BOX.w * k, h: PHOTO_BOX.h * k };
@@ -832,7 +850,8 @@
       id: 'side', label: '면', icon: 'side', first: true,
       rows: function (st) {
         return [{ chips: [{ text: '앞면', value: 'front', on: st.extra.side !== 'back' }, { text: '뒷면 · 산책 경력', value: 'back', on: st.extra.side === 'back' }] },
-          { tip: '뒷면엔 승급 기록·발도장 기록·특기가 들어가요. 발도장 장소 이름은 공개된 공원·가게 이름뿐이에요.' }];
+          { tip: (window.RewardRules && RewardRules.PLACES && RewardRules.PLACES.length) ? '뒷면엔 승급 기록·발도장 기록·특기가 들어가요. 발도장 장소 이름은 공개된 공원·가게 이름뿐이에요.'
+            : '뒷면엔 승급 기록·꾸준함 도장·특기가 들어가요.' }];   // 11/24 전국판
       },
       onPick: function (v, st) { st.extra.side = v === 'back' ? 'back' : 'front'; }
     });
@@ -904,7 +923,7 @@
   }
 
   window.WalsonIdCard = {
-    W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX, cardQrText: cardQrText,
+    W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX, cardQrText: cardQrText, cardNoText: cardNoText,
     CARD_COLORS: CARD_COLORS, cardColor: cardColor, infoBits: infoBits, drawKeyringBack: drawKeyringBack,
     drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, myStats: myStats, openEditor: openEditor, framedPhoto: framedPhoto,
     loadImage: loadImage, fontsReady: fontsReady, todayText: todayText, dateText: dateText

@@ -114,7 +114,7 @@
       // 샘플 강아지는 왈슨(앱 그림) — 빨강불은 으르렁 얼굴에 맞춘 것
       localStorage.setItem('petwalk_profile', JSON.stringify({
         name: '왈슨', size: 'small', signal: 'red', photo: WALSON_PHOTO,
-        cardNo: 'DASAN-SAMPLE', cardIssued: now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.'
+        cardNo: 'WALSON-SAMPLE', cardIssued: now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.'
       }));
       localStorage.setItem('petwalk_pins', JSON.stringify([
         { id: 'sample-pin-1', lat: 37.62362, lng: 127.15905, memo: '여기 풀숲 진드기 조심 (샘플)' },

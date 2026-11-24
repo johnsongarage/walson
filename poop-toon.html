@@ -331,7 +331,7 @@
     { id: 'w3', g: 'worry', s: 'worry', text: '오늘 우리 애 컨디션, 같이 지켜봐 줘요.' },
     // 길에서 치운 응가(11/18) — c: 길에서 치운 응가일 때만, kinds: 그 종류일 때만. 남의 견주를 탓하지 않는다(가르시아 "폰 보느라 싼 줄 모르거든")
     { id: 'p1', g: 'catch', c: 1, text: '주인님 폰 보는 사이 탈출한 녀석입니다.' },
-    { id: 'p2', g: 'catch', c: 1, text: '다산동 신발 밑창은 제가 지킵니다.' },
+    { id: 'p2', g: 'catch', c: 1, text: '우리 동네 신발 밑창은 제가 지킵니다.' },
     { id: 'p3', g: 'catch', c: 1, text: '같은 견주로서, 대신 치웠습니다.' },
     { id: 'p4', g: 'catch', c: 1, text: '오늘의 지뢰 하나 제거 완료.' },
     { id: 'p5', g: 'catch', c: 1, text: '봉투 한 장이면 동네가 웃습니다.' },
@@ -1725,7 +1725,7 @@
     if (opt.mode === 'catch') badge(ctx, '누적 ' + catchShownN() + '마리째 포획', true);
     else if (st && st.id !== 'none') badge(ctx, st.id === 'usual' ? '평소대로 ✓' : '평소와 달랐어요', st.id === 'usual');
     ctx.font = "700 30px 'Pretendard', sans-serif"; ctx.fillStyle = '#a08f7c';
-    plateText(ctx, (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일 · 왈슨 · 다산동 강아지 산책 앱', CARD_W / 2, 1306, 1000, 30, 24, '700', '#8a7a68');
+    plateText(ctx, (now.getMonth() + 1) + '월 ' + now.getDate() + '일 ' + DOW[now.getDay()] + '요일 · 왈슨 · 우리 동네 강아지 산책 앱', CARD_W / 2, 1306, 1000, 30, 24, '700', '#8a7a68');
     showCard();
     cardDirty = true;
     clearTimeout(blobTimer);
@@ -2056,7 +2056,7 @@
         document.fonts.load("400 90px 'Black Han Sans'", '우리 애 오늘 응가의 야생 포획 완료!'),
         document.fonts.load("800 44px 'Pretendard'", '누적 0123456789마리째 포획'),
         document.fonts.load("800 44px 'Pretendard'", '평소대로 달랐어요 오늘도 해냈다'),
-        document.fonts.load("700 38px 'Pretendard'", '11월 16일 월요일 왈슨 다산동 강아지 산책 앱')
+        document.fonts.load("700 38px 'Pretendard'", '11월 16일 월요일 왈슨 우리 동네 강아지 산책 앱')
       ]), new Promise(function (r) { setTimeout(r, 1500); })])
     : Promise.resolve();
   setTimeout(drawHero, 60);

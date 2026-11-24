@@ -111,10 +111,10 @@
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=8"></script>
+<script src="sample-data.js?v=9"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=11"></script>
-<script src="infra-pins.js?v=28"></script>
+<script src="reward-rules.js?v=12"></script>
+<script src="infra-pins.js?v=29"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=5"></script>
 <script src="walk-screen.js?v=4"></script>
@@ -142,12 +142,11 @@
     <h1>산책할 때 위치를 쓸까요?</h1>
     <p class="lead">위치는 이 휴대폰 안에서만 쓰고 어디로도 보내지 않아요. 위치를 쓰면</p>
     <ul class="perks">
-      <li>발도장·미션이 그 자리에서 찍혀요</li>
       <li>걸은 길과 거리가 남아요</li>
     </ul>
     <!-- 정확한 위치(2026-11-18) — 휴대폰이 대략적인 위치만 주면 발도장이 안 찍힌다. 안드로이드는 허용 창에서 정확/대략을 고른다 -->
-    <p class="mode-note" id="precise-note">발도장은 휴대폰의 ‘정확한 위치’가 켜져 있어야 찍혀요. <a href="location-guide.html?back=go">켜는 법 보기</a></p>
-    <p class="mode-note">앱을 켜 둔 채 걸어야 길이 그려지고 발도장·미션이 찍혀요. 통화하거나 유튜브를 보면 그동안 기록이 끊길 수 있어요 — 끊긴 곳은 직선으로 이어요.</p>
+    <p class="mode-note" id="precise-note">걸은 길은 휴대폰의 ‘정확한 위치’가 켜져 있어야 또렷하게 그려져요. <a href="location-guide.html?back=go">켜는 법 보기</a></p>
+    <p class="mode-note">앱을 켜 둔 채 걸어야 길이 그려져요. 통화하거나 유튜브를 보면 그동안 기록이 끊길 수 있어요 — 끊긴 곳은 직선으로 이어요.</p>
     <button type="button" class="btn-main" id="ask-on">위치 쓰고 시작</button>
     <button type="button" class="btn-sub" id="ask-off">위치 없이 시간만 재기</button>
     <p class="mode-note">고른 건 기억해요. 산책 나가기 화면이나 프로필에서 언제든 바꿀 수 있어요.</p>
@@ -178,7 +177,7 @@
       <span class="ws-who" id="who">산책 중</span>
       <div class="ws-clock"><span id="clock">0</span><small>분</small></div>
       <span class="ws-since" id="since"></span>
-      <p class="ws-note">오늘 목표·이번 주 기록·꾸준함 도장에 들어가요. 발도장·미션·워킹패스 성장은 위치를 쓸 때만이에요.</p>
+      <p class="ws-note">오늘 목표·이번 주 기록·꾸준함 도장·워킹패스 성장에 들어가요. 걸은 길은 위치를 쓸 때만 남아요.</p>
       <p class="fallback" id="fallback-note" hidden>위치를 쓸 수 없어서 시간만 재고 있어요(출발 시각은 그대로). 휴대폰 설정에서 이 앱(또는 브라우저)의 위치를 허용한 뒤, 산책 나가기 화면의 "바꾸기"로 다시 켤 수 있어요.</p>
     </div>
     <div class="ws-notice" id="walk-notice" role="status" hidden><span class="ws-notice-icon" aria-hidden="true"></span><span class="ws-notice-text"></span></div>
@@ -272,8 +271,8 @@
     var on = locPref() !== 'off';
     document.getElementById('mode-name').textContent = on ? '길도 기록해요 · 위치 사용' : '시간만 재요 · 위치 안 씀';
     document.getElementById('mode-note').textContent = on
-      ? '발도장·미션이 그 자리에서 찍혀요. 앱을 켜 둔 채 걸어 주세요 — 통화·유튜브 중엔 기록이 끊길 수 있어요.'
-      : '워킹패스 성장·오늘 목표·꾸준함 도장엔 들어가요. 발도장·미션은 위치를 쓸 때만 찍혀요.';
+      ? '걸은 길이 지도에 남아요. 앱을 켜 둔 채 걸어 주세요 — 통화·유튜브 중엔 기록이 끊길 수 있어요.'
+      : '워킹패스 성장·오늘 목표·꾸준함 도장엔 들어가요. 걸은 길은 위치를 쓸 때만 남아요.';
     var box = document.getElementById('gps-mission');
     box.hidden = !(on && box.getAttribute('data-ready'));
   }

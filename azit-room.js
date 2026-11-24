@@ -214,10 +214,14 @@
   }
   function eff(need) {
     need = need || {};
-    if (!need.stamps) return need;
+    if (!need.stamps && !need.park) return need;
     var n = placeCount(), o = {};
     for (var k in need) o[k] = need[k];
-    if (n > 0) o.stamps = Math.min(need.stamps, n);
+    if (n > 0) { if (need.stamps) o.stamps = Math.min(need.stamps, n); return o; }
+    // 11/24 전국판 — 발도장 장소가 없으면(다산동 세 곳을 화면에서 뺌) 발도장 N곳 → 40분 넘게 걷는 산책 N번, 공원 발도장 → 1번
+    // (멀리 다녀오는 산책으로 대신 — 모두 "산 것"이 아니라 "한 것" 그대로)
+    if (need.stamps) { o.long = Math.max(o.long || 0, need.stamps); delete o.stamps; }
+    if (need.park) { o.long = Math.max(o.long || 0, 1); delete o.park; }
     return o;
   }
   function met(need, p) {
@@ -324,7 +328,7 @@
       pos: roomPos(['garland', 'frame', 'shelf', 'keyhook', 'photo', 'rug', 'trophy', 'lamp', 'plant', 'bed', 'bowl', 'basket', 'ball'],
         { bed: { i: 66, j: 18 }, lamp: { i: 84, j: 8 } }) },
     { id: 'picnic', name: '공원 피크닉 방', owner: '왈슨', dog: 'chihuahua', theme: 'lilac', acc: 'ribbon', level: 1,
-      line: '공원 발도장을 모으면 이렇게 돼요',   // 공원 — 피크닉 매트에 바구니·공·당근, 벽엔 엽서, 응가 봉투 걸이
+      line: '오래 걷는 산책을 모으면 이렇게 돼요',   // 11/24 전국판 — 예전 "공원 발도장을 모으면"   // 공원 — 피크닉 매트에 바구니·공·당근, 벽엔 엽서, 응가 봉투 걸이
       dogs: { host: [34, 30], guest: [44, 22] },   // 매트 뒤에(앞쪽 매트 위 바구니·공이 가려지지 않게)
       pos: roomPos(['garland', 'card0', 'card1', 'photo', 'poopbag', 'palframe', 'mat', 'house', 'bowl', 'bone', 'basket', 'ball', 'carrot', 'plant'],
         { mat: { i: 52, j: 50 }, basket: { i: 50, j: 60 }, ball: { i: 62, j: 60 }, carrot: { i: 58, j: 50 }, bone: { i: 74, j: 44 } }) },

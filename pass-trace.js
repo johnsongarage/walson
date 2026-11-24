@@ -10,6 +10,7 @@
 //  - 칸·알약: 12.5px 칸, 모서리를 한 칸 깎은 계단 테두리. 칸 이름 쪽은 분홍, 값 쪽은 흰색.
 //  - 원본은 AI 그림이라 칸 크기가 곳곳에서 1~3px씩 흔들린다 — 같은 칸 크기로 반듯하게 맞추고, 차이는 겹쳐 보기에서 눈으로 확인.
 // 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. window.WalsonPassTrace.render(opts) → SVG 문자열
+// 11/24 밤: 키링판에 가로판(opts.landscape — 가로 사진용, 같은 칸 크기를 다시 배치)과 카드 색(opts.color — 기본 핑크, TINTS)
 (function () {
   'use strict';
   var REF = { w: 1493, h: 2000 };
@@ -233,6 +234,38 @@
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
       light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
   };
+  var LP = L;   // 세로판(원본 자리) — render가 opts.landscape면 잠깐 가로판(LL)으로 바꿔 그린다
+
+  // ── 가로 키링판(11/24 가르시아 "사진을 첨부할 때 가로 버전도 있을 수 있어서 가로 버전 키링도 변형해서 만들자") ──
+  // 같은 칸 크기·글꼴을 다시 배치: 위 머리띠(제목 두 줄을 0.9배로) · 왼쪽 가로 사진 틀(사진 칸 4:3 — 휴대폰 가로 사진 비율) ·
+  // 오른쪽 ID·NAME·TYPE 칸(세로판의 0.93배 높이) + 점선 + 등급 뱃지 + 홍보 알약(한 줄). 카드 1700×1150(세로판 1214×1618.5).
+  // 원점(카드 왼쪽 위 153.5, 171)은 세로판과 같아서 바탕·그림자 장면도 그대로. 키링판에서만 쓴다(원본 칸·QR 자리는 없음)
+  var LL = (function () {
+    var x0 = 153.5, y0 = 171, W = 1700, H = 1150, s = 0.9, headH = 270, div = 15;
+    var top = y0 + headH + div + 44, bot = y0 + H - 50, ux = 11.6, uy = 12.3;
+    var ph = bot - top - 8 * uy, fw = ph * 4 / 3 + 8 * ux, ol = x0 + 49, or = ol + fw, fx = or + 33.5, fw2 = x0 + W - 32 - fx;
+    var t1v = 5.835 * s, t2v = 4.96 * s, tgap = 39 * s, ty1 = y0 + (headH - (16 * t1v + tgap + 16 * t2v)) / 2;
+    var rowH = 140, rowGap = 24, fs = rowH / 150, ys = [top, top + rowH + rowGap, top + 2 * (rowH + rowGap)];
+    var dashY = ys[2] + rowH + 20, pillH = 118, pillLow = bot - pillH;
+    return {
+      ref: { w: W + 2 * x0, h: y0 + H + 210.5 },
+      card: { x: x0, y: y0, w: W, h: H, r: 74 }, shadow: { dx: -29, dy: 39 },
+      headB: y0 + headH, divB: y0 + headH + div,
+      frame: { ol: ol, or: or, ot: top, ob: bot, ux: ux, uy: uy },
+      knot: { tl: [0, 0], tr: [0, 0], bl: [0, 0], br: [0, 0] },
+      opaw: { x: ol + 34, y: top + 35, u: 3.3 },
+      field: { x: fx, w: fw2, h: rowH, u: 12.7, ys: ys },
+      value: { gap: 21, ux: 3.2 * fs, uy: 3.25 * fs },
+      dash: { h: 15.5, x0: fx + 32.5, pitch: 41.9, w: 26.5, n: Math.floor((fw2 - 3.4 - 32.5 - 26.5) / 41.9) },
+      // 제목은 카드 가운데에(발바닥은 제목 양옆 gap만큼) — 자리는 render가 브랜드 이름 폭으로 셈
+      title1: { y: ty1, ux: 5.877 * s, uy: t1v, center: true }, title2: { y: ty1 + 16 * t1v + tgap, ux: 5.06 * s, uy: t2v, center: true },
+      pawU: { x: 83 / 29 * s, y: 80 / 27 * s }, pawGap: 34 * s,
+      kr: { nameH: 84 * fs, nameLatH: 62 * fs, nameFill: 0.5,   /* 값 칸이 넓어서 짧은 이름을 덜 벌림 */ typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8 * fs, ys: ys,
+        labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3 * fs, lux: 3.1 * fs, luy: 3.25 * fs, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+        dashY: dashY, pill: { y: pillLow, h: pillH, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20, one: true },
+        light: { y: dashY + 35.5, h: 72, solo: 110, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow }
+    };
+  })();
   function photoBox() {
     var F = L.frame;
     return { x: F.ol + 4 * F.ux, y: F.ot + 4 * F.uy, w: F.or - F.ol - 8 * F.ux, h: F.ob - F.ot - 8 * F.uy };
@@ -355,21 +388,72 @@
     text(out, name, sx + pw + gap, y + (h - 16 * tuy) / 2, tux, tuy, COL.ink);
   }
 
+  // ── 카드 색(11/24 가르시아 "기본은 핑크고 저 색깔 변경 가능하게 기능 추가해 줘") ──
+  // 분홍 계열 칸만 다른 색 계열로 옮긴다: 머리띠·아래 줄·사진 틀 띠·귀퉁이 마디·칸 이름·알약·점선·등급 뱃지(바탕 장면의 바탕·그림자도).
+  // 크림 바탕·진한 갈색 글씨·흰 값 칸·귀퉁이 주황 발바닥은 그대로. 분홍 하나하나의 밝기는 두고 색상(hue)만 옮기고(분홍끼리의 차이는 spread배),
+  // 계열마다 채도를 맞춘다(sat배) — 그래서 어느 색이든 원본 분홍과 같은 짜임으로 보인다
+  var TINTS = [
+    { id: 'pink', label: '핑크' },
+    { id: 'mint', label: '민트', hue: 158, sat: 0.62, spread: 0.8 },
+    { id: 'sky', label: '하늘', hue: 207, sat: 0.8, spread: 0.7 },
+    { id: 'lemon', label: '레몬', hue: 48, sat: 0.95, spread: 0.35 },
+    { id: 'lavender', label: '라벤더', hue: 266, sat: 0.62, spread: 0.7 },
+    { id: 'gray', label: '그레이', hue: 220, sat: 0.1, spread: 0 }
+  ];
+  var TINT_KEYS = ['bg', 'shadow', 'head', 'divider', 'frameP', 'frameL', 'knob', 'bump', 'label', 'pill', 'dash', 'dashSoft', 'dashFaint'];
+  var BASE_COL = COL, BASE_GRADE = GRADE_COL, tintCache = {};
+  function toHsl(hex) {
+    var r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn, h = 0, s = 0;
+    if (d) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h *= 60; if (h < 0) h += 360;
+    }
+    return [h, s, l];
+  }
+  function toHex(h, s, l) {
+    var c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2, r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+    return '#' + [r, g, b].map(function (v) { return ('0' + Math.round(Math.max(0, Math.min(1, v + m)) * 255).toString(16)).slice(-2); }).join('');
+  }
+  function tintHex(hex, t) {
+    var a = toHsl(hex), dh = ((a[0] - 355 + 540) % 360) - 180;   // 분홍 기준(355°)에서 떨어진 만큼(−180~180)
+    return toHex((((t.hue + dh * (t.spread == null ? 1 : t.spread)) % 360) + 360) % 360, Math.min(1, a[1] * t.sat), a[2]);
+  }
+  function colorsFor(id) {
+    var t = null;
+    TINTS.forEach(function (x) { if (x.id === id) t = x; });
+    if (!t || t.hue == null) return { col: BASE_COL, grade: BASE_GRADE };
+    if (tintCache[id]) return tintCache[id];
+    var col = {};
+    Object.keys(BASE_COL).forEach(function (k) { col[k] = TINT_KEYS.indexOf(k) >= 0 ? tintHex(BASE_COL[k], t) : BASE_COL[k]; });
+    return (tintCache[id] = { col: col, grade: BASE_GRADE.map(function (c) { return tintHex(c, t); }) });
+  }
+
   // opts: { photo: dataURL(사진 칸 크기 그대로 넣음), id, name, type, qr(주소), tagline(true/false), scene('ref'=바탕·그림자까지 | 'card'=카드만), brand,
   //         keyring(true = 키링판 — 칸 이름 짧게·간격 좁혀 값 자리 넓힘, 아래 알약에 홍보 문구),
-  //         signal(0~2)·grade(0~3) — 키링판에서 주면 QR 대신 성향 신호등·산책 등급 뱃지 }
+  //         signal(0~2)·grade(0~3) — 키링판에서 주면 QR 대신 성향 신호등·산책 등급 뱃지,
+  //         landscape(true = 가로판, 키링판으로 그림) · color(TINTS id — 없으면 핑크) }
+  // 그리는 동안만 자리(L)·색(COL·GRADE_COL)을 바꿨다가 되돌린다(아래 도구들이 L·COL을 그대로 읽는다)
   function render(o) {
     o = o || {};
+    var keepL = L, keepC = COL, keepG = GRADE_COL, pc = colorsFor(o.color);
+    L = o.landscape ? LL : LP; COL = pc.col; GRADE_COL = pc.grade;
+    try { return renderNow(o); } finally { L = keepL; COL = keepC; GRADE_COL = keepG; VEC = null; }
+  }
+  function renderNow(o) {
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
-    var C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring;
-    var vb = card ? [C.x, C.y, C.w, C.h] : [0, 0, REF.w, REF.h];
+    var R = L.ref || REF, C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring || L === LL;
+    var vb = card ? [C.x, C.y, C.w, C.h] : [0, 0, R.w, R.h];
     VEC = o.hangul ? [] : null;
     api.lastText = VEC ? { list: VEC, vb: vb, font: o.hangul } : null;
     out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb.join(' ') + '" width="' + vb[2] + '" height="' + vb[3] + '">');
     out.push('<defs><clipPath id="pt-card"><rect x="' + C.x + '" y="' + C.y + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '"/></clipPath>' +
       '<clipPath id="pt-photo"><rect x="' + n(P.x) + '" y="' + n(P.y) + '" width="' + n(P.w) + '" height="' + n(P.h) + '"/></clipPath></defs>');
     if (!card) {
-      rect(out, 0, 0, REF.w, REF.h, COL.bg);
+      rect(out, 0, 0, R.w, R.h, COL.bg);
       out.push('<rect x="' + (C.x + L.shadow.dx) + '" y="' + (C.y + L.shadow.dy) + '" width="' + C.w + '" height="' + C.h + '" rx="' + C.r + '" fill="' + COL.shadow + '"/>');
     }
     // 카드 판: 머리띠 · 아래 줄 · 크림 바탕(둥근 모서리로 자름)
@@ -398,12 +482,19 @@
       bitmap(g1, OPAW, { '#': COL.opaw }, cx - 11 * L.opaw.u / 2, cy - 9 * L.opaw.u / 2, L.opaw.u, L.opaw.u);
     });
     // 제목
-    L.paws.forEach(function (p) { bitmap(g1, PAW, { '#': COL.paw }, p.x, p.y, L.pawU.x, L.pawU.y); });
     var T1 = L.title1, T2 = L.title2, t1 = String(B.name || 'WALSON').toUpperCase();
-    // 제목 1줄은 브랜드 이름 — 원본 이름(WALSON)이면 원본 글자 자리 그대로, 바뀌면 두 발바닥 사이 가운데
-    if (t1 === 'WALSON') text(g1, t1, T1.x, T1.y, T1.ux, T1.uy, COL.ink, T1.xs);
-    else text(g1, t1, (L.paws[0].x + 83 + L.paws[1].x) / 2 - textUnits(t1) * T1.ux / 2, T1.y, T1.ux, T1.uy, COL.ink);
-    text(g1, 'WALKING PASS', T2.x, T2.y, T2.ux, T2.uy, COL.ink, T2.xs);
+    if (T1.center) {   // 가로판: 카드 가운데 · 발바닥은 제목 양옆
+      var mid = C.x + C.w / 2, w1 = textUnits(t1) * T1.ux, pw = 29 * L.pawU.x, py = T1.y + (16 * T1.uy - 27 * L.pawU.y) / 2;
+      [mid - w1 / 2 - L.pawGap - pw, mid + w1 / 2 + L.pawGap].forEach(function (x) { bitmap(g1, PAW, { '#': COL.paw }, x, py, L.pawU.x, L.pawU.y); });
+      text(g1, t1, mid - w1 / 2, T1.y, T1.ux, T1.uy, COL.ink);
+      text(g1, 'WALKING PASS', mid - textUnits('WALKING PASS') * T2.ux / 2, T2.y, T2.ux, T2.uy, COL.ink);
+    } else {
+      L.paws.forEach(function (p) { bitmap(g1, PAW, { '#': COL.paw }, p.x, p.y, L.pawU.x, L.pawU.y); });
+      // 제목 1줄은 브랜드 이름 — 원본 이름(WALSON)이면 원본 글자 자리 그대로, 바뀌면 두 발바닥 사이 가운데
+      if (t1 === 'WALSON') text(g1, t1, T1.x, T1.y, T1.ux, T1.uy, COL.ink, T1.xs);
+      else text(g1, t1, (L.paws[0].x + 83 + L.paws[1].x) / 2 - textUnits(t1) * T1.ux / 2, T1.y, T1.ux, T1.uy, COL.ink);
+      text(g1, 'WALKING PASS', T2.x, T2.y, T2.ux, T2.uy, COL.ink, T2.xs);
+    }
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
@@ -419,20 +510,20 @@
       }
     });
     // 점선(양 끝은 옅게)
-    var D = L.dash, dy = KR ? L.kr.dashY : D.y;
-    for (var k = -1; k <= 9; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === 9 ? COL.dashSoft : COL.dash));
+    var D = L.dash, dy = KR ? L.kr.dashY : D.y, dn = D.n == null ? 9 : D.n;   // 가로판은 칸 폭대로 개수(D.n)
+    for (var k = -1; k <= dn; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === dn ? COL.dashSoft : COL.dash));
     // 알약 — 키링판은 홍보 문구 두 줄(칸 폭 그대로), 아니면 원본처럼 WALSON
     var PL = L.pill, KP = L.kr.pill, tag = o.tagline !== false && B.tagline;
     var rowsOn = KR && (o.signal != null || o.grade != null), pyy = rowsOn ? L.kr.pillLow : KP.y;
     if (KR && tag) {
       stepBox(g1, FD.x, pyy, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
-      var ln = twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),
+      var ln = KP.one ? [B.tagline, ''] : twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),   // 가로판은 넓어서 한 줄
         pux = Math.min(KP.ux, (FD.w - 2 * KP.u - 2 * KP.pad) / lw), puy = pux * KP.uy / KP.ux,
         nl = ln[1] ? 2 : 1, th = nl * 16 * puy + (nl - 1) * KP.gap, ty = pyy + (KP.h - th) / 2;
       ln.forEach(function (s, i) {
         if (s) text(g1, s, FD.x + FD.w / 2 - textUnits(s) * pux / 2, ty + i * (16 * puy + KP.gap), pux, puy, COL.ink);
       });
-    } else {
+    } else if (PL) {   // 가로판엔 원본 WALSON 알약 자리가 없다
       stepBox(g1, PL.x, PL.y, PL.w, PL.h, PL.u, [[PL.x + PL.u, PL.x + PL.w - PL.u, COL.pill]]);
       var pn = String(B.name || 'WALSON').toUpperCase();
       if (pn === 'WALSON') text(g1, pn, PL.tx, PL.ty, PL.tux, PL.tuy, COL.ink, PL.xs);
@@ -449,7 +540,7 @@
         if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + L.kr.pillLow) / 2 - gh / 2;
         gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
       }
-    } else {
+    } else if (L.qr) {   // 가로판은 QR 자리가 없다
       // QR(흰 판 + 글자) — 11/24부터 링크 아님(site-config.js cardQrText: 카메라로 찍으면 "카카오톡에서 '왈슨' 검색"만 보인다)
       var Q = L.qr, C = window.WALSON_CONFIG;
       rect(g1, Q.x, Q.y, Q.w, Q.h, COL.white);
@@ -462,7 +553,6 @@
     }
     out.push('<g shape-rendering="crispEdges">' + g1.join('') + '</g>');
     out.push('</svg>');
-    VEC = null;
     return out.join('');
   }
   // render(o.hangul) 뒤 그 SVG를 k배로 그린 캔버스에 한글을 덮어 쓴다 — 도트 글자 칸 가운데, 칸 높이만큼(넓으면 칸 폭에 맞게 줄임)
@@ -503,6 +593,15 @@
     return (document.fonts && document.fonts.load) ? document.fonts.load("16px 'DungGeunMo'", '가나다').then(function () { hcache = {}; }).catch(function () {}) : Promise.resolve();
   }
 
-  var api = { REF: REF, L: L, COL: COL, FONT: FONT, photoBox: photoBox, render: render, ready: ready, textUnits: textUnits, glyph: glyph, paintText: paintText, lastText: null };
+  // geom(가로판?) — 카드·사진 칸 자리(쓰는 쪽이 사진 칸 위에 끌기 칸을 얹거나 사진을 칸 크기로 만들 때)
+  function geom(land) {
+    var keep = L; L = land ? LL : LP;
+    var g = { card: L.card, photo: photoBox(), ref: L.ref || REF };
+    L = keep;
+    return g;
+  }
+  // 카드 색 고르는 칸용 — { id, label, swatch(머리띠 색) }
+  var tintList = TINTS.map(function (x) { return { id: x.id, label: x.label, swatch: colorsFor(x.id).col.head }; });
+  var api = { REF: REF, L: L, LL: LL, COL: COL, FONT: FONT, TINTS: tintList, geom: geom, photoBox: photoBox, render: render, ready: ready, textUnits: textUnits, glyph: glyph, paintText: paintText, lastText: null };
   window.WalsonPassTrace = api;
 })();

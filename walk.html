@@ -18,13 +18,13 @@
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="pixel-map.js?v=2"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=11"></script>
-<script src="infra-pins.js?v=28"></script>
+<script src="reward-rules.js?v=12"></script>
+<script src="infra-pins.js?v=29"></script>
 <script src="shop-visits.js?v=4"></script>
 <script src="qr-scan.js?v=5"></script>
 <script src="demo-geo.js?v=6"></script>
 <script src="walk-photos.js?v=1"></script>
-<script src="sample-data.js?v=8"></script>
+<script src="sample-data.js?v=9"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="walk-screen.css?v=4">
 <style>
@@ -170,7 +170,7 @@
   </div>
   <section class="map-sheet" aria-label="지금까지 걸은 길">
     <b id="map-mission">지금까지 걸은 길</b>
-    <p>펼칠 때 내 위치와 미션 장소가 같이 보이게 맞춰요. 점선은 화면이 꺼져 있던 동안이에요. 시설 핀은 [동네]에서 봐요.</p>
+    <p>펼칠 때 내 위치가 보이게 맞춰요. 점선은 화면이 꺼져 있던 동안이에요. 시설 핀은 [동네]에서 봐요.</p>
     <div class="map-actions">
       <button type="button" id="pin-btn">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
@@ -189,13 +189,14 @@
   // 핀(산책 중 꽂은 메모 — 지도 보기 안에서 꽂고 지운다)·주민증·화면 켜 두기 설정은 store.js(WalsonStore)로 읽고 쓴다
   // 화면 켜 두기(Wake Lock)·진동은 device.js(WalsonDevice)가 한다 — 이 화면은 언제 켜 두고 언제 울릴지만 정한다
   var E = window.WalkEngine;
-  var DEFAULT_CENTER = [37.6212, 127.1525]; // 아울렛·다산중앙공원·다산수변공원의 가운데(공용 장소)
+  // 위치를 아직 모를 때 지도 처음 자리 = 전국(11/24 전국판 — 예전엔 다산동 공원들의 가운데). town.html과 같은 값
+  var KOREA = [[33.1, 124.6], [38.6, 130.0]];
   // 화면 켜 두기는 기본 켜짐(2026-11-17 가르시아 "앱을 켜고 산책하게 만들어, 앱을 켜야 보상되게") — 끈 사람만 꺼짐
   // (설정 petwalk_keep_screen_off = '1'), 산책 중일 때만 잡는다. 웹앱은 화면이 꺼지거나 다른 앱으로 가면 위치를 못 받는다.
   var KEEP_SCREEN_OFF_KEY = WalsonStore.KEYS.keepScreenOff;
   var keepAwake = WalsonDevice.keepAwake;
-  var POCKET_TIP = '화면을 끄면 그동안 길이 안 그려져요. 발도장 장소나 응가 자리에서 꺼내 "여기 찍기"를 누르면 그 사이는 직선으로 이어요.';
-  var KEEP_TIP = '화면을 켜 둘게요 — 앱을 켜 둔 채 걸어야 길이 그려지고 발도장·미션이 찍혀요.';
+  var POCKET_TIP = '화면을 끄면 그동안 길이 안 그려져요. 응가 자리나 쉬는 곳에서 꺼내 "여기 찍기"를 누르면 그 사이는 직선으로 이어요.';
+  var KEEP_TIP = '화면을 켜 둘게요 — 앱을 켜 둔 채 걸어야 길이 그려져요.';
   var kmText = E.kmText, pad2 = E.pad2;
   function keepScreen() { return !WalsonStore.flag(KEEP_SCREEN_OFF_KEY); }
 
@@ -278,7 +279,7 @@
       WalsonMissionAlert.show({
         icon: 'pin', badge: '위치 오차 약 ' + accText(s2.lastAcc),
         title: '‘대략적인 위치’로 잡혀요',
-        lines: ['이대로는 걸은 길이 안 그려지고', '발도장도 안 찍혀요. 시간은 계속 재요.'],
+        lines: ['이대로는 걸은 길이 안 그려져요.', '시간은 계속 재요.'],
         primary: { label: '정확한 위치 켜는 법', href: 'location-guide.html?back=walk', onClick: rememberAcc },
         secondary: { label: '닫기' }
       });
@@ -348,7 +349,7 @@
   var map = null, routeLayer = null, markLayer = null, pinLayer = null, mapOpen = false;
   var basicTiles = null, pixelTiles = null, pixelRoute = null, pixelLabels = null, mapStyle = 'basic';
   function initMap() {
-    map = L.map('map', { zoomControl: false }).setView(DEFAULT_CENTER, 15);
+    map = L.map('map', { zoomControl: false }).fitBounds(KOREA, { animate: false });
     basicTiles = WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
     // 도트 지도(2026-11-22): 기본은 위 그림 지도, 설정 판의 지도 모양으로 바꾸고 고른 것은 이 휴대폰에 기억한다([동네]와 같이 씀).
     // 도트 칸 색은 OpenStreetMap 그림 색을 기준으로 나누므로 pixel-map.js는 OSM 타일을 직접 받는다.

@@ -148,7 +148,7 @@
     ctx.fillStyle = ink; ctx.font = font(800, 34);
     ctx.fillText(bits.join(' · ') || '다음 달엔 더 많이 걸어요!', pad, y);
     ctx.fillStyle = soft; ctx.font = font(700, 28);
-    ctx.fillText('왈슨 · 다산동 강아지 산책 앱 · johnsongarage.co.kr/walson', pad, H - (fmt === 'story' ? 110 : 60));
+    ctx.fillText('왈슨 · 우리 동네 강아지 산책 앱 · johnsongarage.co.kr/walson', pad, H - (fmt === 'story' ? 110 : 60));
     return c;
   }
 

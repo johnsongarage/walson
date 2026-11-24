@@ -113,7 +113,7 @@
   //   켜고 끄기: showSticker, showSide, showRank, showQr, showTitleTape, showBandTape, showHole
   //   사진: photoMode('auto'|'cutout'|'box'), zoom(1~3), qx·qy(0~1, 가운데 0.5)
   var DEFAULTS = {
-    club: 'DASAN WALK CLUB', title: 'WALKING PASS', side: 'WALSON MATE', footer: '재미로 만든 굿즈',
+    club: 'WALSON WALK CLUB', title: 'WALKING PASS', side: 'WALSON MATE', footer: '재미로 만든 굿즈',
     cream: CREAM, ink: INK,
     showSticker: true, showSide: true, showRank: true, showQr: true, showTitleTape: true, showBandTape: true, showHole: true,
     photoMode: 'auto', zoom: 1, qx: 0.5, qy: 0.5
@@ -221,7 +221,7 @@
       ctx.textAlign = 'right'; ctx.fillStyle = ink;
       ctx.font = font(400, 56, BIG); ctx.fillText('Lv.' + (data.level == null ? 1 : data.level), R + 4, 900);
       ctx.font = font(800, 26); ctx.fillText(data.rankName || '산책 입문자', R + 4, 940);
-      ctx.font = font(700, 24); ctx.globalAlpha = 0.75; ctx.fillText(data.place || '남양주 다산동', R + 4, 976); ctx.globalAlpha = 1;
+      ctx.font = font(700, 24); ctx.globalAlpha = 0.75; ctx.fillText(data.place || '', R + 4, 976);   // 11/24 전국판 — 동네 이름을 주면만 ctx.globalAlpha = 1;
     }
 
     // 이름
