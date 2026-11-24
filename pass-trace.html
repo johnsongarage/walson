@@ -55,7 +55,7 @@
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
 <script src="photo-dot.js?v=2"></script>
-<script src="pass-trace.js?v=1"></script>
+<script src="pass-trace.js?v=2"></script>
 </head>
 <body>
 <main class="wrap">
@@ -91,7 +91,8 @@
     <div><label for="f-type">TYPE</label><input type="text" id="f-type" maxlength="12" value="DOG"></div>
     <div class="wide"><label for="f-qr">QR 주소</label><input type="url" id="f-qr" value="https://johnsongarage.co.kr/walson/start.html"></div>
     <div class="wide">
-      <label class="check"><input type="checkbox" id="tag" checked> 홍보 문구 줄 넣기(원본엔 없음 · 밖에 나가는 굿즈엔 필수)</label>
+      <label class="check"><input type="checkbox" id="kr" checked> 키링판 — 이름·견종 칸 두 줄(값 크게), 아래 알약에 홍보 문구(끄면 원본 칸 그대로)</label>
+      <label class="check"><input type="checkbox" id="tag" checked> 홍보 문구 넣기(원본엔 없음 · 밖에 나가는 굿즈엔 필수)</label>
     </div>
   </div>
   <div class="btns">
@@ -152,11 +153,12 @@
   // ── 카드 그리기 ──
   function opts(scene) {
     return { scene: scene, photo: state.photo, id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
-      qr: $('f-qr').value.trim(), tagline: $('tag').checked };
+      qr: $('f-qr').value.trim(), tagline: $('tag').checked, keyring: $('kr').checked };
   }
   function draw() { $('trace').innerHTML = PT.render(opts('ref')); }
   ['f-id', 'f-name', 'f-type', 'f-qr'].forEach(function (id) { $(id).addEventListener('input', draw); });
   $('tag').addEventListener('change', draw);
+  $('kr').addEventListener('change', draw);
 
   // ── 사진 ── 처음엔 원본 그림의 사진 칸을 그대로 잘라서(비교용)
   function cropRef() {
