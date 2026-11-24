@@ -124,6 +124,8 @@
     font-size: 12px; line-height: 1.4; width: max-content; max-width: 86%; text-align: center; word-break: keep-all; z-index: 4; pointer-events: none;
     box-shadow: 0 3px 10px rgba(var(--shadow-rgb), .25); }
   .tip[hidden] { display: none; }
+  .tip .more { display: block; margin-top: 2px; opacity: .82; }   /* "한 번 더 누르면 우리 개가 가 봐요" */
+  .bubble.react { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }   /* 소품과 놀 때 한마디(11/24) — 기분 말풍선과 구별 */
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
   .closed[hidden] { display: none; }
@@ -229,6 +231,7 @@
         <canvas id="room" width="394" height="220" role="img" aria-label="모서리에서 내려다본 도트 강아지 방"></canvas>
         <div class="bubble px" id="bubble" hidden></div>
         <div class="tip" id="tip" role="status" hidden></div>
+        <div class="bubble px react" id="react" aria-hidden="true" hidden></div>
       </div>
       <div class="closed" id="closed" hidden></div>
     </div>
@@ -471,7 +474,7 @@
   function drawDog(d, dogId, px, py) {
     var b = dogBitmap(dogId);
     if (!b) return py - DOG_VIS;
-    var hop = (d.frame === 1 || d.frame === 3) ? 1 : 0;
+    var hop = d.hop != null ? d.hop : (d.frame === 1 || d.frame === 3) ? 1 : 0;   // d.hop = 소품과 노는 동안(actStep)
     var w = b.width / R, h = b.height / R;
     var x = Math.round((px - w / 2) * R) / R, top = Math.round((py - h + 1) * R) / R - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
     shadowOn(ctx, px, py + 1, w * 0.62, 0.22);
@@ -677,7 +680,8 @@
         ctx.imageSmoothingEnabled = false;
         var a = t.acc && pic('acc_' + t.acc);
         if (a) ctx.drawImage(a, Math.round(t.x - a.width / 2), Math.round(top) + 4 - a.height);
-        if (t.dog === host) placeBubble(t.x, top + 2);
+        if (t.dog === reactDog) placeReact(t.x, top + 2);
+        else if (t.dog === host) placeBubble(t.x, top + 2);
         return;
       }
       if (!t.spr) return;
@@ -994,17 +998,107 @@
   }
   function itemAt(p) { return view === -1 ? spriteAt(p) : null; }   // 끄는 건 내 방에서만
   // 소품 안내(11/23 모델하우스) — 누른 소품 위에 "화분 — 산책 10번 하면 생겨요 · 나는 산책 4번 더" 잠깐
-  var tipTimer = 0, tapItem = null;
+  var tipTimer = 0, tapItem = null, tipFor = null;
   function showTip(s) {
     var it = AZ.byId(AZ.ITEMS, s.id), t = $('tip');
     if (!it) return;
     var h = AZ.howText(it.need, prog);
     t.textContent = it.name + ' — ' + h.how + ' · ' + h.mine + (it.shelf && view === -1 ? ' · 선반에 올려놓을 수 있어요' : '');
+    t.appendChild(el('span', 'more', '한 번 더 누르면 우리 개가 가 봐요'));
     t.hidden = false;
     var tw = t.offsetWidth, th = t.offsetHeight, rw = VW * K, cx = (s.x + s.w / 2 - OX) * K;
     t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, cx)) + 'px';
     t.style.top = Math.max(th + 2, s.y * K - 4) + 'px';
-    clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; }, 3000);
+    tipFor = s.id;
+    clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; tipFor = null; }, 4500);
+  }
+  // ── 소품과 놀기(11/24 가르시아 "아이템을 클릭하면 어떻게 얻는지 정보가 나오잖아? 한 번 더 클릭하면 가서 상호작용하게 해 줘") ──
+  // 처음 누르면 안내, 안내가 떠 있는 동안 같은 소품을 또 누르면 우리 개(내 방 = 집주인, 친구 방·모델하우스 = 손님으로 간 우리 개)가
+  // 그 소품 옆(쉬는 것·깔개는 그 위, 벽·선반·모서리 소품은 그 아래 바닥)으로 뛰어가서 종류대로 움직이고 한마디 한다. 바닥을 누르면 그만.
+  // kind: play 통통 세 번 · eat 고개 까딱(먹기·킁킁) · rest 그 위에서 쉬기(좀 더 머묾) · read 글자 소품 읽기 · look 올려다보기 · walk 산책 가자(두 번 통)
+  // 새 소품은 여기 한 줄 — 없으면 ['look', '킁킁']. 글자 소품은 그 글씨를 읽는다
+  var REACT = {
+    frame: ['look', '내 등급 어때?'], card0: ['look', '킁킁, 산책 냄새'], card1: ['look', '킁킁, 산책 냄새'], bed: ['rest', '여기 내 자리'],
+    trophy: ['look', '꾸준히 걸었지!'], plant: ['look', '킁킁, 풀 냄새'], bowl: ['eat', '냠냠'], bone: ['play', '앙앙, 뼈다귀!'],
+    carrot: ['play', '당근 물었다!'], ball: ['play', '공 던져 줘!'], flag: ['look', '핑크 앰배서더!'], rug: ['rest', '뒹굴뒹굴'],
+    photo: ['look', '어? 나잖아!'], basket: ['play', '뭐부터 꺼내지?'], house: ['rest', '쿨쿨…'], shelf: ['look', '오늘의 한 장!'],
+    poopbag: ['walk', '산책 가자!'], keyhook: ['look', '내 키링이다!'], lamp: ['look', '따뜻해'], mat: ['rest', '소풍 왔다!'],
+    garland: ['play', '파티다!'], palframe: ['look', '보고 싶다, 단짝'], pee_pad: ['look', '킁킁, 여기다!'],
+    bubble_visited: ['read', '다녀감!'], sign_snack: ['read', '간식 내놔라!'], board_refuse: ['read', '안가 안걸어!'],
+    toy_chicken: ['play', '삑삑!'], food_box: ['eat', '사료 냄새…'], grooming_basket: ['look', '빗질은 싫어'],
+    bubble_interior: ['read', '인테리어 맛집!'], pet_stairs: ['play', '영차영차'], panel_guestbook: ['read', '집사의 삶…'],
+    donut_cushion: ['rest', '도넛 속에 쏙'], balloons: ['play', '둥실둥실!'], cafe_cup: ['look', '킁킁, 커피 냄새'],
+    stamp_regular: ['read', '단골 인증!'], sign_meetup: ['read', '산책길 조우!'], cone_barricade: ['look', '공사 중?'],
+    parasol_set: ['rest', '그늘 좋다'], bubble_poop: ['read', '오늘도 똥줍!'], trophy_poop: ['look', '황금 똥이다!'],
+    bubble_chihuahua: ['read', '참지않긔!'], leash_hook: ['walk', '산책 가자!'], raincoat_rack: ['walk', '비 와도 산책!'],
+    scroll_dogslife: ['read', '개팔자 상팔자'], treat_jar: ['eat', '간식 주세요!'], neon_chihuahua: ['look', '반짝반짝'],
+    nosework_mat: ['eat', '킁킁킁킁'], stroller: ['walk', '태워 줘!'], cart_bungeoppang: ['eat', '붕어빵 하나요!'],
+    daisy: ['look', '킁킁, 꽃 냄새'], cactus: ['look', '앗, 따가워'], bonsai: ['look', '벚꽃이다!'], hanging_plant: ['look', '대롱대롱'],
+    frame_dog: ['look', '멋진 강아지네'], frame_gold: ['look', '번쩍번쩍!'], banner: ['look', '왈왈!'],
+    cushion_yellow: ['rest', '폭신폭신'], cushion_blue: ['rest', '폭신폭신'], cushion_pink: ['rest', '폭신폭신'], cushion_mint: ['rest', '폭신폭신'],
+    water_bowl: ['eat', '할짝할짝'], feeder_blue: ['eat', '냠냠'], basket_wicker: ['play', '당근 찾았다!'], rope: ['play', '당겨, 당겨!'],
+    ball_tennis: ['play', '공 던져 줘!'], ball_watermelon: ['play', '수박이다!'], ball_pastel: ['play', '무지개 공!'], ball_spiky: ['play', '말랑말랑!']
+  };
+  var ACT_LEN = { play: 2.4, eat: 2.4, rest: 2.8, read: 2.6, look: 2.4, walk: 2.4 };   // 한마디가 떠 있는 초
+  function tapOn(s) {
+    if (tipFor === s.id && !$('tip').hidden) { clearTimeout(tipTimer); $('tip').hidden = true; tipFor = null; goPlay(s); return; }
+    showTip(s);
+  }
+  // 설 자리 {i, j} + 바라볼 곳의 화면 x(fx — 없으면 그대로)
+  function playSpot(it, s, who, kind) {
+    var p = posOf(cur, it), side, u;
+    if (it.corner || p.wall || p.shelf != null) {   // 벽·선반·모서리 — 그 아래 바닥, 벽 앞 몇 칸에서 조금 비켜(소품이 머리에 가려지지 않게)
+      if (it.corner) return { i: 8, j: 8, fx: null };
+      if (p.wall) { side = p.wall; u = p.u; }
+      else { var sl = AZ.SHELVES[p.shelf]; side = sl.x >= CORNER ? 'R' : 'L'; u = Math.abs(sl.x - CORNER) / 2; }
+      var c = clampFloor(side === 'R' ? { i: u + 2, j: 8 } : { i: 8, j: u + 2 });
+      return { i: c.i, j: c.j, fx: s.x + s.w / 2 };
+    }
+    if (kind === 'rest' || it.decal) { var c0 = clampFloor({ i: p.i, j: p.j }); return { i: c0.i, j: c0.j, fx: null }; }   // 그 위에
+    var k = (s.w / 2 + 12) / 4, ix = P(p.i, p.j).x, right = P(who.i, who.j).x >= ix;   // 옆 — 지금 있는 쪽으로(덜 걷게)
+    var c1 = clampFloor(right ? { i: p.i + k, j: p.j - k } : { i: p.i - k, j: p.j + k });
+    return { i: c1.i, j: c1.j, fx: ix };
+  }
+  function goPlay(s) {
+    var it = AZ.byId(AZ.ITEMS, s.id); if (!it || !cur) return;
+    var who = view === -1 ? host : guest, r = REACT[it.id] || ['look', '킁킁'], sp = playSpot(it, s, who, r[0]);
+    stopAct(who);
+    who.ti = sp.i; who.tj = sp.j; who.fast = true;
+    who.act = { id: it.id, kind: r[0], say: r[1], fx: sp.fx, on: false };
+    kick();
+  }
+  function startAct(d, now) {
+    var a = d.act, x = P(d.i, d.j).x;
+    a.on = true; a.t0 = now;
+    if (a.fx != null && Math.abs(a.fx - x) > 2) d.flip = a.fx < x;   // 소품 쪽을 본다
+    showReact(d, a.say);
+  }
+  function actStep(d, now) {   // 노는 동안 true — 통통 높이(d.hop)만 바꾼다
+    var a = d.act, t = now - a.t0, hop = 0;
+    if (t >= (ACT_LEN[a.kind] || 2.4)) {
+      var kind = a.kind; stopAct(d);
+      d.rest = kind === 'rest' ? 12 + Math.random() * 6 : 5 + Math.random() * 4;   // 쉬는 곳에선 좀 더 머문다(내 방 혼자 돌아다니기 전)
+      return false;
+    }
+    if (a.kind === 'play') hop = t < 1.2 ? Math.round(3 * Math.abs(Math.sin(t * Math.PI / 0.4))) : 0;
+    else if (a.kind === 'eat') hop = t < 2 ? Math.floor(t * 7) % 2 : 0;
+    else if (a.kind === 'walk') hop = t < 0.8 ? Math.round(2 * Math.abs(Math.sin(t * Math.PI / 0.4))) : 0;
+    else if (a.kind !== 'rest') hop = t < 0.3 ? Math.round(2 * Math.sin(t * Math.PI / 0.3)) : 0;
+    d.hop = hop; d.frame = 0;
+    return true;
+  }
+  function stopAct(d) { d.act = null; d.hop = null; if (reactDog === d) hideReact(); }
+  // 한마디 — 노는 강아지 머리 위(말풍선과 같은 자리, 그동안 기분 말풍선은 숨김)
+  var reactDog = null, reactW = 0;
+  function showReact(d, text) {
+    var r = $('react'); r.textContent = text; r.hidden = false; reactW = r.offsetWidth; reactDog = d;
+    $('bubble').style.visibility = d === host ? 'hidden' : '';
+  }
+  function hideReact() { $('react').hidden = true; reactDog = null; $('bubble').style.visibility = ''; }
+  function placeReact(x, y) {
+    var r = $('react'); if (r.hidden) return;
+    var rw = VW * K, half = reactW / 2, left = Math.max(half + 2, Math.min(rw - half - 2, (x - OX) * K));
+    r.style.left = left + 'px'; r.style.top = Math.max(0, (y - 6) * K) + 'px';
   }
   canvas.addEventListener('pointerdown', function (e) {
     var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null;   // 지난 끌기가 덜 끝났어도 새로 시작
@@ -1015,8 +1109,8 @@
       e.preventDefault(); kick();
       return;
     }
-    if (s && s.fixed) { tapItem = s; showTip(s); return; }
-    if (view !== -1) { tapItem = spriteAt(p); if (tapItem) showTip(tapItem); }   // 모델하우스·친구 방: 소품을 누르면 안내(걷지 않음)
+    if (s && s.fixed) { tapItem = s; tapOn(s); return; }
+    if (view !== -1) { tapItem = spriteAt(p); if (tapItem) tapOn(tapItem); }   // 모델하우스·친구 방: 소품을 누르면 안내(걷지 않음), 한 번 더 누르면 우리 개가 그리로
   });
   // 휴대폰: 소품 위에서 시작한 손가락만 화면이 따라 움직이지 않게(끌기). 바닥에서 위아래로 밀면 화면이 내려가고
   // 그때 브라우저가 보내는 pointercancel로 걷기도 취소된다. 그냥 톡 누르면 그 칸으로 걸어간다.
@@ -1048,13 +1142,14 @@
   });
   canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
   canvas.addEventListener('pointerup', function (e) {
-    if (drag) { if (drag.moved) save(); else showTip(drag.s); drag = null; return; }   // 내 방 소품을 끌지 않고 톡 누르면 안내
+    if (drag) { if (drag.moved) save(); else tapOn(drag.s); drag = null; return; }   // 내 방 소품을 끌지 않고 톡 누르면 안내(한 번 더 누르면 놀러 가기)
     if (tapItem) { tapItem = null; downAt = null; return; }
     var p = at(e); if (!downAt) return; downAt = null;
     var q = unP(p.x, p.y);
     if (!onFloor(q)) return;                                            // 바닥 밖(벽)을 누르면 그대로
     $('tip').hidden = true;
     var who = view === -1 ? host : guest, c = clampFloor(q);
+    stopAct(who); who.fast = false;
     who.ti = c.i; who.tj = c.j; who.rest = 9 + Math.random() * 4;     // 누른 곳에선 한동안 쉰다
     kick();
   });
@@ -1074,11 +1169,14 @@
     [host, guest].forEach(function (d) {
       var di = d.ti - d.i, dj = d.tj - d.j, dist = Math.sqrt(di * di + dj * dj);
       if (dist > 0.2) {
-        var sp = Math.min(dist, 15 * dt);          // 1초에 바닥 15칸
+        var sp = Math.min(dist, (d.fast ? 26 : 15) * dt);   // 1초에 바닥 15칸(소품으로 놀러 갈 땐 26칸 — 뛰어서)
         d.i += di / dist * sp; d.j += dj / dist * sp;
         if (Math.abs(di - dj) > 0.3) d.flip = (di - dj) < 0;   // 화면 왼쪽으로 가면 뒤집기
         d.frame = Math.floor(now * 6) % 2;
       } else {
+        d.fast = false;
+        if (d.act && !d.act.on) startAct(d, now);
+        if (d.act && actStep(d, now)) return;   // 소품과 노는 중 — 쉬는 통통·혼자 돌아다니기는 잠깐 쉼
         d.frame = ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;   // 쉴 땐 4초쯤마다 한 번 통통
         if (d === host && view === -1 && !drag) { d.rest -= dt || 0.15; if (d.rest <= 0) { d.rest = 6 + Math.random() * 6; wander(d); } }
       }
@@ -1088,7 +1186,7 @@
   }
   function schedule() {
     if (raf || idle || document.hidden) return;
-    if (moving(host) || (view !== -1 && moving(guest)) || drag) raf = requestAnimationFrame(step);
+    if (moving(host) || (view !== -1 && moving(guest)) || drag || host.act || guest.act) raf = requestAnimationFrame(step);
     else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
   }
   function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
@@ -1117,6 +1215,7 @@
   function goTo(v) {
     if (v >= friends.length || v < -1 - AZ.SHOWROOMS.length) v = -1;
     view = v; gbShown = 12;
+    stopAct(host); stopAct(guest); host.fast = guest.fast = false; tipFor = null;
     var d = v <= -2 && AZ.SHOWROOMS[-2 - v].dogs;   // 모델하우스는 방마다 강아지 서는 자리(꾸민 것이 가려지지 않게)
     var hd = d ? d.host : HOME_DOGS.host, gd = d ? d.guest : HOME_DOGS.guest;
     host.i = host.ti = hd[0]; host.j = host.tj = hd[1]; host.flip = false; host.rest = 5;
@@ -1188,7 +1287,17 @@
   Promise.all([picsReady, dogsReady]).then(function () { dogCache = {}; fillCache = {}; staticDirty = true; ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시
   // 시험용 — 지금 보는 방·그리는 배율
   window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog,
-    to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; } };
+    to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; },
+    // 시험용(11/24 소품과 놀기): 소품을 누를 수 있는 점(방 점 좌표 — 앞에 다른 그림이 없는 곳), 강아지 둘의 자리·노는 중인지
+    hit: function (id) {
+      var s = sprites.filter(function (q) { return q.id === id; })[0]; if (!s) return null;
+      for (var r = 0; r < 24; r++) for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) {
+        var q = { x: Math.round(s.x + s.w / 2) + dx, y: Math.round(s.y + s.h / 2) + dy };
+        if (spriteAt(q) === s) return q;
+      }
+      return null;
+    },
+    dogs: function () { return [host, guest].map(function (d) { var q = P(d.i, d.j); return { i: d.i, j: d.j, x: q.x, y: q.y, flip: d.flip, hop: d.hop, act: d.act ? { id: d.act.id, kind: d.act.kind, on: d.act.on } : null }; }); } };
 })();
 </script>
 <script src="tabbar.js?v=11" data-tab="azit"></script>
