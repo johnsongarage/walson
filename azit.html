@@ -133,6 +133,9 @@
     box-shadow: 0 3px 10px rgba(var(--shadow-rgb), .25); }
   .tip[hidden] { display: none; }
   .tip .more { display: block; margin-top: 2px; opacity: .82; }   /* "한 번 더 누르면 우리 개가 가 봐요" */
+  .tip .throw { pointer-events: auto; display: inline-block; margin: 5px 0 1px; font: inherit; font-weight: 700; font-size: 12px; line-height: 1.2;
+    color: var(--bg); background: var(--accent); border: 0; border-radius: 999px; padding: 5px 14px; cursor: pointer; }   /* 공 던지기(11/24) — 말풍선 안에서 이것만 눌린다 */
+  #room.aim { cursor: crosshair; }
   .bubble.react { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }   /* 소품과 놀 때 한마디(11/24) — 기분 말풍선과 구별 */
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
@@ -917,10 +920,17 @@
     ctx.clearRect(0, 0, RW, RH); ctx.drawImage(staticLayer, 0, 0);
     sprites = wallHits.slice();
     var things = [];
+    var fj = o.me ? fetchJob : null, tnow = nowSec();
     itemsOf(o, 'floor').forEach(function (it) {
+      if (fj && it.id === fj.id) return;   // 던진 공은 아래에서 따로(날아가는 중·바닥·입에)
       var p = posOf(o, it), q = P(p.i, p.j), ro = rollOf(it.id);   // 개모차는 탄 강아지가 "출발!" 하는 동안 살짝 굴러간다
       things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: (it.id === 'lamp' && lampLit() && pic('lamp_stand_on')) || pic(it.spr) });
     });
+    if (fj && (fj.phase === 'bounce' || fj.phase === 'chase' || fj.phase === 'grab')) {   // 떨어진 공 — 처음 0.4초는 통통 두 번
+      var lq = P(fj.L.i, fj.L.j), lift = 0;
+      if (fj.phase === 'bounce') { var tb = (tnow - fj.t0) / BOUNCE; lift = tb < 0.5 ? 6 * Math.sin(Math.PI * tb / 0.5) : 3 * Math.sin(Math.PI * (tb - 0.5) / 0.5); }
+      things.push({ ball: true, z: lq.y, x: lq.x, y: lq.y, spr: fj.spr, lift: Math.max(0, Math.round(lift)) });
+    }
     var hp = P(host.i, host.j); things.push({ dog: host, z: host.seat ? host.seat.z : hp.y + 0.5, x: hp.x, y: hp.y, dogId: o.dog, acc: o.acc });   // 방석 위면 방석 바로 다음(11/24)
     if (view !== -1) {   // 친구 방·모델하우스엔 우리 개가 손님으로
       var me = meModel(), gp = P(guest.i, guest.j);
@@ -928,6 +938,12 @@
     }
     things.sort(function (a, b) { return a.z - b.z || a.x - b.x; });   // 뒤에서 앞으로
     things.forEach(function (t) {
+      if (t.ball) {
+        if (!t.spr) return;
+        if (t.lift) shadowOn(ctx, t.x, t.y, t.spr.width * 0.5, 0.14);
+        ctx.drawImage(t.spr, Math.round(t.x - t.spr.width / 2), Math.round(t.y - t.spr.height + 1 - t.lift));
+        return;
+      }
       if (t.dog) {
         var rt = rideDraw(t.dog, t.dogId, t.acc), top, bx = t.x;   // 개모차 타기 · 탄 동안(창으로 얼굴만) · 내리기(11/24)
         if (rt) { top = rt.y; bx = rt.x; }
@@ -937,6 +953,7 @@
           var a = t.acc && pic('acc_' + t.acc);
           if (a) { var head = headPoint(t.dog, t.dogId, t.x, top); ctx.drawImage(a, Math.round(head.x - a.width / 2), Math.round(head.y) + 4 - a.height); }   // 머리 꼭대기에(11/24)
         }
+        if (fj && fj.phase === 'carry' && t.dog === host && rt == null) drawCarried(t.dog, t.dogId, top);   // 문 공
         if (t.dog === reactDog) placeReact(bx, top + 2);
         else if (t.dog === host) placeBubble(bx, top + 2);
         return;
@@ -946,6 +963,7 @@
       ctx.drawImage(t.spr, x, y);
       sprites.push({ id: t.id, x: x, y: y, w: t.spr.width, h: t.spr.height, foot: { x: t.x, y: t.y }, img: t.spr });
     });
+    if (fj && fj.phase === 'fly') drawFlight(tnow);   // 날아가는 공은 맨 위에
     drawLampLight(o);   // 켠 스탠드 빛(방·소품·강아지를 다 그린 뒤 덧칠)
     if (drag && drag.armed && !drag.moved) {   // 꾹 눌러 집은 소품 — 둘레에 흰 테두리(아직 안 움직였을 때)
       var hs = drag.s; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 1;
@@ -1310,13 +1328,19 @@
     if (!it) return;
     var h = AZ.howText(it.need, prog);
     t.textContent = it.name + ' — ' + h.how + ' · ' + h.mine + (it.shelf && view === -1 ? ' · 선반에 올려놓을 수 있어요' : '');
+    var thr = canThrow(s.id);
+    if (thr) {   // 공 — [던지기] → 던질 곳 누르기(11/24)
+      var tb = el('button', 'throw', '던지기'); tb.type = 'button';
+      tb.addEventListener('click', function (e) { e.stopPropagation(); startAim(s.id); });
+      t.appendChild(document.createElement('br')); t.appendChild(tb);
+    }
     t.appendChild(el('span', 'more', '한 번 더 누르면 우리 개가 가 봐요'));
     t.hidden = false;
     var tw = t.offsetWidth, th = t.offsetHeight, rw = VW * K, cx = (s.x + s.w / 2 - OX) * K;
     t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, cx)) + 'px';
     t.style.top = Math.max(th + 2, s.y * K - 4) + 'px';
     tipFor = s.id;
-    clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; tipFor = null; }, 4500);
+    clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; tipFor = null; }, thr ? 6500 : 4500);
   }
   // ── 소품과 놀기(11/24 가르시아 "아이템을 클릭하면 어떻게 얻는지 정보가 나오잖아? 한 번 더 클릭하면 가서 상호작용하게 해 줘") ──
   // 처음 누르면 안내, 안내가 떠 있는 동안 같은 소품을 또 누르면 우리 개(내 방 = 집주인, 친구 방·모델하우스 = 손님으로 간 우리 개)가
@@ -1584,6 +1608,106 @@
     var rw = VW * K, half = reactW / 2, left = Math.max(half + 2, Math.min(rw - half - 2, (x - OX) * K));
     r.style.left = left + 'px'; r.style.top = Math.max(0, (y - 6) * K) + 'px';
   }
+  // ── 공 던지기(11/24 가르시아 "공을 상호작용하면 던지기 버튼이 뜨게, 누르고 던질 곳을 찍으면 강쥐가 물어 오게. 여러 번 하면 반항도") ──
+  // 내 방 공(다섯 가지)을 톡 → 안내에 [던지기] → 바닥을 누르면 화면 앞 가운데(보는 사람 손)에서 포물선으로 날아가 통통 튀고 →
+  // 우리 개가 뛰어가 물고 와서 앞에 내려놓는다. 1분 반 안에 던진 횟수로 기분이 바뀐다: 1~3번째 신나서(뛰어서), 4번째 헥헥(걸어서),
+  // 5번째 반반, 6번째부터는 반항 — 못 들은 척 "흥!" · 공 옆에 버티기 · 물고 구석으로 도망. 1분 반 동안 안 던지면 다시 신난다.
+  // 공은 내려놓은(떨어진) 자리로 저장된다. 친구 방·모델하우스에선 안 됨(남의 방 소품 자리를 바꾸지 않게)
+  var BALLS = ['ball', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky'];
+  var FLY = 0.75, BOUNCE = 0.4, TIRED_SEC = 90;
+  var aim = null, fetchJob = null, throwLog = [], ballSmall = {};
+  function canThrow(id) { return view === -1 && BALLS.indexOf(id) >= 0 && !!cur && cur.items.indexOf(id) >= 0; }
+  function nowSec() { return performance.now() / 1000; }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function sayFor(d, text, sec) {   // 한마디를 잠깐(놀이 중 한마디와 같은 자리)
+    showReact(d, text); var tok = {}; d.sayTok = tok;
+    setTimeout(function () { if (d.sayTok === tok && reactDog === d && !d.act) hideReact(); }, sec * 1000);
+  }
+  function startAim(id) {
+    aim = { id: id }; clearTimeout(tipTimer); tipFor = null;
+    var t = $('tip'); t.textContent = '던질 곳을 눌러요'; t.appendChild(el('span', 'more', '바닥 말고 다른 곳을 누르면 그만'));
+    t.hidden = false;
+    var th = t.offsetHeight; t.style.left = Math.round(VW * K / 2) + 'px'; t.style.top = (th + 6) + 'px';
+    canvas.classList.add('aim');
+  }
+  function endAim() { aim = null; canvas.classList.remove('aim'); $('tip').hidden = true; }
+  function throwTo(id, q) {
+    var it = AZ.byId(AZ.ITEMS, id), d = host, now = nowSec();
+    if (!it) return;
+    if (fetchJob) dropFetch();
+    throwLog = throwLog.filter(function (t0) { return now - t0 < TIRED_SEC; }); throwLog.push(now);
+    var n = throwLog.length, rebel = pick(['refuse', 'stay', 'steal']);
+    var mood = n <= 3 ? 'happy' : n === 4 ? 'tired' : n === 5 ? (Math.random() < 0.5 ? 'tired' : rebel) : rebel;
+    var L = clampFloor(q);
+    state.pos[id] = { i: Math.round(L.i * 10) / 10, j: Math.round(L.j * 10) / 10 }; staticDirty = true;   // 선반에 있던 공도 바닥으로(나는 동안은 따로 그린다)
+    stopAct(d);
+    fetchJob = { id: id, spr: pic(it.spr), phase: 'fly', t0: now, S: { x: OX + VW / 2, y: RH - 3 }, L: L, mood: mood, n: n };
+    if (mood !== 'refuse') sayFor(d, n === 1 ? '!' : '!!', 0.9);
+    kick();
+  }
+  function arrived(d) { var di = d.ti - d.i, dj = d.tj - d.j; return di * di + dj * dj <= 0.09; }
+  function goNear(d, L) {   // 공 바로 옆(지금 강아지 쪽으로 2칸) — 공을 밟고 서지 않게
+    var di = d.i - L.i, dj = d.j - L.j, k = Math.sqrt(di * di + dj * dj) || 1;
+    if (d.mode === 'hop') { d.mode = 'sit'; d.modeT0 = 0; d.hop = null; }
+    var c = clampFloor({ i: L.i + di / k * 2, j: L.j + dj / k * 2 }); d.ti = c.i; d.tj = c.j;
+  }
+  function fetchStep(now) {
+    var f = fetchJob; if (!f) return;
+    var d = host, t = now - f.t0;
+    if (f.phase === 'fly') { if (t >= FLY) { f.phase = 'bounce'; f.t0 = now; } return; }
+    if (f.phase === 'bounce') {
+      if (t < BOUNCE) return;
+      if (f.mood === 'refuse') { sayFor(d, pick(['흥! 안 해', '이제 그만~', '못 들었어']), 2.6); d.rest = 10; fetchJob = null; save(); return; }   // 못 들은 척
+      f.phase = 'chase'; f.t0 = now; goNear(d, f.L); d.fast = f.mood !== 'tired'; return;
+    }
+    if (f.phase === 'chase') {
+      if (d.mode || !arrived(d)) return;   // 아직 가는 중(방석·개모차에서 일어나는 중 포함)
+      if (f.mood === 'stay') { sayFor(d, pick(['안 갖다 줄 거야~', '여기 있을래', '공은 내 거']), 2.8); d.rest = 16; fetchJob = null; save(); return; }   // 공 옆에 버티기
+      f.phase = 'grab'; f.t0 = now; d.hop = -1; return;   // 고개 숙여 물기
+    }
+    if (f.phase === 'grab') {
+      if (t < 0.3) return;
+      d.hop = null; f.phase = 'carry';
+      var to = f.mood === 'steal' ? clampFloor({ i: 8 + Math.random() * 22, j: 8 + Math.random() * 22 })   // 물고 안쪽 구석으로 도망
+        : clampFloor(unP(OX + VW / 2, RH - 26));                                                          // 화면 앞 가운데(던진 사람 쪽)로
+      d.ti = to.i; d.tj = to.j; d.fast = f.mood === 'happy' || f.mood === 'steal';
+      if (f.mood === 'steal') sayFor(d, '내 거야!', 1.6);
+      return;
+    }
+    if (f.phase === 'carry') {
+      if (d.mode || !arrived(d)) return;
+      var q = clampFloor({ i: d.i + 2.5, j: d.j + 2.5 });   // 앞(보는 쪽)에 내려놓는다
+      state.pos[f.id] = { i: Math.round(q.i * 10) / 10, j: Math.round(q.j * 10) / 10 }; save();
+      sayFor(d, f.mood === 'happy' ? pick(['또 던져!', '물어 왔다!', '한 번 더!']) : f.mood === 'tired' ? (f.n >= 5 ? '마지막이야…' : '헥헥…') : '여기 숨겨야지', 2.4);
+      d.rest = f.mood === 'happy' ? 7 : 12; fetchJob = null;
+    }
+  }
+  function dropFetch() {   // 중간에 그만둠(바닥을 눌러 다른 데로 보냄·다른 방으로) — 물고 있었으면 그 자리 앞에 내려놓는다
+    var f = fetchJob; if (!f) return;
+    if (f.phase === 'grab' || f.phase === 'carry') { var q = clampFloor({ i: host.i + 2, j: host.j + 2 }); state.pos[f.id] = { i: Math.round(q.i * 10) / 10, j: Math.round(q.j * 10) / 10 }; }
+    host.hop = null; fetchJob = null; save();
+  }
+  function ballSmallOf(spr) {   // 입에 문 공(3/4 크기, 곱게 줄임)
+    var key = spr.src + '@' + R;
+    if (!ballSmall[key]) ballSmall[key] = smallCopy(spr, Math.max(1, Math.round(spr.width * R * 0.75)), Math.max(1, Math.round(spr.height * R * 0.75)));
+    return ballSmall[key];
+  }
+  function drawCarried(d, dogId, top) {   // 입(턱 조금 위) — 개모차 얼굴 자리 표(RIDE_FACE)·사진 강아지는 머리 자리에서 어림
+    var f = fetchJob, b = d.box; if (!b || !f || !f.spr) return;
+    var fc = RIDE_FACE[dogId], hd = heads[dogId];
+    if (!fc) fc = hd ? [hd.hx, hd.hy, Math.min(0.75, hd.hy + 0.32)] : [0.5, 0.05, 0.4];
+    var mx = b.x + (d.flip ? 1 - fc[0] : fc[0]) * b.w, my = top + (fc[2] - (fc[2] - fc[1]) * 0.18) * b.h;
+    var sm = ballSmallOf(f.spr), w = sm.width / R, h = sm.height / R;
+    ctx.drawImage(sm, Math.round((mx - w / 2) * R) / R, Math.round((my - h / 2) * R) / R, w, h);
+  }
+  function drawFlight(now) {   // 날아가는 공 — 바닥엔 그림자, 공은 포물선(앞에서 손 높이로 출발)
+    var f = fetchJob, k = Math.min(1, (now - f.t0) / FLY), Ls = P(f.L.i, f.L.j), S = f.S, s = f.spr;
+    if (!s) return;
+    var gx = S.x + (Ls.x - S.x) * k, gy = S.y + (Ls.y - S.y) * k, hgt = (1 - k) * 16 + 46 * 4 * k * (1 - k);
+    shadowOn(ctx, gx, gy, s.width * (0.45 + 0.25 * k), 0.16);
+    ctx.drawImage(s, Math.round(gx - s.width / 2), Math.round(gy - hgt - s.height + 1));
+  }
+
   // 톡 = 놀기, 꾹(0.6초) = 옮기기(11/24 가르시아 "상호작용이랑 드래그 이동이랑 겹쳐" → "꾹 누르기, 좀 더 오래") —
   // 소품을 누르면 바로 끌지 않고 HOLD_MS 동안 기다린다. 그 전에 떼면 톡(안내 → 한 번 더 = 놀러 가기), 그 전에 손이 움직이면
   // 아무것도 안 함(손가락이면 화면 스크롤). 다 채우면 소품 둘레에 테두리 + 짧은 진동 → 그때부터 끌기.
@@ -1604,6 +1728,7 @@
   function endHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });   // 안드로이드 꾹 누르기 메뉴 막기
   canvas.addEventListener('pointerdown', function (e) {
+    if (aim) { downAt = at(e); drag = null; tapItem = null; endHold(); return; }   // 던질 곳 고르는 중 — 떼는 곳에서 정한다
     var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null; endHold();   // 지난 끌기가 덜 끝났어도 새로 시작
     if (s && !s.fixed) {   // 모서리 가랜드는 끌지 않는다(톡 누르면 안내만)
       hold = { s: s, p: p, cx: e.clientX, cy: e.clientY, pid: e.pointerId, touch: e.pointerType === 'touch' };
@@ -1651,6 +1776,11 @@
   canvas.addEventListener('pointercancel', function () { endHold(); canvas.classList.remove('grab'); if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
   canvas.addEventListener('pointerup', function (e) {
     canvas.classList.remove('grab');
+    if (aim) {   // 던질 곳 — 바닥이면 던지고, 아니면 그만
+      var ap = at(e), aq = unP(ap.x, ap.y), aid = aim.id; endAim(); downAt = null;
+      if (onFloor(aq)) throwTo(aid, aq);
+      return;
+    }
     if (hold) { var hs = hold.s; endHold(); downAt = null; tapOn(hs); return; }   // 꾹 누르기 전에 뗌 = 톡(안내 → 한 번 더 = 놀러 가기)
     if (drag) {
       if (drag.moved) {
@@ -1666,6 +1796,7 @@
     if (!onFloor(q)) return;                                            // 바닥 밖(벽)을 누르면 그대로
     $('tip').hidden = true;
     var who = view === -1 ? host : guest, c = clampFloor(q);
+    if (who === host && fetchJob) dropFetch();   // 공 가지러 가던 중이면 그만두고 누른 곳으로
     stopAct(who); who.fast = false;
     if (who.mode === 'hop') { who.mode = 'sit'; who.modeT0 = 0; who.hop = null; }   // 폴짝 중이면 앉은 셈 치고 일어나서 간다
     who.ti = c.i; who.tj = c.j; who.rest = 9 + Math.random() * 4;     // 누른 곳에선 한동안 쉰다
@@ -1684,6 +1815,7 @@
   function step(ts) {
     raf = 0;
     var now = ts / 1000, dt = last ? Math.min(0.05, now - last) : 0; last = now;
+    if (view === -1) fetchStep(nowSec());   // 공 던지기(던진 공·가지러 가기·물고 오기)
     [host, guest].forEach(function (d) {
       if (d.mode === 'hop') { hopStep(d, now); return; }
       if (d.mode === 'hopout') { hopOutStep(d, now); return; }
@@ -1714,7 +1846,7 @@
         }
         if (d.act && actStep(d, now)) return;   // 소품과 노는 중 — 쉬는 통통·혼자 돌아다니기는 잠깐 쉼
         d.frame = d.mode === 'sit' ? 0 : ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;   // 쉴 땐 4초쯤마다 한 번 통통(앉아 있을 땐 가만히)
-        if (d === host && view === -1 && !drag) { d.rest -= dt || 0.15; if (d.rest <= 0) { d.rest = 6 + Math.random() * 6; wander(d); } }
+        if (d === host && view === -1 && !drag && !fetchJob) { d.rest -= dt || 0.15; if (d.rest <= 0) { d.rest = 6 + Math.random() * 6; wander(d); } }
       }
     });
     render();
@@ -1722,7 +1854,7 @@
   }
   function schedule() {
     if (raf || idle || document.hidden) return;
-    if (moving(host) || (view !== -1 && moving(guest)) || drag || host.act || guest.act || host.mode === 'hop' || guest.mode === 'hop' || host.mode === 'stand' || guest.mode === 'stand' || host.mode === 'hopout' || guest.mode === 'hopout' || (host.mode === 'sit' && host.sink < SINK) || (guest.mode === 'sit' && guest.sink < SINK)) raf = requestAnimationFrame(step);
+    if (moving(host) || (view !== -1 && moving(guest)) || drag || fetchJob || host.act || guest.act || host.mode === 'hop' || guest.mode === 'hop' || host.mode === 'stand' || guest.mode === 'stand' || host.mode === 'hopout' || guest.mode === 'hopout' || (host.mode === 'sit' && host.sink < SINK) || (guest.mode === 'sit' && guest.sink < SINK)) raf = requestAnimationFrame(step);
     else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
   }
   function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
@@ -1750,6 +1882,8 @@
   window.addEventListener('resize', function () { if (signParts && signParts.length) setSign(signParts); });
   function goTo(v) {
     if (v >= friends.length || v < -1 - AZ.SHOWROOMS.length) v = -1;
+    if (fetchJob) dropFetch();
+    if (aim) endAim();
     view = v; gbShown = 12;
     stopAct(host); stopAct(guest); unseat(host); unseat(guest); host.fast = guest.fast = false; tipFor = null;
     var d = v <= -2 && AZ.SHOWROOMS[-2 - v].dogs;   // 모델하우스는 방마다 강아지 서는 자리(꾸민 것이 가려지지 않게)
@@ -1825,7 +1959,7 @@
   if (!fromHash()) ui();
   Promise.all([picsReady, dogsReady, photoReady]).then(function () { dogCache = {}; fillCache = {}; refreshModel(); ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시(워킹패스 사진 도트도)
   // 시험용 — 지금 보는 방·그리는 배율
-  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog, photo: usingPhoto(),
+  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog, photo: usingPhoto(), fetch: fetchJob ? fetchJob.phase + ':' + fetchJob.mood + ':' + fetchJob.n : null,
     to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; },
     // 시험용(11/24 소품과 놀기): 소품을 누를 수 있는 점(방 점 좌표 — 앞에 다른 그림이 없는 곳), 강아지 둘의 자리·노는 중인지
     hit: function (id) {
