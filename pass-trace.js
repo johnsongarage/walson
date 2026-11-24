@@ -230,7 +230,7 @@
     kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
-      light: { y: 1516.5, h: 78, gap: 16, u: 9.3, lu: 8 } }
+      light: { y: 1314.5, h: 78, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
   };
   function photoBox() {
     var F = L.frame;
@@ -274,7 +274,7 @@
   }
   // 키링판 칸: 원본처럼 한 줄 — 왼쪽 분홍(칸 이름) · 오른쪽 흰 칸(값). 분홍 칸은 세 칸이 같은 폭(가장 긴 칸 이름 바로 뒤까지)이라
   // 값이 한 줄로 맞춰 시작한다(길면 칸에 맞게 줄임)
-  function keyringBox(out, label, value, y) {
+  function keyringBox(out, label, value, y, center) {
     var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h;
     var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, sp = lx + lw * K.lux + K.lgap;
     stepBox(out, x, y, w, h, u, [[x + u, sp, COL.label], [sp, x + w - u, COL.value]]);
@@ -286,8 +286,10 @@
     var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
     if (VEC && /[가-힣]/.test(v)) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
       var vh = 16 * K.kmax * V.uy / V.ux * 0.8;
+      if (center) { var cl = sp + u * 0.5, cw = x + w - u - cl - u * 0.5; VEC.push({ s: v, x: cl, y: y + (h - vh) / 2, w: cw, h: vh, fill: COL.ink, fit: true }); return; }
       VEC.push({ s: v, x: vx, y: y + (h - vh) / 2, w: avail, h: vh, fill: COL.ink, left: true }); return;
     }
+    if (center) vx = sp + (x + w - u - sp - textUnits(v) * ux) / 2;
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
   }
 
@@ -369,7 +371,7 @@
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
-      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i]); return; }   // 키링판 = 짧은 칸 이름 · 좁힌 간격
+      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i > 0); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
       var sp = FD.splits[i], fx = FD.x, fu = FD.u;
       stepBox(g1, fx, fy, FD.w, FD.h, fu, [[fx + fu, sp, COL.label], [sp, fx + FD.w - fu, COL.value]]);
       var lb = L.labels[i];
@@ -385,11 +387,12 @@
     for (var k = -1; k <= 9; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === 9 ? COL.dashSoft : COL.dash));
     // 알약 — 키링판은 홍보 문구 두 줄(칸 폭 그대로), 아니면 원본처럼 WALSON
     var PL = L.pill, KP = L.kr.pill, tag = o.tagline !== false && B.tagline;
+    var rowsOn = KR && (o.signal != null || o.grade != null), pyy = rowsOn ? L.kr.pillLow : KP.y;
     if (KR && tag) {
-      stepBox(g1, FD.x, KP.y, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
+      stepBox(g1, FD.x, pyy, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
       var ln = twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),
         pux = Math.min(KP.ux, (FD.w - 2 * KP.u - 2 * KP.pad) / lw), puy = pux * KP.uy / KP.ux,
-        nl = ln[1] ? 2 : 1, th = nl * 16 * puy + (nl - 1) * KP.gap, ty = KP.y + (KP.h - th) / 2;
+        nl = ln[1] ? 2 : 1, th = nl * 16 * puy + (nl - 1) * KP.gap, ty = pyy + (KP.h - th) / 2;
       ln.forEach(function (s, i) {
         if (s) text(g1, s, FD.x + FD.w / 2 - textUnits(s) * pux / 2, ty + i * (16 * puy + KP.gap), pux, puy, COL.ink);
       });
@@ -401,7 +404,7 @@
     }
     // 키링판 앞면 아래(11/24 가르시아 "앞쪽 큐알은 너무 작아 — 빼고 1·2번 둘 다"): QR 대신 성향 신호등 + 산책 등급 뱃지.
     // 뒷면에 큰 QR이 있어서 앞면엔 없어도 된다. signal/grade를 안 주면 예전처럼 QR
-    if (KR && (o.signal != null || o.grade != null)) {
+    if (rowsOn) {
       var LT = L.kr.light, rowY = LT.y;
       if (o.signal != null) { signalLight(g1, FD.x, rowY, FD.w, LT.h, +o.signal); rowY += LT.h + LT.gap; }
       if (o.grade != null) gradeBadge(g1, FD.x, rowY, FD.w, LT.h, +o.grade);
@@ -428,7 +431,7 @@
     t.list.forEach(function (it) {
       var fs = it.h * k * 1.02, font = function () { return fs + 'px ' + t.font; };
       g.font = font();
-      var m = g.measureText(it.s), maxw = it.w * k * (it.left ? 0.95 : 1.06);
+      var m = g.measureText(it.s), maxw = it.w * k * (it.left || it.fit ? 0.9 : 1.06);
       if (m.width > maxw) { fs *= maxw / m.width; g.font = font(); m = g.measureText(it.s); }
       var asc = m.actualBoundingBoxAscent || fs * 0.8, desc = m.actualBoundingBoxDescent || 0,
         cx = (it.x - t.vb[0] + it.w / 2) * k, cy = (it.y - t.vb[1] + it.h / 2) * k;
