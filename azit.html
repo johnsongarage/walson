@@ -363,7 +363,7 @@
   // 11/24 글씨를 한글 도트 글꼴로 다시 쓴 글자 소품(_dev/azit-letter.py) — 예전 그림이 브라우저 캐시에 남지 않게 주소를 v2로(왼쪽 벽용 _L도)
   var LETTER_V2 = ['sign_snack', 'board_refuse', 'sign_meetup', 'bubble_visited', 'bubble_interior', 'bubble_poop', 'bubble_chihuahua',
     'panel_guestbook', 'stamp_regular', 'scroll_dogslife'];
-  function picV(n) { return n === 'room' ? 4 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // room v4 = 크림 발바닥 방(11/24, 선반 모서리 고침)
+  function picV(n) { return /^room(_|$)/.test(n) ? 5 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // 방 그림 v5 = 크림 발바닥 방·선반 모서리 고침·왼쪽 토끼 귀 입구를 벽으로(11/24, _dev/azit-close-door.py)
   var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) pics[n] = im; }); }));
   function pic(n) { return pics[n] || null; }
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다

@@ -150,7 +150,7 @@
   }
   var names = { room: 1, window_day: 1, window_night: 1, window_rain: 1, window_snow: 1 };
   Object.keys(LAYOUTS).forEach(function (k) { LAYOUTS[k].items.forEach(function (t) { names[t[0]] = 1; }); });
-  var ready = Promise.all(Object.keys(names).map(function (n) { return load(n, BASE + n + '.png?v=1'); })
+  var ready = Promise.all(Object.keys(names).map(function (n) { return load(n, BASE + n + '.png?v=' + (/^room/.test(n) ? 5 : 1)); })
     .concat(DOGS.map(function (d) { return load('dog:' + d[0], dogSrc(d[0])); })));
 
   var flipCache = {};
