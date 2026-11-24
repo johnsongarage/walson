@@ -1,6 +1,6 @@
 # 아지트 소품 다시 그리기(2026-11-24 가르시아 — Claude가 "줄이다가 뭉개진 것·화풍이 다른 것" 11개를 골라 이미지로 보여 줌 →
 # 가르시아가 새로 받은 그림 셋: 소품 시트(9개 + 액자·단순 조명은 안 씀), 격자무늬 갓 스탠드 꺼짐·켜짐 한 장, 종이 엽서 한 장).
-# 받은 그림은 sian-ref/azit-redo/(원본 그대로 보관 — 나중에 화질을 올릴 때 다시 씀).
+# 받은 그림은 sian-ref/azit-redo/(원본 그대로 보관 — 나중에 화질을 올릴 때 다시 씀). 같은 날 생활용품 시트(sheet2.webp)도 — 벽걸이 응가 봉투 통·미용 바구니만.
 #
 # 하는 일: 흰 바탕(가장자리에 닿은 흰 점·회색 그림자)을 지우고 → 소품마다 색을 24가지로 모은 뒤 →
 # azit-fit.py의 downscale(새 점이 덮는 원래 점들의 색 투표 + 어두운 테두리 가중 + 한 점 테두리 다시 두르기)로 방 크기로 줄인다.
@@ -20,15 +20,20 @@ spec = importlib.util.spec_from_file_location("azfit", os.path.join(os.path.dirn
 azfit = importlib.util.module_from_spec(spec); spec.loader.exec_module(azfit)
 
 # 소품 시트 — 왼쪽 위부터 줄마다(가운데 높이가 가까운 것끼리 한 줄, 줄 안은 왼쪽 → 오른쪽). None = 안 씀
-SHEET = ["neon_chihuahua", "bag_dispenser", "leash_hook",
-         "grooming_basket", "cafe_cup", None,            # 셋째(나무 액자 그림)는 엽서가 아니라서 — 엽서는 따로 받은 종이 엽서
+SHEET = ["neon_chihuahua", None, "leash_hook",          # 둘째(보라 파우치)는 벽에 거는 고리가 없어서 — 응가 봉투 걸이는 SHEET2 벽걸이 통
+         None, "cafe_cup", None,                        # 미용 바구니는 SHEET2(도구가 진해서 작게 줄여도 보임) · 셋째(나무 액자 그림)는 엽서가 아니라서 — 엽서는 따로 받은 종이 엽서
          "carrot_plush", "keyhook_rail", "flag_stand",
          None, "picnic_mat"]                            # 단순 조명은 따로 받은 격자무늬 갓 조명으로
 CLOSE = {"grooming_basket": 9, "cafe_cup": 7, "postcard_paw": 9}   # 흰 부분이 바탕에 닿아 있는 것
+# 생활용품 시트(11/24 둘째로 받은 것 — sheet2.webp, 예전 생활용품 시트를 다시 그린 것). 줄여 보니 대부분 지금 그림과 같아서
+# 벽걸이 통(위에 벽 고정판)과 도구가 진한 미용 바구니만 쓴다(가르시아 "둘 다 바꿔 줘, 벽걸이 통으로")
+SHEET2 = [None, "bag_dispenser", None,          # 배변판 · 벽걸이 응가 봉투 통 · 계단
+          None, None, None,                      # 유모차 · 리드줄 걸이 · 우비 옷걸이
+          None, None, "grooming_basket", None]   # 사료통 · 간식 통 · 미용 바구니 · 도넛 쿠션
 # 방 크기 — ('h', 높이) 또는 ('w', 폭), 점
 SIZE = {"neon_chihuahua": ("h", 38), "bag_dispenser": ("w", 26), "leash_hook": ("h", 44), "grooming_basket": ("w", 30),
         "cafe_cup": ("h", 25), "carrot_plush": ("h", 24), "keyhook_rail": ("w", 30), "flag_stand": ("h", 47),
-        "picnic_mat": ("w", 100), "lamp_stand": ("h", 51), "postcard_paw": ("h", 26)}
+        "picnic_mat": ("w", 100), "lamp_stand": ("h", 51), "postcard_paw": ("h", 26), "stroller": ("h", 55)}
 
 
 def comps(rgb, min_area=3000):
@@ -40,7 +45,7 @@ def comps(rgb, min_area=3000):
     return [c[0] for c in cs]
 
 
-def cut(rgb, box, pad=6, close=0):
+def cut(rgb, box, pad=6, close=0, holes=0):
     x, y, w, h = box
     x0, y0 = max(0, x - pad), max(0, y - pad)
     x1, y1 = min(rgb.shape[1], x + w + pad), min(rgb.shape[0], y + h + pad)
@@ -58,6 +63,12 @@ def cut(rgb, box, pad=6, close=0):
     edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
     bg = np.isin(lab, list(edge)) & (out == 1)
     a = (~bg).astype(np.uint8)
+    if holes:   # 손잡이 고리 안처럼 그림에 갇힌 흰 바탕(holes점 넘게 이어진 거의 흰 점)도 투명하게 — 작은 반짝임은 그대로
+        wh = (mn >= 238).astype(np.uint8)
+        k2, lab2, st2, _ = cv2.connectedComponentsWithStats(wh, connectivity=4)
+        for i in range(1, k2):
+            if st2[i][4] > holes:
+                a[lab2 == i] = 0
     a = cv2.morphologyEx(a, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))   # 바탕 가장자리 부스러기
     return c, a, (x0, y0)
 
@@ -105,6 +116,34 @@ def main():
             continue
         c, a, _ = cut(sheet, box, close=CLOSE.get(name, 0))
         save(name, fit(quantize(c, a), name))
+
+    sheet2 = np.asarray(Image.open(os.path.join(SRC, "sheet2.webp")).convert("RGB"))
+    boxes2 = comps(sheet2)
+    assert len(boxes2) == len(SHEET2), f"생활용품 시트 소품 수가 다름: {len(boxes2)}"
+    for name, box in zip(SHEET2, boxes2):
+        if not name:
+            continue
+        c, a, _ = cut(sheet2, box, close=CLOSE.get(name, 0))
+        save(name, fit(quantize(c, a), name))
+
+    # 빈 개모차(11/24 가르시아 "빈 개모차 있어, 4번째 사진에" — sheet3.jpg는 생활용품 시트에서 개모차만 비운 것).
+    # 내 강아지가 타서 창으로 얼굴만 내미는 자리(azit.html RIDES)는 이 그림 기준 — 다시 뽑으면 창 자리를 다시 재 볼 것
+    sheet3 = np.asarray(Image.open(os.path.join(SRC, "sheet3.jpg")).convert("RGB"))
+    boxes3 = comps(sheet3)
+    c, a, _ = cut(sheet3, boxes3[3], holes=400)
+    save("stroller", fit(quantize(c, a), "stroller"))
+    # 창 모양(흰 곳 = 강아지가 보이는 곳) — 지붕 아래 앞 창의 어두운 안쪽 점(밝기 70~175)을 이어 큰 덩어리 하나 + 구멍 메우기
+    st = np.asarray(Image.open(os.path.join(OUT, "stroller.png")).convert("RGBA")).astype(int)
+    lum = azfit.luma(st[..., :3])
+    m = np.zeros(st.shape[:2], np.uint8)
+    m[11:27, 7:24] = ((st[11:27, 7:24, 3] > 0) & (lum[11:27, 7:24] >= 70) & (lum[11:27, 7:24] < 175)).astype(np.uint8)
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    k, lab, stt, _ = cv2.connectedComponentsWithStats(m, connectivity=4)
+    m = (lab == 1 + int(np.argmax(stt[1:, 4]))).astype(np.uint8)
+    ff = m.copy(); cv2.floodFill(ff, np.zeros((m.shape[0] + 2, m.shape[1] + 2), np.uint8), (0, 0), 1); m = m | (1 - ff)
+    win = np.zeros(st.shape[:2] + (4,), np.uint8); win[m > 0] = (255, 255, 255, 255)
+    Image.fromarray(win).save(os.path.join(OUT, "stroller_win.png"), optimize=True)
+    print(f"  stroller_win: 창 {int(m.sum())}점")
 
     # 조명: 왼쪽 = 꺼짐, 오른쪽 = 켜짐. 켜진 쪽은 꺼진 쪽 모양(알파)을 같은 자리에 씌워 몸통만
     lamp = np.asarray(Image.open(os.path.join(SRC, "lamp.webp")).convert("RGB"))
