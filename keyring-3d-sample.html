@@ -73,7 +73,7 @@
   .field input { width: 100%; min-width: 0; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink); padding: 9px 10px;
     border-radius: 12px; border: 1.5px solid var(--panel-border); background: var(--panel); }
   .field input:focus { outline: 2px solid var(--hl); outline-offset: 1px; }
-  #pass-row[hidden], #pass-back[hidden] { display: none; }
+  #pass-row[hidden], #pass-back[hidden], #signals[hidden], #signal-label[hidden] { display: none; }
   .saves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .saves .btn-sub { font-size: 14px; }
   @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); }
@@ -126,6 +126,8 @@
   <div class="row">
     <p class="row-label">뒷면</p>
     <div class="chips" id="backs" role="group" aria-label="뒷면"></div>
+    <p class="row-label" id="signal-label" style="margin-top:10px">이 강아지는요(뒷면 성향 칸)</p>
+    <div class="chips" id="signals" role="group" aria-label="강아지 성향"></div>
     <input type="file" id="back-file" accept="image/*" hidden>
   </div>
   <div class="row">
@@ -159,7 +161,7 @@ const $ = (id) => document.getElementById(id);
 // ── 키링 모양(mm) — 가로 50 고정, 세로는 올린 그림 비율대로. 그림 위에 고리 구멍 칸(9mm)이 붙는다 ──
 const KW = 50, KR = 6, HOLE_R = 1.9, EDGE = 2.2, TAB = 9;
 const PW = KW - EDGE * 2;
-const state = { thick: 3, photo: null, backMode: 'safe', backPhoto: null, scene: 'air' };
+const state = { thick: 3, photo: null, backMode: 'friend', signal: 1, backPhoto: null, scene: 'air' };
 let L = null;   // 지금 모양: { KH, PH, printCY, holeY }
 function layout(aspect) {   // aspect = 그림 세로/가로
   const PH = Math.max(24, Math.min(120, PW * aspect)), KH = PH + EDGE * 2 + TAB;
@@ -289,7 +291,7 @@ function backKit(g, c) {
 const PAW7 = ['..XX.XX..', '..XX.XX..', 'XX.....XX', 'XX.XXX.XX', '..XXXXX..', '.XXXXXXX.', '.XXX.XXX.'];
 const QR_URL = 'https://johnsongarage.co.kr/walson/start.html';
 
-// 1안 친구 QR 판 — QR을 크게(키링 위 약 22mm), "찍으면 친구" + 강아지 성향 세 칸(고른 하나에 표시)
+// 1안 친구 QR 판(11/24 "시안1로 하자" → 기본 뒷면) — QR을 크게(키링 위 약 22mm), "찍으면 친구" + 강아지 성향 세 칸(고른 하나에 표시)
 function drawFriendBack(g, W0, H, c, B) {
   const K = backKit(g, c), U = K.U;
   g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
@@ -301,7 +303,7 @@ function drawFriendBack(g, W0, H, c, B) {
   K.txt('이 강아지는요', W0 / 2, y + 14, 32, c.inkSoft);
   y += 48;
   const sig = [['다가와도 좋아요', '#3f9b5b'], ['천천히 인사해요', '#dfa21f'], ['눈으로만 예뻐해 주세요', '#d2493f']];
-  const rh = K.sn(Math.max(56, Math.min(84, (H - y - 110) / 3 - 14))), on = 1;   // 시안: 가운데(천천히)를 고른 모습
+  const rh = K.sn(Math.max(56, Math.min(84, (H - y - 110) / 3 - 14))), on = state.signal;   // 고른 성향(아래 [이 강아지는요] 칩)
   sig.forEach(([s, col], i) => {
     const by = y + i * (rh + 14), sel = i === on;
     K.box(64, by, W0 - 128, rh, sel ? '#ffffff' : c.panel, sel ? c.ink : '#d9cfd4');
@@ -575,14 +577,19 @@ function paintChips() {
   const t = $('thick'); t.innerHTML = '';
   [3, 5].forEach((mm) => t.appendChild(chip(mm + 'mm', state.thick === mm, () => { state.thick = mm; paintChips(); build(false); })));
   const bk = $('backs'); bk.innerHTML = '';
-  bk.appendChild(chip('안전 뒷면', state.backMode === 'safe', () => { state.backMode = 'safe'; paintChips(); build(false); view(true); }));
-  [['friend', '시안1 친구 QR'], ['stamp', '시안2 도장판'], ['scene', '시안3 도트 그림']].forEach(([id, label]) =>
+  // 11/24 가르시아 "시안1로 하자" → 기본 뒷면 = 친구 QR 판. 나머지는 비교용으로 남김
+  [['friend', '친구 QR 판(기본)'], ['safe', '안전 뒷면'], ['stamp', '시안2 도장판'], ['scene', '시안3 도트 그림']].forEach(([id, label]) =>
     bk.appendChild(chip(label, state.backMode === id, () => { state.backMode = id; paintChips(); build(false); view(true); })));
   bk.appendChild(chip(state.backPhoto ? '올린 뒷면 그림' : '뒷면 그림 올리기', state.backMode === 'photo', () => {
     if (!state.backPhoto) { $('back-file').click(); return; }
     state.backMode = 'photo'; paintChips(); build(false); view(true);
   }));
   if (state.backPhoto) bk.appendChild(chip('다른 뒷면 그림', false, () => $('back-file').click()));
+  const sg = $('signals'); sg.innerHTML = '';
+  const onFriend = state.backMode === 'friend';
+  sg.hidden = $('signal-label').hidden = !onFriend;
+  ['다가와도 좋아요', '천천히 인사해요', '눈으로만 예뻐해 주세요'].forEach((s, i) =>
+    sg.appendChild(chip(s, state.signal === i, () => { state.signal = i; paintChips(); build(false); view(true); })));
   const pl = $('palettes'); pl.innerHTML = '';
   if (T && T.palettes) Object.keys(T.palettes).forEach((k) => {
     const p = T.palettes[k], b = chip(p.label, T.palette === k, () => setPal(k));
