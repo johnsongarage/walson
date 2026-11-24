@@ -1615,7 +1615,7 @@
   }
   // ── 공 던지기(11/24 가르시아 "공을 상호작용하면 던지기 버튼이 뜨게, 누르고 던질 곳을 찍으면 강쥐가 물어 오게. 여러 번 하면 반항도") ──
   // 내 방 공(다섯 가지)·뼈다귀·밧줄 장난감·당근 인형·닭 인형을 톡 → 안내에 [던지기] → 바닥을 누르면 지금 놓인 자리에서 출발해 공은 굴러, 나머지는 날아가고 →
-  // 우리 개가 뛰어가 물고 와서 앞에 내려놓는다. 1분 반 안에 던진 횟수로 기분이 바뀐다: 1~3번째 신나서(뛰어서), 4번째 헥헥(걸어서),
+  // 우리 개가 뛰어가 물고 와서 앞에 내려놓는다. 1분 반 안에 던진 횟수로 기분이 바뀐다(바로 전과 다른 장난감은 반 번): 1~3번째 신나서(뛰어서), 4번째 헥헥(걸어서),
   // 5번째 반반, 6번째부터는 반항 — 못 들은 척 "흥!" · 공 옆에 버티기 · 물고 구석으로 도망. 1분 반 동안 안 던지면 다시 신난다.
   // 공은 내려놓은(떨어진) 자리로 저장된다. 친구 방·모델하우스에서도 던질 수 있다(11/24 가르시아 "친구 방에서도") — 거기선 손님으로 간
   // 우리 개가 물어 오고, 옮긴 공 자리는 그 방에 있는 동안만(visitPos — 남의 방 소품 자리는 저장하지 않는다)
@@ -1638,7 +1638,7 @@
   // 공은 굴러가는 동안 통통(11/24 가르시아 "공이 통통 튀는 건 구현해 줘" — 제자리 통통이 아니라 가면서): 간 거리(0~1)의 구간마다
   // 한 번씩, 높이는 첫 통통의 1 → 0.45 → 0.2배로 줄고, 마지막 2할은 바닥을 굴러 멈춘다
   var HOPS = [[0, 0.38, 1], [0.38, 0.62, 0.45], [0.62, 0.8, 0.2]];
-  var aim = null, fetchJob = null, throwLog = [], ballSmall = {};
+  var aim = null, fetchJob = null, throwLog = [], lastToss = null, ballSmall = {};   // throwLog = [{t: 던진 시각, w: 1 또는 0.5}]
   function canThrow(id) { return BALLS.indexOf(id) >= 0 && !!cur && cur.items.indexOf(id) >= 0; }
   function fetcher() { return view === -1 ? host : guest; }   // 공을 가지러 가는 개 = 우리 개(내 방 집주인 · 친구 방 손님)
   function setBallPos(id, q) {   // 내 방은 저장, 남의 방은 머무는 동안만
@@ -1664,9 +1664,11 @@
     var it = AZ.byId(AZ.ITEMS, id), d = fetcher(), now = nowSec();
     if (!it) return;
     if (fetchJob) dropFetch();
-    throwLog = throwLog.filter(function (t0) { return now - t0 < TIRED_SEC; }); throwLog.push(now);
-    var n = throwLog.length, rebel = pick(['refuse', 'stay', 'steal']);
-    var mood = n <= 3 ? 'happy' : n === 4 ? 'tired' : n === 5 ? (Math.random() < 0.5 ? 'tired' : rebel) : rebel;
+    // 1분 반 안에 던진 횟수 — 바로 전과 다른 장난감이면 반 번(11/24 가르시아 "바꾼 장난감은 반 번으로 세 줘" — 새 장난감엔 다시 기운이 난다)
+    throwLog = throwLog.filter(function (e) { return now - e.t < TIRED_SEC; });
+    throwLog.push({ t: now, w: lastToss && lastToss !== id ? 0.5 : 1 }); lastToss = id;
+    var n = throwLog.reduce(function (a, e) { return a + e.w; }, 0), rebel = pick(['refuse', 'stay', 'steal']);
+    var mood = n <= 3 ? 'happy' : n <= 4 ? 'tired' : n <= 5 ? (Math.random() < 0.5 ? 'tired' : rebel) : rebel;
     var L = clampFloor(q), Ls = P(L.i, L.j), p0 = posOf(cur, it), roll = ROLL.indexOf(id) >= 0, O, h0 = 0;
     if (p0 && p0.shelf != null && AZ.SHELVES[p0.shelf]) {   // 선반 위 — 선반 앞 바닥에서 선반 높이만큼 떠 있는 데서 출발
       var sl = AZ.SHELVES[p0.shelf], u = Math.abs(sl.x - CORNER) / 2, fq = clampFloor(sl.x >= CORNER ? { i: u, j: 4 } : { i: 4, j: u });
@@ -1678,7 +1680,7 @@
     stopAct(d);
     fetchJob = { id: id, dog: d, spr: pic(it.spr), roll: roll, phase: 'move', t0: now, dur: dur, fall: fall, O: O, h0: h0, L: L, Ls: Ls,
       peak: Math.min(40, Math.max(16, 12 + dist * 0.14)), hop: Math.min(22, 8 + dist * 0.08), go: false, rot: 0, mood: mood, n: n };
-    if (mood !== 'refuse') sayFor(d, n === 1 ? '!' : '!!', 0.9);
+    if (mood !== 'refuse') sayFor(d, n <= 1 ? '!' : '!!', 0.9);
     kick();
   }
   // 던진 것의 바닥 자리(x·y, 방 점)·뜬 높이(hgt)·구른 각도(rot — 90도 몇 번)
@@ -1735,7 +1737,7 @@
       if (d.mode || !arrived(d)) return;
       var q = clampFloor({ i: d.i + 2.5, j: d.j + 2.5 });   // 앞(보는 쪽)에 내려놓는다
       setBallPos(f.id, q); saveIfMine();
-      sayFor(d, f.mood === 'happy' ? pick(['또 던져!', '물어 왔다!', '한 번 더!']) : f.mood === 'tired' ? (f.n >= 5 ? '마지막이야…' : '헥헥…') : '여기 숨겨야지', 2.4);
+      sayFor(d, f.mood === 'happy' ? pick(['또 던져!', '물어 왔다!', '한 번 더!']) : f.mood === 'tired' ? (f.n > 4 ? '마지막이야…' : '헥헥…') : '여기 숨겨야지', 2.4);
       d.rest = f.mood === 'happy' ? 7 : 12; fetchJob = null;
     }
   }
