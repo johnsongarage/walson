@@ -286,12 +286,14 @@ function backKit(g, c) {
     g.fillStyle = col || c.ink; g.textAlign = align || 'center'; g.textBaseline = 'middle';
     g.font = sn(px) + 'px ' + (font || PIX); g.fillText(s, x, y);
   }
-  function head(label, H, W0) {
+  // top: 머리 띠를 이만큼 아래에서 시작(위는 빈 칸 — 실물 시안에 구멍 뚫을 자리, 11/24 가르시아 "뒷면을 좀 아래로 내려줘 윗부분에 구멍낼거야")
+  function head(label, H, W0, top) {
+    top = sn(top || 0);
     const hh = sn(Math.min(H * 0.13, 150));
-    g.fillStyle = c.hl; g.fillRect(0, 0, W0, hh); g.fillStyle = c.accent; g.fillRect(0, hh, W0, U);
-    txt(label, W0 / 2, hh / 2 + 4, hh * 0.38, c.hlInk);
-    bitmap(PAW7, { X: c.hlInk }, 56, hh / 2 - 28, U); bitmap(PAW7, { X: c.hlInk }, W0 - 56 - 9 * U, hh / 2 - 28, U);
-    return hh;
+    g.fillStyle = c.hl; g.fillRect(0, top, W0, hh); g.fillStyle = c.accent; g.fillRect(0, top + hh, W0, U);
+    txt(label, W0 / 2, top + hh / 2 + 4, hh * 0.38, c.hlInk);
+    bitmap(PAW7, { X: c.hlInk }, 56, top + hh / 2 - 28, U); bitmap(PAW7, { X: c.hlInk }, W0 - 56 - 9 * U, top + hh / 2 - 28, U);
+    return top + hh;
   }
   return { U, sn, box, bitmap, qr, txt, head };
 }
@@ -314,8 +316,9 @@ function cardQrUrl() {
 function drawFriendBack(g, W0, H, c, B) {
   const K = backKit(g, c), U = K.U;
   g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
-  const hh = K.head('QR 찍고 친구 해요', H, W0);
-  const qs = K.sn(Math.min(W0 * 0.5, H * 0.38)), qx = K.sn((W0 - qs) / 2 - 3 * U), qy = K.sn(hh + U + 48);
+  const top = K.sn(H * 0.11);   // 위 빈 칸(구멍 자리)
+  const hh = K.head('QR 찍고 친구 해요', H, W0, top);
+  const qs = K.sn(Math.min(W0 * 0.46, (H - top) * 0.38)), qx = K.sn((W0 - qs) / 2 - 3 * U), qy = K.sn(hh + U + 40);
   K.box(qx, qy, qs + 6 * U, qs + 6 * U, '#ffffff');
   K.qr(cardQrUrl(), qx + 3 * U, qy + 3 * U, qs);
   let y = qy + qs + 6 * U + 36;
