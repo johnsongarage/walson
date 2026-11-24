@@ -12,7 +12,7 @@
 // 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. window.WalsonPassTrace.render(opts) → SVG 문자열
 // 11/24 밤: 키링판에 가로판(opts.landscape — 가로 사진용, 같은 칸 크기를 다시 배치)과 카드 색(opts.color — 기본 핑크, TINTS)
 // 같은 날 밤 가르시아 "키링 맨 아래 칸에 유의미한 산책 빼고 특기를 골라서, 또는 직접 적어 넣기 · 입력하는 텍스트는 뚜렷한 글씨체로 · 글씨 크기 조절":
-//   opts.skill(특기 칸 — 홍보 문구 알약 자리) · opts.vfont(칸 값 글씨체 'clear' 또렷하게 · 'bold' 굵게 · 'dot' 도트) · opts.sizes(칸마다 글씨 크기 배수).
+//   opts.skill(특기 — 홍보 문구 알약 대신, 같은 날 "4안으로" 등급 뱃지와 한 상자) · opts.vfont(칸 값 글씨체 'clear' 또렷하게 · 'bold' 굵게 · 'dot' 도트) · opts.sizes(칸마다 글씨 크기 배수).
 //   편집 창은 keyring-edit.js
 (function () {
   'use strict';
@@ -273,11 +273,8 @@
       // 특기 칸(11/24 밤 — 홍보 알약 자리를 사진 틀 아랫줄까지 키움, 등급 뱃지는 점선과 이 칸 사이 가운데): 위 분홍 띠(head)에 SKILL(hu = 글자 한 칸),
       // 아래 흰 칸에 특기 — base는 한 줄일 때 글씨 높이(글씨 크기 배수 1), 두 줄이면 사이 gap. idH = 또렷하게·굵게일 때 ID 숫자 높이
       skill: { top: 1473, bottom: 1688.5, head: 50, hu: 1.85, base: 72, gap: 10 }, idH: 76,
-      // 특기 자리 시안(11/24 밤 가르시아 "skill 이 배치가 조금 아쉬운데 다른 방법 없니?" — opts.skillAt):
-      // row4 = 네 번째 칸(칸 높이·칸 사이·점선 앞 간격) · plate = 사진 아래쪽 이름표(사진 칸 안쪽 여백 m·높이 h·글씨 base·작은 탭·그때 등급 뱃지 높이) ·
-      // combo = 등급 뱃지와 한 상자(점선 아래 간격·위 등급 띠 높이·특기 글씨 base)
-      row4: { h: 150, gap: 30, dashGap: 30 },
-      plate: { m: 16, h: 128, base: 66, gap: 8, tab: { w: 160, h: 62 }, badge: 170 },
+      // 특기 자리(11/24 밤 가르시아 "skill 이 배치가 조금 아쉬운데 다른 방법 없니?" → 시안 넷 중 "4안으로"): 등급 뱃지와 한 상자 —
+      // combo = 점선 아래 간격 · 위 등급 띠 높이 · 특기 글씨 base(한 줄일 때 높이) · 두 줄 사이 gap2. 위 skill(띠 상자)은 등급이 없거나 신호등 줄이 있을 때만
       combo: { gap: 30, band: 128, base: 70, gap2: 10 } }
   };
   var LP = L;   // 세로판(원본 자리) — render가 opts.landscape면 잠깐 가로판(LL)으로 바꿔 그린다
@@ -312,8 +309,6 @@
         light: { y: dashY + 35.5, h: 72, solo: 110, soloSk: 92, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow,
         // 특기 칸(11/24 밤): 알약(118)보다 높게 사진 틀 아랫줄부터 150 — 등급 뱃지는 그만큼 낮게(soloSk)
         skill: { top: bot - 150, bottom: bot, head: 40, hu: 1.5, base: 56, gap: 6 }, idH: 76 * fs,
-        row4: { h: 128, gap: 18, dashGap: 18 },
-        plate: { m: 14, h: 112, base: 60, gap: 6, tab: { w: 150, h: 56 }, badge: 120 },
         combo: { gap: 18, band: 86, base: 56, gap2: 6 } }
     };
   })();
@@ -373,11 +368,11 @@
   // 긴 견종(11/24 가르시아 "타입 칸도 가변적으로, 엄청 길면 두 줄로"): 견종 칸(center === 'fit')만
   //   ① 견종 글씨가 typeMin보다 작아질 만큼 길면 TYPE 글자·분홍 칸을 줄여(최소 typeShrink배) 흰 칸을 넓힌다
   //   ② 그래도 작으면(한글만 — 또렷하게·굵게면 영어도) 띄어쓰기에서 두 줄로. 보통 길이(포메라니안 등)는 그대로
-  // key: 글씨 크기 배수 이름(id·name·type·skill). center: false 왼쪽(ID) · 'grow' 이름 · 'fit' 견종 · 'skill' 특기(네 번째 칸 시안)
-  // 줄바꿈(11/24 밤 가르시아 "견종 줄바꿈 가능하게"): 견종·특기 칸은 사용자가 나눈 두 줄 그대로(줄바꿈 두 번째부터는 띄어쓰기로), 다른 칸은 한 줄로
+  // key: 글씨 크기 배수 이름(id·name·type). center: false 왼쪽(ID) · 'grow' 이름 · 'fit' 견종
+  // 줄바꿈(11/24 밤 가르시아 "견종 줄바꿈 가능하게"): 견종 칸은 사용자가 나눈 두 줄 그대로(줄바꿈 두 번째부터는 띄어쓰기로), 다른 칸은 한 줄로
   function keyringBox(out, label, value, y, center, key) {
     var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h, sz = sizeOf(key);
-    var multi = center === 'fit' || center === 'skill', T = splitText(value), manual = multi && Array.isArray(T) ? T : null;
+    var T = splitText(value), manual = center === 'fit' && Array.isArray(T) ? T : null;
     var v = Array.isArray(T) ? T.join(' ') : T;
     var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;
     var lf = Math.min(1, lw / textUnits(label));   // 칸 이름이 분홍 칸보다 길면(SKILL) 글자만 줄임 — 분홍 칸 폭은 다른 칸과 같게
@@ -388,7 +383,7 @@
     if (center === 'fit' && v) {
       var full = x + w - u - (lx + lw * K.lux + K.lgap) - u;   // 지금 흰 칸에서 글씨가 쓸 수 있는 폭(가장자리 반 칸씩 뺌)
       if (manual) {   // 사용자가 나눈 두 줄 — 두 줄 높이로 재서 넘치면 TYPE 칸을 줄인다
-        var lh0 = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.86), needM = Math.max(wEm(manual[0]), wEm(manual[1])) * lh0 / 0.9;
+        var lh0 = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.96), needM = Math.max(wEm(manual[0]), wEm(manual[1])) * lh0 / 0.9;
         if (needM > full) ls = Math.max(K.typeShrink, 1 - (needM - full) / (lw * K.lux));
         two = manual;
       } else {
@@ -404,13 +399,8 @@
     stepBox(out, x, y, w, h, u, [[x + u, sp, COL.label], [sp, x + w - u, COL.value]]);
     text(out, label, lx, y + (h - 16 * K.luy * ls * lf) / 2, K.lux * ls * lf, K.luy * ls * lf, COL.ink);
     if (!v) return;
-    if (center === 'skill') {   // 특기(네 번째 칸): 흰 칸 가운데 한 줄 또는 두 줄(더 크게 보이면 · 사용자가 나눴으면 그대로)
-      var kcl = sp + u * 0.5, kcw = x + w - u - kcl - u * 0.5;
-      drawFit(out, manual || v, kcl + kcw / 2, y + h / 2, kcw * 0.9, (h - 2 * u) * 0.88, vh, K.twoGap);
-      return;
-    }
     if (two) {   // 두 줄: 한 줄 높이를 칸 안쪽 높이에 맞춰 나눔, 둘 다 같은 크기(긴 줄에 맞춤)
-      var cl2 = sp + u * 0.5, cw2 = x + w - u - cl2 - u * 0.5, lh = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.86),
+      var cl2 = sp + u * 0.5, cw2 = x + w - u - cl2 - u * 0.5, lh = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.96),
         lw2 = Math.max(wEm(two[0]), wEm(two[1]));
       lh = Math.min(lh, cw2 * 0.9 / lw2);
       var ty0 = y + (h - (2 * lh + K.twoGap)) / 2;
@@ -446,6 +436,7 @@
   }
 
   // ── 특기 칸(11/24 밤 가르시아 "키링 맨 아래 칸에 유의미한 산책 빼고 특기를 골라서 넣는 걸로, 또는 직접 적어 넣기") ──
+  // (같은 날 "4안으로" 뒤엔 아래 comboBox — 등급 뱃지와 한 상자가 기본. 이 띠 상자는 등급이 없거나 신호등 줄이 있을 때·skillAt 'box')
   // 홍보 문구 알약 자리(사진 틀 아랫줄까지 키움). 위 분홍 띠에 SKILL · 아래 흰 칸에 특기 — 세로판·가로판 같은 모양
   // (가로판도 처음엔 다른 칸처럼 왼쪽에 SKILL을 뒀더니 특기 글씨가 너무 작아서 위 띠로).
   // 특기는 한 줄 — 칸보다 길면 띄어쓰기에서 두 줄(두 줄이 더 크게 보일 때), 그래도 길면 칸에 맞게 줄임. 비우면 빈 흰 칸(ID처럼)
@@ -505,42 +496,15 @@
     if (v) drawFit(out, v, A.x + A.w / 2, A.y + A.h / 2, A.w * 0.86, A.h * 0.86, S.base * sizeOf('skill'), S.gap);
   }
 
-  // ── 특기 자리 시안(11/24 밤 가르시아 "skill 이 배치가 조금 아쉬운데 다른 방법 없니?") — opts.skillAt ──
-  //  'box'(지금) 등급 아래 SKILL 띠 상자 · 'row' TYPE 아래 네 번째 칸(ID·NAME·TYPE과 같은 모양, 등급은 맨 아래) ·
-  //  'plate' 사진 아래쪽에 걸친 이름표(작은 SKILL 탭 — 넓어서 한 줄로 크게) · 'badge' 등급 뱃지와 한 상자(위 등급 · 아래 특기)
+  // ── 특기 자리(11/24 밤 가르시아 "skill 이 배치가 조금 아쉬운데 다른 방법 없니?" → 시안 넷 비교 → "4안으로") ──
+  // 기본 'badge' = 등급 뱃지와 한 상자: 점선 아래 ~ 사진 틀 아랫줄까지 한 상자, 위 띠에 발바닥 + 산책 등급 · 아래 흰 칸에 특기.
+  // 'box' = 그 전 모양(등급 아래 SKILL 띠 상자) — opts.skillAt: 'box'로 고르거나, 등급이 없거나 신호등 줄이 있을 때.
+  // 비교한 다른 두 안(TYPE 아래 네 번째 칸 · 사진 아래쪽 이름표)은 커밋 d6528e9에 남아 있다
   function skillMode(o) {
-    var m = o.skillAt;
-    if (o.signal != null) return 'box';   // 신호등 줄까지 있으면 예전 자리
-    if (m === 'badge' && o.grade == null) return 'box';
-    return m === 'row' || m === 'plate' || m === 'badge' ? m : 'box';
+    if (o.signal != null || o.grade == null) return 'box';
+    return o.skillAt === 'box' ? 'box' : 'badge';
   }
-  // 'row': 칸 넷(ID·NAME·TYPE·SKILL)을 row4(칸 높이·간격)대로 다시 놓고 점선은 그 아래 — 칸 높이가 바뀌면 글자 크기도 같은 배수로
-  function rowsL(B) {
-    var R = B.kr.row4, k = R.h / B.field.h, ys = [], y = B.kr.ys[0];
-    for (var i = 0; i < 4; i++) { ys.push(y); y += R.h + R.gap; }
-    var kr = Object.assign({}, B.kr, { ys: ys.slice(0, 3), ys4: ys[3], dashY: ys[3] + R.h + R.dashGap,
-      nameH: B.kr.nameH * k, nameLatH: B.kr.nameLatH * k, kmax: B.kr.kmax * k, lux: B.kr.lux * k, luy: B.kr.luy * k, twoGap: B.kr.twoGap * k, idH: B.kr.idH * k });
-    return Object.assign({}, B, { kr: kr, field: Object.assign({}, B.field, { h: R.h, ys: ys.slice(0, 3) }),
-      value: Object.assign({}, B.value, { ux: B.value.ux * k, uy: B.value.uy * k }) });
-  }
-  function layoutFor(o) {
-    var B = o.landscape ? LL : LP;
-    return (o.keyring || o.landscape) && o.skill != null && skillMode(o) === 'row' ? rowsL(B) : B;
-  }
-  // 'plate': 사진 칸 아래쪽 안에 이름표 — 사진 위라 흰색 대신 크림(워킹패스 화면은 사진 칸의 흰 곳에만 사진을 얹는다)
-  function plateRect() {
-    var P = photoBox(), C = L.kr.plate;
-    return { x: P.x + C.m, y: P.y + P.h - C.m - C.h, w: P.w - 2 * C.m, h: C.h };
-  }
-  function skillPlate(out, value) {
-    var K = L.kr, C = K.plate, T = C.tab, R = plateRect(), u = K.pill.u, v = splitText(value);
-    var tx = R.x + 22, ty = R.y - T.h + u, hu = (T.h - 2 * u) * 0.72 / 16, hux = hu * K.lux / K.luy;
-    stepBox(out, tx, ty, T.w, T.h + u, u, [[tx + u, tx + T.w - u, COL.label]]);   // 작은 분홍 탭 — 아랫부분은 이름표 테두리에 덮인다
-    text(out, 'SKILL', tx + T.w / 2 - textUnits('SKILL') * hux / 2, ty + u + (T.h - 2 * u - 16 * hu) / 2, hux, hu, COL.ink);
-    stepBox(out, R.x, R.y, R.w, R.h, u, [[R.x + u, R.x + R.w - u, COL.body]]);
-    if (v) drawFit(out, v, R.x + R.w / 2, R.y + R.h / 2, (R.w - 2 * u) * 0.9, (R.h - 2 * u) * 0.86, C.base * sizeOf('skill'), C.gap);
-  }
-  // 'badge': 점선 아래 ~ 사진 틀 아랫줄까지 한 상자 — 위 띠에 발바닥 + 산책 등급, 아래 흰 칸에 특기
+  function layoutFor(o) { return o.landscape ? LL : LP; }
   function comboRect() {
     var K = L.kr, C = K.combo, top = K.dashY + L.dash.h + C.gap;
     return { x: L.field.x, y: top, w: L.field.w, h: L.frame.ob - top };
@@ -548,18 +512,18 @@
   function comboBox(out, value, lv) {
     var K = L.kr, C = K.combo, R = comboRect(), u = K.light.u, v = splitText(value);
     lv = Math.max(0, Math.min(3, lv | 0));
+    if (!v) {   // 특기를 비우면 등급 뱃지만 — 점선과 사진 틀 아랫줄 사이 가운데(그 전 등급만 있을 때와 같은 크기)
+      var gh = K.light.solo, mid = (K.dashY + L.dash.h + L.frame.ob) / 2;
+      gradeBadge(out, R.x, mid - gh / 2, R.w, gh, lv);
+      return;
+    }
     stepBox(out, R.x, R.y, R.w, R.h, u, [[R.x + u, R.x + R.w - u, COL.value]], [[R.y + u, R.y + u + C.band, GRADE_COL[lv]]]);
     badgeInner(out, R.x, R.y, R.w, C.band + 2 * u, lv);
     var A = { x: R.x + u, y: R.y + u + C.band, w: R.w - 2 * u, h: R.h - 2 * u - C.band };
-    if (v) drawFit(out, v, A.x + A.w / 2, A.y + A.h / 2, A.w * 0.86, A.h * 0.82, C.base * sizeOf('skill'), C.gap2);
+    drawFit(out, v, A.x + A.w / 2, A.y + A.h / 2, A.w * 0.86, A.h * 0.82, C.base * sizeOf('skill'), C.gap2);
   }
   // 편집 창이 크게 볼 특기 자리(카드 좌표)
-  function skillSpot(o, m) {
-    if (m === 'row') return { x: L.field.x, y: L.kr.ys4, w: L.field.w, h: L.field.h };
-    if (m === 'plate') { var R = plateRect(), th = L.kr.plate.tab.h - L.kr.pill.u; return { x: R.x, y: R.y - th, w: R.w, h: R.h + th }; }
-    if (m === 'badge') return comboRect();
-    return skillRect(o);
-  }
+  function skillSpot(o, m) { return m === 'badge' ? comboRect() : skillRect(o); }
 
   // 성향 신호등(뒷면 성향 칸과 같은 색 — 0 다가와도 좋아요 초록 · 1 천천히 인사해요 노랑 · 2 눈으로만 빨강): 진한 판에 불 셋, 고른 불만 켬
   var LAMP = ['..###..', '.#####.', '###*###', '#######', '#######', '.#####.', '..###..'];
@@ -640,7 +604,8 @@
   //         keyring(true = 키링판 — 칸 이름 짧게·간격 좁혀 값 자리 넓힘, 아래 알약에 홍보 문구),
   //         signal(0~2)·grade(0~3) — 키링판에서 주면 QR 대신 성향 신호등·산책 등급 뱃지,
   //         landscape(true = 가로판, 키링판으로 그림) · color(TINTS id — 없으면 핑크),
-  //         skill(키링판 맨 아래 특기 — 주면 홍보 문구 알약 대신 특기 칸, 빈 글자면 빈 칸) · vfont('clear'|'bold'|'dot' 칸 값 글씨체) ·
+  //         skill(키링판 특기 — 주면 홍보 문구 알약 대신 등급 뱃지와 한 상자로, 비우면 등급 뱃지만 · 줄바꿈 하나는 두 줄) ·
+  //         skillAt('box' — 그 전 등급 아래 SKILL 띠 상자) · vfont('clear'|'bold'|'dot' 칸 값 글씨체) ·
   //         sizes({ id, name, type, skill } 칸마다 글씨 크기 배수) }
   // 그리는 동안만 자리(L)·색(COL·GRADE_COL)·글씨체(VF)·크기(SZ)를 바꿨다가 되돌린다(아래 도구들이 그대로 읽는다)
   function render(o) {
@@ -717,8 +682,7 @@
         text(g1, v, vx, lb.y + (16 * V.uy - 16 * uy) / 2, ux, uy, COL.ink);
       }
     });
-    var SK = KR && o.skill != null ? skillMode(o) : null;   // 특기 자리(시안)
-    if (SK === 'row') keyringBox(g1, 'SKILL', o.skill, L.kr.ys4, 'skill', 'skill');
+    var SK = KR && o.skill != null ? skillMode(o) : null;   // 특기 자리 — 'badge' 등급과 한 상자(기본) · 'box' 등급 아래 띠 상자
     // 점선(양 끝은 옅게)
     var D = L.dash, dy = KR ? L.kr.dashY : D.y, dn = D.n == null ? 9 : D.n;   // 가로판은 칸 폭대로 개수(D.n)
     for (var k = -1; k <= dn; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === dn ? COL.dashSoft : COL.dash));
@@ -727,8 +691,7 @@
     var rowsOn = KR && (o.signal != null || o.grade != null), pyy = rowsOn ? L.kr.pillLow : KP.y;
     var SR = SK === 'box' ? skillRect(o) : null;
     if (SR) skillBox(g1, o.skill, SR);
-    else if (SK === 'plate') skillPlate(g1, o.skill);
-    else if (SK) { /* row: 위 칸 줄에서 · badge: 아래 등급 자리에서 같이 */ }
+    else if (SK) { /* badge: 아래 등급 자리에서 같이 */ }
     else if (KR && tag) {
       stepBox(g1, FD.x, pyy, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
       var ln = KP.one ? [B.tagline, ''] : twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),   // 가로판은 넓어서 한 줄
@@ -750,11 +713,10 @@
       if (o.signal != null) { signalLight(g1, FD.x, rowY, FD.w, LT.h, +o.signal); rowY += LT.h + LT.gap; }
       if (o.grade != null) {
         // 등급만 있으면(11/24 "신호등은 톤을 방해" → 뺌) 점선과 홍보 알약(특기 칸) 사이 가운데에 조금 크게
-        if (SK === 'badge') comboBox(g1, o.skill, +o.grade);   // 등급과 특기 한 상자
+        if (SK === 'badge') comboBox(g1, o.skill, +o.grade);   // 등급과 특기 한 상자(11/24 밤 "4안으로")
         else {
-          var gh = o.signal != null ? LT.h : SK === 'plate' ? L.kr.plate.badge : (SR && LT.soloSk) || LT.solo;
-          var low = SR ? SR.y : (SK === 'row' || SK === 'plate') ? F.ob : L.kr.pillLow;   // 아래 끝(특기 상자 위 · 사진 틀 아랫줄 · 홍보 알약 위)
-          if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + low) / 2 - gh / 2;
+          var gh = o.signal != null ? LT.h : (SR && LT.soloSk) || LT.solo;
+          if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + (SR ? SR.y : L.kr.pillLow)) / 2 - gh / 2;
           gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
         }
       }
