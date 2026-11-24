@@ -130,6 +130,10 @@
     <div class="chips" id="backs" role="group" aria-label="뒷면"></div>
     <p class="row-label" id="signal-label" style="margin-top:10px">이 강아지는요(뒷면 성향 칸)</p>
     <div class="chips" id="signals" role="group" aria-label="강아지 성향"></div>
+    <p class="row-label" id="call-label" style="margin-top:10px">이름 부르기(뒷면)</p>
+    <div class="chips" id="calls" role="group" aria-label="이름 부르기"></div>
+    <p class="row-label" id="snack-label" style="margin-top:10px">간식 안내(뒷면)</p>
+    <div class="chips" id="snacks" role="group" aria-label="간식 안내"></div>
     <input type="file" id="back-file" accept="image/*" hidden>
   </div>
   <div class="row">
@@ -168,7 +172,8 @@ const $ = (id) => document.getElementById(id);
 // ── 키링 모양(mm) — 가로 50 고정, 세로는 올린 그림 비율대로. 그림 위에 고리 구멍 칸(9mm)이 붙는다 ──
 const KW = 50, KR = 6, HOLE_R = 1.9, EDGE = 2.2, TAB = 9;
 const PW = KW - EDGE * 2;
-const state = { thick: 3, photo: null, backMode: 'friend', signal: 1, backPhoto: null, scene: 'air' };
+// callName: 뒷면에 "OO라고 불러 주세요" · snack: 0 안 넣기 / 1 간식 좋아해요 / 2 간식은 주지 마세요(11/24 가르시아 "옵션에서 고를 수 있게")
+const state = { thick: 3, photo: null, backMode: 'friend', signal: 1, backPhoto: null, scene: 'air', callName: true, snack: 2 };
 let L = null;   // 지금 모양: { KH, PH, printCY, holeY }
 function layout(aspect) {   // aspect = 그림 세로/가로
   const PH = Math.max(24, Math.min(120, PW * aspect)), KH = PH + EDGE * 2 + TAB;
@@ -303,6 +308,12 @@ const QR_URL = 'https://johnsongarage.co.kr/walson/start.html';
 // dex-card.js cardUrl과 같은 모양: dex.html#d=base64url({v:1, i:번호 8자, n:이름, s:크기, g:성향, c:털색}). 사진·견주 정보·위치는 안 담는다.
 // 찍으면 도감에 "OO 만났어요"(키링이라 발자국) — 워킹패스가 없는 휴대폰은 그 자리에서 발자국 남기고 바로 워킹패스 만들기로(dex.html).
 // 번호(i)는 이름·앞면 번호로 정해지는 8자 — 같은 키링은 늘 같은 번호. 크기는 작은 개(s)로, 털색은 크림(시안 강아지 포메).
+// "봉이라고 불러 주세요" — 받침이 있으면 '이라고'(콩 → 콩이라고), 없으면 '라고'
+function callText() {
+  const name = ($('f-name').value || 'POM').trim().slice(0, 10) || 'POM', ch = name.charCodeAt(name.length - 1);
+  const batchim = ch >= 0xac00 && ch <= 0xd7a3 && (ch - 0xac00) % 28 > 0;
+  return name + (batchim ? '이라고' : '라고') + ' 불러 주세요';
+}
 function cardQrUrl() {
   const name = ($('f-name').value || 'POM').trim().slice(0, 12) || 'POM';
   let h = 2166136261; for (const ch of name + '|' + ($('f-id').value || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
@@ -318,20 +329,24 @@ function drawFriendBack(g, W0, H, c, B) {
   g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
   const top = K.sn(H * 0.11);   // 위 빈 칸(구멍 자리)
   const hh = K.head('QR 찍고 친구 해요', H, W0, top);
-  const qs = K.sn(Math.min(W0 * 0.46, (H - top) * 0.38)), qx = K.sn((W0 - qs) / 2 - 3 * U), qy = K.sn(hh + U + 40);
+  // 아래 줄: 고른 성향 하나만(11/24 "공간 낭비가 심해서") + 고르면 이름 부르기·간식 안내
+  const sig = [['다가와도 좋아요', '#3f9b5b'], ['천천히 인사해요', '#dfa21f'], ['눈으로만 예뻐해 주세요', '#d2493f']];
+  const rows = [sig[state.signal] || sig[1]];
+  if (state.callName) rows.push([callText(), c.accent]);
+  if (state.snack === 1) rows.push(['간식 좋아해요', '#3f9b5b']);
+  if (state.snack === 2) rows.push(['간식은 주지 마세요', '#d2493f']);
+  const rh = 72, below = 36 + 48 + rows.length * (rh + 14) + 110;
+  const qs = K.sn(Math.max(W0 * 0.34, Math.min(W0 * 0.5, H - hh - U - 40 - 6 * U - below))), qx = K.sn((W0 - qs) / 2 - 3 * U), qy = K.sn(hh + U + 40);
   K.box(qx, qy, qs + 6 * U, qs + 6 * U, '#ffffff');
   K.qr(cardQrUrl(), qx + 3 * U, qy + 3 * U, qs);
   let y = qy + qs + 6 * U + 36;
   K.txt('이 강아지는요', W0 / 2, y + 14, 32, c.inkSoft);
   y += 48;
-  const sig = [['다가와도 좋아요', '#3f9b5b'], ['천천히 인사해요', '#dfa21f'], ['눈으로만 예뻐해 주세요', '#d2493f']];
-  const rh = K.sn(Math.max(56, Math.min(84, (H - y - 110) / 3 - 14))), on = state.signal;   // 고른 성향(아래 [이 강아지는요] 칩)
-  sig.forEach(([s, col], i) => {
-    const by = y + i * (rh + 14), sel = i === on;
-    K.box(64, by, W0 - 128, rh, sel ? '#ffffff' : c.panel, sel ? c.ink : '#d9cfd4');
-    g.fillStyle = col; g.fillRect(K.sn(64 + 4 * U), K.sn(by + rh / 2 - 2 * U), 4 * U, 4 * U);
-    K.txt(s, 64 + 11 * U, by + rh / 2 + 2, rh * 0.4, sel ? c.ink : c.inkSoft, 'left');
-    if (sel) K.bitmap(['......X', '.....XX', 'X...XX.', 'XX.XX..', '.XXX...', '..X....'], { X: col }, W0 - 64 - 11 * U, by + rh / 2 - 3 * U, U);
+  rows.forEach(([t, col]) => {
+    K.box(64, y, W0 - 128, rh, '#ffffff', c.ink);
+    g.fillStyle = col; g.fillRect(K.sn(64 + 4 * U), K.sn(y + rh / 2 - 2 * U), 4 * U, 4 * U);
+    K.txt(t, 64 + 11 * U, y + rh / 2 + 2, rh * 0.4, c.ink, 'left');
+    y += rh + 14;
   });
   K.txt(String(B.name || 'WALSON').toUpperCase(), W0 / 2, H - 46, 32, c.inkSoft);
 }
@@ -612,6 +627,12 @@ function paintChips() {
   sg.hidden = $('signal-label').hidden = !onFriend;
   ['다가와도 좋아요', '천천히 인사해요', '눈으로만 예뻐해 주세요'].forEach((s, i) =>
     sg.appendChild(chip(s, state.signal === i, () => { state.signal = i; paintChips(); build(false); view(true); })));
+  const cl = $('calls'), sn = $('snacks'); cl.innerHTML = ''; sn.innerHTML = '';
+  cl.hidden = $('call-label').hidden = sn.hidden = $('snack-label').hidden = !onFriend;
+  [[true, '넣기'], [false, '빼기']].forEach(([v, label]) =>
+    cl.appendChild(chip(label, state.callName === v, () => { state.callName = v; paintChips(); build(false); view(true); })));
+  ['안 넣기', '간식 좋아해요', '간식은 주지 마세요'].forEach((label, i) =>
+    sn.appendChild(chip(label, state.snack === i, () => { state.snack = i; paintChips(); build(false); view(true); })));
   const pl = $('palettes'); pl.innerHTML = '';
   if (T && T.palettes) Object.keys(T.palettes).forEach((k) => {
     const p = T.palettes[k], b = chip(p.label, T.palette === k, () => setPal(k));
@@ -709,11 +730,13 @@ function savePng(c, name) {
   $('file-out').hidden = false; $('file-out').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   const a = document.createElement('a'); a.download = name; a.href = url; a.click();   // 컴퓨터는 바로 내려받기
 }
-// 주소에 ?export=front|back 이면 그 인쇄 파일 그림 하나만 화면 가득(1:1) — 다른 프로그램으로 그대로 찍어 파일로 만들 때(&name=&type=&id=&signal=0~2)
+// 주소에 ?export=front|back 이면 그 인쇄 파일 그림 하나만 화면 가득(1:1) — 다른 프로그램으로 그대로 찍어 파일로 만들 때(&name=&type=&id=&signal=0~2&call=0|1&snack=0~2)
 const EXP = new URLSearchParams(location.search);
 if (EXP.get('export')) {
   ['id', 'name', 'type'].forEach((k) => { if (EXP.has(k)) $('f-' + k).value = EXP.get(k); });
   if (EXP.has('signal')) state.signal = Math.max(0, Math.min(2, Number(EXP.get('signal')) || 0));
+  if (EXP.has('call')) state.callName = EXP.get('call') !== '0';
+  if (EXP.has('snack')) state.snack = Math.max(0, Math.min(2, Number(EXP.get('snack')) || 0));
 }
 function exportOnly(c) {
   document.body.innerHTML = ''; document.body.style.cssText = 'margin:0;padding:0;background:#fff';
