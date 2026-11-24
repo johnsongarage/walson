@@ -230,7 +230,7 @@
     kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
-      light: { y: 1314.5, h: 78, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
+      light: { y: 1314.5, h: 78, solo: 104, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
   };
   function photoBox() {
     var F = L.frame;
@@ -407,7 +407,12 @@
     if (rowsOn) {
       var LT = L.kr.light, rowY = LT.y;
       if (o.signal != null) { signalLight(g1, FD.x, rowY, FD.w, LT.h, +o.signal); rowY += LT.h + LT.gap; }
-      if (o.grade != null) gradeBadge(g1, FD.x, rowY, FD.w, LT.h, +o.grade);
+      if (o.grade != null) {
+        // 등급만 있으면(11/24 "신호등은 톤을 방해" → 뺌) 점선과 홍보 알약 사이 가운데에 조금 크게
+        var gh = o.signal != null ? LT.h : LT.solo;
+        if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + L.kr.pillLow) / 2 - gh / 2;
+        gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
+      }
     } else {
       // QR(흰 판 + 진짜 주소)
       var Q = L.qr;

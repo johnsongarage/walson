@@ -97,7 +97,7 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
-<script src="pass-trace.js?v=8"></script>
+<script src="pass-trace.js?v=9"></script>
 </head>
 <body>
 <main class="wrap">
@@ -148,7 +148,7 @@
   <div class="row">
     <p class="row-label">뒷면</p>
     <div class="chips" id="backs" role="group" aria-label="뒷면"></div>
-    <p class="row-label" id="signal-label" style="margin-top:10px">이 강아지는요(앞면 신호등 · 뒷면 성향 칸)</p>
+    <p class="row-label" id="signal-label" style="margin-top:10px">이 강아지는요(뒷면 성향 칸)</p>
     <div class="chips" id="signals" role="group" aria-label="강아지 성향"></div>
     <p class="row-label" style="margin-top:10px">산책 등급(앞면 뱃지)</p>
     <div class="chips" id="grades" role="group" aria-label="산책 등급"></div>
@@ -668,9 +668,9 @@ function paintChips() {
   if (state.backPhoto) bk.appendChild(chip('다른 뒷면 그림', false, () => $('back-file').click()));
   const sg = $('signals'); sg.innerHTML = '';
   const onFriend = state.backMode === 'friend';
-  // 성향은 앞면 신호등에도 나와서 뒷면이 무엇이든 보인다
+  sg.hidden = $('signal-label').hidden = !onFriend;
   ['다가와도 좋아요', '천천히 인사해요', '눈으로만 예뻐해 주세요'].forEach((s, i) =>
-    sg.appendChild(chip(s, state.signal === i, () => { state.signal = i; paintChips(); drawPass(); build(false); })));
+    sg.appendChild(chip(s, state.signal === i, () => { state.signal = i; paintChips(); build(false); view(true); })));
   const gr = $('grades'); gr.innerHTML = '';
   ['산책 입문자', '산책 러버', '프로 산책러', '핑크 앰배서더'].forEach((s, i) =>
     gr.appendChild(chip(s, state.grade === i, () => { state.grade = i; paintChips(); drawPass(); view(false); })));
@@ -743,7 +743,7 @@ const PT = window.WalsonPassTrace;
 const pass = { refPhoto: null, timer: 0, seq: 0 };
 function passOpts() {
   return { scene: 'card', keyring: true, tagline: true, photo: pass.refPhoto, id: $('f-id').value, name: $('f-name').value, type: $('f-type').value,
-    signal: state.signal, grade: state.grade, hangul: HANGUL_FONT };   // 앞면 QR은 뺌(11/24 "너무 작아") → 신호등 + 산책 등급
+    grade: state.grade, hangul: HANGUL_FONT };   // 앞면 QR은 뺌(11/24 "너무 작아") → 산책 등급. 신호등은 "톤을 방해"해서 뺌(같은 날)
 }
 const HANGUL_FONT = "'Black Han Sans', 'Pretendard', sans-serif";
 // 웹 글꼴은 글자 묶음별로 나눠 받아서, 그릴 글자를 다 넘겨 받아 둔 뒤에 그린다(안 받은 글자는 다른 글꼴로 나옴)
