@@ -33,7 +33,8 @@
      11/24 가르시아 "샘플로 키링을 무료 제작 의뢰 하려고 해 — 이름 견종 란을 편집할 수 있게, 사이즈 아담하니 좋아 대신 입력할 칸을 좀 바꿔야겠어,
      밑에 WALSON만 적혀 있는데 중복되니 좀만 개편" →
      - 처음 앞면 = 그 그림을 같은 자리에 다시 그린 트레이싱판(pass-trace.js, 키링판) — 번호·이름·견종을 아래 칸에서 고쳐 쓴다(사진 칸 강아지는 그림에서 잘라 그대로).
-       키링판: 이름·견종 칸은 두 줄(분홍 띠에 칸 이름 · 흰 칸에 값 크게), 점선 아래 알약은 WALSON 대신 홍보 문구 두 줄.
+       키링판: 칸은 원본처럼 한 줄, 칸 이름은 짧게(ID · NAME · TYPE, 분홍 칸 같은 폭)·간격을 좁혀 값 자리를 넓힘(같은 날 가르시아 "ID.만 쓰자, NAME이 왼쪽에,
+       타입도, 간격을 조금 줄여서" — 처음엔 두 줄 칸이었음), 점선 아래 알약은 WALSON 대신 홍보 문구 두 줄.
      - 앞면·뒷면 인쇄 파일(PNG) 저장 — 인쇄소에 보낼 그림. 그림을 올렸다가 [도트 워킹패스 앞면으로] 돌아올 수 있다. */
   :root {
     --bg: #fffdfd; --panel: #ffffff; --panel-border: #f3d6e3; --ink: #2a2026; --ink-soft: #6f6168;
@@ -85,7 +86,7 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
-<script src="pass-trace.js?v=2"></script>
+<script src="pass-trace.js?v=3"></script>
 </head>
 <body>
 <main class="wrap">
@@ -244,9 +245,120 @@ function drawBack() {
     g.fillStyle = c.hl; g.fillRect(0, H - strip, W0, strip);
     g.fillStyle = c.hlInk; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = Math.round(strip * 0.42) + 'px ' + PIX;
     g.fillText(B.name + ' · ' + B.tagline, W0 / 2, H - strip / 2);
-  } else drawSafeBack(g, W0, H, c, B);
+  } else if (state.backMode === 'friend') drawFriendBack(g, W0, H, c, B);
+  else if (state.backMode === 'stamp') drawStampBack(g, W0, H, c, B);
+  else if (state.backMode === 'scene') drawSceneBack(g, W0, H, c, B);
+  else drawSafeBack(g, W0, H, c, B);
   if (backTex) backTex.dispose();
   backTex = new THREE.CanvasTexture(backArt); backTex.colorSpace = THREE.SRGBColorSpace; backTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+}
+
+// ── 뒷면 시안 셋(11/24 가르시아 "뒷쪽 디자인 보강 — 기획 3가지" → "시안으로 줘봐") ──
+// 1안 친구 QR 판(추천) · 2안 산책 도장판 · 3안 도트 그림. 앞면에 홍보 두 줄이 다 있어서 뒷면은 작은 WALSON만.
+// 모두 점 8px 칸에 맞춰 그린다(안전 뒷면과 같은 도트 결).
+function backKit(g, c) {
+  const U = 8, sn = (v) => Math.round(v / U) * U;
+  function box(x, y, w, h, fill, ink) {
+    x = sn(x); y = sn(y); w = sn(w); h = sn(h);
+    g.fillStyle = ink || c.ink; g.fillRect(x + U, y, w - 2 * U, h); g.fillRect(x, y + U, w, h - 2 * U);
+    g.fillStyle = fill; g.fillRect(x + 2 * U, y + U, w - 4 * U, h - 2 * U); g.fillRect(x + U, y + 2 * U, w - 2 * U, h - 4 * U);
+  }
+  function bitmap(rows, map, x, y, s) {
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const col = map[r[i]]; if (col) { g.fillStyle = col; g.fillRect(sn(x) + i * s, sn(y) + j * s, s, s); } } });
+  }
+  function qr(url, x, y, size) {
+    if (!window.qrcode) return;
+    const q = qrcode(0, 'M'); q.addData(url); q.make();
+    const n = q.getModuleCount(), cell = Math.floor(size / n), off = Math.floor((size - cell * n) / 2);
+    g.fillStyle = '#121215';
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(x + off + k * cell, y + off + r * cell, cell, cell);
+  }
+  function txt(s, x, y, px, col, align, font) {
+    g.fillStyle = col || c.ink; g.textAlign = align || 'center'; g.textBaseline = 'middle';
+    g.font = sn(px) + 'px ' + (font || PIX); g.fillText(s, x, y);
+  }
+  function head(label, H, W0) {
+    const hh = sn(Math.min(H * 0.13, 150));
+    g.fillStyle = c.hl; g.fillRect(0, 0, W0, hh); g.fillStyle = c.accent; g.fillRect(0, hh, W0, U);
+    txt(label, W0 / 2, hh / 2 + 4, hh * 0.38, c.hlInk);
+    bitmap(PAW7, { X: c.hlInk }, 56, hh / 2 - 28, U); bitmap(PAW7, { X: c.hlInk }, W0 - 56 - 9 * U, hh / 2 - 28, U);
+    return hh;
+  }
+  return { U, sn, box, bitmap, qr, txt, head };
+}
+const PAW7 = ['..XX.XX..', '..XX.XX..', 'XX.....XX', 'XX.XXX.XX', '..XXXXX..', '.XXXXXXX.', '.XXX.XXX.'];
+const QR_URL = 'https://johnsongarage.co.kr/walson/start.html';
+
+// 1안 친구 QR 판 — QR을 크게(키링 위 약 22mm), "찍으면 친구" + 강아지 성향 세 칸(고른 하나에 표시)
+function drawFriendBack(g, W0, H, c, B) {
+  const K = backKit(g, c), U = K.U;
+  g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
+  const hh = K.head('QR 찍고 친구 해요', H, W0);
+  const qs = K.sn(Math.min(W0 * 0.5, H * 0.38)), qx = K.sn((W0 - qs) / 2 - 3 * U), qy = K.sn(hh + U + 48);
+  K.box(qx, qy, qs + 6 * U, qs + 6 * U, '#ffffff');
+  K.qr(QR_URL, qx + 3 * U, qy + 3 * U, qs);
+  let y = qy + qs + 6 * U + 36;
+  K.txt('이 강아지는요', W0 / 2, y + 14, 32, c.inkSoft);
+  y += 48;
+  const sig = [['다가와도 좋아요', '#3f9b5b'], ['천천히 인사해요', '#dfa21f'], ['눈으로만 예뻐해 주세요', '#d2493f']];
+  const rh = K.sn(Math.max(56, Math.min(84, (H - y - 110) / 3 - 14))), on = 1;   // 시안: 가운데(천천히)를 고른 모습
+  sig.forEach(([s, col], i) => {
+    const by = y + i * (rh + 14), sel = i === on;
+    K.box(64, by, W0 - 128, rh, sel ? '#ffffff' : c.panel, sel ? c.ink : '#d9cfd4');
+    g.fillStyle = col; g.fillRect(K.sn(64 + 4 * U), K.sn(by + rh / 2 - 2 * U), 4 * U, 4 * U);
+    K.txt(s, 64 + 11 * U, by + rh / 2 + 2, rh * 0.4, sel ? c.ink : c.inkSoft, 'left');
+    if (sel) K.bitmap(['......X', '.....XX', 'X...XX.', 'XX.XX..', '.XXX...', '..X....'], { X: col }, W0 - 64 - 11 * U, by + rh / 2 - 3 * U, U);
+  });
+  K.txt(String(B.name || 'WALSON').toUpperCase(), W0 / 2, H - 46, 32, c.inkSoft);
+}
+
+// 2안 산책 도장판 — 동네 공원·가게 칸 9개, 받으면 도장(스티커). 다 모으면 선물
+function drawStampBack(g, W0, H, c, B) {
+  const K = backKit(g, c), U = K.U;
+  g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
+  const hh = K.head('산책 여권 · 다산동', H, W0);
+  const places = ['중앙공원', '계단숲길', '강변길', '카페', '빵집', '동물병원', '펫샵', '꽃집', '선물'];
+  const M = 56, gap = 18, cw = (W0 - 2 * M - 2 * gap) / 3, top = hh + U + 44, ch = K.sn(Math.min(cw, (H - top - 170) / 3 - gap));
+  const got = [0, 1, 3];   // 시안: 이미 받은 도장 셋
+  places.forEach((name, i) => {
+    const col = i % 3, row = Math.floor(i / 3), x = M + col * (cw + gap), y = top + row * (ch + gap), last = i === 8;
+    K.box(x, y, cw, ch, last ? (c.accentTint || '#ffe4ef') : '#ffffff');
+    const cx = x + cw / 2, cy = y + ch * 0.42, r = Math.min(cw, ch) * 0.25;
+    if (got.indexOf(i) >= 0) K.bitmap(PAW7, { X: c.accent }, cx - 4.5 * 11, cy - 3.5 * 11, 11);
+    else if (!last) { g.fillStyle = '#d9cfd4'; for (let a = 0; a < 24; a += 2) { const t1 = a / 24 * Math.PI * 2; g.fillRect(K.sn(cx + Math.cos(t1) * r), K.sn(cy + Math.sin(t1) * r), U, U); } }
+    else K.bitmap(['.R.R.', 'RRRRR', 'YYRYY', 'YYRYY', 'YYRYY'], { R: c.accent, Y: '#ffd36b' }, cx - 2.5 * 12, cy - 2.5 * 12, 12);
+    K.txt(last ? '다 모으면 선물' : name, cx, y + ch - 3.4 * U, Math.min(30, cw * 0.15), last ? c.accent : c.ink);
+  });
+  const ny = top + 3 * (ch + gap) + 6;
+  K.txt('공원·가게에서 도장(스티커)을 받아요', W0 / 2, ny + 20, 30, c.inkSoft);
+  K.txt(String(B.name || 'WALSON').toUpperCase(), W0 / 2, H - 46, 32, c.inkSoft);
+}
+
+// 3안 도트 그림 — 강아지 뒷모습이 다산동 산책길을 걸어간다(앞면은 마주 보는 강아지, 돌리면 걸어가는 뒷모습). 작은 QR 하나
+function drawSceneBack(g, W0, H, c, B) {
+  const K = backKit(g, c), U = K.U, S = 16;
+  const horizon = K.sn(H * 0.5), sky = ['#ffd6e4', '#ffc9dc', '#ffbcd2', '#ffd9c2', '#ffe8c9'];
+  sky.forEach((col, i) => { g.fillStyle = col; g.fillRect(0, K.sn(horizon * i / sky.length), W0, K.sn(horizon / sky.length) + U); });
+  g.fillStyle = '#fff3a8';
+  for (let y = -5; y <= 5; y++) for (let x = -5; x <= 5; x++) if (x * x + y * y <= 26) g.fillRect(K.sn(W0 * 0.72) + x * 12, K.sn(horizon * 0.42) + y * 12, 12, 12);
+  g.fillStyle = '#9fd3a6'; for (let x = 0; x < W0; x += S) { const h = K.sn(40 + 26 * Math.sin(x / 90)); g.fillRect(x, horizon - h, S, h + S); }
+  const tree = ['...GGGG...', '..GGGGGG..', '.GGGGGGGG.', 'GGGGGGGGGG', 'GGGGGGGGGG', '.GGGGGGGG.', '...TTTT...', '....TT....', '....TT....'];
+  [[48, 14], [200, 11], [W0 - 260, 12], [W0 - 150, 15]].forEach(([x, s]) => K.bitmap(tree, { G: '#5fae6b', T: '#8a5a3c' }, x, horizon - 9 * s, s));
+  g.fillStyle = '#86c98f'; g.fillRect(0, horizon, W0, H - horizon);
+  g.fillStyle = '#f1d9b5';
+  for (let y = horizon; y < H; y += U) { const k = (y - horizon) / (H - horizon), w = 60 + k * (W0 * 0.75); g.fillRect(K.sn(W0 / 2 - w / 2), y, K.sn(w), U); }
+  const bench = ['BBBBBBBBBBBB', 'BBBBBBBBBBBB', '............', 'BBBBBBBBBBBB', '.L........L.', '.L........L.'];
+  K.bitmap(bench, { B: '#b47a4f', L: '#6b4a33' }, W0 * 0.06, horizon + 60, S);
+  const dog = [
+    '...EE......EE...', '..EFFE....EFFE..', '..EFFFEEEEFFFE..', '..EFFFFFFFFFFE..', '.EFFFFFFFFFFFFE.', '.EFFFFFFFFFFFFE.',
+    '..EFFFFFFFFFFE..', '...EPPPPPPPPE...', '..EFFFFFFFFFFE..', '.EFFFFTTTTFFFFE.', 'EFFFFTTTTTTFFFFE', 'EFFFFFTTTTFFFFFE',
+    'EFFFFFFFFFFFFFFE', 'EFFFFFFFFFFFFFFE', '.EFFFFFFFFFFFFE.', '..EFFE....EFFE..', '..EFFE....EFFE..', '..EEEE....EEEE..'];
+  const ds = 16, dw = 16 * ds, dx = W0 / 2 - dw / 2, dy = H - 140 - 18 * ds;
+  g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(K.sn(dx + 2 * ds), K.sn(dy + 17.6 * ds), K.sn(12 * ds), U * 2);
+  K.bitmap(dog, { E: '#5a3d34', F: '#fbf1e3', T: '#fffaf2', P: c.hl }, dx, dy, ds);
+  const qs = 112, qx = W0 - 48 - qs - 4 * U, qy = H - 48 - qs - 4 * U;
+  K.box(qx, qy, qs + 4 * U, qs + 4 * U, '#ffffff'); K.qr(QR_URL, K.sn(qx) + 2 * U, K.sn(qy) + 2 * U, qs);
+  K.txt(String(B.name || 'WALSON').toUpperCase(), 52, H - 70, 36, '#5a3d34', 'left');
 }
 // 도트 안전 뒷면 — 앞면 도트 카드와 한 세트(머리띠·계단 테두리 칸·점선). 칸 크기는 세로 길이에 맞춰 늘고 준다
 function drawSafeBack(g, W0, H, c, B) {
@@ -463,7 +575,9 @@ function paintChips() {
   const t = $('thick'); t.innerHTML = '';
   [3, 5].forEach((mm) => t.appendChild(chip(mm + 'mm', state.thick === mm, () => { state.thick = mm; paintChips(); build(false); })));
   const bk = $('backs'); bk.innerHTML = '';
-  bk.appendChild(chip('안전 뒷면(추천)', state.backMode === 'safe', () => { state.backMode = 'safe'; paintChips(); build(false); view(true); }));
+  bk.appendChild(chip('안전 뒷면', state.backMode === 'safe', () => { state.backMode = 'safe'; paintChips(); build(false); view(true); }));
+  [['friend', '시안1 친구 QR'], ['stamp', '시안2 도장판'], ['scene', '시안3 도트 그림']].forEach(([id, label]) =>
+    bk.appendChild(chip(label, state.backMode === id, () => { state.backMode = id; paintChips(); build(false); view(true); })));
   bk.appendChild(chip(state.backPhoto ? '올린 뒷면 그림' : '뒷면 그림 올리기', state.backMode === 'photo', () => {
     if (!state.backPhoto) { $('back-file').click(); return; }
     state.backMode = 'photo'; paintChips(); build(false); view(true);
@@ -590,7 +704,7 @@ loop();
 })();
 // 뒷면 도트 글꼴이 늦게 오면 받은 뒤 한 번 더
 if (document.fonts && document.fonts.load) document.fonts.load("48px 'DungGeunMo'", '이 강아지를 만나면').then(() => build(false)).catch(() => {});
-window.__keyring3d = { state, scene, renderer, camera, controls, load, setPal, view, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
+window.__keyring3d = { state, scene, renderer, camera, controls, load, setPal, view, backArt, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
 </script>
 </body>
 </html>

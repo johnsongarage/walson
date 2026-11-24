@@ -217,10 +217,13 @@
     paws: [{ x: 393, y: 380.5 }, { x: 1044.5, y: 380.5 }], pawU: { x: 83 / 29, y: 80 / 27 },
     tagline: { y: 1725, u: 2.4 },
     // 키링판(11/24 가르시아 "샘플로 키링 무료 제작 의뢰 — 이름·견종 란을 편집할 수 있게, 사이즈 아담하니 좋아 대신 입력할 칸을 좀 바꿔야겠어,
-    // 밑에 WALSON만 적혀 있는데 중복되니 좀만 개편"): 번호 칸은 그대로, 이름·견종 칸은 두 줄(분홍 띠에 칸 이름 · 흰 칸에 값 크게 —
-    // "포메라니안"·"골든 리트리버"도 작아지지 않게), 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
-    kr: { ys: [880.5, 1083.5], h: 175, strip: 64, pad: 18, lux: 2.45, luy: 2.55, vux: 3.4, vuy: 3.45,
-      dashY: 1286.5, pill: { y: 1330, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 } }
+    // 밑에 WALSON만 적혀 있는데 중복되니 좀만 개편" → 같은 날 "ID.만 쓰자, NAME이 왼쪽에 오는 게 맞아, 타입도, 간격을 조금 줄여서 배치"):
+    // 칸은 원본처럼 한 줄(왼쪽 분홍에 칸 이름 · 오른쪽 흰 칸에 값), 칸 이름은 짧게(ID · NAME · TYPE — 콜론 뺌), 칸 이름 바로 뒤에서 나누고
+    // 값 앞뒤 여백도 좁혀 값 자리를 넓힘(원본 174 → 204점, "포메라니안"이 덜 작아짐). 칸끼리 간격도 40 → 30점.
+    // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
+    // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
+    kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+      dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 } }
   };
   function photoBox() {
     var F = L.frame;
@@ -262,23 +265,21 @@
     }
     return best;
   }
-  // 키링판 두 줄 칸: 분홍 띠(칸 이름) 위 · 흰 칸(값) 아래, 테두리는 다른 칸과 같은 계단 모서리
-  function twoRowBox(out, label, value, y) {
-    var FD = L.field, K = L.kr, x = FD.x, w = FD.w, u = FD.u, h = K.h;
-    rect(out, x + u, y + u, w - 2 * u, K.strip, COL.label);
-    rect(out, x + u, y + u + K.strip, w - 2 * u, h - 2 * u - K.strip, COL.value);
-    stepBox(out, x, y, w, h, u, []);
-    var tx = x + u + K.pad;
-    text(out, label, tx, y + u + (K.strip - 16 * K.luy) / 2, K.lux, K.luy, COL.ink);
+  // 키링판 칸: 원본처럼 한 줄 — 왼쪽 분홍(칸 이름) · 오른쪽 흰 칸(값). 분홍 칸은 세 칸이 같은 폭(가장 긴 칸 이름 바로 뒤까지)이라
+  // 값이 한 줄로 맞춰 시작한다(길면 칸에 맞게 줄임)
+  function keyringBox(out, label, value, y) {
+    var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h;
+    var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, sp = lx + lw * K.lux + K.lgap;
+    stepBox(out, x, y, w, h, u, [[x + u, sp, COL.label], [sp, x + w - u, COL.value]]);
+    text(out, label, lx, y + (h - 16 * K.luy) / 2, K.lux, K.luy, COL.ink);
     var v = String(value || '').trim().toUpperCase();
     if (!v) return;
-    var avail = (x + w - u - K.pad) - tx, vux = Math.min(K.vux, avail / textUnits(v)), vuy = vux * K.vuy / K.vux;
-    var area = h - 2 * u - K.strip;
-    text(out, v, tx, y + u + K.strip + (area - 16 * vuy) / 2, vux, vuy, COL.ink);
+    var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(V.ux, avail / textUnits(v)), uy = ux * V.uy / V.ux;
+    text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
   }
 
   // opts: { photo: dataURL(사진 칸 크기 그대로 넣음), id, name, type, qr(주소), tagline(true/false), scene('ref'=바탕·그림자까지 | 'card'=카드만), brand,
-  //         keyring(true = 키링판 — 이름·견종 두 줄 칸, 아래 알약에 홍보 문구) }
+  //         keyring(true = 키링판 — 칸 이름 짧게·간격 좁혀 값 자리 넓힘, 아래 알약에 홍보 문구) }
   function render(o) {
     o = o || {};
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
@@ -326,7 +327,7 @@
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
-      if (KR && i > 0) { twoRowBox(g1, i === 1 ? 'NAME' : 'TYPE', vals[i], L.kr.ys[i - 1]); return; }   // 키링판 이름·견종 = 두 줄 칸
+      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i]); return; }   // 키링판 = 짧은 칸 이름 · 좁힌 간격
       var sp = FD.splits[i], fx = FD.x, fu = FD.u;
       stepBox(g1, fx, fy, FD.w, FD.h, fu, [[fx + fu, sp, COL.label], [sp, fx + FD.w - fu, COL.value]]);
       var lb = L.labels[i];
