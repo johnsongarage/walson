@@ -76,7 +76,8 @@
     // both: 글자가 있는 벽 그림 — 왼쪽 벽에선 뒤집지 않고 왼쪽 벽용 그림(spr + '_L')을 쓴다(글씨가 거울처럼 되지 않게).
     // 생기는 조건은 Claude 제안(11/23 밤) — 모두 "한 것"(산책·발도장·가게 QR·응가 치움·꾸준함·오늘의 한 장 + 산책 기록으로 세는
     //   밤 산책 night · 겨울 산책 winter · 40분 넘는 산책 long · 킁킁 지수 4 이상 산책 sniff). 단짝 수는 조건으로 쓰지 않는다(11/23).
-    { id: 'pee_pad', spr: 'pee_pad', i: 62, j: 52, decal: true, name: '배변판', need: {}, stash: true },
+    // move: 바닥에 깔지만 끌어서 옮길 수 있는 깔개(11/24 가르시아 "배변패드 위치 변경되게") — 작아서 걷기·화면 밀기를 덜 가린다(러그·매트는 그대로)
+    { id: 'pee_pad', spr: 'pee_pad', i: 62, j: 52, decal: true, move: true, name: '배변판', need: {}, stash: true },
     { id: 'bubble_visited', spr: 'bubble_visited', face: 'R', both: true, wall: 'L', u: 41.5, h: 85.5, name: '다녀감 말풍선', need: { walks: 2 }, stash: true },
     { id: 'sign_snack', spr: 'sign_snack', i: 10, j: 48, name: '간식 내놔라 팻말', need: { walks: 4 }, stash: true },
     { id: 'board_refuse', spr: 'board_refuse', i: 26, j: 70, name: '안가 안걸어 대자보', need: { walks: 6 }, stash: true },

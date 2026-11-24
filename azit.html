@@ -324,6 +324,13 @@
   function unP(x, y) { var a = (x - CORNER) / 2, b = y - FLOOR0; return { i: (a + b) / 2, j: (b - a) / 2 }; }
   function W(side, u, h) { return { x: side === 'R' ? CORNER + 2 * u : CORNER - 2 * u, y: FLOOR0 + u - h }; }
   function onFloor(q) { return q.i >= 0 && q.j >= 0 && q.i <= 101 && q.j <= 86 && q.i + q.j <= 146; }
+  // 깔개 자리(그림 가운데) — 마름모 그림의 네 끝(가운데에서 i·j로 폭/8·높이/4쯤)이 벽·바닥 끝을 넘지 않게 그만큼 안쪽으로(11/24 배변판 옮기기)
+  function clampDecal(q, s) {
+    var m = s ? Math.ceil(Math.max(s.width / 8, s.height / 4)) : 10, c = clampFloor(q);
+    var i = Math.max(m, Math.min(101 - m, c.i)), j = Math.max(m, Math.min(86 - m, c.j));
+    if (i + j > 146 - 2 * m) { var t = (i + j - (146 - 2 * m)) / 2; i -= t; j -= t; }
+    return { i: i, j: j };
+  }
   function clampFloor(q) {   // 강아지·소품이 설 수 있는 바닥(계단·화면 밖 빼고)
     var i = Math.max(3, Math.min(97, q.i)), j = Math.max(3, Math.min(82, q.j));
     if (i + j > 138) { var s = (i + j - 138) / 2; i -= s; j -= s; }
@@ -554,7 +561,9 @@
     for (var i = 0; i < src.length; i++) h = ((h << 5) + h + src.charCodeAt(i)) | 0;
     return src.length + ':' + (h >>> 0).toString(36);
   }
-  var photoSig = photoKey(photoSrcNow()), photoBusy = false, photoMsg = '';
+  // photoSig: 지금 워킹패스 사진 표 · failedSig: 이 화면에서 도트로 못 만든 사진 표(같은 사진으로 또 헛걸음하지 않게)
+  // pickSeq: 강아지 칸을 누를 때마다 +1 — 만드는 사이에 다른 강아지를 고르면 다 만든 뒤에도 그 선택 그대로
+  var photoSig = photoKey(photoSrcNow()), photoBusy = false, photoMsg = '', photoKept = false, failedSig = '', pickSeq = 0;
   function setPhotoSprite(png) {
     return loadImg(png).then(function (im) {
       Object.keys(dogCache).forEach(function (k) { if (k.indexOf(PHOTO_ID + '@') === 0) delete dogCache[k]; });
@@ -591,17 +600,28 @@
     }
     return c.toDataURL('image/png');
   }
-  // [내 워킹패스 강아지] — 만든 그림이 지금 사진 것이면 바로 방에, 아니면 만들고 나서 방에
+  // [내 워킹패스 강아지] — 만들어 둔 도트가 있으면 누르는 즉시 방에(11/24 버그: 사진이 바뀐 뒤엔 누를 때마다 새로 만들려다
+  // 실패하면 만들어 둔 도트도 못 골랐다). 사진이 바뀌었으면 새 도트는 뒤에서 만들어 바꾸고, 못 만들면 예전 도트 그대로.
+  // 만들어 둔 게 없을 때만 만들고 나서 방에
   function pickPhotoDog() {
+    var p2 = WalsonStore.profile(); if (p2) profile = p2;   // 다른 탭에서 사진을 바꿨을 수 있어서 누를 때 다시 읽는다
     var src = photoSrcNow();
-    if (!src) { photoMsg = 'none'; dogPicker(); return; }
-    if (state.photoDog && state.photoDog.sig === photoSig && dogSrc[PHOTO_ID]) {
-      state.dogPhoto = true; photoMsg = ''; save(); refreshModel(); ui(); return;
+    photoSig = photoKey(src);
+    if (state.photoDog) {
+      state.dogPhoto = true; photoMsg = ''; photoKept = false; save(); refreshModel(); ui();
+      if (!dogSrc[PHOTO_ID]) photoReady.then(function () { refreshModel(); ui(); });   // 화면을 연 직후라 그림을 아직 읽는 중이면 다 읽은 뒤에
+      if (src && state.photoDog.sig !== photoSig && photoSig !== failedSig) makePhotoDog(src, photoSig, true);
+      return;
     }
+    if (!src) { photoMsg = 'none'; dogPicker(); return; }
+    makePhotoDog(src, photoSig, false);
+  }
+  // again: 예전 도트가 있는데 바뀐 사진으로 다시 만드는 것(방엔 예전 도트가 이미 서 있다)
+  function makePhotoDog(src, sig, again) {
     if (photoBusy) return;
-    if (!window.WalsonPhotoDot) { photoMsg = 'model'; dogPicker(); return; }
-    photoBusy = true; photoMsg = ''; dogPicker();
-    var sig = photoSig;
+    if (!window.WalsonPhotoDot) { photoMsg = 'model'; photoKept = again; dogPicker(); return; }
+    photoBusy = true; photoMsg = ''; photoKept = false; dogPicker();
+    var seq = pickSeq;
     loadImg(src).then(function (img) {
       if (!img || !img.naturalWidth) throw new Error('img');
       return WalsonPhotoDot.findDog(img).then(function (mask) {
@@ -611,14 +631,17 @@
         return png;
       }, function () { throw new Error('model'); });
     }).then(function (png) {
-      state.photoDog = { sig: sig, png: png }; state.dogPhoto = true;
+      state.photoDog = { sig: sig, png: png };
+      if (pickSeq === seq) state.dogPhoto = true;   // 만드는 사이에 다른 강아지를 골랐으면 그 선택 그대로
       return setPhotoSprite(png);
     }).then(function () {
       photoBusy = false; save(); refreshModel(); ui();
-      toast('워킹패스 사진으로 우리 개를 데려왔어요');
+      toast(again ? '바뀐 워킹패스 사진으로 다시 만들었어요' : '워킹패스 사진으로 우리 개를 데려왔어요');
     }).catch(function (e) {
       photoBusy = false;
       photoMsg = e && /^(img|nodog|model)$/.test(e.message) ? e.message : 'model';
+      if (photoMsg !== 'model') failedSig = sig;   // 모델을 못 받은 건 다음에 다시 해 본다
+      photoKept = again;
       dogPicker();
     });
   }
@@ -737,6 +760,12 @@
       var q = P(p.i, p.j); shadowOn(g, q.x, q.y, s.width * 0.7, 0.2);
     });
     wallHits = [];
+    itemsOf(o, 'decal').forEach(function (it) {   // 옮길 수 있는 깔개(배변판, 11/24) — 누르는 순서는 맨 아래(위에 놓인 소품이 먼저 잡힌다)
+      if (!it.move) return;
+      var s = pic(it.spr), p = posOf(o, it); if (!s) return;
+      var q = P(p.i, p.j), x = Math.round(q.x - s.width / 2), y = Math.round(q.y - s.height / 2);
+      wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, foot: { x: q.x, y: q.y }, img: s, decal: true });
+    });
     itemsOf(o, 'wall').forEach(function (it) {
       var p = posOf(o, it), s = wallSprite(o, it, p.wall); if (!s) return;
       var w = W(p.wall, p.u, p.h), x = Math.round(w.x - s.width / 2), y = Math.round(w.y - s.height / 2);
@@ -860,7 +889,7 @@
       b.setAttribute('aria-pressed', !usingPhoto() && state.dog === d.id ? 'true' : 'false');
       var pic = el('div', 'pic'); pic.appendChild(dogThumb(d.id)); b.appendChild(pic);
       b.appendChild(document.createTextNode(d.breed));
-      b.addEventListener('click', function () { state.dog = d.id; state.dogAuto = false; state.dogPhoto = false; photoMsg = ''; save(); refreshModel(); ui(); });
+      b.addEventListener('click', function () { pickSeq++; state.dog = d.id; state.dogAuto = false; state.dogPhoto = false; photoMsg = ''; save(); refreshModel(); ui(); });
       t.appendChild(b);
     });
     photoButton();
@@ -869,10 +898,11 @@
       : state.dogAuto ? '견종·털색으로 골라 뒀어요 — 닮은 강아지로 바꿔 주세요' : '단짝 휴대폰에도 이 강아지로 보여요';
     var m = $('dog-msg'), link = null;
     m.textContent = '';
+    var kept = photoKept ? ' 방엔 예전 사진으로 만든 도트를 그대로 둘게요.' : '';   // 바뀐 사진으로 다시 만들다 못 했을 때
     if (photoMsg === 'none') { m.textContent = '워킹패스에 우리 개 사진이 아직 없어요.'; link = profile.name ? ['my-card.html', '워킹패스에서 사진 넣기 →'] : ['start.html', '워킹패스 만들기 →']; }
-    else if (photoMsg === 'nodog') { m.textContent = '사진에서 강아지를 못 찾았어요. 강아지가 크게, 몸 전체가 나온 사진이면 잘 돼요.'; link = ['my-card.html', '워킹패스 사진 바꾸기 →']; }
-    else if (photoMsg === 'img') m.textContent = '워킹패스 사진을 읽지 못했어요.';
-    else if (photoMsg === 'model') m.textContent = '강아지 찾는 모델을 받아 오지 못했어요. 인터넷이 될 때 다시 눌러 주세요.';
+    else if (photoMsg === 'nodog') { m.textContent = (photoKept ? '바뀐 ' : '') + '사진에서 강아지를 못 찾았어요.' + kept + ' 강아지가 크게, 몸 전체가 나온 사진이면 잘 돼요.'; link = ['my-card.html', '워킹패스 사진 바꾸기 →']; }
+    else if (photoMsg === 'img') m.textContent = (photoKept ? '바뀐 ' : '') + '워킹패스 사진을 읽지 못했어요.' + kept;
+    else if (photoMsg === 'model') m.textContent = '강아지 찾는 모델을 받아 오지 못했어요.' + kept + ' 인터넷이 될 때 다시 눌러 주세요.';
     if (link) { var a = el('a', '', link[1]); a.href = link[0]; m.appendChild(document.createTextNode(' ')); m.appendChild(a); }
     m.hidden = !m.textContent;
   }
@@ -888,14 +918,15 @@
     b.appendChild(pic);
     var tx = el('span', 'tx');
     tx.appendChild(el('span', '', '내 워킹패스 강아지'));
-    tx.appendChild(el('small', '', photoBusy ? '도트로 만드는 중… 처음엔 강아지 찾는 모델을 받아 와서 조금 걸려요'
-      : !src ? '워킹패스에 우리 개 사진을 넣으면 도트로 데려와요'
+    tx.appendChild(el('small', '', photoBusy ? (made ? '바뀐 워킹패스 사진으로 다시 만드는 중… 그동안은 예전 도트로 있어요' : '도트로 만드는 중… 처음엔 강아지 찾는 모델을 받아 와서 조금 걸려요')
+      : !made && !src ? '워킹패스에 우리 개 사진을 넣으면 도트로 데려와요'
       : !made ? '워킹패스 사진 속 우리 개를 도트로 만들어 방에 데려와요'
-      : !fresh ? '워킹패스 사진이 바뀌었어요 — 누르면 새 사진으로 다시 만들어요'
+      : src && !fresh && photoSig === failedSig ? '바뀐 사진에선 강아지를 못 찾아 예전 사진 도트로 있어요'
+      : src && !fresh ? '워킹패스 사진이 바뀌었어요 — 누르면 새 사진으로 다시 만들어요'
       : usingPhoto() ? '워킹패스 사진으로 만든 우리 개예요'
       : '누르면 워킹패스 사진으로 만든 우리 개가 방에 와요'));
     b.appendChild(tx);
-    b.disabled = photoBusy;
+    b.disabled = photoBusy && !made;   // 만들어 둔 도트가 있으면 다시 만드는 중에도 누르면 바로 방에
     b.addEventListener('click', pickPhotoDog);
     box.appendChild(b);
   }
@@ -1154,13 +1185,17 @@
     var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null;   // 지난 끌기가 덜 끝났어도 새로 시작
     if (s && !s.fixed) {   // 모서리 가랜드는 끌지 않는다(톡 누르면 안내만)
       var it0 = AZ.byId(AZ.ITEMS, s.id), anc = it0 && it0.wall ? { x: s.x + s.w / 2, y: s.y + s.h / 2 } : (s.foot || p);
-      drag = { id: s.id, moved: false, s: s, dx: anc.x - p.x, dy: anc.y - p.y };   // 잡은 곳과 소품 기준점의 차이(끌 때 튀지 않게)
+      drag = { id: s.id, moved: false, s: s, dx: anc.x - p.x, dy: anc.y - p.y,   // 잡은 곳과 소품 기준점의 차이(끌 때 튀지 않게)
+        decal: !!s.decal, sx: p.x, sy: p.y };   // 깔개(배변판)는 조금 움직인 건 끌기로 안 보고 톡 = 그 위로 걷기
       try { canvas.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
       e.preventDefault(); kick();
       return;
     }
     if (s && s.fixed) { tapItem = s; showTip(s); return; }
-    if (view !== -1) { tapItem = spriteAt(p); if (tapItem) showTip(tapItem); }   // 모델하우스·친구 방: 소품을 누르면 안내(걷지 않음)
+    if (view !== -1) {   // 모델하우스·친구 방: 소품을 누르면 안내(걷지 않음) — 깔개(배변판)는 그 위로 걷기
+      tapItem = spriteAt(p); if (tapItem && tapItem.decal) tapItem = null;
+      if (tapItem) showTip(tapItem);
+    }
   });
   // 휴대폰: 소품 위에서 시작한 손가락만 화면이 따라 움직이지 않게(끌기). 바닥에서 위아래로 밀면 화면이 내려가고
   // 그때 브라우저가 보내는 pointercancel로 걷기도 취소된다. 그냥 톡 누르면 그 칸으로 걸어간다.
@@ -1172,12 +1207,17 @@
     if (!drag) return;
     var p = at(e), it = AZ.byId(AZ.ITEMS, drag.id);
     if (!it) return;
-    var ax = p.x + drag.dx, ay = p.y + drag.dy;   // 소품 기준점(벽 소품 = 그림 가운데, 바닥 소품 = 발 자리)
+    if (drag.decal && !drag.moved && Math.abs(p.x - drag.sx) + Math.abs(p.y - drag.sy) < 3) return;   // 손 떨림은 끌기 아님(깔개는 톡 = 걷기)
+    var ax = p.x + drag.dx, ay = p.y + drag.dy;   // 소품 기준점(벽 소품 = 그림 가운데, 바닥 소품 = 발 자리, 깔개 = 그림 가운데)
     if (it.wall) {   // 벽 소품 — 모서리를 넘기면 다른 벽으로(그림도 그 벽 방향으로 뒤집힌다)
       var side = ax >= CORNER ? 'R' : 'L', u = side === 'R' ? (ax - CORNER) / 2 : (CORNER - ax) / 2;
       u = Math.max(5, Math.min(side === 'R' ? 94 : 74, u));
       var h = FLOOR0 + u - ay;
       state.pos[drag.id] = { wall: side, u: Math.round(u * 10) / 10, h: Math.round(Math.max(24, Math.min(95, h)) * 10) / 10 };
+      staticDirty = true;
+    } else if (it.decal && it.move) {   // 옮길 수 있는 깔개(배변판, 11/24) — 그림 네 끝이 바닥 밖으로 안 나가게
+      var dq = clampDecal(unP(ax, ay), pic(it.spr));
+      state.pos[drag.id] = { i: Math.round(dq.i * 10) / 10, j: Math.round(dq.j * 10) / 10 };
       staticDirty = true;
     } else if (!it.decal && !it.corner) {
       var n = it.shelf ? nearShelf(it, ax, ay) : -1;   // 선반에 올릴 수 있는 소품 — 빈 선반 자리 가까이 끌면 선반 위로(11/24)
@@ -1192,7 +1232,12 @@
   });
   canvas.addEventListener('pointercancel', function () { if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
   canvas.addEventListener('pointerup', function (e) {
-    if (drag) { if (drag.moved) save(); else showTip(drag.s); drag = null; return; }   // 내 방 소품을 끌지 않고 톡 누르면 안내
+    if (drag) {
+      var dd = drag; drag = null;
+      if (dd.moved) { save(); return; }
+      if (!dd.decal) { showTip(dd.s); return; }   // 내 방 소품을 끌지 않고 톡 누르면 안내
+      // 깔개(배변판)는 톡 누르면 그 위로 걸어간다 — 아래 걷기로
+    }
     if (tapItem) { tapItem = null; downAt = null; return; }
     var p = at(e); if (!downAt) return; downAt = null;
     var q = unP(p.x, p.y);
