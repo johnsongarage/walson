@@ -934,7 +934,7 @@
     });
     if (fj && (fj.phase === 'bounce' || fj.phase === 'chase' || fj.phase === 'grab')) {   // 떨어진 공 — 처음 0.4초는 통통 두 번
       var lq = P(fj.L.i, fj.L.j), lift = 0;
-      if (fj.phase === 'bounce') { var tb = (tnow - fj.t0) / BOUNCE; lift = tb < 0.5 ? 6 * Math.sin(Math.PI * tb / 0.5) : 3 * Math.sin(Math.PI * (tb - 0.5) / 0.5); }
+      if (fj.phase === 'bounce') { var tb = (tnow - fj.t0) / BOUNCE, bk = (TOSS[fj.id] || {}).bounce || 1; lift = bk * (tb < 0.5 ? 6 * Math.sin(Math.PI * tb / 0.5) : 3 * Math.sin(Math.PI * (tb - 0.5) / 0.5)); }
       things.push({ ball: true, z: lq.y, x: lq.x, y: lq.y, spr: fj.spr, lift: Math.max(0, Math.round(lift)) });
     }
     var hp = P(host.i, host.j); things.push({ dog: host, z: host.seat ? host.seat.z : hp.y + 0.5, x: hp.x, y: hp.y, dogId: o.dog, acc: o.acc });   // 방석 위면 방석 바로 다음(11/24)
@@ -1613,12 +1613,15 @@
     r.style.left = left + 'px'; r.style.top = Math.max(0, (y - 6) * K) + 'px';
   }
   // ── 공 던지기(11/24 가르시아 "공을 상호작용하면 던지기 버튼이 뜨게, 누르고 던질 곳을 찍으면 강쥐가 물어 오게. 여러 번 하면 반항도") ──
-  // 내 방 공(다섯 가지)을 톡 → 안내에 [던지기] → 바닥을 누르면 화면 앞 가운데(보는 사람 손)에서 포물선으로 날아가 통통 튀고 →
+  // 내 방 공(다섯 가지)·뼈다귀·밧줄 장난감을 톡 → 안내에 [던지기] → 바닥을 누르면 화면 앞 가운데(보는 사람 손)에서 포물선으로 날아가 통통 튀고 →
   // 우리 개가 뛰어가 물고 와서 앞에 내려놓는다. 1분 반 안에 던진 횟수로 기분이 바뀐다: 1~3번째 신나서(뛰어서), 4번째 헥헥(걸어서),
   // 5번째 반반, 6번째부터는 반항 — 못 들은 척 "흥!" · 공 옆에 버티기 · 물고 구석으로 도망. 1분 반 동안 안 던지면 다시 신난다.
   // 공은 내려놓은(떨어진) 자리로 저장된다. 친구 방·모델하우스에서도 던질 수 있다(11/24 가르시아 "친구 방에서도") — 거기선 손님으로 간
   // 우리 개가 물어 오고, 옮긴 공 자리는 그 방에 있는 동안만(visitPos — 남의 방 소품 자리는 저장하지 않는다)
-  var BALLS = ['ball', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky'];
+  // 던질 수 있는 것 — 공 다섯 + 뼈다귀·밧줄 장난감(11/24 가르시아 "뼈다귀랑 밧줄 장난감도 던질 수 있게").
+  // bounce = 떨어질 때 튀는 정도(공 1), carry = 입에 물 때 크기(밧줄은 길어서 작게)
+  var BALLS = ['ball', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky', 'bone', 'rope'];
+  var TOSS = { bone: { bounce: 0.5, carry: 0.75 }, rope: { bounce: 0.3, carry: 0.6 } };
   var FLY = 0.75, BOUNCE = 0.4, TIRED_SEC = 90;
   var aim = null, fetchJob = null, throwLog = [], ballSmall = {};
   function canThrow(id) { return BALLS.indexOf(id) >= 0 && !!cur && cur.items.indexOf(id) >= 0; }
@@ -1698,9 +1701,10 @@
     if (f.phase === 'grab' || f.phase === 'carry') setBallPos(f.id, clampFloor({ i: f.dog.i + 2, j: f.dog.j + 2 }));
     f.dog.hop = null; fetchJob = null; saveIfMine();
   }
-  function ballSmallOf(spr) {   // 입에 문 공(3/4 크기, 곱게 줄임)
-    var key = spr.src + '@' + R;
-    if (!ballSmall[key]) ballSmall[key] = smallCopy(spr, Math.max(1, Math.round(spr.width * R * 0.75)), Math.max(1, Math.round(spr.height * R * 0.75)));
+  function ballSmallOf(spr, k) {   // 입에 문 공·장난감(공은 3/4 크기, 곱게 줄임)
+    k = k || 0.75;
+    var key = spr.src + '@' + R + '@' + k;
+    if (!ballSmall[key]) ballSmall[key] = smallCopy(spr, Math.max(1, Math.round(spr.width * R * k)), Math.max(1, Math.round(spr.height * R * k)));
     return ballSmall[key];
   }
   function drawCarried(d, dogId, top) {   // 입(턱 조금 위) — 개모차 얼굴 자리 표(RIDE_FACE)·사진 강아지는 머리 자리에서 어림
@@ -1708,7 +1712,7 @@
     var fc = RIDE_FACE[dogId], hd = heads[dogId];
     if (!fc) fc = hd ? [hd.hx, hd.hy, Math.min(0.75, hd.hy + 0.32)] : [0.5, 0.05, 0.4];
     var mx = b.x + (d.flip ? 1 - fc[0] : fc[0]) * b.w, my = top + (fc[2] - (fc[2] - fc[1]) * 0.18) * b.h;
-    var sm = ballSmallOf(f.spr), w = sm.width / R, h = sm.height / R;
+    var sm = ballSmallOf(f.spr, (TOSS[f.id] || {}).carry), w = sm.width / R, h = sm.height / R;
     ctx.drawImage(sm, Math.round((mx - w / 2) * R) / R, Math.round((my - h / 2) * R) / R, w, h);
   }
   function drawFlight(now) {   // 날아가는 공 — 바닥엔 그림자, 공은 포물선(앞에서 손 높이로 출발)
