@@ -5,7 +5,7 @@
 //       왼쪽 사진 틀(검정 계단 테두리 + 분홍 안쪽 선 + 네 귀퉁이 꺾쇠·발바닥 장식) · 오른쪽 ID No. / NAME: / TYPE: 두 색 칸 · 분홍 점선 · WALSON 칸 · QR.
 // 크기·색은 받은 디자인의 CSS 값 그대로(단위 CSS px, 디자인 424×530을 판 1200×1500으로 키움). 디자인과 다르게 한 것:
 //   ① 사진 아래 빈 곳에 홍보물 문구 한 줄(site-config.js brand — 키링도 두 줄 규칙, "WALSON"은 이미 있음)
-//   ② QR은 진짜 QR(나도 만들기 주소) ③ 칸 값은 이 휴대폰 기록(번호 끝 네 자리 · 이름 · 견종, 없으면 DOG)
+//   ② QR은 진짜 QR — 11/24부터 링크 아닌 글자(data.qr = id-card.js cardQrText, "카카오톡에서 '왈슨' 검색") ③ 칸 값은 이 휴대폰 기록(번호 끝 네 자리 · 이름 · 견종, 없으면 DOG)
 //   ④ 사진은 도트로 바꿀 수 있고(가늘게 56칸 · 굵게 32칸 · 원래 사진) 끌어서 맞춘다 — 처음엔 칸을 꽉 채움(디자인은 통째로 보이기)
 // 사진은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. window.WalsonPassPixel.draw(canvas, data)
 // 쓰는 곳: 시안 화면 pass-pixel-sample.html, [워킹패스] my-card.html의 [도트 카드]
@@ -282,7 +282,7 @@
       var nm = B.name || 'WALSON', bw = spacedWidth(ctx, nm, 2);
       spacedText(ctx, nm, x + (w - bw) / 2, y + h / 2, 2);
     });
-    // QR(흰 바탕 · 검정 테두리 2.5px · 안쪽 58px) — 나도 만들기 주소
+    // QR(흰 바탕 · 검정 테두리 2.5px · 안쪽 58px) — 링크 아닌 글자(11/24, data.qr)
     var qx0 = INFO.x + 39.6, qy0 = INFO.y + 215;
     ctx.fillStyle = '#ffffff'; ctx.fillRect(qx0, qy0, 68, 68);
     ctx.lineWidth = 2.5; ctx.strokeStyle = DARK; ctx.strokeRect(qx0 + 1.25, qy0 + 1.25, 65.5, 65.5);

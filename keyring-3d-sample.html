@@ -96,8 +96,8 @@
 </style>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
-<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
-<script src="pass-trace.js?v=12"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
+<script src="pass-trace.js?v=13"></script>
 </head>
 <body>
 <main class="wrap">
@@ -325,10 +325,10 @@ function backKit(g, c) {
   return { U, sn, box, bitmap, qr, txt, head };
 }
 const PAW7 = ['..XX.XX..', '..XX.XX..', 'XX.....XX', 'XX.XXX.XX', '..XXXXX..', '.XXXXXXX.', '.XXX.XXX.'];
-const QR_URL = 'https://johnsongarage.co.kr/walson/start.html';
-// 뒷면 QR = 이 강아지의 도감 카드 주소(11/24 가르시아 "도감 카드로 가게 하는 게 맞지 않나? 설치가 안 되어 있으면 워킹패스 만드는 걸로") —
-// dex-card.js cardUrl과 같은 모양: dex.html#d=base64url({v:1, i:번호 8자, n:이름, s:크기, g:성향, c:털색}). 사진·견주 정보·위치는 안 담는다.
-// 찍으면 도감에 "OO 만났어요"(키링이라 발자국) — 워킹패스가 없는 휴대폰은 그 자리에서 발자국 남기고 바로 워킹패스 만들기로(dex.html).
+// 뒷면 QR = 이 강아지의 도감 카드(11/24 가르시아 "도감 카드로 가게 하는 게 맞지 않나?") — base64url({v:1, i:번호 8자, n:이름, s:크기, g:성향, c:털색}).
+// 사진·견주 정보·위치는 안 담는다. 11/24 밤부터 링크가 아니라 글자(dex-card.js cardText와 같은 꼴 "WALSON 친구카드 #d=…") —
+// 휴대폰 카메라로 찍으면 글자만 보이고 아무 데도 안 열린다. 왈슨 앱 [상대 QR 찍기]로만 도감에 "OO 만났어요"(키링이라 발자국).
+// (가르시아 "그렇게 바꿔 줘. 괜히 누가 악용해서 큐싱당했다고 피곤한 일 생기는 것보다 낫지" — hq DECISIONS 11/24. NFC도 넣지 않는다)
 // 번호(i)는 이름·앞면 번호로 정해지는 8자 — 같은 키링은 늘 같은 번호. 크기는 작은 개(s)로, 털색은 크림(시안 강아지 포메).
 // "봉이라고 불러 주세요" — 받침이 있으면 '이라고'(콩 → 콩이라고), 없으면 '라고'
 function callText() {
@@ -336,7 +336,7 @@ function callText() {
   const batchim = ch >= 0xac00 && ch <= 0xd7a3 && (ch - 0xac00) % 28 > 0;
   return name + (batchim ? '이라고' : '라고') + ' 불러 주세요';
 }
-const QR_BASE = 'https://johnsongarage.co.kr/walson/';   // 인쇄물이라 늘 왈슨 주소(어디서 열어도)
+const QR_BASE = 'https://johnsongarage.co.kr/walson/';   // 붙여 넣은 카드 주소를 같은 꼴로 다시 보여 줄 때만(QR에는 링크를 넣지 않는다 — 11/24)
 const SIG_I = { g: 0, y: 1, r: 2 };
 function encodeCard(card) { return btoa(unescape(encodeURIComponent(JSON.stringify(card)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 // 붙여 넣은 글에서 도감 카드를 읽는다(dex.html decode와 같은 검사). 주소 앞뒤에 말이 붙어 있어도(카톡 메시지) 된다.
@@ -354,17 +354,18 @@ function parseCard(text) {
     return { v: 1, i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase() };
   } catch (e) { return null; }
 }
-function cardQrUrl() {
+const QR_HEAD = 'WALSON 친구카드 ';   // dex-card.js QR_HEAD와 같아야 앱이 읽는다(바꾸지 말 것)
+function cardQrText() {
   // 진짜 키링: 붙여 넣은 주인 카드 그대로(번호·이름·크기·털색) — 성향만 뒷면에서 고른 칸과 맞춘다(뒷면 표시와 QR이 같게)
   if (state.card) {
     const k = state.card;
-    return QR_BASE + 'dex.html#d=' + encodeCard({ v: 1, i: k.i, n: k.n, s: k.s, g: ['g', 'y', 'r'][state.signal] || k.g || '', c: k.c });
+    return QR_HEAD + '#d=' + encodeCard({ v: 1, i: k.i, n: k.n, s: k.s, g: ['g', 'y', 'r'][state.signal] || k.g || '', c: k.c });
   }
   const name = ($('f-name').value || 'POM').trim().slice(0, 12) || 'POM';
   let h = 2166136261; for (const ch of name + '|' + ($('f-id').value || '')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
   const id = ('k' + h.toString(36) + '0000000').slice(0, 8);
   const card = { v: 1, i: id, n: name, s: 's', g: ['g', 'y', 'r'][state.signal] || '', c: '#f0efe9' };
-  return QR_BASE + 'dex.html#d=' + encodeCard(card);   // 샘플 번호(카드 주소를 안 넣었을 때)
+  return QR_HEAD + '#d=' + encodeCard(card);   // 샘플 번호(카드 주소를 안 넣었을 때)
 }
 
 // 1안 친구 QR 판(11/24 "시안1로 하자" → 기본 뒷면) — QR을 크게(키링 위 약 22mm), "찍으면 친구" + 강아지 성향 세 칸(고른 하나에 표시)
@@ -372,7 +373,7 @@ function drawFriendBack(g, W0, H, c, B) {
   const K = backKit(g, c), U = K.U;
   g.fillStyle = c.panel; g.fillRect(0, 0, W0, H);
   const top = K.sn(H * 0.11);   // 위 빈 칸(구멍 자리)
-  const hh = K.head('QR 찍고 친구 해요', H, W0, top);
+  const hh = K.head('앱으로 찍으면 친구', H, W0, top);   // 11/24 — 카메라로 찍는 QR이 아니다
   // 아래 줄: 고른 성향 하나만(11/24 "공간 낭비가 심해서") + 고르면 이름 부르기·간식 안내
   const sig = [['다가와도 좋아요', '#3f9b5b'], ['천천히 인사해요', '#dfa21f'], ['눈으로만 예뻐해 주세요', '#d2493f']];
   const rows = [sig[state.signal] || sig[1]];
@@ -382,7 +383,7 @@ function drawFriendBack(g, W0, H, c, B) {
   const rh = 72, below = 36 + 48 + rows.length * (rh + 14) + 110;
   const qs = K.sn(Math.max(W0 * 0.34, Math.min(W0 * 0.5, H - hh - U - 40 - 6 * U - below))), qx = K.sn((W0 - qs) / 2 - 3 * U), qy = K.sn(hh + U + 40);
   K.box(qx, qy, qs + 6 * U, qs + 6 * U, '#ffffff');
-  K.qr(cardQrUrl(), qx + 3 * U, qy + 3 * U, qs);
+  K.qr(cardQrText(), qx + 3 * U, qy + 3 * U, qs);
   let y = qy + qs + 6 * U + 36;
   K.txt('이 강아지는요', W0 / 2, y + 14, 32, c.inkSoft);
   y += 48;
@@ -392,7 +393,8 @@ function drawFriendBack(g, W0, H, c, B) {
     K.txt(t, 64 + 11 * U, y + rh / 2 + 2, rh * 0.4, c.ink, 'left');
     y += rh + 14;
   });
-  K.txt(String(B.name || 'WALSON').toUpperCase(), W0 / 2, H - 46, 32, c.inkSoft);
+  // 맨 아래 — 브랜드 이름 + 앱이 없는 사람의 입구(카톡 채널, 11/24)
+  K.txt(String(B.name || 'WALSON').toUpperCase() + " · 카톡에서 '왈슨' 검색", W0 / 2, H - 46, 32, c.inkSoft);
 }
 
 // 2안 산책 도장판 — 동네 공원·가게 칸 9개, 받으면 도장(스티커). 다 모으면 선물
@@ -440,7 +442,7 @@ function drawSceneBack(g, W0, H, c, B) {
   g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(K.sn(dx + 2 * ds), K.sn(dy + 17.6 * ds), K.sn(12 * ds), U * 2);
   K.bitmap(dog, { E: '#5a3d34', F: '#fbf1e3', T: '#fffaf2', P: c.hl }, dx, dy, ds);
   const qs = 112, qx = W0 - 48 - qs - 4 * U, qy = H - 48 - qs - 4 * U;
-  K.box(qx, qy, qs + 4 * U, qs + 4 * U, '#ffffff'); K.qr(cardQrUrl(), K.sn(qx) + 2 * U, K.sn(qy) + 2 * U, qs);
+  K.box(qx, qy, qs + 4 * U, qs + 4 * U, '#ffffff'); K.qr(cardQrText(), K.sn(qx) + 2 * U, K.sn(qy) + 2 * U, qs);
   K.txt(String(B.name || 'WALSON').toUpperCase(), 52, H - 70, 36, '#5a3d34', 'left');
 }
 // 도트 안전 뒷면 — 앞면 도트 카드와 한 세트(머리띠·계단 테두리 칸·점선). 칸 크기는 세로 길이에 맞춰 늘고 준다
@@ -470,7 +472,7 @@ function drawSafeBack(g, W0, H, c, B) {
   const qs = sn(Math.min(300, bodyH * 0.36));
   box(M, bodyTop, qs + 4 * U, qs + 4 * U, '#ffffff');
   if (window.qrcode) {
-    const q = qrcode(0, 'M'); q.addData(cardQrUrl()); q.make();
+    const q = qrcode(0, 'M'); q.addData(cardQrText()); q.make();
     const n = q.getModuleCount(), cell = Math.floor(qs / n), off = sn(M) + 2 * U + Math.floor((qs - cell * n) / 2), offY = sn(bodyTop) + 2 * U + Math.floor((qs - cell * n) / 2);
     g.fillStyle = '#121215';
     for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(off + k * cell, offY + r * cell, cell, cell);
@@ -479,9 +481,10 @@ function drawSafeBack(g, W0, H, c, B) {
   g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = ink;
   const fs = sn(Math.min(48, qs * 0.17));
   g.font = fs + 'px ' + PIX;
-  ['QR을 찍으면', '이 강아지 카드가', '열려요'].forEach((t, i) => g.fillText(t, tx, bodyTop + fs * 1.3 + i * fs * 1.35));
+  // 11/24 — 카메라로 찍거나 폰을 대라고 하지 않는다. 왈슨 앱으로만, 앱이 없으면 공식 입구(카톡 채널)
+  ['왈슨 앱으로', '찍으면', '친구가 돼요'].forEach((t, i) => g.fillText(t, tx, bodyTop + fs * 1.3 + i * fs * 1.35));
   g.fillStyle = c.inkSoft; g.font = sn(fs * 0.72) + 'px ' + PIX;
-  g.fillText('휴대폰을 대도 돼요(NFC)', tx, bodyTop + fs * 1.3 + 3 * fs * 1.35 + 6);
+  g.fillText("앱이 없으면 카톡 '왈슨'", tx, bodyTop + fs * 1.3 + 3 * fs * 1.35 + 6);
   void tw;
   // 손글씨 칸 — 연락처는 인쇄하지 않고 견주가 직접
   const rows = [['보호자 연락처', 1], ['광견병 접종', 0.5, '종합 접종'], ['메모', 1]];
@@ -813,7 +816,7 @@ function cardUi() {
   note.className = 'note';
   if (c) {
     const front = ($('f-name').value || '').trim();
-    note.textContent = c.n + ' 카드예요 — 뒷면 QR을 찍으면 ' + c.n + ' 도감 카드가 열려요(번호 ' + c.i + ').' +
+    note.textContent = c.n + ' 카드예요 — 뒷면 QR을 왈슨 앱으로 찍으면 도감에 ' + c.n + ' 카드가 들어가요(번호 ' + c.i + ', 카메라로는 안 열림).' +
       (front && front.toUpperCase() !== c.n.toUpperCase() ? ' 앞면 이름(' + front + ')은 카드 이름과 달라요.' : '');
     note.classList.add('ok');
   } else if (v) {
@@ -857,7 +860,7 @@ loop();
         drawPass();
         const ex = EXP.get('export');
         if (ex === 'front') passCanvas(2).then(exportOnly);
-        else if (ex === 'back') (document.fonts ? document.fonts.load("48px 'DungGeunMo'", '친구 해요') : Promise.resolve()).then(() => setTimeout(() => { build(false); exportOnly(backArt); }, 600));
+        else if (ex === 'back') (document.fonts ? document.fonts.load("48px 'DungGeunMo'", '앱으로 찍으면 친구가 돼요 왈슨 카톡에서 검색 이 강아지는요') : Promise.resolve()).then(() => setTimeout(() => { build(false); exportOnly(backArt); }, 600));
       });
       return;
     }
@@ -869,7 +872,7 @@ loop();
 })();
 // 뒷면 도트 글꼴이 늦게 오면 받은 뒤 한 번 더
 if (document.fonts && document.fonts.load) document.fonts.load("48px 'DungGeunMo'", '이 강아지를 만나면').then(() => build(false)).catch(() => {});
-window.__keyring3d = { cardQrUrl, parseCard, setCard, state, scene, renderer, camera, controls, load, setPal, view, backArt, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
+window.__keyring3d = { cardQrText, parseCard, setCard, state, scene, renderer, camera, controls, load, setPal, view, backArt, setScene(id) { [...$('scenes').children][id === 'table' ? 1 : 0].click(); }, loadBack(url) { const im = new Image(); im.onload = () => { state.backPhoto = im; state.backMode = 'photo'; paintChips(); build(false); view(true); }; im.src = url; } };   // 자동 시험용
 </script>
 </body>
 </html>

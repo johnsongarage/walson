@@ -88,7 +88,7 @@
 </style>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
-<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
 <script src="photo-dot.js?v=2"></script>
 </head>
 <body>
@@ -158,9 +158,9 @@
     var B = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
     $('v-brand').textContent = B.name; $('v-tagline').textContent = B.tagline;
 
-    // 진짜 QR(나도 만들기 주소 — 원래 워킹패스와 같음)
+    // 진짜 QR — 11/24부터 링크 아닌 글자(원래 워킹패스와 같음, site-config.js cardQrText)
     (function () {
-      var c = $('qr'), url = 'https://johnsongarage.co.kr/walson/start.html';
+      var c = $('qr'), url = (window.WALSON_CONFIG && WALSON_CONFIG.cardQrText) || "WALSON · 카카오톡에서 '왈슨' 검색";
       if (!window.qrcode) return;
       var q = qrcode(0, 'M'); q.addData(url); q.make();
       var n = q.getModuleCount(); c.width = c.height = n;

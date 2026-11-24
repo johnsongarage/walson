@@ -45,9 +45,9 @@
 </style>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
-<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
 <script src="canvas-view.js?v=1"></script>
-<script src="pass-pixel.js?v=6"></script>
+<script src="pass-pixel.js?v=7"></script>
 </head>
 <body>
 <main>
@@ -91,7 +91,7 @@
     function render() {
       var data = {
         name: val('f-name'), breed: val('f-breed'), idNo: val('f-no'),
-        photo: photo, colors: Number(val('f-colors')), qr: 'https://johnsongarage.co.kr/walson/start.html',
+        photo: photo, colors: Number(val('f-colors')), qr: "WALSON · 카카오톡에서 '왈슨' 검색",   // 11/24부터 그림 속 QR은 링크 아닌 글자(site-config.js cardQrText)
         zoom: fit.zoom, qx: fit.qx, qy: fit.qy
       };
       Object.keys(KINDS).forEach(function (k) {

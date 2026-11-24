@@ -115,10 +115,11 @@
   .pal-opts .desc { word-break: keep-all; }
 </style>
 <script src="store.js?v=1"></script>
+<script src="dex-card.js?v=5"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
-<script src="inapp.js?v=4"></script>
+<script src="inapp.js?v=5"></script>
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="walk-photos.js?v=1"></script>
@@ -474,6 +475,9 @@
   });
 
   saveBtn.addEventListener('click', function () {
+    // 이름에 전화번호·인터넷 주소는 안 받는다(11/24 — 친구 QR로 모르는 사람 휴대폰에도 보이는 이름, dex-card.js nameProblem)
+    var bad = window.WalsonDexCard && WalsonDexCard.nameProblem(fName.value.trim());
+    if (bad) { alert('강아지 이름에 ' + bad + '는 넣을 수 없어요. 친구 QR로 모르는 사람 휴대폰에도 보이는 이름이라서요.'); fName.focus(); return; }
     // 샘플을 보는 중이면 먼저 끄게 한다(2026-11-15) — 샘플을 켠 채 저장한 프로필은 샘플을 끌 때 되돌아가므로
     if (window.PetwalkSample && PetwalkSample.isOn()) {
       PetwalkSample.leaveForRealRecord('프로필을 저장하면').then(function (ok) { if (ok) saveProfileNow(); });

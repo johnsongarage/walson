@@ -4,7 +4,7 @@
 // 뒷면: 진짜 주민등록증 뒷면의 "주소 변경" 칸 패러디 — 승급 기록 · 발도장 기록 · 특기 · 특이 사항.
 // 테두리는 견주가 고른 카드 색(기본 모카 — 2026-11-18 가르시아 "모카 기본으로": 색을 정치적으로 보는 사람이 있을 수 있어 선택권).
 // 성향 띠·불은 성향 색 그대로 — 안전 표시는 남긴다(11/15 "테두리는 신호등 색" 원칙을 띠·불로 옮김). 등급 숫자는 reward-rules.js RANKS.
-// 키링 뒷면(drawKeyringBack): 도감 카드 주소 QR·NFC 안내 + 보호자 연락처·예방접종(광견병·종합)·메모 손글씨 칸(11/18 시안 2).
+// 키링 뒷면(drawKeyringBack): 도감 카드 글자 QR(11/24부터 링크·NFC 아님 — 왈슨 앱으로만 읽힘) + 보호자 연락처·예방접종(광견병·종합)·메모 손글씨 칸(11/18 시안 2).
 // 그림은 이 휴대폰 안에서만 그리고 어디로도 보내지 않는다. QR은 qrcode-generator를 먼저 불러야 그려진다(없으면 QR 없이).
 // 고치면 쓰는 화면(start.html·my-card.html)의 ?v= 번호를 같이 올릴 것.
 (function () {
@@ -145,6 +145,8 @@
     return m ? m[1] + '. ' + (+m[2]) + '. ' + (+m[3]) + '.' : (key || '');
   }
 
+  // 그림 속 QR 글자(11/24부터 링크 아님 — site-config.js cardQrText). 카메라로 찍으면 "카카오톡에서 '왈슨' 검색"만 보인다
+  function cardQrText() { var C = window.WALSON_CONFIG; return (C && C.cardQrText) || "WALSON · 카카오톡에서 '왈슨' 검색"; }
   // QR을 size×size 칸 오른쪽 위에 맞춰 그린다. 라이브러리가 없으면 아무것도 그리지 않는다.
   function drawQr(ctx, text, x, y, size) {
     if (typeof qrcode !== 'function') return;
@@ -333,10 +335,11 @@
     ctx.strokeStyle = LINE;
     ctx.lineWidth = 3;
     ctx.beginPath(); ctx.moveTo(96, 880); ctx.lineTo(W - 96, 880); ctx.stroke();
-    // "나도 만들기" QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
+    // QR — 오른쪽 아래 빈자리. 흰 바탕에 사방 여백을 둬야 카메라가 읽는다.
+    // 11/14 "나도 만들기" 주소였다가 11/24부터 링크가 아니라 글자(cardQrText) — 모르는 사람 그림 속 QR을 찍어 링크를 여는 일을 만들지 않는다(hq DECISIONS 11/24)
     // opts.noQr: 키링용(2026-11-16) — 6cm로 줄이면 QR이 1cm 남짓이라 잘 안 찍혀서 뺀다.
     // 그 자리엔 홍보물 필수 문구 두 줄(2026-11-17 — 키링은 나눠 주는 인쇄물이라 CLAUDE.md 텍스트 규칙, site-config.js brand)
-    if (!opts.noQr) drawQr(ctx, SHARE_URL, W - 96 - 200, 684, 200);
+    if (!opts.noQr) drawQr(ctx, cardQrText(), W - 96 - 200, 684, 200);
     else brandMark(ctx, rows.length > 2);
     footer(ctx, '왈슨 · ' + SHARE_URL_TEXT);
     return canvas;
@@ -484,8 +487,10 @@
   }
 
   // ── 키링 뒷면(2026-11-18 가르시아: 양면 + NFC, "뒷면은 왈슨 주민증이 열리는 QR, 연락처 적을 공간·메모, 화면 꽉 차게" → 시안 2) ──
-  // 왼쪽: 카드 색 판에 큰 QR(약 25mm, 오류 정정 M) + 폰을 대는 표시. 오른쪽: 이름(+성별·견종) · 보호자 연락처 · 광견병/종합 접종 · 메모 손글씨 칸.
-  // url: 도감 카드 주소(dex-card.js — 이름·크기·성향·털색·무작위 번호만. 위치·사진·연락처 없음). NFC 칩에도 같은 주소를 넣는다.
+  // 왼쪽: 카드 색 판에 큰 QR(약 25mm, 오류 정정 M) + 찍는 법. 오른쪽: 이름(+성별·견종) · 보호자 연락처 · 광견병/종합 접종 · 메모 손글씨 칸.
+  // text: 친구 카드 글자(dex-card.js cardText — "WALSON 친구카드 #d=…", 이름·크기·성향·털색·무작위 번호만. 위치·사진·연락처 없음).
+  // 11/24부터 링크가 아니다 — 휴대폰 카메라로 찍으면 글자만 보이고, 왈슨 앱 [상대 QR 찍기]로만 친구(발자국)가 된다. NFC는 넣지 않는다
+  // (남의 키링에 폰을 대서 링크를 여는 것도 같은 행동 — 11/24 가르시아 "괜히 누가 악용해서 큐싱당했다고 피곤한 일 생기는 것보다 낫지").
   // bleed: 사방 인쇄 여유(px, 키링 파일은 40 = 1.5mm) — 바탕을 여유까지 꽉 채워 재단이 밀려도 흰 틈이 안 남게.
   // QR 라이브러리가 없으면(인터넷이 끊겨 못 불러옴) false — 부른 쪽이 저장하지 않는다.
   function inkOn(hex) {
@@ -507,15 +512,7 @@
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell);
     return { modules: n, cell: cell };
   }
-  // 폰을 대는 표시(비접촉 물결) — NFC 포럼의 N 마크(상표)는 쓰지 않는다
-  function tapWaves(ctx, cx, cy, color) {
-    ctx.save();
-    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineCap = 'round'; ctx.lineWidth = 9;
-    [20, 38, 56].forEach(function (r) { ctx.beginPath(); ctx.arc(cx - 22, cy, r, -0.95, 0.95); ctx.stroke(); });
-    ctx.beginPath(); ctx.arc(cx - 26, cy, 7, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-  function drawKeyringBack(canvas, profile, url, bleed) {
+  function drawKeyringBack(canvas, profile, text, bleed) {
     var b = bleed || 0;
     canvas.width = W + b * 2; canvas.height = H + b * 2;
     var ctx = canvas.getContext('2d');
@@ -525,22 +522,18 @@
     ctx.save();
     ctx.translate(b, b);
 
-    // ── 왼쪽: QR + 폰 대기 안내 — 판 가운데(11/18 가르시아 "QR이 오른쪽으로 쏠렸어, 균형 있게") ──
+    // ── 왼쪽: QR + 찍는 법 — 판 가운데(11/18 가르시아 "QR이 오른쪽으로 쏠렸어, 균형 있게") ──
     // 판 가운데를 재단 뒤(카드 0~760)와 파일(여유 포함 -40~760)의 중간에 둔다 — 잘린 뒤 양옆 50·70, 파일에선 90·70으로 어느 쪽에서 봐도 거의 가운데
     var cx = SPLIT / 2 - 10, QS = 640;   // 24mm — 한 칸 약 0.45mm(키링 60×37.5mm 기준)
-    var info = qrSquare(ctx, url, cx - QS / 2, 50, QS);
+    var info = qrSquare(ctx, text, cx - QS / 2, 50, QS);
     if (!info) { ctx.restore(); return false; }
-    ctx.fillStyle = onPanel; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.font = font(800, 46);
-    var tw = Math.max(ctx.measureText('카메라로 찍거나').width, ctx.measureText('휴대폰을 대 보세요').width);
-    var bx = cx - (67 + 26 + tw) / 2;   // 물결 표시(약 67) + 사이 + 글 — 한 덩어리를 가운데로
-    tapWaves(ctx, bx + 33, 800, onPanel);
-    ctx.fillText('카메라로 찍거나', bx + 93, 782);
-    ctx.fillText('휴대폰을 대 보세요', bx + 93, 842);
-    var opens = (profile.name ? profile.name + ' ' : '') + '워킹패스가 열려요';
-    ctx.font = font(700, fitText(ctx, opens, 640, 38, 700));
-    ctx.textAlign = 'center';
-    ctx.fillText(opens, cx, 930);
+    // 찍는 법(11/24) — 카메라로 찍거나 폰을 대라고 하지 않는다. 왈슨 앱으로만, 앱이 없으면 공식 입구(카톡 채널)
+    ctx.fillStyle = onPanel; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+    ctx.font = font(800, fitText(ctx, '왈슨 앱으로 찍으면 친구', 680, 46, 800));
+    ctx.fillText('왈슨 앱으로 찍으면 친구', cx, 800);
+    var nonApp = "앱이 없으면 카톡에서 '왈슨'";
+    ctx.font = font(700, fitText(ctx, nonApp, 680, 38, 700));
+    ctx.fillText(nonApp, cx, 880);
     ctx.textAlign = 'left';
 
     // ── 오른쪽: 이름 + 손글씨 칸(줄 사이 4~5mm — 키링 크기에서 가는 펜으로 한 줄씩) ──
@@ -911,7 +904,7 @@
   }
 
   window.WalsonIdCard = {
-    W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX,
+    W: W, H: H, SIGNALS: SIGNALS, SHARE_URL: SHARE_URL, SHARE_URL_TEXT: SHARE_URL_TEXT, PHOTO_BOX: PHOTO_BOX, cardQrText: cardQrText,
     CARD_COLORS: CARD_COLORS, cardColor: cardColor, infoBits: infoBits, drawKeyringBack: drawKeyringBack,
     drawFront: drawFront, drawBack: drawBack, composeExport: composeExport, myStats: myStats, openEditor: openEditor, framedPhoto: framedPhoto,
     loadImage: loadImage, fontsReady: fontsReady, todayText: todayText, dateText: dateText

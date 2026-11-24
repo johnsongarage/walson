@@ -65,7 +65,7 @@
       hint: '가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
       onText: function (text) {
         var id = ShopVisits.idFromQr(text);
-        if (!id) return /dex\.html#d=/.test(text)
+        if (!id) return /(?:dex\.html|WALSON[^#]{0,40})#d=/.test(text)   // 친구 QR(새 글자 꼴·예전 링크 꼴 — dex-card.js payloadOf와 같은 꼴)
           ? '강아지 도감 QR이에요. 산책을 마치고 [워킹패스] → 도감에서 찍어 주세요.'
           : '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
         var shop = ShopVisits.findShop(id);

@@ -1,7 +1,9 @@
 // 도감 카드 내용·주소(2026-11-18, dex.html에서 뺌). 전역 window.WalsonDexCard.
-// 키링 뒷면 QR·NFC(주민증 탭 — id-card.js drawKeyringBack)와 도감의 "카드 주소 보내기"가 같은 주소를 쓰게 한 곳에 둔다.
-// 주소 = 화면 주소 + dex.html#d=(강아지 이름·크기·성향·털색·무작위 번호). 위치·사진·견주 정보·성별·견종은 안 담는다.
-// #뒤는 서버로 가지 않는다. 내 번호는 store.js(WalsonStore, petwalk_dex_me) — 이 파일보다 store.js를 먼저 불러야 한다.
+// 도감 화면 QR · 키링 뒷면 QR(주민증 탭 — id-card.js drawKeyringBack) · 도감의 "카드 주소 보내기"가 같은 카드를 쓰게 한 곳에 둔다.
+// 카드 = #d=(강아지 이름·크기·성향·털색·무작위 번호). 위치·사진·견주 정보·성별·견종은 안 담는다.
+// 2026-11-24부터 QR에는 링크가 아니라 글자(cardText — "WALSON 친구카드 #d=…")를 넣는다 — 아래 "친구 QR 글자".
+// 링크(cardUrl, dex.html#d=…)는 "카드 주소 보내기"에만. #뒤는 서버로 가지 않는다.
+// 내 번호는 store.js(WalsonStore, petwalk_dex_me) — 이 파일보다 store.js를 먼저 불러야 한다.
 (function () {
   var SIZE_FROM = { small: 's', medium: 'm', large: 'l' };
   var SIG_FROM = { green: 'g', yellow: 'y', red: 'r' };
@@ -37,10 +39,22 @@
       img.src = src;
     });
   }
-  // 내 카드 — 주민증(이름)이 없으면 null
+  // 강아지 이름에 연락처·주소를 싣지 못하게(2026-11-24 가르시아 "3번은 할 거야" — hq notes/petwalk-park-trouble.md 6-1 G).
+  // 카드 QR의 이름은 모르는 사람 휴대폰에도 보이는 자유 글(12자)이라 "01012345678"·인터넷 주소 같은 걸 실어 보낼 수 있었다.
+  // 막는 것: 숫자 7개 이상(전화번호) · 인터넷 주소(http·www·도메인 꼴·@). "1004"·"초코2"·"보리 3세" 같은 이름은 통과.
+  // 카톡·인스타 아이디(abc123 등)는 강아지 이름과 구별이 안 돼 못 막는다.
+  // 쓰는 곳: 워킹패스 만들기(start.html)·프로필 저장(profile.html)·내 카드(아래 myCard — 예전에 저장된 이름도)·받은 카드(dex.html).
+  // 돌려주는 값: 막는 까닭('전화번호' / '인터넷 주소'), 괜찮으면 ''.
+  function nameProblem(name) {
+    var s = String(name == null ? '' : name);
+    if ((s.match(/[0-9\uFF10-\uFF19]/g) || []).length >= 7) return '전화번호';
+    if (/https?:|www\.|@|[a-z0-9-]\.(com|net|org|kr|co|me|io|ly|gl|link|page|app|site|shop|xyz)(\b|$)/i.test(s)) return '인터넷 주소';
+    return '';
+  }
+  // 내 카드 — 주민증(이름)이 없으면 null. 이름에 연락처·주소가 있어도 null(QR로 내보내지 않는다 — 부르는 쪽이 nameProblem으로 까닭을 알린다)
   function myCard() {
     var p = WalsonStore.profile();
-    if (!p || !p.name) return Promise.resolve(null);
+    if (!p || !p.name || nameProblem(p.name)) return Promise.resolve(null);
     var id = myId();
     return photoColor(p.photo).then(function (c) {
       return { v: 1, i: id, n: String(p.name).slice(0, 12), s: SIZE_FROM[p.size] || 'm', g: SIG_FROM[p.signal] || '', c: c || hashColor(id) };
@@ -51,9 +65,24 @@
     var b = btoa(unescape(encodeURIComponent(JSON.stringify(card))));
     return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  // base: 'https://…/walson/'처럼 끝이 /인 주소. 없으면 지금 화면이 있는 곳(앱 안 QR 교환은 이쪽)
+  // base: 'https://…/walson/'처럼 끝이 /인 주소. 없으면 지금 화면이 있는 곳.
+  // 링크는 "카드 주소 보내기"(아는 사람에게·키링 신청 때 운영자에게 카톡으로)에만 쓴다 — QR에는 넣지 않는다(아래 cardText)
   function cardUrl(card, base) {
     return (base || location.origin + location.pathname.replace(/[^/]*$/, '')) + 'dex.html#d=' + encode(card);
+  }
+  // ── 친구 QR 글자(2026-11-24 가르시아 "그렇게 바꿔 줘. 괜히 누가 악용해서 큐싱당했다고 피곤한 일 생기는 것보다 낫지") ──
+  // 견주끼리 보여 주는 QR(도감 화면 QR · 키링 뒷면)은 링크가 아니라 글자다. 휴대폰 카메라로 찍으면 이 글자만 보이고 아무 데도 열리지 않는다.
+  // 왈슨 앱 안 [QR 찍기]만 #d= 뒤의 카드를 읽는다(payloadOf). 모르는 사람이 내민 QR을 찍어 링크를 여는 행동(큐싱)을 가르치지 않으려고 —
+  // hq DECISIONS 11/24, notes/petwalk-park-trouble.md 7절. 머리 'WALSON 친구카드 '는 글자 꼴 표시라 바꾸지 말 것(뽑은 키링이 이 꼴로 읽힌다).
+  // 링크 주소보다 짧아서 QR도 덜 빽빽하다.
+  var QR_HEAD = 'WALSON 친구카드 ';
+  function cardText(card) { return QR_HEAD + '#d=' + encode(card); }
+  // 찍은 글에서 카드 글자(#d= 뒤)만 꺼낸다 — 새 글자 꼴과 예전 링크 꼴(dex.html#d= — 이미 퍼진 캡처·키링 샘플·카드 주소) 둘 다.
+  // town.html(동네 QR 찍기)·walk-screen.js(산책 중 가게 QR 찍기)도 같은 꼴을 본다 — 바꾸면 거기도 같이.
+  // 표시는 영문 'WALSON'으로 본다 — 한글(친구카드)은 읽는 쪽 글자 변환에 따라 깨질 수 있어서(카드 글자 #d= 뒤는 영문·숫자뿐이라 늘 그대로).
+  function payloadOf(text) {
+    var m = /(?:dex\.html|WALSON[^#]{0,40})#d=([A-Za-z0-9_-]+)/.exec(String(text || ''));
+    return m ? m[1] : null;
   }
 
   // ── 화면 QR(2026-11-23 개방명록 1단계, hq DECISIONS 11/23) ──
@@ -66,14 +95,17 @@
   // 한마디는 고르기만(11/23 — 모르는 사람 글·장소·시간·연락처가 샐 틈이 없게. 직접 쓰는 글은 서버가 생긴 뒤 편지에서).
   // 강아지가 강아지에게 하는 말. 받은 기록에 번호로 남으니 순서를 바꾸거나 지우지 말 것 — 새 말은 맨 뒤에 더한다.
   // 간식 말은 넣지 않는다(남의 개에게 간식 — 키링 뒷면 "간식 주지 마세요"와 부딪힘)
+  // 11/24 가르시아 "3 수정해": 받는 사람이 모르는 견주라 견주가 건네는 말로 읽힐 수 있는 셋(냄새 칭찬 · 친구 하자 · 부끄러워서 말 못 했어)을
+  // 강아지 말이 분명하게(코 인사 고마워 · 우리 이제 킁킁 친구! · 수줍어서 멍도 못 했어) 바꿨다. 번호와 뜻(고마움·친구·수줍음)은 그대로라 예전에 받은 기록도 새 글자로 보인다.
+  // 새로 더하는 말도 "너"(받는 사람)를 칭찬하거나 다시 만나자고 조르는 말은 피한다 — hq notes/petwalk-park-trouble.md 9번
   var MSGS = [
     { t: '킁킁! 반가웠어', s: 'nose' },
     { t: '또 냄새 맡자', s: 'paw' },
-    { t: '너 냄새 좋더라', s: 'heart' },
+    { t: '코 인사 고마워', s: 'heart' },
     { t: '꼬리 흔든 거 봤지?', s: 'sparkle' },
-    { t: '산책 친구 하자', s: 'star' },
+    { t: '우리 이제 킁킁 친구!', s: 'star' },
     { t: '다음에 또 놀자', s: 'ball' },
-    { t: '부끄러워서 말 못 했어', s: 'bubble' },
+    { t: '수줍어서 멍도 못\u00a0했어', s: 'bubble' },   // \u00a0: 좁은 칸에서 "못 / 했어"로 갈리지 않게
     { t: '오늘 산책 최고!', s: 'bone' }
   ];
   // 도장 그림 — 7×7 도트, 색은 쓰는 곳의 글자 색(currentColor)
@@ -96,16 +128,19 @@
     return '<svg viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="' + d + '"/></svg>';
   }
   function nowMin() { return Math.floor(Date.now() / 60000); }
-  // 화면 QR 주소 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고) + 내 아지트 방 모습 몇 글자(r, azit-room.js snapshot — 없으면 빼고)
+  // 화면 QR 카드 — 내 카드 + 지금 시각 + 고른 한마디(없으면 빼고) + 내 아지트 방 모습 몇 글자(r, azit-room.js snapshot — 없으면 빼고)
   // 방 모습(2026-11-23 개방명록 2단계)은 그 자리에서 찍은 단짝 폰에만 남아 마실 갈 때 그 방으로 보인다. 키링·카드 주소 보내기에는 안 싣는다.
-  function liveUrl(card, m, r) {
+  function liveCard(card, m, r) {
     var c = {};
     for (var k in card) if (Object.prototype.hasOwnProperty.call(card, k)) c[k] = card[k];
     c.t = nowMin();
     if (m != null && MSGS[m]) c.m = m;
     if (typeof r === 'string' && r) c.r = r;
-    return cardUrl(c);
+    return c;
   }
+  // 화면 QR에 넣는 글자(11/24부터 링크 아님). liveUrl은 예전 꼴 — 이미 퍼진 링크가 열리는지 시험할 때만
+  function liveText(card, m, r) { return cardText(liveCard(card, m, r)); }
+  function liveUrl(card, m, r) { return cardUrl(liveCard(card, m, r)); }
   // 받은 카드가 어떤 QR이었나: 'live' 몇 분 안에 띄운 화면 · 'stale' 지난 캡처 · 'static' 시각 없음(키링·카드 주소·예전 QR)
   function kindOf(t) {
     if (typeof t !== 'number' || !isFinite(t)) return 'static';
@@ -115,7 +150,8 @@
 
   window.WalsonDexCard = {
     SIZE_FROM: SIZE_FROM, SIG_FROM: SIG_FROM, PALETTE: PALETTE,
-    myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl,
-    LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveUrl: liveUrl, kindOf: kindOf
+    myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl, nameProblem: nameProblem,
+    QR_HEAD: QR_HEAD, cardText: cardText, payloadOf: payloadOf,
+    LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveText: liveText, liveUrl: liveUrl, kindOf: kindOf
   };
 })();

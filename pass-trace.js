@@ -450,10 +450,10 @@
         gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
       }
     } else {
-      // QR(흰 판 + 진짜 주소)
-      var Q = L.qr;
+      // QR(흰 판 + 글자) — 11/24부터 링크 아님(site-config.js cardQrText: 카메라로 찍으면 "카카오톡에서 '왈슨' 검색"만 보인다)
+      var Q = L.qr, C = window.WALSON_CONFIG;
       rect(g1, Q.x, Q.y, Q.w, Q.h, COL.white);
-      qrRects(g1, o.qr || 'https://johnsongarage.co.kr/walson/start.html', Q.x + (Q.w - Q.size) / 2, Q.y + (Q.h - Q.size) / 2, Q.size);
+      qrRects(g1, o.qr || (C && C.cardQrText) || "WALSON · 카카오톡에서 '왈슨' 검색", Q.x + (Q.w - Q.size) / 2, Q.y + (Q.h - Q.size) / 2, Q.size);
     }
     // 홍보 문구(원본엔 없음 — 밖에 나가는 굿즈엔 필수, site-config.js brand): 사진 틀 아래 가운데(키링판은 알약 안에 있어서 뺌)
     if (!KR && tag) {

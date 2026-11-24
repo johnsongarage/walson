@@ -218,11 +218,11 @@
   }
 </style>
 <script src="store.js?v=1"></script>
-<script src="dex-card.js?v=1"></script>
+<script src="dex-card.js?v=5"></script>
 <script src="device.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
-<script src="site-config.js?v=11"></script>
-<script src="inapp.js?v=4"></script>
+<script src="site-config.js?v=12"></script>
+<script src="inapp.js?v=5"></script>
 <script src="install.js?v=1"></script>
 <script src="track.js?v=8"></script>
 <script src="save-image.js?v=3"></script>
@@ -329,16 +329,16 @@
   <details class="panel tools" id="save-panel" hidden>
     <summary>실물로 뽑기 · 인쇄용 파일</summary>
     <button type="button" class="btn btn-secondary" id="print-btn">실물로 뽑기 · A4 실제 크기</button>
-    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형, 11/18 양면 + NFC): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080.
-         앞면은 QR 대신 브랜드 문구(site-config.js brand), 뒷면은 도감 카드 주소 QR + 연락처·예방접종·메모 손글씨 칸(id-card.js drawKeyringBack) -->
+    <!-- 키링 인쇄소에 보낼 파일(2026-11-16, 11/17 키링 = 주민증 카드형, 11/18 양면 + NFC → 11/24 NFC 뺌): 카드 1600×1000(60×37.5mm) + 사방 1.5mm 여유 = 1680×1080.
+         앞면은 QR 대신 브랜드 문구(site-config.js brand), 뒷면은 도감 카드 글자 QR(링크 아님) + 연락처·예방접종·메모 손글씨 칸(id-card.js drawKeyringBack) -->
     <button type="button" class="btn btn-secondary" id="keyring-file-btn">키링 앞면 파일 저장</button>
     <button type="button" class="btn btn-secondary" id="keyring-back-btn">키링 뒷면 파일 저장 · QR·연락처 칸</button>
     <p class="hint">A4에 앞·뒷면이 네 쌍 실제 크기(85.6×54mm)로 나와요. 인쇄 배율은 100%(실제 크기)로. 오려서 등을 맞대고 포토카드 홀더에 넣으면 리드줄에 달 수 있어요.
     인식표(보호자 연락처·동물등록번호)는 따로 달아 주세요.<br>
     키링 파일은 카드(60×37.5mm, 1600×1000)에 사방 1.5mm 여유를 붙인 1680×1080이에요. 앞면은 워킹패스 그대로(QR 자리에 "WALSON" 문구),
-    뒷면은 우리 강아지 도감 카드가 열리는 QR과 보호자 연락처·예방접종·메모를 손으로 적는 칸이에요.
-    인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로, 뒷면은 펜으로 쓸 수 있게"라고 전해 주세요.
-    NFC를 넣으면 칩에는 뒷면 QR과 같은 주소(<a href="dex.html">도감</a> "카드 주소 보내기")를 넣어요.</p>
+    뒷면은 왈슨 앱으로 찍으면 친구가 되는 QR과 보호자 연락처·예방접종·메모를 손으로 적는 칸이에요.
+    뒷면 QR은 링크가 아니라서 휴대폰 카메라로 찍으면 아무것도 열리지 않아요(모르는 사람 QR을 찍어 여는 일을 만들지 않으려고).
+    인쇄소에 "재단 60×37.5mm(여유 포함 63×40.5mm), 모서리 둥글게, 고리 구멍은 따로, 뒷면은 펜으로 쓸 수 있게, NFC는 넣지 않음"이라고 전해 주세요.</p>
   </details>
 
   <p class="hint">진행도는 이 기기에 저장된 산책 기록으로만 계산하고 어디로도 보내지 않아요.
@@ -349,13 +349,13 @@
 <div id="print-sheet" aria-hidden="true"></div>
 
 <!-- 앞면 "나도 만들기" QR(MIT). 이 휴대폰 안에서만 계산하고 어디로도 보내지 않는다. 못 받아오면 QR 없이. -->
-<script src="vendor/qrcode/qrcode.js?v=1.4.4"></script>
+<script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
 <script src="card-shared.js?v=12"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
 <script src="dog-tags.js?v=2"></script>
-<script src="id-card.js?v=14"></script>
-<script src="pass-pixel.js?v=6"></script>
+<script src="id-card.js?v=15"></script>
+<script src="pass-pixel.js?v=7"></script>
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <script src="mock-server.js?v=2"></script>
@@ -461,7 +461,7 @@
       name: profile.name, breed: profile.breed, sex: profile.sex, signal: profile.signal,
       signalLine: sg ? sg.line : '', signalColor: sg ? sg.color : '',   // 성향이 없거나 지킴이 카드면 그 문구·색으로(초록으로 그리지 않음)
       rankName: rank.name, rankFrac: Math.max(0, Math.min(1, frac)), cardNo: profile.cardNo,
-      photo: dotPhoto || photo, colors: 12, qr: IC.SHARE_URL, zoom: fit.zoom, qx: fit.qx, qy: fit.qy,
+      photo: dotPhoto || photo, colors: 12, qr: IC.cardQrText(), zoom: fit.zoom, qx: fit.qx, qy: fit.qy,   // QR은 링크 아닌 글자(11/24)
       emptyText: '여기를 눌러\n사진 넣기'
     }, m);
   }
@@ -688,7 +688,7 @@
     });
   });
 
-  // ── 키링 인쇄소용 파일(2026-11-16, 11/18 양면 + NFC) — 앞면은 QR 없이(브랜드 문구), 뒷면은 키링 전용(QR·손글씨 칸) ──
+  // ── 키링 인쇄소용 파일(2026-11-16, 11/18 양면 + NFC → 11/24 NFC 뺌) — 앞면은 QR 없이(브랜드 문구), 뒷면은 키링 전용(글자 QR·손글씨 칸) ──
   function saveFile(c, name) {
     // 저장은 저장으로(2026-11-16 저장·공유 분리) — 예전엔 휴대폰에서 공유 창만 떠서 안드로이드는 사진첩에 넣을 수 없었다
     if (window.WalsonSave.save) { WalsonSave.save(c, name); return; }
@@ -724,16 +724,18 @@
     og.drawImage(c, BLEED, BLEED);
     saveFile(out, (profile.name || 'dog') + '-워킹패스-키링용-앞면.png');
   });
-  // 뒷면 QR = 도감 카드 주소(dex-card.js — 도감 "카드 주소 보내기"와 같은 것). 인쇄물이라 늘 왈슨 주소(id-card.js SHARE_URL과 같은 곳)로
+  // 뒷면 QR = 도감 카드(dex-card.js — 도감 "카드 주소 보내기"와 같은 카드). 11/24부터 링크가 아니라 글자(cardText) —
+  // 휴대폰 카메라로 찍으면 글자만 보이고, 왈슨 앱 [상대 QR 찍기]로만 친구(발자국)가 된다(hq DECISIONS 11/24)
   $('keyring-back-btn').addEventListener('click', function () {
     var btn = this;
     btn.disabled = true;
     WalsonDexCard.myCard().then(function (card) {
       btn.disabled = false;
+      var bad = !card && WalsonDexCard.nameProblem(profile.name);
+      if (bad) { alert('강아지 이름에 ' + bad + '가 들어 있어서 QR을 만들 수 없어요. 프로필에서 이름을 고쳐 주세요.'); return; }
       if (!card) { alert('워킹패스 이름이 있어야 QR을 만들 수 있어요.'); return; }
-      var url = WalsonDexCard.cardUrl(card, IC.SHARE_URL.replace(/[^/]*$/, ''));
       var c = document.createElement('canvas');
-      if (!IC.drawKeyringBack(c, profile, url, 40)) { alert('QR을 그리지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'); return; }
+      if (!IC.drawKeyringBack(c, profile, WalsonDexCard.cardText(card), 40)) { alert('QR을 그리지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'); return; }
       window.WalsonTrack && WalsonTrack.send('card_saved', { what: 'keyring_back', format: 'card', how: 'save' });
       saveFile(c, (profile.name || 'dog') + '-워킹패스-키링용-뒷면.png');
     }, function () { btn.disabled = false; });
