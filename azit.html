@@ -1619,7 +1619,7 @@
   // 우리 개가 물어 오고, 옮긴 공 자리는 그 방에 있는 동안만(visitPos — 남의 방 소품 자리는 저장하지 않는다)
   // 던질 수 있는 것 — 공 다섯 + 뼈다귀·밧줄 장난감(11/24 가르시아 "뼈다귀랑 밧줄 장난감도 던질 수 있게") + 당근 인형·삑삑이 닭 인형(같은 날 "당근 인형이랑 닭 인형도").
   // 11/24 가르시아 "던질 때 그 자리에서 이동을 시작하게, 공은 그 지점까지 굴러서 — 멈춘 채 통통 튀는 건 아니야":
-  // 던진 것은 지금 놓인 자리에서 출발한다(선반 위면 선반 높이에서). 공(ROLL)은 바닥을 굴러 가며 점점 느려져 그 지점에 멈추고
+  // 던진 것은 지금 놓인 자리에서 출발한다(선반 위면 선반 높이에서). 공(ROLL)은 통통 튀며 굴러 가며 점점 느려져 그 지점에 멈추고
   // (90도씩 돌아가는 모양으로 구르는 게 보임 — 점 그림이라 90도 단위만), 나머지는 포물선으로 날아가 내려앉는다(통통 없음).
   // 선반 위 공은 선반 앞 바닥으로 떨어진 뒤 구른다. 우리 개는 던지자마자(0.15초) 쫓아가 멈춘 자리에서 문다.
   // carry = 입에 물 때 크기(길쭉한 건 작게), grab = 물 때 한마디(닭 인형은 삑!)
@@ -1627,6 +1627,9 @@
   var ROLL = ['ball', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky'];
   var TOSS = { bone: { carry: 0.75 }, rope: { carry: 0.6 }, carrot: { carry: 0.6 }, toy_chicken: { carry: 0.6, grab: '삑!' } };
   var TIRED_SEC = 90, DROP = 0.3;
+  // 공은 굴러가는 동안 통통(11/24 가르시아 "공이 통통 튀는 건 구현해 줘" — 제자리 통통이 아니라 가면서): 간 거리(0~1)의 구간마다
+  // 한 번씩, 높이는 첫 통통의 1 → 0.45 → 0.2배로 줄고, 마지막 2할은 바닥을 굴러 멈춘다
+  var HOPS = [[0, 0.38, 1], [0.38, 0.62, 0.45], [0.62, 0.8, 0.2]];
   var aim = null, fetchJob = null, throwLog = [], ballSmall = {};
   function canThrow(id) { return BALLS.indexOf(id) >= 0 && !!cur && cur.items.indexOf(id) >= 0; }
   function fetcher() { return view === -1 ? host : guest; }   // 공을 가지러 가는 개 = 우리 개(내 방 집주인 · 친구 방 손님)
@@ -1662,11 +1665,11 @@
       O = P(fq.i, fq.j); h0 = Math.max(0, O.y - sl.y);
     } else { var pq = p0 && p0.i != null ? p0 : { i: it.i, j: it.j }; O = P(pq.i, pq.j); }
     var dist = Math.sqrt((Ls.x - O.x) * (Ls.x - O.x) + (Ls.y - O.y) * (Ls.y - O.y)), fall = roll && h0 > 0 ? DROP : 0;
-    var dur = roll ? fall + Math.min(1.6, Math.max(0.55, 0.45 + dist / 230)) : Math.min(1.0, Math.max(0.5, 0.45 + dist / 320));
+    var dur = roll ? fall + Math.min(1.8, Math.max(0.7, 0.6 + dist / 210)) : Math.min(1.0, Math.max(0.5, 0.45 + dist / 320));
     setBallPos(id, L); staticDirty = true;   // 선반에 있던 것도 바닥으로(움직이는 동안은 따로 그린다)
     stopAct(d);
     fetchJob = { id: id, dog: d, spr: pic(it.spr), roll: roll, phase: 'move', t0: now, dur: dur, fall: fall, O: O, h0: h0, L: L, Ls: Ls,
-      peak: Math.min(40, Math.max(16, 12 + dist * 0.14)), go: false, rot: 0, mood: mood, n: n };
+      peak: Math.min(40, Math.max(16, 12 + dist * 0.14)), hop: Math.min(22, 8 + dist * 0.08), go: false, rot: 0, mood: mood, n: n };
     if (mood !== 'refuse') sayFor(d, n === 1 ? '!' : '!!', 0.9);
     kick();
   }
@@ -1678,8 +1681,12 @@
       k = Math.min(1, (t - f.fall) / Math.max(0.01, f.dur - f.fall)); e = 1 - (1 - k) * (1 - k);   // 점점 느려지며 멈춤
       var x = f.O.x + (f.Ls.x - f.O.x) * e, y = f.O.y + (f.Ls.y - f.O.y) * e;
       var tr = Math.sqrt((x - f.O.x) * (x - f.O.x) + (y - f.O.y) * (y - f.O.y)), quarter = Math.PI * ((f.spr && f.spr.width) || 15) / 4;
-      var st = Math.floor(tr / quarter) % 4;
-      return { x: x, y: y, hgt: 0, rot: f.Ls.x < f.O.x ? (4 - st) % 4 : st };   // 왼쪽으로 구르면 반대로 돈다
+      var st = Math.floor(tr / quarter) % 4, hgt = 0;
+      for (var hi = 0; hi < HOPS.length; hi++) {   // 가면서 통통(점점 낮게)
+        var hp = HOPS[hi];
+        if (e >= hp[0] && e < hp[1]) { var uu = (e - hp[0]) / (hp[1] - hp[0]); hgt = f.hop * hp[2] * 4 * uu * (1 - uu); break; }
+      }
+      return { x: x, y: y, hgt: hgt, rot: f.Ls.x < f.O.x ? (4 - st) % 4 : st };   // 왼쪽으로 구르면 반대로 돈다
     }
     k = Math.min(1, t / f.dur);
     return { x: f.O.x + (f.Ls.x - f.O.x) * k, y: f.O.y + (f.Ls.y - f.O.y) * k, hgt: f.h0 * (1 - k) + f.peak * 4 * k * (1 - k), rot: 0 };
@@ -1743,10 +1750,12 @@
     var sm = ballSmallOf(f.spr, (TOSS[f.id] || {}).carry), w = sm.width / R, h = sm.height / R;
     ctx.drawImage(sm, Math.round((mx - w / 2) * R) / R, Math.round((my - h / 2) * R) / R, w, h);
   }
-  function drawAir(f, p) {   // 공중(던진 장난감·선반에서 떨어지는 공) — 바닥엔 그림자
+  function drawAir(f, p) {   // 공중(던진 장난감·선반에서 떨어지는 공·통통 튀는 공) — 바닥엔 그림자(높이 뜰수록 조금 작게)
     var s = f.spr; if (!s) return;
-    shadowOn(ctx, p.x, p.y, s.width * 0.5, 0.15);
-    ctx.drawImage(s, Math.round(p.x - s.width / 2), Math.round(p.y - p.hgt - s.height + 1));
+    shadowOn(ctx, p.x, p.y, s.width * Math.max(0.3, 0.5 - p.hgt * 0.008), 0.15);
+    var bx0 = Math.round(p.x - s.width / 2), by0 = Math.round(p.y - p.hgt - s.height + 1);
+    if (p.rot) { ctx.save(); ctx.translate(bx0 + s.width / 2, by0 + s.height / 2); ctx.rotate(p.rot * Math.PI / 2); ctx.drawImage(s, -s.width / 2, -s.height / 2); ctx.restore(); }
+    else ctx.drawImage(s, bx0, by0);
   }
 
   // 톡 = 놀기, 꾹(0.6초) = 옮기기(11/24 가르시아 "상호작용이랑 드래그 이동이랑 겹쳐" → "꾹 누르기, 좀 더 오래") —
