@@ -34,7 +34,8 @@
      - 모델하우스 세 채(핑크 앰배서더의 방·밤산책 라운지·공원 피크닉 방) — 아래 칸에서 골라 보고, [이 방처럼 놓기]로 내 방에 그 자리·벽지를(되돌리기 있음).
       11/23 밤 가르시아 "탭에 넣기"(시안 azit-sian-c.html — 받은 방·소품 그림 + 내 도트 강아지 8마리 그대로):
      - 방 = 분홍 빈 방 394×220점(받은 그림을 원래 점으로 되돌리고 붙박이 창을 지운 것), 벽지 셋은 그 색만 바꾼 라일락·밤 블랙 핑크(방 모습 글자 j·l·n 그대로).
-       창은 지금 시각대로 낮·밤. 소품은 icons/azit-room(방 한 점 = 그림 한 점 — _dev/azit-sheet-slice.py → azit-fit.py → azit-extra.py).
+       창은 지금 시각대로 낮·밤. 소품은 icons/azit-room(방 한 점 = 그림 한 점 — _dev/azit-sheet-slice.py → azit-fit.py → azit-extra.py
+       → azit-letter.py: 11/24 글자 소품 글씨를 한글 도트 글꼴로 다시 씀).
      - 소품 22개·생기는 조건·순서(방 모습 QR)는 그대로, 그림만 새로: 받은 그림에 없는 당근 인형·스탠드·깃발·응가 봉투 걸이·키링 걸이·피크닉 매트·
        머리 장식은 같은 화풍으로 그림. 우리 개 사진 액자·단짝 액자는 받은 액자의 속 그림 칸에 사진·단짝 도트 강아지를 넣는다.
        트로피는 오른쪽 붙박이 선반 위(벽), 가랜드는 두 벽 모서리에 걸쳐(끌지 않음), 강아지 집은 소파로.
@@ -319,7 +320,11 @@
     .concat(AZ.ITEMS.map(function (it) { return it.spr; }))
     .concat(AZ.ITEMS.filter(function (it) { return it.both; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
     .filter(function (n, k, a) { return a.indexOf(n) === k; });
-  var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=1').then(function (im) { if (im) pics[n] = im; }); }));
+  // 11/24 글씨를 한글 도트 글꼴로 다시 쓴 글자 소품(_dev/azit-letter.py) — 예전 그림이 브라우저 캐시에 남지 않게 주소를 v2로(왼쪽 벽용 _L도)
+  var LETTER_V2 = ['sign_snack', 'board_refuse', 'sign_meetup', 'bubble_visited', 'bubble_interior', 'bubble_poop', 'bubble_chihuahua',
+    'panel_guestbook', 'stamp_regular', 'scroll_dogslife'];
+  function picV(n) { return LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }
+  var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) pics[n] = im; }); }));
   function pic(n) { return pics[n] || null; }
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
   var flipCache = {};
