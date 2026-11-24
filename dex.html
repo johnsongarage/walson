@@ -58,6 +58,18 @@
   .btn-sub { background: var(--panel); color: var(--ink); border: 1px solid var(--panel-border); }
   .btn-text { background: none; color: var(--ink-soft); font-weight: 700; text-decoration: underline; }
 
+  /* 받아 둔 카드(11/24 받아 두기) — 앱 안에서 찍고 아직 넣을지 고르지 않은 카드. 누르면 넣을까요 판 */
+  .pending { margin: 0 0 14px; padding: 12px 12px 10px; border-radius: 16px; background: var(--accent-tint); }
+  .pending[hidden] { display: none; }
+  .pending h2 { margin: 0 0 2px; font-size: 15px; font-weight: 900; color: var(--ink); }
+  .pending .p-sub { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft); line-height: 1.5; word-break: keep-all; }
+  .pending ul { list-style: none; margin: 0; padding: 0; }
+  .pending li + li { margin-top: 6px; }
+  .p-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .p-row .avatar { width: 36px; height: 36px; font-size: 15px; border-width: 3px; }
+  .p-row .p-name { font-size: 14px; font-weight: 800; }
+  .p-row .p-meta { font-size: 12px; color: var(--ink-soft); }
+  .p-row .p-go { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--accent); flex-shrink: 0; }
   .count { display: flex; align-items: baseline; gap: 6px; margin: 0 2px 10px; }
   .count b { font-size: 26px; font-weight: 900; }
   .count span { font-size: 13px; color: var(--ink-soft); }
@@ -128,7 +140,7 @@
 <script src="device.js?v=1"></script>
 <script src="qr-scan.js?v=5"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
-<script src="dex-card.js?v=5"></script>
+<script src="dex-card.js?v=6"></script>
 <!-- 화면 QR에 싣는 내 아지트 방 모습(2026-11-23 개방명록 2단계) — 산책 기록으로 생긴 소품을 세려고 reward-rules.js(앞에 spots-data.js)까지 -->
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
@@ -152,6 +164,13 @@
     <button type="button" class="btn btn-main" id="show-btn">내 카드 보여 주기</button>
     <button type="button" class="btn btn-sub" id="scan-btn">상대 QR 찍기</button>
   </div>
+
+  <!-- 받아 둔 카드(2026-11-24 가르시아 "2번 받아 두기 만들어 줘") — 앱 안에서 찍은 카드는 바로 넣지 않고 여기 둔다. 누르면 넣을까요 판 -->
+  <section class="pending" id="pending" hidden aria-labelledby="pending-title">
+    <h2 id="pending-title">받아 둔 카드</h2>
+    <p class="p-sub">공원에서 찍어 둔 카드예요. 눌러서 넣을지 골라요 — 고르기 전엔 도감에 안 들어가요.</p>
+    <ul id="pending-list"></ul>
+  </section>
 
   <div class="count"><b id="dex-count">0</b><span>마리를 만났어요</span></div>
   <div class="grid" id="grid"></div>
@@ -246,25 +265,7 @@
   var myId = DC.myId, myCard = DC.myCard, cardUrl = function (card) { return DC.cardUrl(card); };
 
   // ── QR 안의 글자 ↔ 강아지 ──
-  function decode(str) {
-    try {
-      var b = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (b.length % 4) b += '=';
-      var o = JSON.parse(decodeURIComponent(escape(atob(b))));
-      // 남이 만든 QR일 수 있으니 모양을 꼼꼼히 확인한다
-      if (!o || o.v !== 1) return null;
-      if (!/^[a-z0-9]{8}$/.test(o.i) || typeof o.n !== 'string' || !o.n.trim() || o.n.length > 12) return null;
-      if (!SIZE[o.s]) return null;
-      if (o.g && !SIGNAL[o.g]) return null;
-      if (!/^#[0-9a-f]{6}$/i.test(o.c)) return null;
-      // 화면 QR(2026-11-23)이면 띄운 시각(분)·한마디 번호가 더 있다 — 모양이 이상하면 없는 걸로(발자국)
-      var t = (typeof o.t === 'number' && o.t > 0 && o.t % 1 === 0) ? o.t : null;
-      var m = (typeof o.m === 'number' && DC.MSGS[o.m]) ? o.m : null;
-      // 아지트 방 모습(2026-11-23 2단계) — 몇 글자 모양이 맞을 때만(azit-room.js parseRoom), 아니면 없는 걸로
-      var r = (window.WalsonAzit && WalsonAzit.parseRoom(o.r)) ? o.r : null;
-      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase(), t: t, m: m, r: r };
-    } catch (e) { return null; }
-  }
+  function decode(str) { return DC.decodeCard(str); }   // 카드 읽기는 dex-card.js(11/24 — [동네]·산책 중 QR 찍기와 같이 쓴다)
   // 한마디 · 도장 그림
   function msgText(m) { return DC.MSGS[m] ? DC.MSGS[m].t : ''; }
   function stampEl(m) {
@@ -440,7 +441,60 @@
   });
 
   // ── 받은 강아지 넣기 ──
-  function offerAdd(dog) {
+  // ── 받아 두기(2026-11-24 가르시아 "2번 받아 두기 만들어 줘", hq notes/petwalk-park-trouble.md 6절 C) ──
+  // 그 자리에선 "받아 뒀어요"만 — 읽고 고르는 건 산책 끝나고. 서로 주고받을 땐 [내 카드 보여 주기] 하나
+  function showGot(dog, kind) {
+    closeAll();
+    renderPending();
+    whoBlock($('add-who'), dog, dog.n + ' 카드 받아 뒀어요');
+    $('add-safe').hidden = true;
+    $('add-sub').textContent = '강아지 먼저! 넣을지는 산책 끝나고 골라요 — 도감 맨 위 "받아 둔 카드"에 있어요.' +
+      (kind === 'live' ? ' 그 자리에서 찍은 화면 QR이라 단짝 카드예요.' : '');
+    var acts = $('add-actions'); acts.innerHTML = '';
+    var row = el('div', 'row');
+    var close = el('button', 'btn btn-sub', '닫기'); close.type = 'button'; close.addEventListener('click', closeAll);
+    var mine = WalsonStore.profile(), show;
+    if (mine && mine.name) { show = el('button', 'btn btn-main', '내 카드 보여 주기'); show.type = 'button'; show.addEventListener('click', showMyCard); }
+    else { show = el('a', 'btn btn-main', '우리 개 워킹패스 만들기'); show.href = 'start.html'; }
+    row.appendChild(close); row.appendChild(show); acts.appendChild(row);
+    open('add-sheet');
+  }
+  function dayLabel(d) {
+    if (d === todayKey()) return '오늘';
+    var y = new Date(); y.setDate(y.getDate() - 1);
+    if (d === DC.dayKey(y)) return '어제';
+    var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(d || '');
+    return m ? (+m[1]) + '월 ' + (+m[2]) + '일' : '';
+  }
+  // 도감 맨 위 "받아 둔 카드 N장" — 최근에 찍은 것부터
+  function renderPending() {
+    var ul = $('pending-list'); ul.innerHTML = '';
+    DC.pendingList().slice().reverse().forEach(function (x) {
+      var dog = decode(x.p);
+      if (!dog) return;
+      var li = el('li'), b = el('button', 'p-row'); b.type = 'button';
+      b.appendChild(avatar(dog));
+      var tx = el('div');
+      tx.appendChild(el('div', 'p-name', dog.n));
+      tx.appendChild(el('div', 'p-meta', dayLabel(x.d) + ' · ' + (x.k === 'live' ? '단짝 카드' : '발자국 카드')));
+      b.appendChild(tx); b.appendChild(el('span', 'p-go', '고르기'));
+      b.addEventListener('click', function () { reviewPending(x.i); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+    $('pending').hidden = !ul.children.length;
+    $('pending-title').textContent = '받아 둔 카드 ' + ul.children.length + '장';
+  }
+  // 받아 둔 카드 하나 고르기 — 찍은 날짜·종류(단짝/발자국) 그대로
+  function reviewPending(i) {
+    var x = DC.pendingList().filter(function (y) { return y.i === i; })[0];
+    if (!x) { renderPending(); return; }
+    var dog = decode(x.p);
+    if (!dog || DC.nameProblem(dog.n)) { DC.dropPending(i); renderPending(); toast('읽을 수 없는 카드라 지웠어요.'); return; }
+    offerAdd(dog, { kind: x.k, day: x.d, pending: true });
+  }
+  // opts(받아 둔 카드를 고를 때): { kind: 찍은 때 정한 종류, day: 찍은 날짜, pending: true }
+  function offerAdd(dog, opts) {
+    opts = opts || {};
     closeAll();
     if (dog.i === myId()) {
       whoBlock($('add-who'), dog, '내 카드예요');
@@ -450,8 +504,8 @@
       open('add-sheet');
       return;
     }
-    // 찍은 그때 어떤 QR이었는지 정해 둔다(넣기를 늦게 눌러도 그대로)
-    var kind = DC.kindOf(dog.t), live = kind === 'live';
+    // 찍은 그때 어떤 QR이었는지 정해 둔다(넣기를 늦게 눌러도 그대로 — 받아 둔 카드는 찍은 순간에 정한 것)
+    var kind = opts.kind || DC.kindOf(dog.t), live = kind === 'live';
     var exist = loadDex().filter(function (d) { return d.i === dog.i; })[0];
     whoBlock($('add-who'), dog, exist ? dog.n + ' 또 만났어요' : eul(dog.n) + ' 만났어요');
     var who = $('add-who');
@@ -465,12 +519,17 @@
       (dog.r ? ' 방 모습도 같이 와서 아지트에서 마실 갈 수 있어요.' : '') + ' 이 휴대폰에만 저장돼요.';
     else if (kind === 'stale') sub = '띄운 지 몇 분 지난 QR이라 발자국으로만 적어요. 그 자리에서 다시 띄워 달라고 하면 단짝이 되고 한마디도 남아요.';
     else sub = '키링이나 주소로 받은 QR이라 발자국으로 적어요. 상대 화면의 QR을 그 자리에서 찍으면 단짝이 되고 한마디도 남아요.';
+    if (opts.pending) {   // 받아 둔 카드 — 언제 받은 건지, 그날 그 자리에서 찍은 거라 단짝인지
+      sub = dayLabel(opts.day) + ' 받아 둔 카드예요. ' + (live ? (exist && exist.pal ? '단짝이에요. 그날 만난 걸로 적을까요?' : '그 자리에서 찍은 화면 QR이라 단짝으로 적어요.') +
+        (dog.r ? ' 방 모습도 같이 와서 아지트에서 마실 갈 수 있어요.' : '') : '발자국으로 적어요.') + ' 이 휴대폰에만 저장돼요.';
+    }
     $('add-sub').textContent = sub;
     var acts = $('add-actions'); acts.innerHTML = '';
     var row = el('div', 'row');
-    var no = el('button', 'btn btn-sub', '안 넣기'); no.type = 'button'; no.addEventListener('click', closeAll);
+    var no = el('button', 'btn btn-sub', '안 넣기'); no.type = 'button';
+    no.addEventListener('click', function () { if (opts.pending) { DC.dropPending(dog.i); renderPending(); } closeAll(); });
     var yes = el('button', 'btn btn-main', exist ? '만난 걸로 적기' : live ? '단짝으로 넣기' : '발자국 남기기'); yes.type = 'button';
-    yes.addEventListener('click', function () { addDog(dog, kind); });
+    yes.addEventListener('click', function () { addDog(dog, kind, opts); });
     row.appendChild(no); row.appendChild(yes); acts.appendChild(row);
     // 워킹패스가 없는 휴대폰(키링 QR로 처음 온 사람, 11/24 가르시아 "설치가 안 되어 있으면 워킹패스 만드는 걸로") —
     // 발자국을 남기고 바로 워킹패스 만들기로. 넣기만 하는 버튼도 그대로 둔다
@@ -479,7 +538,7 @@
     if (!me0 || !me0.name) {
       $('add-sub').textContent = sub + ' 아직 워킹패스가 없으면 30초면 만들어요 — 우리 개도 ' + dog.n + '처럼 카드가 생겨요.';
       var go = el('button', 'btn btn-main', '발자국 남기고 내 워킹패스 만들기'); go.type = 'button'; go.style.marginTop = '8px'; go.style.width = '100%';
-      go.addEventListener('click', function () { addDog(dog, kind); location.href = 'start.html?from=keyring'; });
+      go.addEventListener('click', function () { addDog(dog, kind, opts); location.href = 'start.html?from=keyring'; });
       acts.appendChild(go);
     }
     open('add-sheet');
@@ -487,35 +546,55 @@
   // 만난 날마다 한 줄 — {d: 날짜, k: 'l' 단짝 만남 | 'f' 발자국, m: 받은 한마디 번호}. 날짜만(시각·장소 X), 최근 60줄까지
   function logMeet(e, day, k, m) {
     var log = Array.isArray(e.log) ? e.log : [];
-    var last = log[log.length - 1];
-    if (last && last.d === day) {   // 같은 날 또 찍으면 한 줄로 — 단짝 만남이 이기고, 한마디는 새로 받은 것
-      if (k === 'l') last.k = 'l';
-      if (m != null) last.m = m;
+    var same = log.filter(function (x) { return x && x.d === day; })[0];   // 받아 둔 카드는 지난 날짜일 수 있어 어디서든 찾는다(11/24)
+    if (same) {   // 같은 날 또 찍으면 한 줄로 — 단짝 만남이 이기고, 한마디는 새로 받은 것
+      if (k === 'l') same.k = 'l';
+      if (m != null) same.m = m;
     } else {
       var item = { d: day, k: k };
       if (m != null) item.m = m;
       log.push(item);
+      log.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
     }
     e.log = log.length > 60 ? log.slice(-60) : log;
   }
-  function addDog(dog, kind) {
-    var list = loadDex(), today = todayKey(), live = kind === 'live';
+  // opts.day: 받아 둔 카드면 찍은 날짜(만난 날로 적는다) · opts.pending: 넣으면 받아 둔 카드에서 지운다
+  function addDog(dog, kind, opts) {
+    opts = opts || {};
+    var list = loadDex(), today = opts.day || todayKey(), live = kind === 'live';
     var e = list.filter(function (d) { return d.i === dog.i; })[0], first = !e;
     if (e) {
-      e.n = dog.n; e.s = dog.s; e.g = dog.g; e.c = dog.c;   // 새로 찍은 내용으로 갱신
-      if (e.last !== today) { e.days = (e.days || 1) + 1; e.last = today; }
+      var seen = (Array.isArray(e.log) ? e.log : []).some(function (x) { return x && x.d === today; }) || e.last === today;
+      if (!e.last || today >= e.last) { e.n = dog.n; e.s = dog.s; e.g = dog.g; e.c = dog.c; }   // 새로 찍은 내용으로 갱신(더 옛 카드면 그대로)
+      if (!seen) e.days = (e.days || 1) + 1;
+      if (!e.last || today > e.last) e.last = today;
+      if (!e.first || today < e.first) e.first = today;
     } else {
       e = { i: dog.i, n: dog.n, s: dog.s, g: dog.g, c: dog.c, first: today, last: today, days: 1 };
       list.push(e);
     }
     if (live) e.pal = 1;   // 한 번 단짝이면 계속 단짝
     // 방 모습은 그 자리에서 찍은 화면 QR에서만 받는다(새로 받으면 새 모습으로) — 날짜만 같이(시각·장소 X)
-    if (live && dog.r) { e.room = dog.r; e.roomAt = today; }
+    if (live && dog.r && (!e.roomAt || today >= e.roomAt)) { e.room = dog.r; e.roomAt = today; }
     logMeet(e, today, live ? 'l' : 'f', live ? dog.m : null);
     if (!saveDex(list)) return;
+    if (opts.pending) DC.dropPending(dog.i);
     // 통계: 어떤 QR이었는지와 처음인지만(강아지 이름·번호·한마디는 안 보냄)
     if (window.WalsonTrack) WalsonTrack.send('dex_add', { kind: kind, first: first ? 1 : 0 });
     render();
+    renderPending();
+    if (opts.pending) {   // 나중에 고르는 중 — 상대는 곁에 없으니 다음 받아 둔 카드로
+      var left = DC.pendingList();
+      $('add-sub').textContent = (live ? '단짝으로 적었어요.' : '발자국으로 적었어요.') + (left.length ? ' 받아 둔 카드가 ' + left.length + '장 더 있어요.' : '');
+      var pa = $('add-actions'); pa.innerHTML = '';
+      var prow = el('div', 'row');
+      var pclose = el('button', 'btn btn-sub', '닫기'); pclose.type = 'button'; pclose.addEventListener('click', closeAll);
+      prow.appendChild(pclose);
+      if (left.length) { var next = el('button', 'btn btn-main', '다음 카드'); next.type = 'button'; next.addEventListener('click', function () { reviewPending(left[left.length - 1].i); }); prow.appendChild(next); }
+      pa.appendChild(prow);
+      if (live && e.room) pa.appendChild(azitLink(e));
+      return;
+    }
     // 서로 넣으려면 상대도 내 카드를 찍어야 한다 — 바로 이어서 보여 주게
     var mine = WalsonStore.profile();
     $('add-sub').textContent = (live ? '단짝으로 적었어요. ' : '발자국으로 적었어요. ') + dog.n + '도 우리 개를 넣으려면 내 카드를 보여 주세요' +
@@ -587,11 +666,14 @@
       },
       onOpen: closeAll,   // 카메라 판을 띄우기 바로 전에 다른 판을 닫는다(예전 그대로 — 설명을 취소하면 그대로 둔다)
       onText: function (text) {
-        var p = payloadFromText(text), dog = p && decode(p);
+        var p = payloadFromText(text);
         if (!p && /^WALSON/.test(text)) return '워킹패스 그림에 있는 QR이에요. 친구가 되려면 상대가 띄운 화면 QR이나 키링 뒷면 QR을 찍어 주세요.';
-        if (!dog) return '왈슨 도감 QR이 아니에요. 상대에게 "내 카드 보여 주기"를 눌러 달라고 해 주세요.';
-        if (DC.nameProblem(dog.n)) return BAD_CARD;
-        offerAdd(dog);
+        // 11/24 받아 두기 — 바로 넣지 않고 받아 둔다(넣을지는 산책 끝나고, 도감 맨 위 "받아 둔 카드")
+        var r = p ? DC.receive(p) : { error: 'bad' };
+        if (r.error === 'name') return BAD_CARD;
+        if (r.error === 'mine') { offerAdd(r.dog); return true; }
+        if (r.error) return '왈슨 도감 QR이 아니에요. 상대에게 "내 카드 보여 주기"를 눌러 달라고 해 주세요.';
+        showGot(r.dog, r.kind);
         return true;
       }
     });
@@ -612,7 +694,22 @@
   window.addEventListener('hashchange', fromHash);
 
   render();
+  renderPending();
   fromHash();
+  // [동네] QR 찍기로 받아 두고 온 경우(?got=번호) — "받아 뒀어요" 판. 산책 끝·[아지트]에서 온 경우(?pending=1) — 받아 둔 카드 고르기
+  (function () {
+    var g = /[?&]got=([a-z0-9]{8})(&|$)/.exec(location.search), pend = /[?&]pending=1(&|$)/.test(location.search);
+    if (!g && !pend) return;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* 무시 */ }
+    var list = DC.pendingList();
+    if (g) {
+      var x = list.filter(function (y) { return y.i === g[1]; })[0], dog = x && decode(x.p);
+      if (dog) showGot(dog, x.k);
+      return;
+    }
+    if (list.length === 1) reviewPending(list[0].i);
+    else if (list.length) $('pending').scrollIntoView({ block: 'start' });
+  })();
   // [아지트] 탭의 "내 카드 보여 주기"로 들어온 경우(?show=me) — 바로 내 카드. 뒤로 가기·새로고침 때 또 뜨지 않게 주소에서 지운다
   if (/[?&]show=me(&|$)/.test(location.search)) {
     try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* 무시 */ }

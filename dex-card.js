@@ -141,6 +141,59 @@
   // 화면 QR에 넣는 글자(11/24부터 링크 아님). liveUrl은 예전 꼴 — 이미 퍼진 링크가 열리는지 시험할 때만
   function liveText(card, m, r) { return cardText(liveCard(card, m, r)); }
   function liveUrl(card, m, r) { return cardUrl(liveCard(card, m, r)); }
+  // ── 카드 읽기(2026-11-24 dex.html에서 옮김 — 도감·[동네]·산책 중 QR 찍기가 같이 쓴다) ──
+  // 남이 만든 QR일 수 있으니 모양을 꼼꼼히 본다. 화면 QR이면 띄운 시각(t)·한마디 번호(m)·방 모습(r)이 더 있다 — 모양이 이상하면 없는 걸로.
+  // 방 모습은 azit-room.js(WalsonAzit.parseRoom)가 있는 화면에서만 확인해 돌려준다(없으면 r: null — 받아 둘 땐 원래 글자를 그대로 두므로 잃지 않는다).
+  var SIZE_OK = { s: 1, m: 1, l: 1 }, SIGNAL_OK = { g: 1, y: 1, r: 1 };
+  function decodeCard(str) {
+    try {
+      var b = String(str).replace(/-/g, '+').replace(/_/g, '/');
+      while (b.length % 4) b += '=';
+      var o = JSON.parse(decodeURIComponent(escape(atob(b))));
+      if (!o || o.v !== 1) return null;
+      if (!/^[a-z0-9]{8}$/.test(o.i) || typeof o.n !== 'string' || !o.n.trim() || o.n.length > 12) return null;
+      if (!SIZE_OK[o.s]) return null;
+      if (o.g && !SIGNAL_OK[o.g]) return null;
+      if (!/^#[0-9a-f]{6}$/i.test(o.c)) return null;
+      var t = (typeof o.t === 'number' && o.t > 0 && o.t % 1 === 0) ? o.t : null;
+      var m = (typeof o.m === 'number' && MSGS[o.m]) ? o.m : null;
+      var r = (window.WalsonAzit && WalsonAzit.parseRoom(o.r)) ? o.r : null;
+      return { i: o.i, n: o.n.trim(), s: o.s, g: o.g || '', c: o.c.toLowerCase(), t: t, m: m, r: r };
+    } catch (e) { return null; }
+  }
+
+  // ── 받아 둔 카드(2026-11-24 가르시아 "2번 받아 두기 만들어 줘" — hq notes/petwalk-park-trouble.md 6절 C) ──
+  // 앱 안에서 친구 QR을 찍으면 그 자리에선 받아 두기만 하고, 넣을지는 산책이 끝난 뒤에 고른다 — 강아지끼리 붙어 있을 때 폰 보는 시간을 줄이려고.
+  // 단짝인지(그 자리 화면 QR)는 찍은 순간에 정해 둔다(k) — 나중에 넣어도 그대로. 고르기 전엔 도감·아지트·통계에 들어가지 않는다.
+  // 하나 = { p: 찍은 카드 글자(#d= 뒤 그대로 — 방 모습까지), i: 번호, n: 이름, k: 'live'|'stale'|'static', d: 찍은 날짜 'YYYY-MM-DD' }.
+  // 같은 강아지를 또 찍으면 한 장으로(그 자리 화면 QR이 이긴다). 최근 20장까지. 이 휴대폰에만(store.js KEYS.dexPending).
+  var PENDING_KEY = (window.WalsonStore && WalsonStore.KEYS && WalsonStore.KEYS.dexPending) || 'petwalk_dex_pending', PENDING_MAX = 20;
+  function dayKey(dt) { var d = dt || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function pendingList() {
+    return WalsonStore.list(PENDING_KEY).filter(function (x) { return x && typeof x.p === 'string' && /^[a-z0-9]{8}$/.test(x.i); });
+  }
+  function dropPending(i) {
+    var list = pendingList(), left = list.filter(function (x) { return x.i !== i; });
+    if (left.length !== list.length) WalsonStore.setJSON(PENDING_KEY, left);
+    return left;
+  }
+  // 앱 안에서 찍은 카드 글자(payloadOf로 꺼낸 것)를 받아 둔다.
+  // 돌려주는 값: { ok: true, dog, kind, again } 또는 { error: 'bad'(카드 아님) | 'name'(이름에 연락처·주소) | 'mine'(내 카드), dog }
+  function receive(payload) {
+    var dog = decodeCard(payload);
+    if (!dog) return { error: 'bad' };
+    if (nameProblem(dog.n)) return { error: 'name' };
+    if (dog.i === myId()) return { error: 'mine', dog: dog };
+    var kind = kindOf(dog.t), list = pendingList(), old = null;
+    list = list.filter(function (x) { if (x.i === dog.i) { old = x; return false; } return true; });
+    var item = { p: String(payload), i: dog.i, n: dog.n, k: kind, d: dayKey() };
+    if (old && old.k === 'live' && kind !== 'live' && old.d === item.d) item = old;   // 같은 날 단짝으로 찍은 게 있으면 그걸 남긴다
+    list.push(item);
+    if (list.length > PENDING_MAX) list = list.slice(-PENDING_MAX);
+    WalsonStore.setJSON(PENDING_KEY, list);
+    return { ok: true, dog: dog, kind: item.k, again: !!old };
+  }
+
   // 받은 카드가 어떤 QR이었나: 'live' 몇 분 안에 띄운 화면 · 'stale' 지난 캡처 · 'static' 시각 없음(키링·카드 주소·예전 QR)
   function kindOf(t) {
     if (typeof t !== 'number' || !isFinite(t)) return 'static';
@@ -151,7 +204,8 @@
   window.WalsonDexCard = {
     SIZE_FROM: SIZE_FROM, SIG_FROM: SIG_FROM, PALETTE: PALETTE,
     myId: myId, hashColor: hashColor, photoColor: photoColor, myCard: myCard, encode: encode, cardUrl: cardUrl, nameProblem: nameProblem,
-    QR_HEAD: QR_HEAD, cardText: cardText, payloadOf: payloadOf,
+    QR_HEAD: QR_HEAD, cardText: cardText, payloadOf: payloadOf, decodeCard: decodeCard,
+    receive: receive, pendingList: pendingList, dropPending: dropPending, dayKey: dayKey,
     LIVE_MIN: LIVE_MIN, MSGS: MSGS, stampSvg: stampSvg, liveText: liveText, liveUrl: liveUrl, kindOf: kindOf
   };
 })();

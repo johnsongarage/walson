@@ -306,7 +306,7 @@
 
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=11"></script>
-<script src="dex-card.js?v=5"></script>
+<script src="dex-card.js?v=6"></script>
 <script src="azit-room.js?v=13"></script>
 <script src="photo-dot.js?v=2"></script>
 <script>
@@ -1221,8 +1221,11 @@
   function acts() {
     var a = $('acts'); a.innerHTML = '';
     function link(text, href, main) { var x = el('a', 'pbtn' + (main ? ' main' : ''), text); x.href = href; a.appendChild(x); }
-    if (myName) link('내 카드 보여 주기', 'dex.html?show=me', true);
-    else link('워킹패스 만들기', 'start.html', true);
+    // 받아 둔 카드(11/24 받아 두기) — 공원에서 찍어 두고 아직 넣을지 고르지 않은 카드가 있으면 맨 앞에
+    var pend = DC.pendingList ? DC.pendingList().length : 0;
+    if (pend) link('받아 둔 카드 ' + pend + '장 · 넣을지 고르기', 'dex.html?pending=1', true);
+    if (myName) link('내 카드 보여 주기', 'dex.html?show=me', !pend);
+    else link('워킹패스 만들기', 'start.html', !pend);
     link('도감 · 상대 QR 찍기', 'dex.html', false);
   }
   // 모델하우스 아래 — 세 채 고르기 + [이 방처럼 놓기](11/23 2단계)

@@ -1,5 +1,5 @@
 // 산책 중 화면 공용 동작(2026-11-16 2단계) — 전역 window.WalkScreen. walk.html(위치 사용)과 go.html(시간만)이 같이 쓴다.
-// 모양은 walk-screen.css. 끝내기 두 번(0단계), 메뉴 열고 닫기, 알림 띠, "○○랑 산책 중", 가게 QR 찍기(앱 안 — qr-scan.js·shop-visits.js).
+// 모양은 walk-screen.css. 끝내기 두 번(0단계), 메뉴 열고 닫기, 알림 띠, "○○랑 산책 중", QR 찍기(가게 도장 · 11/24 친구 카드 받아 두기, 앱 안 — qr-scan.js·shop-visits.js).
 // 위치·기록은 각 화면이 다룬다. 이 파일은 어디로도 보내지 않는다(가게 QR 통계는 shop-visits.js의 stamp가 가게 번호만).
 (function () {
   // Phosphor Icons(MIT)가 아니라 단순한 선 그림 — 화면마다 같은 모양을 쓰려고 여기 둔다
@@ -57,17 +57,27 @@
   }
   function walkerLine(name) { var r = rang(name); return (r ? r + ' ' : '') + '산책 중'; }
 
-  // 가게 QR 찍기 — 산책 화면을 떠나지 않고 방문 도장(shop-visits.js). 결과는 알림 띠로(show)
+  // QR 찍기 — 산책 화면을 떠나지 않고. 결과는 알림 띠로(show)
+  // 가게 QR → 방문 도장(shop-visits.js). 친구 QR → 받아 두기(11/24, dex-card.js receive — 넣을지는 산책 끝 화면에서 고른다)
   function scanShop(show) {
     if (!window.WalsonQR || !window.ShopVisits) return false;
     WalsonQR.scan({
-      title: '가게 QR 찍기',
-      hint: '가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
+      title: 'QR 찍기',
+      hint: '친구 화면·키링 QR이나 가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
       onText: function (text) {
+        var dp = window.WalsonDexCard ? WalsonDexCard.payloadOf(text) : null;
+        if (dp) {   // 친구 QR — 받아만 두고 산책은 계속
+          var got = WalsonDexCard.receive(dp);
+          if (got.error === 'name') return '이름에 전화번호나 인터넷 주소가 든 카드라 넣지 않았어요.';
+          if (got.error === 'mine') return '내 카드예요. 이 QR은 다른 강아지 휴대폰에서 찍어 주세요.';
+          if (got.error) return '왈슨 친구 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';
+          show(got.dog.n + ' 카드 받아 뒀어요 · 강아지 먼저! 넣을지는 산책 끝나고 골라요', 'stamp');
+          return true;
+        }
         var id = ShopVisits.idFromQr(text);
-        if (!id) return /(?:dex\.html|WALSON[^#]{0,40})#d=/.test(text)   // 친구 QR(새 글자 꼴·예전 링크 꼴 — dex-card.js payloadOf와 같은 꼴)
+        if (!id) return /(?:dex\.html|WALSON[^#]{0,40})#d=/.test(text)   // 친구 QR인데 카드 도구(dex-card.js)를 못 불러온 경우
           ? '강아지 도감 QR이에요. 산책을 마치고 [워킹패스] → 도감에서 찍어 주세요.'
-          : '왈슨 가게 QR이 아니에요. 가게 카운터의 QR을 찍어 주세요.';
+          : '왈슨 QR이 아니에요. 친구 화면·키링 QR이나 가게 카운터의 QR을 찍어 주세요.';
         var shop = ShopVisits.findShop(id);
         if (!shop) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
         var r = ShopVisits.stamp(id);

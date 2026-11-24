@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
 <script src="store.js?v=1"></script>
+<script src="dex-card.js?v=6"></script>
 <script src="device.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css?v=4.7.1">
@@ -996,9 +997,17 @@
           failed: '카메라를 켜지 못했어요. 친구 QR은 왈슨 안에서만 읽혀요 — 왈슨을 닫았다 다시 열거나, 브라우저 설정에서 카메라를 허용해 주세요.'
         },
         onText: function (text) {
-          // 친구 QR — 새 글자 꼴(WALSON 친구카드 #d=, 11/24부터 링크 아님)·예전 링크 꼴 둘 다(dex-card.js payloadOf와 같은 꼴)
-          var dex = /(?:dex\.html|WALSON[^#]{0,40})#d=([A-Za-z0-9_-]+)/.exec(text);
-          if (dex) { location.href = 'dex.html#d=' + dex[1]; return true; }
+          // 친구 QR — 새 글자 꼴(WALSON 친구카드 #d=, 11/24부터 링크 아님)·예전 링크 꼴 둘 다(dex-card.js payloadOf)
+          // 11/24 받아 두기: 바로 넣지 않고 받아 둔 뒤 도감의 "받아 뒀어요" 판으로(넣을지는 산책 끝나고)
+          var dp = window.WalsonDexCard ? WalsonDexCard.payloadOf(text) : null;
+          if (dp) {
+            var got = WalsonDexCard.receive(dp);
+            if (got.error === 'name') return '이름에 전화번호나 인터넷 주소가 든 카드라 넣지 않았어요.';
+            if (got.error === 'mine') return '내 카드예요. 이 QR은 다른 강아지 휴대폰에서 찍어 주세요.';
+            if (got.error) return '왈슨 친구 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';
+            location.href = 'dex.html?got=' + got.dog.i;
+            return true;
+          }
           if (/^WALSON/.test(text)) return '워킹패스 그림에 있는 QR이에요. 친구가 되려면 상대가 띄운 화면 QR이나 키링 뒷면 QR을 찍어 주세요.';
           var id = ShopVisits.idFromQr(text);
           if (!id) return '왈슨 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';

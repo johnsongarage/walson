@@ -13,6 +13,7 @@
 <meta name="theme-color" content="#fffdfd">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css?v=1.9.4">
 <script src="store.js?v=2"></script>
+<script src="dex-card.js?v=6"></script>
 <script src="device.js?v=1"></script>
 <script src="vendor/leaflet/leaflet.js?v=1.9.4"></script>
 <script src="pixel-map.js?v=2"></script>
@@ -93,7 +94,7 @@
 <script src="track.js?v=8"></script>
 <script src="geo.js?v=4"></script>
 <script src="mission-alert.js?v=2"></script>
-<script src="walk-screen.js?v=3"></script>
+<script src="walk-screen.js?v=4"></script>
 <script src="walk-engine.js?v=5"></script>
 </head>
 <body>
@@ -106,10 +107,10 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <div class="ws-menu" id="menu" hidden>
-        <!-- 가게 QR 찍기(2026-11-16) — 산책 중 들른 가게의 체크인 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js) -->
+        <!-- QR 찍기(2026-11-16 가게 · 11/24 친구 카드 받아 두기) — 산책 중 들른 가게의 체크인 QR과 만난 친구 QR을 이 화면을 떠나지 않고 찍는다(qr-scan.js) -->
         <button type="button" id="qr-scan-link" hidden>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2z"/></svg>
-          <span>가게 QR 찍기</span>
+          <span>QR 찍기 · 친구·가게</span>
         </button>
         <!-- 화면 켜 두기(2026-11-16 0단계, 기본 꺼짐) — 켜면 화면이 저절로 꺼지지 않아 길이 자세히 남는다 -->
         <button type="button" id="keep-screen-toggle">

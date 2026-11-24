@@ -18,6 +18,7 @@
     visits: 'petwalk_visits',             // 가게 방문 도장 [{s:스팟번호,d:날짜}] — 위치(장소+날짜, QR로 찍음)
     pins: 'petwalk_pins',                 // 산책 중 메모 핀 [{id,lat,lng,memo}] — 위치
     dex: 'petwalk_dex',                   // 강아지 도감 [{i,n,s,g,c,first,last,days}]
+    dexPending: 'petwalk_dex_pending',    // 받아 둔 카드(11/24) — 앱 안에서 찍고 아직 넣을지 고르지 않은 것 [{p,i,n,k,d}] — dex-card.js
     dexMe: 'petwalk_dex_me',              // 내 도감 번호(8글자)
     azit: 'petwalk_azit',                 // 산책 아지트 내 방(2026-11-23, azit-room.js) {dog,dogAuto,theme,acc,hidden,pos,seen,mood,moodDay,dogPhoto,photoDog(워킹패스 사진 도트 — 서버 백업엔 빼고)} — 위치 없음(방 안 칸 자리뿐)
     receipts: 'walson_receipts',          // 영수증 꾸미기 {영수증키:{note,custom,photo,pos,px,zoom,stickers}}
