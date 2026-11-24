@@ -227,7 +227,7 @@
     // 값 앞뒤 여백도 좁혀 값 자리를 넓힘(원본 174 → 204점, "포메라니안"이 덜 작아짐). 칸끼리 간격도 40 → 30점.
     // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
     // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
-    kr: { nameH: 84, nameLatH: 62, nameFill: 0.74, ys: [702.5, 882.5, 1062.5],   // nameH·nameFill: 이름 글씨 높이·짧은 이름이 채울 칸 폭 비율(11/24 "두 글자면 더 차게, 자간 벌려")
+    kr: { nameH: 84, nameLatH: 62, nameFill: 0.74, typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8, ys: [702.5, 882.5, 1062.5],   // nameH·nameFill: 이름 글씨 높이·짧은 이름이 채울 칸 폭 비율(11/24 "두 글자면 더 차게, 자간 벌려")
       labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
@@ -275,18 +275,43 @@
   }
   // 키링판 칸: 원본처럼 한 줄 — 왼쪽 분홍(칸 이름) · 오른쪽 흰 칸(값). 분홍 칸은 세 칸이 같은 폭(가장 긴 칸 이름 바로 뒤까지)이라
   // 값이 한 줄로 맞춰 시작한다(길면 칸에 맞게 줄임)
+  // 또렷한 한글 글꼴(Black Han Sans) 글줄 폭 어림 — 글자 크기 1에 한글 0.84 · 띄어쓰기 0.3 · 그 밖 0.7(브라우저에서 잰 값)
+  function vecEm(str) {
+    return Array.from(str).reduce(function (a, c) { return a + (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(c) ? 0.84 : c === ' ' ? 0.3 : 0.7); }, 0);
+  }
+  // 긴 견종(11/24 가르시아 "타입 칸도 가변적으로, 엄청 길면 두 줄로"): 견종 칸(center === 'fit')만
+  //   ① 견종 글씨가 typeMin보다 작아질 만큼 길면 TYPE 글자·분홍 칸을 줄여(최소 typeShrink배) 흰 칸을 넓힌다
+  //   ② 그래도 작으면(한글만) 띄어쓰기에서 두 줄로. 보통 길이(포메라니안 등)는 그대로
   function keyringBox(out, label, value, y, center) {
     var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h;
-    var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, sp = lx + lw * K.lux + K.lgap;
-    stepBox(out, x, y, w, h, u, [[x + u, sp, COL.label], [sp, x + w - u, COL.value]]);
-    text(out, label, lx, y + (h - 16 * K.luy) / 2, K.lux, K.luy, COL.ink);
     var v = String(value || '').trim().toUpperCase();
+    var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;
+    var vh = 16 * K.kmax * V.uy / V.ux * 0.8, isHan = VEC && /[가-힣]/.test(v);
+    if (center === 'fit' && v) {
+      var full = x + w - u - (lx + lw * K.lux + K.lgap) - u;   // 지금 흰 칸에서 글씨가 쓸 수 있는 폭(가장자리 반 칸씩 뺌)
+      var need = isHan ? vecEm(v) * vh * 1.02 / 0.9 : textUnits(v) * V.ux;   // 제 크기로 쓰려면 필요한 폭
+      if (need * K.typeMin > full) {   // 제 크기의 typeMin배보다 작아질 만큼 길면 TYPE 칸을 줄인다
+        ls = Math.max(K.typeShrink, 1 - (need * K.typeMin - full) / (lw * K.lux));
+        var full2 = full + lw * K.lux * (1 - ls);
+        if (isHan && need * K.typeTwo > full2 && /\s/.test(v)) two = twoLines(v);
+      }
+    }
+    var sp = lx + lw * K.lux * ls + K.lgap;
+    stepBox(out, x, y, w, h, u, [[x + u, sp, COL.label], [sp, x + w - u, COL.value]]);
+    text(out, label, lx, y + (h - 16 * K.luy * ls) / 2, K.lux * ls, K.luy * ls, COL.ink);
     if (!v) return;
+    if (two) {   // 두 줄: 한 줄 높이를 칸 안쪽 높이에 맞춰 나눔, 둘 다 같은 크기(긴 줄에 맞춤)
+      var cl2 = sp + u * 0.5, cw2 = x + w - u - cl2 - u * 0.5, lh = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.86),
+        lw2 = Math.max(vecEm(two[0]), vecEm(two[1])) * 1.02;
+      lh = Math.min(lh, cw2 * 0.9 / lw2);
+      var ty0 = y + (h - (2 * lh + K.twoGap)) / 2;
+      two.forEach(function (s, i) { VEC.push({ s: s, x: cl2, y: ty0 + i * (lh + K.twoGap), w: cw2, h: lh, fill: COL.ink, fit: true }); });
+      return;
+    }
     // 한글 값은 둥근모꼴 도트라 같은 크기면 영문보다 가늘고 작아 보여서 더 크게(11/24 가르시아 "이름 글씨 잘 안 보이네") — 칸 폭이 허락하는 만큼
     var vmax = /[가-힣]/.test(v) ? K.kmax : V.ux;
     var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
-    if (VEC && /[가-힣]/.test(v)) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
-      var vh = 16 * K.kmax * V.uy / V.ux * 0.8;
+    if (isHan) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
       if (center === 'grow') vh = K.nameH;   // 이름: 크게 + 짧으면 자간을 벌려 칸을 채움(paintText spread)
       if (center) { var cl = sp + u * 0.5, cw = x + w - u - cl - u * 0.5; VEC.push({ s: v, x: cl, y: y + (h - vh) / 2, w: cw, h: vh, fill: COL.ink, fit: true, spread: center === 'grow' ? K.nameFill : 0 }); return; }
       VEC.push({ s: v, x: vx, y: y + (h - vh) / 2, w: avail, h: vh, fill: COL.ink, left: true }); return;
@@ -382,7 +407,7 @@
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
-      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i === 1 ? 'grow' : i > 0); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
+      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i === 1 ? 'grow' : i === 2 ? 'fit' : false); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
       var sp = FD.splits[i], fx = FD.x, fu = FD.u;
       stepBox(g1, fx, fy, FD.w, FD.h, fu, [[fx + fu, sp, COL.label], [sp, fx + FD.w - fu, COL.value]]);
       var lb = L.labels[i];
