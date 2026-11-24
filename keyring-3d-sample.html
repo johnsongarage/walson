@@ -99,10 +99,10 @@
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
 <script src="vendor/qrcode/qrcode.js?v=1.4.4-u8"></script>
-<script src="pass-trace.js?v=15"></script>
+<script src="pass-trace.js?v=16"></script>
 <!-- 앞면 글자·특기 고치는 창(11/24 밤) — 특기 목록은 card-shared.js(워킹패스 특기·칭호와 같은 문구) -->
 <script src="card-shared.js?v=13"></script>
-<script src="keyring-edit.js?v=1"></script>
+<script src="keyring-edit.js?v=2"></script>
 </head>
 <body>
 <main class="wrap">
@@ -133,7 +133,8 @@
     <div class="fields" hidden>
       <label class="field"><span>번호</span><input type="text" id="f-id" maxlength="8" placeholder="비워도 돼요" autocomplete="off"></label>
       <label class="field"><span>이름</span><input type="text" id="f-name" maxlength="12" value="POM" autocomplete="off"></label>
-      <label class="field"><span>견종</span><input type="text" id="f-type" maxlength="20" value="DOG" autocomplete="off"></label>
+      <!-- 견종은 줄바꿈(두 줄)을 담을 수 있게 textarea(11/24 밤) — input은 줄바꿈을 지운다 -->
+      <label class="field"><span>견종</span><textarea id="f-type" maxlength="21" rows="2" autocomplete="off">DOG</textarea></label>
     </div>
     <!-- 앞면 모양·카드 색·카드 사진(11/24 밤 가르시아 "가로 버전 키링도 변형해서, 기본은 핑크고 색깔 변경 가능하게") -->
     <p class="row-label" style="margin-top:10px">앞면 모양 · 카드 색 · 카드 사진</p>

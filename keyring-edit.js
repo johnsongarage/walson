@@ -68,10 +68,11 @@
     '.kre-lab{flex:none;width:44px;display:flex;flex-direction:column;line-height:1.15;cursor:pointer;}',
     '.kre-lab b{font-size:13px;font-weight:900;}',
     '.kre-lab small{font-size:10px;font-weight:800;color:var(--ink-soft);letter-spacing:.04em;}',
-    '.kre-row input{flex:1 1 auto;min-width:0;font:inherit;font-size:16px;font-weight:700;color:var(--ink);padding:9px 10px;border-radius:12px;',
+    '.kre-row input,.kre-row textarea{flex:1 1 auto;min-width:0;font:inherit;font-size:16px;font-weight:700;color:var(--ink);padding:9px 10px;border-radius:12px;',
     'border:1.5px solid var(--panel-border);background:var(--panel);}',
-    '.kre-row input:focus{outline:2px solid var(--accent);outline-offset:1px;}',
-    '.kre-row input::placeholder{color:var(--ink-soft);opacity:.6;font-weight:600;}',
+    '.kre-row textarea{display:block;resize:none;overflow:hidden;line-height:1.35;}',
+    '.kre-row input:focus,.kre-row textarea:focus{outline:2px solid var(--accent);outline-offset:1px;}',
+    '.kre-row input::placeholder,.kre-row textarea::placeholder{color:var(--ink-soft);opacity:.6;font-weight:600;}',
     '.kre-sz{flex:none;display:flex;align-items:center;border:1.5px solid var(--panel-border);border-radius:12px;background:var(--panel);}',
     '.kre-sz button{width:34px;height:38px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:19px;font-weight:900;line-height:1;cursor:pointer;}',
     '.kre-sz button:disabled{opacity:.28;cursor:default;}',
@@ -112,6 +113,11 @@
   }
   // 누를 때 입력 칸 초점을 뺏지 않게(자판이 안 내려감) — 크기 −/+
   function keepFocus(b) { b.addEventListener('mousedown', function (e) { e.preventDefault(); }); }
+  // 두 줄 칸(견종·특기) 높이를 글 줄 수에 맞게
+  function grow(ta) {
+    if (!ta || ta.tagName !== 'TEXTAREA') return;
+    ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px';
+  }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function stepIndex(v) {
     var best = 0;
@@ -162,15 +168,37 @@
     root.appendChild(top); root.appendChild(stage); root.appendChild(form);
 
     // ── 입력 줄(이름표 · 입력 칸 · 글씨 크기 −/+) ──
+    // 견종·특기는 두 줄까지(11/24 밤 가르시아 "견종 줄바꿈 가능하게 해 줄래?") — 엔터로 줄을 나누고, 이미 두 줄이면 엔터 = 다 씀.
+    // 줄바꿈을 더 넣으면(붙여 넣기 등) 띄어쓰기로. 키링 그림은 사용자가 나눈 자리 그대로 두 줄(pass-trace.js splitText)
     function row(k, ko, en, max, ph) {
-      var r = el('div', 'kre-row'), lab = el('label', 'kre-lab'), inp = el('input'), sz = el('div', 'kre-sz');
+      var multi = k === 'type' || k === 'skill';
+      var r = el('div', 'kre-row'), lab = el('label', 'kre-lab'), inp = el(multi ? 'textarea' : 'input'), sz = el('div', 'kre-sz');
       lab.appendChild(el('b', null, ko)); lab.appendChild(el('small', null, en));
-      inp.type = 'text'; inp.maxLength = max; inp.autocomplete = 'off'; inp.spellcheck = false; inp.id = 'kre-' + k;
-      inp.setAttribute('enterkeyhint', 'done'); inp.value = st[k]; inp.placeholder = ph || '';
+      if (multi) { inp.rows = 1; inp.setAttribute('enterkeyhint', 'enter'); } else { inp.type = 'text'; inp.setAttribute('enterkeyhint', 'done'); }
+      inp.maxLength = max + (multi ? 1 : 0); inp.autocomplete = 'off'; inp.spellcheck = false; inp.id = 'kre-' + k;
+      inp.value = st[k]; inp.placeholder = ph || '';
       lab.htmlFor = inp.id;
       inp.addEventListener('focus', function () { touch(k); });
-      inp.addEventListener('input', function () { st[k] = inp.value; touch(k); changed(); if (k === 'skill') paintChips(); });
-      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+      inp.addEventListener('input', function () {
+        if (multi) {
+          var v = inp.value.replace(/\r/g, ''), i = v.indexOf('\n');
+          if (v !== inp.value || (i >= 0 && v.indexOf('\n', i + 1) >= 0)) {
+            var pos = inp.selectionStart;
+            inp.value = i >= 0 ? v.slice(0, i + 1) + v.slice(i + 1).replace(/\n/g, ' ') : v;
+            try { inp.setSelectionRange(pos, pos); } catch (e) { /* 커서는 끝으로 */ }
+          }
+          grow(inp);
+        }
+        st[k] = inp.value; touch(k); changed(); if (k === 'skill') paintChips();
+      });
+      if (multi) inp.addEventListener('beforeinput', function (e) {   // 이미 두 줄인데 또 줄바꿈 = 다 씀(휴대폰 자판은 keydown이 엔터로 안 올 때가 있다)
+        if ((e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') && inp.value.indexOf('\n') >= 0) { e.preventDefault(); inp.blur(); }
+      });
+      inp.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;   // 한글 조합 중 엔터는 글자 마치기
+        if (multi && inp.value.indexOf('\n') < 0) return;   // 첫 엔터 = 줄바꿈
+        e.preventDefault(); inp.blur();
+      });
       sz.setAttribute('role', 'group'); sz.setAttribute('aria-label', ko + ' 글씨 크기');
       var minus = button('−', ko + ' 글씨 작게'), out = el('output'), plus = button('+', ko + ' 글씨 크게');
       [minus, plus].forEach(function (b, i) {
@@ -195,7 +223,7 @@
 
     // 특기 — 직접 쓰기 줄 + 묶음 탭 + 목록
     var s1 = el('section', 'kre-sec'), h1 = el('div', 'kre-h');
-    h1.appendChild(el('b', null, '특기')); h1.appendChild(el('small', null, '키링 맨 아래 칸 · 목록에서 고르거나 직접 써요'));
+    h1.appendChild(el('b', null, '특기')); h1.appendChild(el('small', null, '목록에서 고르거나 직접 써요 · 엔터로 줄 나누기'));
     s1.appendChild(h1);
     s1.appendChild(row('skill', '특기', 'SKILL', 20, '직접 쓰기(예: 간식 앞 1초 앉아)'));
     var tabs = el('div', 'kre-tabs'), chips = el('div', 'kre-chips');
@@ -223,7 +251,7 @@
         var b = button(it.title);
         b.setAttribute('aria-pressed', String(it.title === v));
         b.addEventListener('click', function () {
-          st.skill = it.title; ctl.skill.input.value = it.title;
+          st.skill = it.title; ctl.skill.input.value = it.title; grow(ctl.skill.input);
           touch('skill'); changed(); paintChips();
         });
         chips.appendChild(b);
@@ -236,6 +264,7 @@
     h2.appendChild(el('b', null, '이름 · 견종 · 번호')); h2.appendChild(el('small', null, cfg.namesNote || '이름·견종은 비우면 내 기록대로'));
     s2.appendChild(h2);
     ROWS.forEach(function (R) { s2.appendChild(row(R.k, R.ko, R.en, R.max, R.k === 'id' ? '비워도 돼요' : (D[R.k] || ''))); });   // 번호는 비우면 빈칸
+    s2.appendChild(el('p', 'kre-note', '견종은 엔터로 줄을 나누면 키링에서도 그 자리에서 두 줄이 돼요(두 줄까지).'));
     form.appendChild(s2);
 
     // 글씨체(칸에 쓰는 글자 모두)
@@ -261,7 +290,7 @@
     // 처음대로
     var foot = el('div', 'kre-foot'), reset = button(cfg.resetLabel || '내 기록대로'), resetSz = button('글씨 크기 처음대로');
     reset.addEventListener('click', function () {
-      ['id', 'name', 'type', 'skill'].forEach(function (k) { st[k] = D[k] == null ? '' : String(D[k]); ctl[k].input.value = st[k]; });
+      ['id', 'name', 'type', 'skill'].forEach(function (k) { st[k] = D[k] == null ? '' : String(D[k]); ctl[k].input.value = st[k]; grow(ctl[k].input); });
       cur = catOfValue(st.skill.trim()) || cur; paintTabs(); paintChips();
       zoomed = false; syncZoomUi(); changed();
     });
@@ -403,6 +432,7 @@
     try { history.pushState({ walsonKeyringEdit: 1 }, ''); pushed = true; window.addEventListener('popstate', onPop); } catch (e) { pushed = false; }
     ['skill', 'name', 'type', 'id'].forEach(syncSize);
     syncFonts(); paintTabs(); paintChips();
+    grow(ctl.type.input); grow(ctl.skill.input);   // 창에 붙은 뒤에야 높이를 잴 수 있다
     fitView();
     schedule(true);
     if (zoomed && ctl[active]) ctl[active].input.closest('.kre-row').scrollIntoView({ block: 'nearest' });

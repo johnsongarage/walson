@@ -422,8 +422,8 @@
 <script src="card-color.js?v=2"></script>
 <script src="image-editor.js?v=7"></script>
 <!-- 키링 카드(11/24) 그림 — 3D 키링 시안 앞면과 같은 트레이싱판. 글자·특기 고치는 창(11/24 밤)은 keyring-edit.js -->
-<script src="pass-trace.js?v=15"></script>
-<script src="keyring-edit.js?v=1"></script>
+<script src="pass-trace.js?v=16"></script>
+<script src="keyring-edit.js?v=2"></script>
 <script src="mock-server.js?v=2"></script>
 <script>
   (function () {
@@ -531,9 +531,11 @@
       skill: typeof t.skill === 'string' ? t.skill : d.skill
     };
   }
+  // 견종 줄바꿈(11/24 밤 — 키링 글자 고치는 창에서 엔터로 두 줄)은 키링 그림에만 — 도트 카드·아래 한 줄 칸에선 띄어쓰기로
+  function oneLine(s) { return String(s || '').replace(/\s*\n\s*/g, ' '); }
   function fillCardText() {
     var t = cardText(), d = textDefaults();
-    $('ct-id').value = t.id; $('ct-name').value = t.name; $('ct-type').value = t.type;
+    $('ct-id').value = t.id; $('ct-name').value = t.name; $('ct-type').value = oneLine(t.type);
     $('ct-name').placeholder = d.name || '이름'; $('ct-type').placeholder = d.type;
   }
   // 사진이 바뀌면 예전 맞춤을 쓰지 않으려고 사진 글자로 짧은 표를 만든다(id-card.js 카드 사진 맞춤과 같은 방식)
@@ -554,7 +556,7 @@
     var m = dot.photo === 'photo' ? { mode: 'photo' } : { mode: 'dot', cols: dot.photo === 'coarse' ? 32 : 56 };
     var t = cardText();
     return Object.assign({
-      name: t.name, idNo: t.id || ' ', type: t.type,   // 카드 글자(11/24) — ID를 비우면 빈칸
+      name: t.name, idNo: t.id || ' ', type: oneLine(t.type),   // 카드 글자(11/24) — ID를 비우면 빈칸
       breed: profile.breed, sex: profile.sex, signal: profile.signal,
       signalLine: sg ? sg.line : '', signalColor: sg ? sg.color : '',   // 성향이 없거나 지킴이 카드면 그 문구·색으로(초록으로 그리지 않음)
       rankName: rank.name, rankFrac: Math.max(0, Math.min(1, frac)), cardNo: profile.cardNo,
@@ -827,7 +829,8 @@
       $('ct-' + k).addEventListener('input', function () {
         var d = textDefaults(), t = {};
         ['id', 'name', 'type'].forEach(function (q) {
-          var v = $('ct-' + q).value;
+          var v = $('ct-' + q).value, old = dot.text && dot.text[q];
+          if (typeof old === 'string' && old.indexOf('\n') >= 0 && v === oneLine(old)) v = old;   // 한 줄 칸에 띄어쓰기로 보이던 견종 줄바꿈은 그대로
           if (q === 'id' ? v !== d.id : (v.trim() && v !== d[q])) t[q] = v;
         });
         if (dot.text && typeof dot.text.skill === 'string') t.skill = dot.text.skill;   // 키링 특기는 그대로

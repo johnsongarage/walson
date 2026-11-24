@@ -272,7 +272,13 @@
       light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5,   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
       // 특기 칸(11/24 밤 — 홍보 알약 자리를 사진 틀 아랫줄까지 키움, 등급 뱃지는 점선과 이 칸 사이 가운데): 위 분홍 띠(head)에 SKILL(hu = 글자 한 칸),
       // 아래 흰 칸에 특기 — base는 한 줄일 때 글씨 높이(글씨 크기 배수 1), 두 줄이면 사이 gap. idH = 또렷하게·굵게일 때 ID 숫자 높이
-      skill: { top: 1473, bottom: 1688.5, head: 50, hu: 1.85, base: 72, gap: 10 }, idH: 76 }
+      skill: { top: 1473, bottom: 1688.5, head: 50, hu: 1.85, base: 72, gap: 10 }, idH: 76,
+      // 특기 자리 시안(11/24 밤 가르시아 "skill 이 배치가 조금 아쉬운데 다른 방법 없니?" — opts.skillAt):
+      // row4 = 네 번째 칸(칸 높이·칸 사이·점선 앞 간격) · plate = 사진 아래쪽 이름표(사진 칸 안쪽 여백 m·높이 h·글씨 base·작은 탭·그때 등급 뱃지 높이) ·
+      // combo = 등급 뱃지와 한 상자(점선 아래 간격·위 등급 띠 높이·특기 글씨 base)
+      row4: { h: 150, gap: 30, dashGap: 30 },
+      plate: { m: 16, h: 128, base: 66, gap: 8, tab: { w: 160, h: 62 }, badge: 170 },
+      combo: { gap: 30, band: 128, base: 70, gap2: 10 } }
   };
   var LP = L;   // 세로판(원본 자리) — render가 opts.landscape면 잠깐 가로판(LL)으로 바꿔 그린다
 
@@ -305,7 +311,10 @@
         dashY: dashY, pill: { y: pillLow, h: pillH, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20, one: true },
         light: { y: dashY + 35.5, h: 72, solo: 110, soloSk: 92, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow,
         // 특기 칸(11/24 밤): 알약(118)보다 높게 사진 틀 아랫줄부터 150 — 등급 뱃지는 그만큼 낮게(soloSk)
-        skill: { top: bot - 150, bottom: bot, head: 40, hu: 1.5, base: 56, gap: 6 }, idH: 76 * fs }
+        skill: { top: bot - 150, bottom: bot, head: 40, hu: 1.5, base: 56, gap: 6 }, idH: 76 * fs,
+        row4: { h: 128, gap: 18, dashGap: 18 },
+        plate: { m: 14, h: 112, base: 60, gap: 6, tab: { w: 150, h: 56 }, badge: 120 },
+        combo: { gap: 18, band: 86, base: 56, gap2: 6 } }
     };
   })();
   function photoBox() {
@@ -364,34 +373,48 @@
   // 긴 견종(11/24 가르시아 "타입 칸도 가변적으로, 엄청 길면 두 줄로"): 견종 칸(center === 'fit')만
   //   ① 견종 글씨가 typeMin보다 작아질 만큼 길면 TYPE 글자·분홍 칸을 줄여(최소 typeShrink배) 흰 칸을 넓힌다
   //   ② 그래도 작으면(한글만 — 또렷하게·굵게면 영어도) 띄어쓰기에서 두 줄로. 보통 길이(포메라니안 등)는 그대로
-  // key: 글씨 크기 배수 이름(id·name·type)
+  // key: 글씨 크기 배수 이름(id·name·type·skill). center: false 왼쪽(ID) · 'grow' 이름 · 'fit' 견종 · 'skill' 특기(네 번째 칸 시안)
+  // 줄바꿈(11/24 밤 가르시아 "견종 줄바꿈 가능하게"): 견종·특기 칸은 사용자가 나눈 두 줄 그대로(줄바꿈 두 번째부터는 띄어쓰기로), 다른 칸은 한 줄로
   function keyringBox(out, label, value, y, center, key) {
     var FD = L.field, K = L.kr, V = L.value, x = FD.x, w = FD.w, u = FD.u, h = FD.h, sz = sizeOf(key);
-    var raw = String(value || '').trim(), v = VF ? raw : raw.toUpperCase();   // 도트 글꼴은 대문자뿐
+    var multi = center === 'fit' || center === 'skill', T = splitText(value), manual = multi && Array.isArray(T) ? T : null;
+    var v = Array.isArray(T) ? T.join(' ') : T;
     var lw = Math.max.apply(null, K.labels.map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;
+    var lf = Math.min(1, lw / textUnits(label));   // 칸 이름이 분홍 칸보다 길면(SKILL) 글자만 줄임 — 분홍 칸 폭은 다른 칸과 같게
     var vh = 16 * K.kmax * V.uy / V.ux * 0.8, isHan = VEC && /[가-힣]/.test(v), vec = !!VF || isHan;
     var hmax = (h - 2 * u) * 0.92;   // 칸 안쪽 높이 — 글씨는 이보다 커지지 않게
-    if (vec) vh = Math.min(hmax, vh * sz);
-    function wEm(s) { return VF ? vfW(s, 1) : vecEm(s) * 1.02; }   // 글씨 높이 1일 때 폭(글꼴로 덮어 쓰는 글)
+    if (vec || manual) vh = Math.min(hmax, vh * sz);
+    function wEm(s) { return lineW(s, 1); }   // 글씨 높이 1일 때 폭
     if (center === 'fit' && v) {
       var full = x + w - u - (lx + lw * K.lux + K.lgap) - u;   // 지금 흰 칸에서 글씨가 쓸 수 있는 폭(가장자리 반 칸씩 뺌)
-      var need = vec ? wEm(v) * vh / 0.9 : textUnits(v) * V.ux * sz;   // 제 크기로 쓰려면 필요한 폭
-      if (need * K.typeMin > full) {   // 제 크기의 typeMin배보다 작아질 만큼 길면 TYPE 칸을 줄인다
-        ls = Math.max(K.typeShrink, 1 - (need * K.typeMin - full) / (lw * K.lux));
-        var full2 = full + lw * K.lux * (1 - ls);
-        if (vec && need * K.typeTwo > full2 && /\s/.test(v)) two = twoLines(v, wEm);
+      if (manual) {   // 사용자가 나눈 두 줄 — 두 줄 높이로 재서 넘치면 TYPE 칸을 줄인다
+        var lh0 = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.86), needM = Math.max(wEm(manual[0]), wEm(manual[1])) * lh0 / 0.9;
+        if (needM > full) ls = Math.max(K.typeShrink, 1 - (needM - full) / (lw * K.lux));
+        two = manual;
+      } else {
+        var need = vec ? wEm(v) * vh / 0.9 : textUnits(v) * V.ux * sz;   // 제 크기로 쓰려면 필요한 폭
+        if (need * K.typeMin > full) {   // 제 크기의 typeMin배보다 작아질 만큼 길면 TYPE 칸을 줄인다
+          ls = Math.max(K.typeShrink, 1 - (need * K.typeMin - full) / (lw * K.lux));
+          var full2 = full + lw * K.lux * (1 - ls);
+          if (vec && need * K.typeTwo > full2 && /\s/.test(v)) two = twoLines(v, wEm);
+        }
       }
     }
     var sp = lx + lw * K.lux * ls + K.lgap;
     stepBox(out, x, y, w, h, u, [[x + u, sp, COL.label], [sp, x + w - u, COL.value]]);
-    text(out, label, lx, y + (h - 16 * K.luy * ls) / 2, K.lux * ls, K.luy * ls, COL.ink);
+    text(out, label, lx, y + (h - 16 * K.luy * ls * lf) / 2, K.lux * ls * lf, K.luy * ls * lf, COL.ink);
     if (!v) return;
+    if (center === 'skill') {   // 특기(네 번째 칸): 흰 칸 가운데 한 줄 또는 두 줄(더 크게 보이면 · 사용자가 나눴으면 그대로)
+      var kcl = sp + u * 0.5, kcw = x + w - u - kcl - u * 0.5;
+      drawFit(out, manual || v, kcl + kcw / 2, y + h / 2, kcw * 0.9, (h - 2 * u) * 0.88, vh, K.twoGap);
+      return;
+    }
     if (two) {   // 두 줄: 한 줄 높이를 칸 안쪽 높이에 맞춰 나눔, 둘 다 같은 크기(긴 줄에 맞춤)
       var cl2 = sp + u * 0.5, cw2 = x + w - u - cl2 - u * 0.5, lh = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.86),
         lw2 = Math.max(wEm(two[0]), wEm(two[1]));
       lh = Math.min(lh, cw2 * 0.9 / lw2);
       var ty0 = y + (h - (2 * lh + K.twoGap)) / 2;
-      two.forEach(function (s, i) { vpush({ s: s, x: cl2, y: ty0 + i * (lh + K.twoGap), w: cw2, h: lh, fill: COL.ink, fit: true }); });
+      two.forEach(function (s, i) { lineDraw(out, s, cl2 + cw2 / 2, ty0 + i * (lh + K.twoGap), lh, cw2 * 0.9); });
       return;
     }
     if (VF) {   // 또렷하게·굵게: 영어·숫자도 글꼴로 — 이름은 크게(짧으면 자간을 벌려 칸을 채움), 견종은 흰 칸 가운데, ID는 왼쪽 맞춤
@@ -442,27 +465,100 @@
     var uy = h / 16, ux = uy * L.value.ux / L.value.uy;
     text(out, str, cx - textUnits(str) * ux / 2, top, ux, uy, COL.ink);
   }
+  // 칸 글자 — 사용자가 줄을 나눴으면 [윗줄, 아랫줄](두 번째 줄바꿈부터는 띄어쓰기로), 아니면 한 줄. 도트 글꼴이면 대문자
+  function splitText(value) {
+    var parts = String(value || '').replace(/\r/g, '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!VF) parts = parts.map(function (s) { return s.toUpperCase(); });
+    if (!parts.length) return '';
+    return parts.length >= 2 ? [parts[0], parts.slice(1).join(' ')] : parts[0];
+  }
+  // 글줄 맞추기: 가운데(cx, cy)에 W×H 안으로 — 한 줄(칸보다 길면 줄임) 또는 두 줄(띄어쓰기에서, 두 줄이 더 크게 보일 때).
+  // v가 [윗줄, 아랫줄]이면 사용자가 나눈 두 줄 그대로. want = 한 줄일 때 글씨 높이(글씨 크기 배수까지 곱한 것), gap = 두 줄 사이
+  function drawFit(out, v, cx, cy, W, H, want, gap) {
+    var lines, lh;
+    if (Array.isArray(v)) {
+      lines = v; lh = Math.min(want, (H - gap) / 2);
+      var wm = Math.max(lineW(v[0], lh), lineW(v[1], lh));
+      if (wm > W) lh *= W / wm;
+    } else {
+      lines = [v]; lh = Math.min(want, H);
+      var w1 = lineW(v, lh);
+      if (w1 > W) {
+        lh *= W / w1;   // 한 줄로 줄이면 이 높이
+        if (/\s/.test(v)) {
+          var two = twoLines(v, function (s) { return lineW(s, 1); }), h2 = Math.min(want, (H - gap) / 2),
+            w2 = Math.max(lineW(two[0], h2), lineW(two[1], h2));
+          if (w2 > W) h2 *= W / w2;
+          if (h2 > lh * 1.04) { lines = two; lh = h2; }   // 두 줄이 조금이라도 크면 두 줄(칸이 높아서 두 줄이 꽉 차 보인다)
+        }
+      }
+    }
+    var tot = lines.length * lh + (lines.length - 1) * gap, ty = cy - tot / 2;
+    lines.forEach(function (s, i) { lineDraw(out, s, cx, ty + i * (lh + gap), lh, W); });
+  }
   function skillBox(out, value, R) {
     var K = L.kr, S = K.skill, u = K.pill.u, x = R.x, y = R.y, w = R.w, h = R.h, A;
-    var raw = String(value || '').trim(), v = VF ? raw : raw.toUpperCase();
-    var hb = S.head, hy = y + u, hux = S.hu * K.lux / K.luy;
+    var hb = S.head, hy = y + u, hux = S.hu * K.lux / K.luy, v = splitText(value);
     stepBox(out, x, y, w, h, u, [[x + u, x + w - u, COL.value]], [[hy, hy + hb, COL.label]]);
     text(out, 'SKILL', x + w / 2 - textUnits('SKILL') * hux / 2, hy + (hb - 16 * S.hu) / 2, hux, S.hu, COL.ink);
     A = { x: x + u, y: hy + hb, w: w - 2 * u, h: h - 2 * u - hb };
-    if (!v) return;
-    var px = A.w * 0.07, py = A.h * 0.07, W = A.w - 2 * px, H = A.h - 2 * py, cx = A.x + A.w / 2;
-    var want = Math.min(H, S.base * sizeOf('skill')), w1 = lineW(v, want), lines = [v], lh = want;
-    if (w1 > W) {
-      lh = want * W / w1;   // 한 줄로 줄이면 이 높이
-      if (/\s/.test(v)) {
-        var two = twoLines(v, function (s) { return lineW(s, 1); }), h2 = Math.min(want, (H - S.gap) / 2),
-          w2 = Math.max(lineW(two[0], h2), lineW(two[1], h2));
-        if (w2 > W) h2 *= W / w2;
-        if (h2 > lh * 1.04) { lines = two; lh = h2; }   // 두 줄이 조금이라도 크면 두 줄(칸이 높아서 두 줄이 꽉 차 보인다)
-      }
-    }
-    var tot = lines.length * lh + (lines.length - 1) * S.gap, ty = A.y + (A.h - tot) / 2;
-    lines.forEach(function (s, i) { lineDraw(out, s, cx, ty + i * (lh + S.gap), lh, W); });
+    if (v) drawFit(out, v, A.x + A.w / 2, A.y + A.h / 2, A.w * 0.86, A.h * 0.86, S.base * sizeOf('skill'), S.gap);
+  }
+
+  // ── 특기 자리 시안(11/24 밤 가르시아 "skill 이 배치가 조금 아쉬운데 다른 방법 없니?") — opts.skillAt ──
+  //  'box'(지금) 등급 아래 SKILL 띠 상자 · 'row' TYPE 아래 네 번째 칸(ID·NAME·TYPE과 같은 모양, 등급은 맨 아래) ·
+  //  'plate' 사진 아래쪽에 걸친 이름표(작은 SKILL 탭 — 넓어서 한 줄로 크게) · 'badge' 등급 뱃지와 한 상자(위 등급 · 아래 특기)
+  function skillMode(o) {
+    var m = o.skillAt;
+    if (o.signal != null) return 'box';   // 신호등 줄까지 있으면 예전 자리
+    if (m === 'badge' && o.grade == null) return 'box';
+    return m === 'row' || m === 'plate' || m === 'badge' ? m : 'box';
+  }
+  // 'row': 칸 넷(ID·NAME·TYPE·SKILL)을 row4(칸 높이·간격)대로 다시 놓고 점선은 그 아래 — 칸 높이가 바뀌면 글자 크기도 같은 배수로
+  function rowsL(B) {
+    var R = B.kr.row4, k = R.h / B.field.h, ys = [], y = B.kr.ys[0];
+    for (var i = 0; i < 4; i++) { ys.push(y); y += R.h + R.gap; }
+    var kr = Object.assign({}, B.kr, { ys: ys.slice(0, 3), ys4: ys[3], dashY: ys[3] + R.h + R.dashGap,
+      nameH: B.kr.nameH * k, nameLatH: B.kr.nameLatH * k, kmax: B.kr.kmax * k, lux: B.kr.lux * k, luy: B.kr.luy * k, twoGap: B.kr.twoGap * k, idH: B.kr.idH * k });
+    return Object.assign({}, B, { kr: kr, field: Object.assign({}, B.field, { h: R.h, ys: ys.slice(0, 3) }),
+      value: Object.assign({}, B.value, { ux: B.value.ux * k, uy: B.value.uy * k }) });
+  }
+  function layoutFor(o) {
+    var B = o.landscape ? LL : LP;
+    return (o.keyring || o.landscape) && o.skill != null && skillMode(o) === 'row' ? rowsL(B) : B;
+  }
+  // 'plate': 사진 칸 아래쪽 안에 이름표 — 사진 위라 흰색 대신 크림(워킹패스 화면은 사진 칸의 흰 곳에만 사진을 얹는다)
+  function plateRect() {
+    var P = photoBox(), C = L.kr.plate;
+    return { x: P.x + C.m, y: P.y + P.h - C.m - C.h, w: P.w - 2 * C.m, h: C.h };
+  }
+  function skillPlate(out, value) {
+    var K = L.kr, C = K.plate, T = C.tab, R = plateRect(), u = K.pill.u, v = splitText(value);
+    var tx = R.x + 22, ty = R.y - T.h + u, hu = (T.h - 2 * u) * 0.72 / 16, hux = hu * K.lux / K.luy;
+    stepBox(out, tx, ty, T.w, T.h + u, u, [[tx + u, tx + T.w - u, COL.label]]);   // 작은 분홍 탭 — 아랫부분은 이름표 테두리에 덮인다
+    text(out, 'SKILL', tx + T.w / 2 - textUnits('SKILL') * hux / 2, ty + u + (T.h - 2 * u - 16 * hu) / 2, hux, hu, COL.ink);
+    stepBox(out, R.x, R.y, R.w, R.h, u, [[R.x + u, R.x + R.w - u, COL.body]]);
+    if (v) drawFit(out, v, R.x + R.w / 2, R.y + R.h / 2, (R.w - 2 * u) * 0.9, (R.h - 2 * u) * 0.86, C.base * sizeOf('skill'), C.gap);
+  }
+  // 'badge': 점선 아래 ~ 사진 틀 아랫줄까지 한 상자 — 위 띠에 발바닥 + 산책 등급, 아래 흰 칸에 특기
+  function comboRect() {
+    var K = L.kr, C = K.combo, top = K.dashY + L.dash.h + C.gap;
+    return { x: L.field.x, y: top, w: L.field.w, h: L.frame.ob - top };
+  }
+  function comboBox(out, value, lv) {
+    var K = L.kr, C = K.combo, R = comboRect(), u = K.light.u, v = splitText(value);
+    lv = Math.max(0, Math.min(3, lv | 0));
+    stepBox(out, R.x, R.y, R.w, R.h, u, [[R.x + u, R.x + R.w - u, COL.value]], [[R.y + u, R.y + u + C.band, GRADE_COL[lv]]]);
+    badgeInner(out, R.x, R.y, R.w, C.band + 2 * u, lv);
+    var A = { x: R.x + u, y: R.y + u + C.band, w: R.w - 2 * u, h: R.h - 2 * u - C.band };
+    if (v) drawFit(out, v, A.x + A.w / 2, A.y + A.h / 2, A.w * 0.86, A.h * 0.82, C.base * sizeOf('skill'), C.gap2);
+  }
+  // 편집 창이 크게 볼 특기 자리(카드 좌표)
+  function skillSpot(o, m) {
+    if (m === 'row') return { x: L.field.x, y: L.kr.ys4, w: L.field.w, h: L.field.h };
+    if (m === 'plate') { var R = plateRect(), th = L.kr.plate.tab.h - L.kr.pill.u; return { x: R.x, y: R.y - th, w: R.w, h: R.h + th }; }
+    if (m === 'badge') return comboRect();
+    return skillRect(o);
   }
 
   // 성향 신호등(뒷면 성향 칸과 같은 색 — 0 다가와도 좋아요 초록 · 1 천천히 인사해요 노랑 · 2 눈으로만 빨강): 진한 판에 불 셋, 고른 불만 켬
@@ -482,8 +578,13 @@
   var GRADES = ['산책 입문자', '산책 러버', '프로 산책러', '핑크 앰배서더'], GRADE_COL = ['#fde0dc', '#fdcfd3', '#fbb8bf', '#feafc7'];
   function gradeBadge(out, x, y, w, h, lv) {
     lv = Math.max(0, Math.min(3, lv | 0));
-    var LT = L.kr.light, KP = L.kr.pill, u = LT.u, name = GRADES[lv];
+    var u = L.kr.light.u;
     stepBox(out, x, y, w, h, u, [[x + u, x + w - u, GRADE_COL[lv]]]);
+    badgeInner(out, x, y, w, h, lv);
+  }
+  // 뱃지 안쪽 — (x, y, w, h)는 테두리까지 친 상자 크기
+  function badgeInner(out, x, y, w, h, lv) {
+    var LT = L.kr.light, KP = L.kr.pill, u = LT.u, name = GRADES[lv];
     var pu = Math.min(2.6, (h - 2 * u - 20) / 27), pw = 29 * pu, gap = 18,   // 발바닥은 너무 커지지 않게, 글씨는 칸 높이 따라 조금 크게
       tux = Math.min(KP.ux * 1.05 * Math.min(1.35, h / 78), (w - 2 * u - 40 - pw - gap) / textUnits(name)), tuy = tux * KP.uy / KP.ux,
       total = pw + gap + textUnits(name) * tux, sx = x + (w - total) / 2;
@@ -545,13 +646,13 @@
   function render(o) {
     o = o || {};
     var keepL = L, keepC = COL, keepG = GRADE_COL, pc = colorsFor(o.color);
-    L = o.landscape ? LL : LP; COL = pc.col; GRADE_COL = pc.grade;
+    L = layoutFor(o); COL = pc.col; GRADE_COL = pc.grade;
     VF = VFONTS[o.vfont] || null; SZ = o.sizes || {}; EST = false;
     try { return renderNow(o); } finally { L = keepL; COL = keepC; GRADE_COL = keepG; VEC = null; VF = null; SZ = {}; }
   }
   function renderNow(o) {
     var B = o.brand || (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
-    var R = L.ref || REF, C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring || L === LL;
+    var R = L.ref || REF, C = L.card, F = L.frame, P = photoBox(), card = o.scene === 'card', out = [], KR = !!o.keyring || !!o.landscape;
     var vb = card ? [C.x, C.y, C.w, C.h] : [0, 0, R.w, R.h];
     VEC = (o.hangul || VF) ? [] : null;
     // est: 글꼴을 받기 전이라 글줄 폭을 어림으로 잰 적 있음 — 쓰는 쪽은 fontsReady 뒤에 한 번 더 그리면 줄 나눔까지 정확하다
@@ -616,14 +717,18 @@
         text(g1, v, vx, lb.y + (16 * V.uy - 16 * uy) / 2, ux, uy, COL.ink);
       }
     });
+    var SK = KR && o.skill != null ? skillMode(o) : null;   // 특기 자리(시안)
+    if (SK === 'row') keyringBox(g1, 'SKILL', o.skill, L.kr.ys4, 'skill', 'skill');
     // 점선(양 끝은 옅게)
     var D = L.dash, dy = KR ? L.kr.dashY : D.y, dn = D.n == null ? 9 : D.n;   // 가로판은 칸 폭대로 개수(D.n)
     for (var k = -1; k <= dn; k++) rect(g1, D.x0 + k * D.pitch, dy, D.w, D.h, k < 0 ? COL.dashFaint : (k === dn ? COL.dashSoft : COL.dash));
     // 알약 — 키링판은 특기 칸(o.skill을 주면, 11/24 밤) 또는 홍보 문구 두 줄(칸 폭 그대로), 아니면 원본처럼 WALSON
     var PL = L.pill, KP = L.kr.pill, tag = o.tagline !== false && B.tagline;
     var rowsOn = KR && (o.signal != null || o.grade != null), pyy = rowsOn ? L.kr.pillLow : KP.y;
-    var SR = KR && o.skill != null ? skillRect(o) : null;
+    var SR = SK === 'box' ? skillRect(o) : null;
     if (SR) skillBox(g1, o.skill, SR);
+    else if (SK === 'plate') skillPlate(g1, o.skill);
+    else if (SK) { /* row: 위 칸 줄에서 · badge: 아래 등급 자리에서 같이 */ }
     else if (KR && tag) {
       stepBox(g1, FD.x, pyy, FD.w, KP.h, KP.u, [[FD.x + KP.u, FD.x + FD.w - KP.u, COL.pill]]);
       var ln = KP.one ? [B.tagline, ''] : twoLines(B.tagline), lw = Math.max(textUnits(ln[0]), textUnits(ln[1])),   // 가로판은 넓어서 한 줄
@@ -645,9 +750,13 @@
       if (o.signal != null) { signalLight(g1, FD.x, rowY, FD.w, LT.h, +o.signal); rowY += LT.h + LT.gap; }
       if (o.grade != null) {
         // 등급만 있으면(11/24 "신호등은 톤을 방해" → 뺌) 점선과 홍보 알약(특기 칸) 사이 가운데에 조금 크게
-        var gh = o.signal != null ? LT.h : (SR && LT.soloSk) || LT.solo;
-        if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + (SR ? SR.y : L.kr.pillLow)) / 2 - gh / 2;
-        gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
+        if (SK === 'badge') comboBox(g1, o.skill, +o.grade);   // 등급과 특기 한 상자
+        else {
+          var gh = o.signal != null ? LT.h : SK === 'plate' ? L.kr.plate.badge : (SR && LT.soloSk) || LT.solo;
+          var low = SR ? SR.y : (SK === 'row' || SK === 'plate') ? F.ob : L.kr.pillLow;   // 아래 끝(특기 상자 위 · 사진 틀 아랫줄 · 홍보 알약 위)
+          if (o.signal == null) rowY = (L.kr.dashY + L.dash.h + low) / 2 - gh / 2;
+          gradeBadge(g1, FD.x, rowY, FD.w, gh, +o.grade);
+        }
       }
     } else if (L.qr) {   // 가로판은 QR 자리가 없다
       // QR(흰 판 + 글자) — 11/24부터 링크 아님(site-config.js cardQrText: 카메라로 찍으면 "카카오톡에서 '왈슨' 검색"만 보인다)
@@ -716,9 +825,9 @@
   // 편집 창(keyring-edit.js)이 고치는 칸을 크게 보여 줄 때. opts는 render와 같은 것(landscape·signal·grade만 본다)
   function boxes(o) {
     o = o || {};
-    var keep = L; L = o.landscape ? LL : LP;
+    var keep = L; L = layoutFor(o);
     try {
-      var C = L.card, FD = L.field, ys = L.kr.ys, S = skillRect(o), res = { card: [C.w, C.h] };
+      var C = L.card, FD = L.field, ys = L.kr.ys, S = skillSpot(o, skillMode(o)), res = { card: [C.w, C.h] };
       var r = function (x, y, w, h) { return [x - C.x, y - C.y, w, h]; };
       ['id', 'name', 'type'].forEach(function (k, i) { res[k] = r(FD.x, ys[i], FD.w, FD.h); });
       res.skill = r(S.x, S.y, S.w, S.h);
