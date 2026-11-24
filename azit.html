@@ -925,7 +925,8 @@
     var fj = fetchJob, tnow = nowSec();
     itemsOf(o, 'floor').forEach(function (it) {
       if (fj && it.id === fj.id) return;   // 던진 공은 아래에서 따로(날아가는 중·바닥·입에)
-      var p = posOf(o, it), q = P(p.i, p.j); things.push({ id: it.id, z: q.y, x: q.x, y: q.y, spr: (it.id === 'lamp' && lampLit() && pic('lamp_stand_on')) || pic(it.spr) });
+      var p = posOf(o, it), q = P(p.i, p.j), ro = rollOf(it.id);   // 개모차는 탄 강아지가 "출발!" 하는 동안 살짝 굴러간다
+      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: (it.id === 'lamp' && lampLit() && pic('lamp_stand_on')) || pic(it.spr) });
     });
     if (fj && (fj.phase === 'bounce' || fj.phase === 'chase' || fj.phase === 'grab')) {   // 떨어진 공 — 처음 0.4초는 통통 두 번
       var lq = P(fj.L.i, fj.L.j), lift = 0;
@@ -946,8 +947,8 @@
         return;
       }
       if (t.dog) {
-        var rt = riding(t.dog) ? drawRide(t.dog, t.dogId, t.acc) : null, top, bx = t.x;   // 개모차 안이면 창으로 얼굴만(11/24)
-        if (rt != null) { top = rt; bx = t.dog.headX; }
+        var rt = rideDraw(t.dog, t.dogId, t.acc), top, bx = t.x;   // 개모차 타기 · 탄 동안(창으로 얼굴만) · 내리기(11/24)
+        if (rt) { top = rt.y; bx = rt.x; }
         else {
           top = drawDog(t.dog, t.dogId, t.x, t.y);
           ctx.imageSmoothingEnabled = false;
@@ -1420,7 +1421,13 @@
   // 개모차 앞 창(stroller_win.png — 흰 곳만 보임) 안에 강아지를 줄여 그린다: 정수리~턱이 창 높이(crown~chin)에 맞고
   // 턱이 바구니 앞판에 걸리게 → 몸은 앞판에, 귀 끝은 지붕에 가려 얼굴만 쏙. 좌표는 개모차 그림 왼쪽 위에서 점.
   // seat = 타 있는 동안 강아지 바닥 자리(앞뒤 순서·둘레 판정용 — 개모차 바닥 가운데쯤)
-  var RIDES = { stroller: { cx: 15.5, crown: 15, chin: 25.5, seat: [16, 48], win: 'stroller_win' } };
+  // 같은 날 가르시아 "개모차 개선이 필요한 점 체크" → "고쳐 줘": 탈 때 큰 강아지가 개모차 앞을 다 가리고 뛰다가 사라지고 빈 창에서 얼굴이
+  // 올라오던 것, 내릴 때 지붕 위로 리본만 보이다가 개모차 앞에 툭 나타나던 것, "출발!"인데 가만히 있던 것 →
+  // 탈 때(RIDE_IN초): 앞에서 바구니 앞판 윗선(rim) 위까지 뛰어오르고(그동안은 개모차 앞), 개모차 안으로 떨어지며 창으로 얼굴이 내려와 앉는다
+  // (떨어지는 동안은 inMask — 창과 개모차 그림 바깥만 보이고 지붕·바구니에 가림). 내릴 때(RIDE_OUT초)는 거꾸로. 크기는 뛰는 동안 보통 ↔ 창 크기로.
+  // 앉을 때 살짝 내려앉았다 올라오고, 내리기 전엔 살짝 웅크린다. 한마디 하는 동안(ROLL_T초) 개모차가 앞바퀴 쪽(roll — 왼쪽 아래)으로 두 번 갔다 온다
+  var RIDES = { stroller: { cx: 15.5, crown: 15, chin: 25.5, rim: 26, seat: [16, 48], win: 'stroller_win', roll: [-2, 1] } };
+  var RIDE_IN = 0.5, RIDE_OUT = 0.45, ROLL_T = 1.6;
   // 도트 강아지 얼굴 자리 — [얼굴 가운데 x, 정수리 y, 턱 y](그림 폭·키에 대한 비율, 눈으로 잰 값). 파란 니트는 거꾸로 누운 자세라
   // 얼굴이 아래쪽. 워킹패스 사진 강아지는 머리 자리(headOf)에서 정수리를 재고 턱은 키의 32% 아래로 어림
   var RIDE_FACE = { chihuahua: [0.52, 0.14, 0.38], dachs: [0.5, 0.05, 0.55], jindo: [0.5, 0.09, 0.29], maltese: [0.56, 0.06, 0.46],
@@ -1431,10 +1438,9 @@
     var q = P(p.i, p.j), x0 = Math.round(q.x - im.width / 2), y0 = Math.round(q.y - im.height + 1), sp = rd ? rd.seat : st, sy = y0 + sp[1];
     return { id: it.id, at: unP(x0 + sp[0], sy), front: clampFloor({ i: p.i + 3, j: p.j + 3 }), z: q.y + 0.25, clipY: sy,
       x0: x0, x1: x0 + im.width, y0: y0, y1: q.y,
-      ride: rd ? { x0: x0, y0: y0, cx: rd.cx, crown: rd.crown, chin: rd.chin, win: rd.win } : null };
+      ride: rd ? { spr: it.spr, x0: x0, y0: y0, cx: rd.cx, crown: rd.crown, chin: rd.chin, rim: rd.rim, roll: rd.roll, win: rd.win } : null };
   }
-  function riding(d) { return !!(d.seat && d.seat.ride && (d.mode === 'sit' || d.mode === 'stand')); }
-  var rideCache = {}, rideCan = null;
+  var rideCache = {}, rideMasks = {}, rideCans = {};
   function rideBitmap(id, w, h) {   // 개모차 안 강아지(곱게 줄인 것) — 크기는 강아지·화면 배율마다 하나
     var key = id + '@' + w + 'x' + h;
     if (rideCache[key]) return rideCache[key];
@@ -1446,50 +1452,129 @@
     } else c = smallCopy(im, w, h);
     return (rideCache[key] = c);
   }
-  // 창 안에 강아지(+ 머리 장식)를 그리고 창 모양으로 오린 뒤 방에 올린다. 앉는 동안(sink 0 → SINK) 아래에서 쏙 올라오고,
-  // 내릴 때(stand) 쏙 내려간다. 돌려주는 값 = 말풍선을 띄울 정수리 높이
-  function drawRide(d, dogId, acc) {
-    var s = d.seat, r = s.ride, src = dogSrc[dogId], mask = pic(r.win);
-    if (!src || !mask) return null;
-    var f = RIDE_FACE[dogId], hd = heads[dogId];
-    if (!f) f = hd ? [hd.hx, hd.hy, Math.min(0.75, hd.hy + 0.32)] : [0.5, 0.05, 0.4];
-    var im = src.im, dh = (r.chin - r.crown) / Math.max(0.1, f[2] - f[1]), dw = dh * im.naturalWidth / im.naturalHeight;
-    var pop = Math.round((1 - Math.min(1, (d.sink || 0) / SINK)) * 8);
-    var bm = rideBitmap(dogId, Math.max(1, Math.round(dw * R)), Math.max(1, Math.round(dh * R)));
-    if (!bm) return null;
-    var x = r.x0 + r.cx - f[0] * dw, top = r.y0 + r.crown - f[1] * dh + pop;
-    if (!rideCan) rideCan = document.createElement('canvas');
-    var cw = mask.width * R, ch = mask.height * R;
-    if (rideCan.width !== cw || rideCan.height !== ch) { rideCan.width = cw; rideCan.height = ch; }
-    var g = rideCan.getContext('2d');
-    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, cw, ch);
-    g.imageSmoothingEnabled = false;
-    g.drawImage(bm, Math.round((x - r.x0) * R), Math.round((top - r.y0) * R));
-    var a = acc && pic('acc_' + acc);
-    if (a) {   // 머리 장식도 얼굴 크기만큼 줄여 정수리에(지붕에 걸리면 같이 가려진다)
-      var k = dh / DOG_VIS, aw = a.width * k, ah = a.height * k, hx = r.x0 + r.cx, hy = r.y0 + r.crown + pop;
-      g.drawImage(a, Math.round((hx - aw / 2 - r.x0) * R), Math.round((hy + 4 * k - ah - r.y0) * R), Math.round(aw * R), Math.round(ah * R));
+  function faceOf(dogId) {   // [얼굴 가운데 x, 정수리 y, 턱 y] — 사진 강아지는 머리 자리(headOf)에서 어림
+    var hd = heads[dogId];
+    return RIDE_FACE[dogId] || (hd ? [hd.hx, hd.hy, Math.min(0.75, hd.hy + 0.32)] : [0.5, 0.05, 0.4]);
+  }
+  // 자리 = 그림 네모(방 점 x·top·w·h) + 머리 장식 자리(ax·ay — 그림 안 비율, 뒤집힌 것까지)
+  function ridePose(d, dogId, r) {   // 창 안 — 정수리~턱이 창 높이에, 얼굴 가운데가 창 가운데에
+    var f = faceOf(dogId), im = dogSrc[dogId].im, fx = d.flip ? 1 - f[0] : f[0];
+    var h = (r.chin - r.crown) / Math.max(0.1, f[2] - f[1]), w = h * im.naturalWidth / im.naturalHeight;
+    return { x: r.x0 + r.cx - fx * w, top: r.y0 + r.crown - f[1] * h, w: w, h: h, ax: fx, ay: f[1] };
+  }
+  function floorPose(d, dogId, px, py) {   // 바닥 (px, py)에 선 보통 강아지(drawDog와 같은 크기·자리)
+    var b = dogBitmap(dogId); if (!b) return null;
+    var w = b.width / R, h = b.height / R, hd = heads[dogId];
+    return { x: px - w / 2, top: py - h + 1, w: w, h: h, ax: hd ? (d.flip ? 1 - hd.hx : hd.hx) : 0.5, ay: hd ? hd.hy : 0 };
+  }
+  function mixPose(a, b, k) {
+    function m(p, q) { return p + (q - p) * k; }
+    return { x: m(a.x, b.x), top: m(a.top, b.top), w: m(a.w, b.w), h: m(a.h, b.h), ax: m(a.ax, b.ax), ay: m(a.ay, b.ay) };
+  }
+  // 가리개(화면 점 배율로 한 번 만들어 둠, 흰 곳만 보임) — dx·dy = 개모차 그림 왼쪽 위에서 가리개 왼쪽 위까지(방 점)
+  function winMask(r) {   // 창으로만(탄 동안)
+    var key = 'win:' + r.win + '@' + R; if (rideMasks[key]) return rideMasks[key];
+    var m = pic(r.win); if (!m) return null;
+    var c = document.createElement('canvas'); c.width = m.width * R; c.height = m.height * R;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(m, 0, 0, c.width, c.height);
+    return (rideMasks[key] = { c: c, dx: 0, dy: 0 });
+  }
+  var IN_MX = 24, IN_MY = 48;   // 뛰는 강아지가 개모차 그림 밖으로 나가는 만큼(양옆·위)
+  function inMask(r) {   // 개모차 안(타고 내리는 동안) — 창 + 바구니 앞판 윗선보다 위의 개모차 그림 바깥(지붕·손잡이·바구니 뒤는 가림)
+    var key = 'in:' + r.spr + '@' + R; if (rideMasks[key]) return rideMasks[key];
+    var sp = pic(r.spr), m = pic(r.win); if (!sp || !m) return null;
+    var c = document.createElement('canvas'); c.width = (sp.width + IN_MX * 2) * R; c.height = (sp.height + IN_MY) * R;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, (IN_MY + r.rim) * R);
+    g.globalCompositeOperation = 'destination-out'; g.drawImage(sp, IN_MX * R, IN_MY * R, sp.width * R, sp.height * R);
+    g.globalCompositeOperation = 'source-over'; g.drawImage(m, IN_MX * R, IN_MY * R, m.width * R, m.height * R);
+    return (rideMasks[key] = { c: c, dx: -IN_MX, dy: -IN_MY });
+  }
+  // 출발! — 탄 강아지가 한마디 하는 동안 개모차(와 창 안 강아지)가 앞바퀴 쪽으로 갔다 왔다(방 점)
+  function rollOf(id) {
+    var o = { x: 0, y: 0 };
+    [host, guest].forEach(function (d) {
+      var a = d.act, s = d.seat, t = a && a.on ? last - a.t0 : -1;
+      if (!s || !s.ride || s.id !== id || d.mode !== 'sit' || !(t >= 0 && t < ROLL_T)) return;
+      var w = Math.sin(t * Math.PI * 4 / ROLL_T);
+      o.x = Math.round(s.ride.roll[0] * w); o.y = Math.round(s.ride.roll[1] * w);
+    });
+    return o;
+  }
+  // 자리 p에 강아지(+ 머리 장식)를 그린다. how: 'win' 창으로만 · 'in' 개모차 안 · null 다 보임(개모차 앞).
+  // still = 창 안에 가만히(곱게 줄인 그림을 한 번 만들어 둠) — 뛰는 동안은 크기가 계속 바뀌어 원본에서 바로 그린다.
+  // 돌려주는 값 = 머리 장식 자리(말풍선을 띄울 곳)
+  function drawRidePose(d, dogId, acc, r, p, how, still, off) {
+    var src = dogSrc[dogId], W = Math.max(1, Math.round(p.w * R)), H = Math.max(1, Math.round(p.h * R));
+    var img = still ? rideBitmap(dogId, W, H) : src && src.im;
+    if (!img) return null;
+    var m = how === 'win' ? winMask(r) : how === 'in' ? inMask(r) : null;
+    if (how && !m) return null;
+    var x = p.x + off.x, top = p.top + off.y, a = acc && pic('acc_' + acc), k = p.h / DOG_VIS;
+    var hx = x + p.ax * p.w, hy = top + p.ay * p.h;
+    function paint(g, bx, by) {   // g = 화면 점 그대로(변환 없음), (bx, by) = 그 캔버스 왼쪽 위의 방 점
+      var X = Math.round((x - bx) * R), Y = Math.round((top - by) * R);
+      g.save();
+      g.imageSmoothingEnabled = !still && !(src.px && H >= src.im.naturalHeight); g.imageSmoothingQuality = 'high';   // 점 그림을 키울 땐 점 그대로
+      if (d.flip) { g.translate(X * 2 + W, 0); g.scale(-1, 1); }
+      g.drawImage(img, X, Y, W, H);
+      g.restore();
+      if (a) {   // 머리 장식도 강아지 크기만큼 줄여 정수리에(지붕에 걸리면 같이 가려진다)
+        var aw = a.width * k, ah = a.height * k;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(a, Math.round((hx - aw / 2 - bx) * R), Math.round((hy + 4 * k - ah - by) * R), Math.max(1, Math.round(aw * R)), Math.max(1, Math.round(ah * R)));
+      }
     }
-    g.globalCompositeOperation = 'destination-in'; g.drawImage(mask, 0, 0, cw, ch);
-    g.globalCompositeOperation = 'source-over';
-    ctx.drawImage(rideCan, r.x0, r.y0, mask.width, mask.height);
-    d.box = { x: x, w: dw, h: dh }; d.headX = r.x0 + r.cx;
-    return r.y0 + r.crown + pop;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!m) paint(ctx, OX, 0);
+    else {   // 따로 그려 가리개 모양으로 오린 뒤 방에 올린다
+      var mx = r.x0 + m.dx + off.x, my = r.y0 + m.dy + off.y, key = m.c.width + 'x' + m.c.height;
+      var can = rideCans[key] || (rideCans[key] = document.createElement('canvas'));
+      if (can.width !== m.c.width || can.height !== m.c.height) { can.width = m.c.width; can.height = m.c.height; }
+      var g = can.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, can.width, can.height);
+      paint(g, mx, my);
+      g.globalCompositeOperation = 'destination-in'; g.imageSmoothingEnabled = false; g.drawImage(m.c, 0, 0);
+      g.globalCompositeOperation = 'source-over';
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(can, Math.round((mx - OX) * R), Math.round(my * R));
+    }
+    ctx.restore();
+    d.box = { x: x, w: p.w, h: p.h }; d.headX = hx;
+    return { x: hx, y: hy };
+  }
+  // 개모차를 타는 중(타기 · 탄 동안 · 내리기)이면 그리고 머리 장식 자리를, 아니면 null(보통 강아지로)
+  function rideDraw(d, dogId, acc) {
+    var s = d.seat, r = s && s.ride;
+    if (!r || !dogSrc[dogId]) return null;
+    var rp = ridePose(d, dogId, r);
+    if (d.mode === 'sit' || d.mode === 'stand') {   // 창 안 — 앉을 때 살짝 내려앉았다 올라오고, 내리기 전엔 살짝 웅크린다
+      rp.top += Math.round(2 * Math.sin(Math.PI * Math.min(1, (d.sink || 0) / SINK)));
+      return drawRidePose(d, dogId, acc, r, rp, 'win', true, rollOf(s.id));
+    }
+    if (d.mode !== 'hop' && d.mode !== 'hopout') return null;
+    var out = d.mode === 'hopout', k = Math.min(1, d.hopK || 0), fq = out ? s.front : d.hopFrom, fl = P(fq.i, fq.j);
+    var fp = floorPose(d, dogId, fl.x, fl.y); if (!fp) return null;
+    var a = out ? rp : fp, b = out ? fp : rp, p = mixPose(a, b, k);
+    var apexT = r.y0 + r.rim - 3 - (a.h + b.h) / 2;   // 꼭대기 — 발이 바구니 앞판 윗선보다 조금 위
+    if (k < 0.5) { var u = k * 2; p.top = a.top + (apexT - a.top) * u * (2 - u); }   // 올라갈 땐 점점 느리게
+    else { var v = k * 2 - 1; p.top = apexT + (b.top - apexT) * v * v; }            // 떨어질 땐 점점 빠르게
+    return drawRidePose(d, dogId, acc, r, p, (k < 0.5) === out ? 'in' : null, false, { x: 0, y: 0 });   // 개모차 안에 있는 동안만 가린다
   }
   function onSeatRect(d) { var s = d.seat, q = P(d.i, d.j); return q.x >= s.x0 - 2 && q.x <= s.x1 + 2 && q.y >= s.y0 && q.y <= s.y1 + 3; }
-  function hopStep(d, now) {   // 방석 위로 폴짝 — 그동안은 걷기 대신 이것이 자리를 옮긴다
-    var k = Math.min(1, (now - d.modeT0) / 0.35), e = k * (2 - k), s = d.seat;
+  function hopStep(d, now) {   // 방석 위로 폴짝(개모차는 더 높이 — 그리기는 rideDraw) — 그동안은 걷기 대신 이것이 자리를 옮긴다
+    var s = d.seat, k = Math.min(1, (now - d.modeT0) / (s && s.ride ? RIDE_IN : 0.35)), e = k * (2 - k);
     if (!s) { d.mode = null; d.hop = null; return; }
     d.i = d.hopFrom.i + (s.at.i - d.hopFrom.i) * e; d.j = d.hopFrom.j + (s.at.j - d.hopFrom.j) * e;
-    d.ti = d.i; d.tj = d.j; d.frame = 0;
-    d.hop = Math.round(7 * Math.sin(Math.PI * k));
+    d.ti = d.i; d.tj = d.j; d.frame = 0; d.hopK = k;
+    d.hop = s.ride ? 0 : Math.round(7 * Math.sin(Math.PI * k));
     if (k >= 1) { d.hop = null; d.mode = 'sit'; d.modeT0 = now; d.sink = 0; if (d.act) startAct(d, now); }
   }
-  function hopOutStep(d, now) {   // 개모차에서 뛰어내리기(0.35초) — 가려던 곳(ti·tj)은 그대로 두었다가 내린 뒤 걸어간다
-    var k = Math.min(1, (now - d.modeT0) / 0.35), e = k * (2 - k);
+  function hopOutStep(d, now) {   // 개모차에서 뛰어내리기(RIDE_OUT초, 그리기는 rideDraw) — 가려던 곳(ti·tj)은 그대로 두었다가 내린 뒤 걸어간다
+    var k = Math.min(1, (now - d.modeT0) / RIDE_OUT), e = k * (2 - k);
     d.i = d.hopFrom.i + (d.hopTo.i - d.hopFrom.i) * e; d.j = d.hopFrom.j + (d.hopTo.j - d.hopFrom.j) * e;
-    d.frame = 0; d.hop = Math.round(6 * Math.sin(Math.PI * k));
-    if (k >= 1) { d.hop = null; d.mode = null; }
+    d.frame = 0; d.hop = 0; d.hopK = k;
+    if (k >= 1) { d.hop = null; d.mode = null; d.seat = null; }   // 다 내려야 개모차 바로 다음 그리는 순서에서 풀린다
   }
   function unseat(d) { d.mode = null; d.sink = 0; d.seat = null; d.hop = null; }
   function startAct(d, now) {
@@ -1751,8 +1836,8 @@
         var ku = (now - d.modeT0) / 0.15;
         if (ku < 1) { d.sink = SINK * (1 - ku); d.frame = 0; return; }
         d.sink = 0; d.mode = null;
-        if (d.seat && d.seat.ride) {   // 개모차 — 얼굴이 쏙 내려간 뒤 앞으로 폴짝 뛰어내린다(그동안은 보통 강아지로)
-          d.mode = 'hopout'; d.modeT0 = now; d.hopFrom = { i: d.i, j: d.j }; d.hopTo = d.seat.front; d.seat = null; return;
+        if (d.seat && d.seat.ride) {   // 개모차 — 살짝 웅크렸다가 창에서 쏙 올라와 앞으로 뛰어내린다(rideDraw, 다 내릴 때까지 seat 그대로)
+          d.mode = 'hopout'; d.modeT0 = now; d.hopK = 0; d.hopFrom = { i: d.i, j: d.j }; d.hopTo = d.seat.front; return;
         }
       }
       if (d.seat && !d.mode && !onSeatRect(d)) d.seat = null;   // 방석 둘레를 벗어나면 앞뒤 순서 원래대로
@@ -1765,7 +1850,7 @@
       } else {
         d.fast = false;
         if (d.act && !d.act.on) {
-          if (d.act.seat && d.mode !== 'sit') { d.mode = 'hop'; d.modeT0 = now; d.hopFrom = { i: d.i, j: d.j }; d.seat = d.act.seat; return; }   // 방석 앞에 왔으면 폴짝
+          if (d.act.seat && d.mode !== 'sit') { d.mode = 'hop'; d.modeT0 = now; d.hopK = 0; d.hopFrom = { i: d.i, j: d.j }; d.seat = d.act.seat; return; }   // 방석 앞에 왔으면 폴짝(hopK = 지난번 값이 남지 않게)
           startAct(d, now);
         }
         if (d.act && actStep(d, now)) return;   // 소품과 노는 중 — 쉬는 통통·혼자 돌아다니기는 잠깐 쉼
