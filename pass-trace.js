@@ -227,10 +227,11 @@
     // 값 앞뒤 여백도 좁혀 값 자리를 넓힘(원본 174 → 204점, "포메라니안"이 덜 작아짐). 칸끼리 간격도 40 → 30점.
     // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
     // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
-    kr: { ys: [702.5, 882.5, 1062.5], labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+    kr: { nameH: 84, nameLatH: 62, nameFill: 0.74, ys: [702.5, 882.5, 1062.5],   // nameH·nameFill: 이름 글씨 높이·짧은 이름이 채울 칸 폭 비율(11/24 "두 글자면 더 차게, 자간 벌려")
+      labels: ['ID', 'NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
-      light: { y: 1314.5, h: 78, solo: 104, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
+      light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5 }   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
   };
   function photoBox() {
     var F = L.frame;
@@ -286,8 +287,18 @@
     var vx = sp + K.vgap, avail = (x + w - u - K.vpad) - vx, ux = Math.min(vmax, avail / textUnits(v)), uy = ux * V.uy / V.ux;
     if (VEC && /[가-힣]/.test(v)) {   // 또렷한 한글: 칸 폭 전체를 쓰고 왼쪽 맞춤(긴 견종도 덜 작게 — 글꼴이 도트보다 좁다)
       var vh = 16 * K.kmax * V.uy / V.ux * 0.8;
-      if (center) { var cl = sp + u * 0.5, cw = x + w - u - cl - u * 0.5; VEC.push({ s: v, x: cl, y: y + (h - vh) / 2, w: cw, h: vh, fill: COL.ink, fit: true }); return; }
+      if (center === 'grow') vh = K.nameH;   // 이름: 크게 + 짧으면 자간을 벌려 칸을 채움(paintText spread)
+      if (center) { var cl = sp + u * 0.5, cw = x + w - u - cl - u * 0.5; VEC.push({ s: v, x: cl, y: y + (h - vh) / 2, w: cw, h: vh, fill: COL.ink, fit: true, spread: center === 'grow' ? K.nameFill : 0 }); return; }
       VEC.push({ s: v, x: vx, y: y + (h - vh) / 2, w: avail, h: vh, fill: COL.ink, left: true }); return;
+    }
+    if (center === 'grow') {   // 영문 이름도: 칸 높이가 허락하는 만큼 크게, 짧으면 글자 사이를 벌려 칸의 nameFill만큼 채움
+      var aw = x + w - u - sp - 2 * K.vpad, nu = textUnits(v);
+      ux = Math.min(K.nameLatH / 16 * V.ux / V.uy, aw * 0.9 / nu); uy = ux * V.uy / V.ux;   // 도트 영문은 칸 높이 꽉 차 보여서 한글보다 낮게
+      var chars = Array.from(v), glyphs = chars.filter(function (c) { return c !== ' '; }).length,
+        gapx = glyphs > 1 ? Math.max(0, Math.min(ux * 8, (aw * K.nameFill - nu * ux) / (chars.length - 1))) : 0,
+        tw = nu * ux + gapx * (chars.length - 1), cx0 = sp + (x + w - u - sp - tw) / 2, xs = [];
+      chars.forEach(function (c) { var gl = glyph(c); if (gl.rows) xs.push(cx0 + gl.lb * ux); cx0 += gl.adv * ux + gapx; });
+      text(out, v, 0, y + (h - 16 * uy) / 2, ux, uy, COL.ink, xs); return;
     }
     if (center) vx = sp + (x + w - u - sp - textUnits(v) * ux) / 2;
     text(out, v, vx, y + (h - 16 * uy) / 2, ux, uy, COL.ink);
@@ -312,8 +323,8 @@
     lv = Math.max(0, Math.min(3, lv | 0));
     var LT = L.kr.light, KP = L.kr.pill, u = LT.u, name = GRADES[lv];
     stepBox(out, x, y, w, h, u, [[x + u, x + w - u, GRADE_COL[lv]]]);
-    var pu = (h - 2 * u - 20) / 27, pw = 29 * pu, gap = 14,
-      tux = Math.min(KP.ux * 1.05, (w - 2 * u - 40 - pw - gap) / textUnits(name)), tuy = tux * KP.uy / KP.ux,
+    var pu = Math.min(2.6, (h - 2 * u - 20) / 27), pw = 29 * pu, gap = 18,   // 발바닥은 너무 커지지 않게, 글씨는 칸 높이 따라 조금 크게
+      tux = Math.min(KP.ux * 1.05 * Math.min(1.35, h / 78), (w - 2 * u - 40 - pw - gap) / textUnits(name)), tuy = tux * KP.uy / KP.ux,
       total = pw + gap + textUnits(name) * tux, sx = x + (w - total) / 2;
     bitmap(out, PAW, { '#': lv === 3 ? COL.divider : COL.paw }, sx, y + (h - 27 * pu) / 2, pu, pu);
     text(out, name, sx + pw + gap, y + (h - 16 * tuy) / 2, tux, tuy, COL.ink);
@@ -371,7 +382,7 @@
     // 정보 칸 셋
     var FD = L.field, V = L.value, vals = [o.id == null ? '' : o.id, o.name == null ? 'POM' : o.name, o.type == null ? 'DOG' : o.type];
     FD.ys.forEach(function (fy, i) {
-      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i > 0); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
+      if (KR) { keyringBox(g1, L.kr.labels[i], vals[i], L.kr.ys[i], i === 1 ? 'grow' : i > 0); return; }   // NAME·TYPE 값은 흰 칸 가운데(11/24 가르시아)   // 키링판 = 짧은 칸 이름 · 좁힌 간격
       var sp = FD.splits[i], fx = FD.x, fu = FD.u;
       stepBox(g1, fx, fy, FD.w, FD.h, fu, [[fx + fu, sp, COL.label], [sp, fx + FD.w - fu, COL.value]]);
       var lb = L.labels[i];
@@ -438,6 +449,17 @@
       g.font = font();
       var m = g.measureText(it.s), maxw = it.w * k * (it.left || it.fit ? 0.9 : 1.06);
       if (m.width > maxw) { fs *= maxw / m.width; g.font = font(); m = g.measureText(it.s); }
+      if (it.spread) {   // 짧으면 글자 사이를 벌려 칸 폭의 spread만큼 채움(글자 폭의 0.8배까지)
+        var cs = Array.from(it.s), ws = cs.map(function (c) { return g.measureText(c).width; }), sum = ws.reduce(function (a, b) { return a + b; }, 0),
+          gap = cs.length > 1 ? Math.max(0, Math.min(fs * 0.8, (it.w * k * it.spread - sum) / (cs.length - 1))) : 0;
+        if (gap > 0) {
+          var a2 = m.actualBoundingBoxAscent || fs * 0.8, d2 = m.actualBoundingBoxDescent || 0, tot = sum + gap * (cs.length - 1),
+            px = (it.x - t.vb[0] + it.w / 2) * k - tot / 2, py = (it.y - t.vb[1] + it.h / 2) * k + (a2 - d2) / 2;
+          g.fillStyle = it.fill;
+          cs.forEach(function (c, j) { g.fillText(c, px, py); px += ws[j] + gap; });
+          return;
+        }
+      }
       var asc = m.actualBoundingBoxAscent || fs * 0.8, desc = m.actualBoundingBoxDescent || 0,
         cx = (it.x - t.vb[0] + it.w / 2) * k, cy = (it.y - t.vb[1] + it.h / 2) * k;
       g.fillStyle = it.fill;
