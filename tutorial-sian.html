@@ -122,7 +122,7 @@
     <p class="sub">가입 없이 바로 시작하는 우리 강아지 산책 기록. 산책 한 번 다녀올 때마다 아지트 소품과 영수증이 쌓여요.</p>
     <div class="stage">
       <div class="say" id="nego">"산책 가면 삐짐 해제"</div>
-      <img class="pxi" src="icons/dot-dogs/px/chihuahua.png" width="66" height="128" alt="도트 치와와">
+      <img src="icons/tutorial-dog.webp" width="180" height="192" alt="목줄을 물고 산책 가자고 조르는 도트 치와와" style="display:block;margin:0 auto">
       <button type="button" class="mini" id="nego-btn">협상 대사 바꿔 보기</button>
     </div>
     <div class="btns"><button type="button" class="btn main" data-go="2">좋아, 워킹패스 만들기 ▶</button></div>
@@ -158,7 +158,7 @@
       <span class="badge px" id="room-name">초코네 아지트</span>
       <span class="gb px" id="gb">킁킁 방명록</span>
       <div class="say" id="room-say">"공 던져 줘!"</div>
-      <img class="pxi me" src="icons/dot-dogs/px/chihuahua.png" width="44" height="85" alt="">
+      <img class="me" src="icons/tutorial-dog.webp" width="84" height="90" alt="">
     </div>
     <div class="props" id="props"></div>
     <div class="ic">
@@ -216,13 +216,13 @@
 
   // ② 이름·견종·성향 → 워킹패스 카드(id-card.js 기본 카드 앞면 — 실제 워킹패스와 같은 그림)·아지트·영수증
   var SIGS = [['green', '다가와도 좋아요', '#3f9b5b'], ['yellow', '천천히 인사해요', '#dfa21f'], ['red', '눈으로만 예뻐해 주세요', '#d2493f']], sig = 'yellow';
-  var dogImg = new Image(); dogImg.src = 'icons/dot-dogs/px/chihuahua.png';
+  var dogImg = new Image(); dogImg.src = 'icons/tutorial-dog.webp';   // 대표 강아지(11/25 가르시아 "이 강아지를 대표로" — 목줄 문 치와와, 받은 그림의 체커 바탕·그림자를 지운 것)
   var big = document.createElement('canvas');
   function photo() {   // 사진 칸에 도트 강아지(흰 바탕, 번지지 않게)
     if (!dogImg.naturalWidth) return null;
-    var c = document.createElement('canvas'), k = 6; c.width = dogImg.naturalWidth * k; c.height = dogImg.naturalHeight * k;
-    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = false;
-    g.drawImage(dogImg, 0, 0, c.width, c.height); return c;
+    var c = document.createElement('canvas'), pad = 40; c.width = dogImg.naturalWidth + pad * 2; c.height = dogImg.naturalHeight + pad * 2;
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(dogImg, pad, pad); return c;
   }
   function card() {
     if (!window.WalsonIdCard) return;
