@@ -427,7 +427,10 @@
   var REDO_V3 = ['neon_chihuahua', 'bag_dispenser', 'leash_hook', 'grooming_basket', 'cafe_cup', 'carrot_plush', 'keyhook_rail', 'flag_stand',
     'picnic_mat', 'lamp_stand', 'lamp_stand_on', 'postcard_paw'];
   var REDO_V4 = ['bag_dispenser', 'grooming_basket', 'stroller', 'stroller_win'];   // 개모차 = 빈 개모차(타기, 11/24)   // 같은 날 생활용품 시트로 한 번 더 바꾼 것(벽걸이 통·도구가 진한 바구니)
-  function picV(n) { return REDO_V4.indexOf(n) >= 0 ? 4 : REDO_V3.indexOf(n) >= 0 ? 3 : /^room(_|$)/.test(n) ? 5 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // 방 그림 v5 = 크림 발바닥 방·선반 모서리 고침·왼쪽 토끼 귀 입구를 벽으로(11/24, _dev/azit-close-door.py)
+  // 11/25 기본 방 소품을 고화질로 다시 받은 그림으로 줄여 바꾼 것(_dev/azit-hq-items.py — 원본 sian-ref/azit-hq, 고화질판 icons/azit-hq) — v5
+  var REDO_V5 = ['sofa_bed', 'cushion_cafe_beige', 'rug_pattern', 'feeder_wood_2bowl', 'basket_blue_carrot', 'toy_bone', 'ball_yellow', 'plant_pot',
+    'frame_jelly_pink', 'frame_gold', 'frame_photo', 'frame_dog', 'frame_pal', 'board_postcard'];
+  function picV(n) { return REDO_V5.indexOf(n) >= 0 ? 5 : REDO_V4.indexOf(n) >= 0 ? 4 : REDO_V3.indexOf(n) >= 0 ? 3 : /^room(_|$)/.test(n) ? 5 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // 방 그림 v5 = 크림 발바닥 방·선반 모서리 고침·왼쪽 토끼 귀 입구를 벽으로(11/24, _dev/azit-close-door.py)
   var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) pics[n] = im; }); }));
   function pic(n) { return pics[n] || null; }
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
@@ -1522,6 +1525,9 @@
   // 소품 보기 창(11/25) — 큰 도트 그림 · 이름 · 표(얻는 법 · 지금 · 놓는 곳 · 우리 개는) · 버튼([던지기] · [우리 개 보내기] · [닫기])
   var KIND_TXT = { play: '가지고 놀아요', eat: '냠냠·킁킁 맛봐요', rest: '올라가서 쉬어요', read: '글씨를 읽어요', look: '구경해요', walk: '산책 가자고 졸라요' };   // 반응 칸(11/25 가르시아 문구)
   function hideCard() { $('itemcard').hidden = true; tipFor = null; }
+  // 소품 보기 창에서 큰 그림을 고화질판으로 보여 줄 소품(받은 고화질 원본에서 자른 것 — 트로피·가랜드는 방 그림과 모양이 달라 뺌)
+  var HQ_ITEMS = ['sofa_bed', 'cushion_cafe_beige', 'rug_pattern', 'feeder_wood_2bowl', 'basket_blue_carrot', 'toy_bone', 'ball_yellow', 'plant_pot',
+    'frame_jelly_pink', 'frame_gold', 'frame_dog', 'board_postcard', 'carrot_plush', 'donut_cushion', 'stroller'];
   function showTip(s) {
     var it = AZ.byId(AZ.ITEMS, s.id);
     if (!it) return;
@@ -1533,6 +1539,20 @@
     var dpr = window.devicePixelRatio || 1, pc = $('ic-pic');
     pc.width = Math.round(iw * sc * dpr); pc.height = Math.round(ih * sc * dpr); pc.style.width = (iw * sc) + 'px'; pc.style.height = (ih * sc) + 'px';
     var pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, pc.width, pc.height); pg.drawImage(img, 0, 0, pc.width, pc.height);
+    // 고화질판이 있는 소품(11/25 — icons/azit-hq, _dev/azit-hq-items.py)은 큰 그림을 그걸로 바꿔 그린다(받는 동안은 위 점 그림).
+    // 벽 반대쪽에 걸려 뒤집힌 그림(oriented)이면 같이 뒤집는다
+    if (HQ_ITEMS.indexOf(it.spr) >= 0) {
+      var flipped = !!(it.face && img !== pic(it.spr) && img !== pic(it.spr + '_L')), hq = new Image();
+      hq.onload = function () {
+        if (tipFor !== s.id || $('itemcard').hidden) return;   // 그사이 다른 소품을 눌렀거나 닫았으면 그대로
+        var k = Math.min(100 / hq.naturalWidth, 100 / hq.naturalHeight), cw = hq.naturalWidth * k, ch = hq.naturalHeight * k;
+        pc.width = Math.round(cw * dpr); pc.height = Math.round(ch * dpr); pc.style.width = cw + 'px'; pc.style.height = ch + 'px';
+        var g2 = pc.getContext('2d'); g2.imageSmoothingEnabled = true; g2.imageSmoothingQuality = 'high'; g2.clearRect(0, 0, pc.width, pc.height);
+        if (flipped) { g2.translate(pc.width, 0); g2.scale(-1, 1); }
+        g2.drawImage(hq, 0, 0, pc.width, pc.height);
+      };
+      hq.src = 'icons/azit-hq/' + it.spr + '.webp?v=1';
+    }
     $('ic-name').textContent = it.name;
     // 표 문구(11/25 가르시아 "얻는 법: 처음부터 가지고 있어요 / 배치: 바닥, 선반에 놓을 수 있어요 · 꾹 눌러 옮겨요 / 반응: 가지고 놀아요 / 놀이: …")
     var how = h.how === '처음부터 있어요' ? '처음부터 가지고 있어요' : h.how;
