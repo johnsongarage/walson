@@ -14,7 +14,7 @@
        - 색은 theme.js 변수(블랙 핑크에서도 보이게), 이모지 그림 대신 앱에 있는 도트 그림(icons/dot-dogs/px · icons/azit-room)
        - ② 워킹패스 = 카드 버전(11/25 가르시아 "가입 시 성향을 적어야 해서 워킹패스는 카드 버전이 필요") — 이름·견종·성향(start.html과 같은 셋)을
          고르면 id-card.js 기본 카드 앞면이 그대로 바뀐다. 키링은 한 줄로만("키링 카드로도 — 조건을 채우면 실물"). 초안의 칭호·특기 고르기는 뺌
-       - ③ 소품 = 실제 [아지트] 소품 보기 창 문구(얻는 법·배치·반응·놀이)와 실제 조건(공 처음부터 · 분홍 꽃 방석 산책 18번 · 강아지 유모차 40분 산책 5번).
+       - ③ 소품 = 실제 [아지트] 소품 보기 창 문구(얻는 법·배치·반응·놀이)와 실제 조건(당근 인형 산책 5번 · 도넛 쿠션 산책 45번 · 강아지 유모차 40분 산책 5번 — 11/25 고화질 원본이 있는 소품으로).
          초안의 "방명록 100마리 모이면 오픈"은 지금 앱과 달라서 → 킁킁 방명록(공원에서 서로 QR을 찍은 친구 발자국이 쌓임)
        - ④ 영수증 아래 줄은 site-config brand(당신과 강아지의 유의미한 산책 · 왈슨), 숫자는 예시
      시안이라 아무것도 저장하거나 보내지 않는다. 마지막 [왈슨 시작하기]만 워킹패스 만들기(start.html)로 간다. */
@@ -67,12 +67,19 @@
   .room .gb { position: absolute; right: 8px; top: 8px; background: var(--panel); color: var(--ink); border: 1.5px dashed var(--line); font-size: 12px; padding: 3px 7px; cursor: pointer; }
   .room .say { position: absolute; left: 50%; top: 52px; transform: translateX(-50%); font-size: 12.5px; padding: 6px 10px; white-space: nowrap; margin: 0; }
   .room .me { position: absolute; left: 0; bottom: 14px; z-index: 2; transform-origin: 50% 100%; }
-  .room .it { position: absolute; left: 0; bottom: 18px; image-rendering: pixelated; z-index: 1; transform-origin: 50% 100%; }   /* 놀아 보기(11/25): 소품 */
-  .room .it.front { z-index: 3; }   /* 유모차는 강아지 앞에(타면 얼굴만) */
+  /* 놀아 보기(11/25): 소품 — 받은 고화질 원본(sian-ref/azit-redo)에서 자른 icons/tutorial/*. 쌓는 순서: 소품 1 · 유모차 창 속 강아지 3 ·
+     서 있는 강아지 4 · 입에 문 당근 5. 유모차 창 = stroller-win.png(흰 곳만 보이는 가림판 — [아지트] stroller_win과 같은 생각) */
+  .room .it { position: absolute; left: 0; bottom: 18px; z-index: 1; transform-origin: 50% 100%; }
+  .room .it.carry { z-index: 5; }
+  .room .me { z-index: 4; }
+  .room .ride { position: absolute; left: 0; bottom: 18px; z-index: 3; transform-origin: 50% 100%; overflow: hidden; opacity: 0;
+    -webkit-mask-image: url(icons/tutorial/stroller-win.png); mask-image: url(icons/tutorial/stroller-win.png);
+    -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+  .room .ride img { position: absolute; width: 90px; height: 85px; }
   .props { display: flex; gap: 8px; margin-bottom: 12px; }
   .prop { flex: 1; background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line); padding: 6px 4px 5px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
   .prop.on { background: var(--hl); color: var(--hl-ink); }
-  .prop img { height: 34px; margin: 0 auto 3px; }
+  .prop img { display: block; height: 34px; width: auto; max-width: 100%; margin: 0 auto 3px; object-fit: contain; }
   /* 소품 보기 창(지금 [아지트]와 같은 표) */
   .ic { border: 3px solid var(--line); box-shadow: 4px 4px 0 var(--line); background: var(--panel); padding: 10px 12px 12px; margin-bottom: 14px; }
   .ic-top { display: flex; gap: 12px; }
@@ -161,6 +168,7 @@
       <span class="gb px" id="gb">킁킁 방명록</span>
       <div class="say" id="room-say">"공 던져 줘!"</div>
       <img class="it" id="room-item" alt="" hidden>
+      <div class="ride" id="room-ride" aria-hidden="true"><img id="ride-dog" src="icons/tutorial-dog-happy.webp" alt=""></div>
       <img class="me" id="room-dog" src="icons/tutorial-dog-happy.webp" width="90" height="85" alt="">
     </div>
     <div class="props" id="props"></div>
@@ -183,7 +191,7 @@
       <div class="rc-line"><span>산책한 강아지</span><b id="rc-name">초코</b></div>
       <div class="rc-line"><span>시간 · 거리</span><b>32분 · 1.8km</b></div>
       <div class="rc-line"><span>응가</span><b>1번 치움</b></div>
-      <div class="rc-line"><span>생긴 소품</span><b>분홍 꽃 방석</b></div>
+      <div class="rc-line"><span>생긴 소품</span><b>아지트 소품 1개</b></div>
       <div class="rc-quote" id="rc-quote"></div>
       <div class="rc-foot" id="rc-foot"></div>
     </div>
@@ -200,12 +208,12 @@
 
   // ① 협상 대사 — 말풍선과 ④ 영수증 한마디가 짝
   // 대표 강아지 두 얼굴(11/25 가르시아 "두 가지를 섞어서 — 줄을 빼서 자연스러워졌어"): 삐진 얼굴 ↔ 웃는 얼굴이 번갈아(협상 → 해제)
-  var FACE = { angry: 'icons/tutorial-dog-angry.webp', happy: 'icons/tutorial-dog-happy.webp' };
-  [FACE.angry, FACE.happy].forEach(function (u) { new Image().src = u; });
+  var FACES = { angry: 'icons/tutorial-dog-angry.webp', happy: 'icons/tutorial-dog-happy.webp' };
+  [FACES.angry, FACES.happy].forEach(function (u) { new Image().src = u; });
   var NEGO = [['"산책 안 가면 삐짐"', '"산책 가면 삐짐 해제!"', '"산책 다녀와서 삐짐 해제 완료! 내일도 부탁해"'],
     ['"오늘 산책 없어? 흥"', '"산책 가면 착해질게!"', '"약속 지켰으니 오늘은 착한 강아지 모드"']], ni = 0, nf = 0;
   function nego() {
-    $('nego').textContent = NEGO[ni][nf]; $('nego-dog').src = nf ? FACE.happy : FACE.angry; $('rc-quote').textContent = NEGO[ni][2];
+    $('nego').textContent = NEGO[ni][nf]; $('nego-dog').src = nf ? FACES.happy : FACES.angry; $('rc-quote').textContent = NEGO[ni][2];
   }
   $('nego-btn').addEventListener('click', function () { ni = (ni + 1) % NEGO.length; nf = 0; nego(); });
   setInterval(function () { if (cur === 1) { nf = 1 - nf; nego(); } }, 1800);   // 1단계를 보는 동안 삐짐 ↔ 해제
@@ -231,9 +239,11 @@
   var big = document.createElement('canvas');
   function photo() {   // 사진 칸에 도트 강아지(흰 바탕, 번지지 않게)
     if (!dogImg.naturalWidth) return null;
-    var c = document.createElement('canvas'), pad = 40; c.width = dogImg.naturalWidth + pad * 2; c.height = dogImg.naturalHeight + pad * 2;
-    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
-    g.drawImage(dogImg, pad, pad); return c;
+    // 카드 사진 칸(id-card.js PHOTO_BOX 460×520)과 같은 비율 판에 강아지 전체를 넣어 잘리지 않게(11/25 "패스에 강아지가 다 들어가게")
+    var pad = 36, w = dogImg.naturalWidth + pad * 2, h = Math.round(w * 520 / 460), c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    g.drawImage(dogImg, pad, Math.round((h - dogImg.naturalHeight) * 0.62)); return c;
   }
   function card() {
     if (!window.WalsonIdCard) return;
@@ -257,18 +267,21 @@
   sync();
 
   // ③ 소품 — 지금 [아지트] 소품 보기 창과 같은 표(조건은 azit-room.js 그대로)
+  // 소품 셋(11/25 가르시아 "소품 도트 퀄리티가 강아지와 너무 다르다 — 고퀄 원본 확인") — 저장소에 고화질 원본이 있는 것만:
+  // 당근 인형(sian-ref/azit-redo/sheet.webp) · 도넛 쿠션 · 강아지 유모차(sheet3.jpg). 공·분홍 꽃 방석은 원본이 저장소에 없어 뺐다(받으면 되돌림).
+  // 조건·문구는 azit-room.js·azit.html 그대로(당근 산책 5번 · 도넛 산책 45번 · 유모차 40분 산책 5번)
   var PROPS = [
-    { id: 'ball', name: '공', img: 'ball_yellow', how: '처음부터 가지고 있어요', place: '바닥, 선반에 놓을 수 있어요 · 꾹 눌러 옮겨요', react: '가지고 놀아요',
-      play: '[던지기] 누르고 던질 곳을 찍으면 물어 와요', say: '"공 던져 줘!"' },
-    { id: 'cushion', name: '분홍 꽃 방석', img: 'cushion_pink', how: '산책 18번 하면 생겨요', place: '바닥에 놓아요 · 꾹 눌러 옮겨요', react: '올라가서 쉬어요',
-      play: '[우리 개 보내기]를 누르면 폴짝 올라가 앉아요', say: '"폭신폭신"' },   // 11/25 가르시아 "뼈다귀 빼고 방석이나 침대로"
+    { id: 'carrot', name: '당근 인형', img: 'carrot', how: '산책 5번 하면 생겨요', place: '바닥, 선반에 놓을 수 있어요 · 꾹 눌러 옮겨요', react: '가지고 놀아요',
+      play: '[던지기] 누르고 던질 곳을 찍으면 물어 와요', say: '"당근 던져 줘!"' },
+    { id: 'donut', name: '도넛 쿠션', img: 'donut', how: '산책 45번 하면 생겨요', place: '바닥에 놓아요 · 꾹 눌러 옮겨요', react: '올라가서 쉬어요',
+      play: '[우리 개 보내기]를 누르면 폴짝 들어가 앉아요', say: '"도넛 속에 쏙"' },
     { id: 'stroller', name: '강아지 유모차', img: 'stroller', how: '40분 넘게 걷는 산책을 5번 하면 생겨요', place: '바닥에 놓아요 · 꾹 눌러 옮겨요', react: '올라가서 쉬어요',
-      play: '[우리 개 보내기]를 누르면 쏙 타고 "출발!" 하며 굴러가요', say: '"출발!"' }
+      play: '[우리 개 보내기]를 누르면 앞판을 넘어 쏙 들어가 창으로 얼굴을 내밀고 "출발!"', say: '"출발!"' }
   ];
   function pick(p) {
     document.querySelectorAll('.prop').forEach(function (b) { b.classList.toggle('on', b.dataset.id === p.id); });
-    var im = $('ic-img'); im.onload = function () { var s = Math.max(1, Math.floor(Math.min(84 / im.naturalWidth, 84 / im.naturalHeight))); im.style.width = im.naturalWidth * s + 'px'; im.style.height = im.naturalHeight * s + 'px'; };
-    im.src = 'icons/azit-room/' + p.img + '.png';
+    var im = $('ic-img'); im.onload = function () { var k = Math.min(84 / im.naturalWidth, 84 / im.naturalHeight); im.style.width = im.naturalWidth * k + 'px'; im.style.height = im.naturalHeight * k + 'px'; };
+    im.className = ''; im.src = 'icons/tutorial/' + p.img + '.webp';
     $('ic-name').textContent = p.name; $('room-say').textContent = p.say;
     var tb = $('ic-rows'); tb.textContent = '';
     [['얻는 법', p.how], ['배치', p.place], ['반응', p.react], ['놀이', p.play]].forEach(function (r) {
@@ -278,7 +291,7 @@
   }
   PROPS.forEach(function (p) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'prop'; b.dataset.id = p.id;
-    var im = document.createElement('img'); im.className = 'pxi'; im.src = 'icons/azit-room/' + p.img + '.png'; im.alt = '';
+    var im = document.createElement('img'); im.src = 'icons/tutorial/' + p.img + '.webp'; im.alt = '';
     b.appendChild(im); b.appendChild(document.createTextNode(p.name));
     b.addEventListener('click', function () { pick(p); demoFrom(PROPS.indexOf(p)); });
     $('props').appendChild(b);
@@ -286,45 +299,68 @@
   pick(PROPS[0]);
 
   // ── 놀아 보기 자동 재생(11/25 가르시아 "3번째 아이템들 상호작용하는 거 자동으로 보여 줄 수 있어?") ──
-  // 3단계를 보는 동안 공 → 방석 → 유모차를 차례로: 공은 던지면 굴러가고 물어 옴, 방석은 폴짝 올라가 앉음, 유모차는 쏙 타고 "출발!" 굴러감.
-  // 소품을 누르면 그것부터 다시. 강아지 그림은 왼쪽을 보고 있어서 오른쪽으로 갈 땐 뒤집는다(뒤집기는 순간 — 천천히 돌면 납작해짐). 움직임 줄이기를 켠 폰은 멈춘 그림만
-  var dogEl = $('room-dog'), itEl = $('room-item'), roomEl = dogEl.parentNode, anims = [], timers = [], demoOn = false, demoIdx = 0;
-  var IT_H = { ball: 24, cushion: 30, stroller: 66 };
+  // 3단계를 보는 동안 당근 → 도넛 쿠션 → 유모차를 차례로. 소품을 누르면 그것부터 다시. 강아지 그림은 왼쪽을 보고 있어서
+  // 오른쪽으로 갈 땐 뒤집는다(뒤집기는 순간 — 천천히 돌면 납작해짐). 움직임 줄이기를 켠 폰은 멈춘 그림만.
+  // 유모차(11/25 "작아져서 얼굴만 나오는 게 어색 — 아지트 탭처럼"): [아지트]와 같은 흐름 — 앞판 위로 폴짝 뛰어 올랐다가 안으로
+  // 떨어지며 창으로 얼굴이 내려와 앉는다. 탄 강아지는 유모차와 같이 움직이는 칸(.ride)에 크기 그대로 넣고 창 모양 가림판으로
+  // 잘라 보여서, 줄이지 않아도 몸·귀는 유모차에 가리고 얼굴만 창에 보인다. 내릴 땐 창에서 쏙 올라와 앞으로 뛰어내린다
+  var dogEl = $('room-dog'), itEl = $('room-item'), rideEl = $('room-ride'), rideDog = $('ride-dog'), roomEl = dogEl.parentNode, anims = [], timers = [], demoOn = false, demoIdx = 0;
   dogEl.width = 90; dogEl.height = 85;
-  function T(x, y, flip, sc, w) { return 'translate(' + (x - w / 2) + 'px,' + (-y) + 'px) scaleX(' + (flip ? -1 : 1) + ') scale(' + (sc || 1) + ')'; }
+  // 소품 크기(화면 px) — 강아지(키 85)에 맞춘 실제 비율: 유모차는 강아지보다 크게, 도넛은 강아지가 들어가 앉을 만큼
+  var SIZE = { carrot: [26, 60], donut: [104, 67], stroller: [92, 128] };
+  // 유모차 창(stroller-win.png의 흰 곳)의 가운데 — 그림 폭·높이에 대한 비율(가로 0.19~0.67, 세로 0.21~0.53)
+  var WIN = { cx: 0.43, cy: 0.37 };
+  // 웃는 강아지 그림(90×85)에서 얼굴 가운데 — 그림 가운데에서 왼쪽 25px, 바닥에서 위로 45px
+  var FACE = { dx: -25, dy: 45 };
+  function T(x, y, flip, sc, w, rot) { return 'translate(' + (x - w / 2) + 'px,' + (-y) + 'px) scaleX(' + (flip ? -1 : 1) + ') scale(' + (sc || 1) + ') rotate(' + (rot || 0) + 'deg)'; }
   function stopAll() { anims.forEach(function (a) { a.cancel(); }); anims = []; timers.forEach(clearTimeout); timers = []; }
   function say(t, at) { timers.push(setTimeout(function () { $('room-say').textContent = t; }, at)); }
+  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
   function run(el, frames, dur) { var a = el.animate(frames, { duration: dur, fill: 'forwards', easing: 'linear' }); anims.push(a); }
   function playOne(p, done) {
     stopAll();
-    var W = roomEl.clientWidth, DW = 90, iw, ih = IT_H[p.id];
-    itEl.src = 'icons/azit-room/' + p.img + '.png'; itEl.hidden = false; itEl.classList.toggle('front', p.id !== 'cushion');   // 공은 입에 물었을 때 보이게, 유모차는 타면 얼굴만
-    iw = Math.round(ih * (p.id === 'ball' ? 1 : p.id === 'cushion' ? 45 / 27 : 39 / 55)); itEl.style.height = ih + 'px'; itEl.style.width = iw + 'px';
+    var W = roomEl.clientWidth, DW = 90, sz = SIZE[p.id], iw = sz[0], ih = sz[1];
+    itEl.src = 'icons/tutorial/' + p.img + '.webp'; itEl.hidden = false; itEl.style.width = iw + 'px'; itEl.style.height = ih + 'px';
+    itEl.classList.toggle('carry', p.id === 'carrot');
+    rideEl.style.width = iw + 'px'; rideEl.style.height = ih + 'px';
     var x0 = W * 0.3, D = function (o, x, y, f, sc) { return { offset: o, transform: T(x, y || 0, f, sc, DW) }; },
-      I = function (o, x, y) { return { offset: o, transform: T(x, y || 0, false, 1, iw) }; }, dur;
+      I = function (o, x, y, r) { return { offset: o, transform: T(x, y || 0, false, 1, iw, r) }; }, dur;
     $('room-say').textContent = p.say;
-    dogEl.src = p.id === 'ball' ? FACE.angry : FACE.happy;   // 공은 조르는 얼굴로 시작 → 물어 오면 웃는 얼굴
-    if (p.id === 'ball') {
-      dur = 4200; var xb = W * 0.82;
-      run(itEl, [I(0, x0 - 28, 20), I(0.18, x0 - 28, 20), I(0.28, (x0 + xb) / 2, 70), I(0.38, xb, 0), I(0.44, xb - 6, 6), I(0.5, xb - 10, 0),
-        I(0.66, xb - 10, 0), I(0.7, xb - 48, 20), I(0.92, x0 - 28, 20), I(1, x0 - 28, 20)], dur);   // 입 = 강아지 가운데에서 왼쪽 28·위 20
-      run(dogEl, [D(0, x0), D(0.36, x0), D(0.362, x0, 0, true), D(0.48, W * 0.55, 4, true), D(0.56, W * 0.62, 0, true), D(0.66, xb - 20, 3, true),
-        D(0.662, xb - 20, 3, false), D(0.8, W * 0.55, 4), D(0.92, x0), D(1, x0)], dur);
-      say('"물어 왔다!"', dur * 0.7); timers.push(setTimeout(function () { dogEl.src = FACE.happy; }, dur * 0.36));
-    } else if (p.id === 'cushion') {   // 방석: 걸어가 폴짝 올라가 앉음 → 폭신폭신 → 내려옴
-      dur = 4400; var xc = W * 0.68, top = 16;
+    dogEl.src = p.id === 'carrot' ? FACES.angry : FACES.happy;   // 당근은 조르는 얼굴로 시작 → 물어 오면 웃는 얼굴
+    if (p.id === 'carrot') {   // 입에 문 당근을 던짐 → 빙글 날아가 툭 → 달려가 물고 → 돌아옴
+      dur = 4400; var xb = W * 0.82, mx = -30, my = 14;   // 입 = 강아지 가운데에서 왼쪽 30·위 14(당근은 비스듬히 물기)
+      run(itEl, [I(0, x0 + mx, my, -70), I(0.16, x0 + mx, my, -70), I(0.26, (x0 + xb) / 2, 78, 120), I(0.36, xb, 0, 300), I(0.4, xb - 4, 6, 330),
+        I(0.44, xb - 6, 0, 360), I(0.64, xb - 6, 0, 360), I(0.66, xb - 6 + mx, my, 290), I(0.9, x0 + mx, my, 290), I(1, x0 + mx, my, 290)], dur);
+      run(dogEl, [D(0, x0), D(0.34, x0), D(0.342, x0, 0, true), D(0.46, W * 0.55, 4, true), D(0.54, W * 0.64, 0, true), D(0.64, xb, 3, true),
+        D(0.642, xb, 3, false), D(0.78, W * 0.55, 4), D(0.9, x0), D(1, x0)], dur);
+      at(dur * 0.34, function () { dogEl.src = FACES.happy; });
+      say('"물어 왔다!"', dur * 0.66);
+    } else if (p.id === 'donut') {   // 걸어가 폴짝 → 도넛 가운데 쏙 앉기 → 내려옴
+      dur = 4600; var xc = W * 0.68, sit = 12;
       run(itEl, [I(0, xc, 0), I(1, xc, 0)], dur);
-      run(dogEl, [D(0, x0), D(0.1, x0), D(0.102, x0, 0, true), D(0.3, xc - 50, 3, true), D(0.34, xc - 50, 0, true), D(0.4, xc - 20, 34, true),
-        D(0.45, xc, top, true, 0.92), D(0.48, xc, top - 3, true, 0.92), D(0.52, xc, top, true, 0.92), D(0.8, xc, top, true, 0.92),
-        D(0.802, xc, top, false, 0.92), D(0.88, xc - 40, 26, false), D(0.94, xc - 60, 0, false), D(1, xc - 60, 0, false)], dur);
-      say('"폭신폭신"', dur * 0.45); say('"여기 내 자리!"', dur * 0.62);
-    } else {
-      dur = 5200; var xs = W * 0.6, ride = 40;
-      run(itEl, [I(0, xs, 0), I(0.42, xs, 0), I(0.56, xs + W * 0.2, 0), I(0.7, xs - W * 0.12, 0), I(0.8, xs, 0), I(1, xs, 0)], dur);
-      run(dogEl, [D(0, x0), D(0.1, x0), D(0.102, x0, 0, true), D(0.26, xs - 46, 3, true), D(0.3, xs - 46, 0, true), D(0.34, xs - 18, 46, true, 0.62),
-        D(0.38, xs, ride, true, 0.55), D(0.42, xs, ride, true, 0.55), D(0.56, xs + W * 0.2, ride, true, 0.55), D(0.562, xs + W * 0.2, ride, false, 0.55), D(0.7, xs - W * 0.12, ride, false, 0.55),
-        D(0.8, xs, ride, false, 0.55), D(0.86, xs, ride, false, 0.55), D(0.9, xs - 40, 40, false, 0.8), D(0.95, xs - 60, 0, false), D(1, xs - 60, 0, false)], dur);
-      say('"출발!"', dur * 0.42); say('"재밌다!"', dur * 0.8);
+      run(dogEl, [D(0, x0), D(0.1, x0), D(0.102, x0, 0, true), D(0.3, xc - 62, 3, true), D(0.34, xc - 62, 0, true), D(0.4, xc - 26, 46, true),
+        D(0.46, xc, sit, true), D(0.49, xc, sit - 4, true), D(0.53, xc, sit, true), D(0.8, xc, sit, true),
+        D(0.802, xc, sit, false), D(0.87, xc - 40, 40, false), D(0.94, xc - 70, 0, false), D(1, xc - 70, 0, false)], dur);
+      say('"도넛 속에 쏙"', dur * 0.46); say('"폭신폭신"', dur * 0.64);
+    } else {   // 유모차 — 앞판을 넘어 들어가 창으로 얼굴(아지트 탭과 같은 흐름)
+      dur = 6000; var xs = W * 0.64, roll = W * 0.14, fx = 45 + FACE.dx, fy = 85 - FACE.dy;   // fx·fy = 강아지 그림 안 얼굴 가운데
+      var wx = iw * WIN.cx, wy = ih * WIN.cy;                                    // 창 가운데(유모차 칸 안)
+      rideDog.style.left = (wx - fx) + 'px'; rideDog.style.top = (wy - fy) + 'px'; rideDog.src = FACES.happy;
+      var ax = xs - iw / 2 + wx - FACE.dx, ay = 4 + (ih - wy) - FACE.dy;         // 바깥 강아지가 창 자리에 얼굴을 댄 자리(강아지 바닥선 기준)
+      var stroll = [I(0, xs), I(0.46, xs), I(0.58, xs + roll), I(0.7, xs - roll * 0.6), I(0.78, xs), I(1, xs)];
+      run(itEl, stroll, dur); run(rideEl, stroll, dur);
+      run(rideEl, [{ offset: 0, opacity: 0 }, { offset: 0.355, opacity: 0 }, { offset: 0.356, opacity: 1 }, { offset: 0.835, opacity: 1 },
+        { offset: 0.836, opacity: 0 }, { offset: 1, opacity: 0 }], dur);
+      // 창 속 강아지: 위(창 밖 — 안 보임)에서 내려와 앉고, 탄 채 살짝 까딱, 내릴 땐 쏙 올라감
+      var Y = function (o, y) { return { offset: o, transform: 'translateY(' + y + 'px)' }; };
+      run(rideDog, [Y(0, -46), Y(0.356, -46), Y(0.4, 3), Y(0.43, 0), Y(0.6, 0), Y(0.62, -2), Y(0.64, 0), Y(0.8, 0), Y(0.835, -46), Y(1, -46)], dur);
+      // 바깥 강아지: 걸어가 창 쪽(왼쪽)을 보고 → 앞판 위로 뛰어오름 → (창 속으로) → 창에서 나와 앞으로 뛰어내림
+      run(dogEl, [D(0, x0), D(0.08, x0), D(0.082, x0, 0, true), D(0.24, xs - iw / 2 - 40, 3, true), D(0.28, xs - iw / 2 - 40, 0, true),
+        D(0.282, xs - iw / 2 - 40, 0, false), D(0.355, ax, ay + 40), D(0.835, ax, ay + 40),
+        D(0.9, xs - iw / 2 - 52, 24), D(0.95, xs - iw / 2 - 60, 0), D(1, xs - iw / 2 - 60, 0)], dur);
+      run(dogEl, [{ offset: 0, opacity: 1 }, { offset: 0.355, opacity: 1 }, { offset: 0.356, opacity: 0 }, { offset: 0.835, opacity: 0 },
+        { offset: 0.836, opacity: 1 }, { offset: 1, opacity: 1 }], dur);
+      say('"출발!"', dur * 0.44); say('"재밌다!"', dur * 0.74);
     }
     timers.push(setTimeout(done, dur + 700));
   }
