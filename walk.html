@@ -189,8 +189,8 @@
   // 핀(산책 중 꽂은 메모 — 지도 보기 안에서 꽂고 지운다)·주민증·화면 켜 두기 설정은 store.js(WalsonStore)로 읽고 쓴다
   // 화면 켜 두기(Wake Lock)·진동은 device.js(WalsonDevice)가 한다 — 이 화면은 언제 켜 두고 언제 울릴지만 정한다
   var E = window.WalkEngine;
-  // 위치를 아직 모를 때 지도 처음 자리 = 전국(11/24 전국판 — 예전엔 다산동 공원들의 가운데). town.html과 같은 값
-  var KOREA = [[33.1, 124.6], [38.6, 130.0]];
+  // 위치를 아직 모를 때 지도 처음 자리 = 서울(11/25 가르시아 "너무 줌아웃, 일단 서울 줌인" — 11/24엔 남한 전체, 예전엔 다산동 공원들의 가운데). town.html과 같은 값
+  var START = { center: [37.5665, 126.978], zoom: 12 };
   // 화면 켜 두기는 기본 켜짐(2026-11-17 가르시아 "앱을 켜고 산책하게 만들어, 앱을 켜야 보상되게") — 끈 사람만 꺼짐
   // (설정 petwalk_keep_screen_off = '1'), 산책 중일 때만 잡는다. 웹앱은 화면이 꺼지거나 다른 앱으로 가면 위치를 못 받는다.
   var KEEP_SCREEN_OFF_KEY = WalsonStore.KEYS.keepScreenOff;
@@ -349,7 +349,7 @@
   var map = null, routeLayer = null, markLayer = null, pinLayer = null, mapOpen = false;
   var basicTiles = null, pixelTiles = null, pixelRoute = null, pixelLabels = null, mapStyle = 'basic';
   function initMap() {
-    map = L.map('map', { zoomControl: false }).fitBounds(KOREA, { animate: false });
+    map = L.map('map', { zoomControl: false }).setView(START.center, START.zoom, { animate: false });
     basicTiles = WalsonMapTiles(map);   // 지도 그림 주소는 site-config.js mapTiles 한곳에서 정한다
     // 도트 지도(2026-11-22): 기본은 위 그림 지도, 설정 판의 지도 모양으로 바꾸고 고른 것은 이 휴대폰에 기억한다([동네]와 같이 씀).
     // 도트 칸 색은 OpenStreetMap 그림 색을 기준으로 나누므로 pixel-map.js는 OSM 타일을 직접 받는다.

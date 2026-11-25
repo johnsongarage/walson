@@ -459,9 +459,9 @@
 <script src="tabbar.js?v=11" data-tab="town"></script>
 <script>
 (function () {
-  // 처음 보이는 곳 = 전국(11/24 전국판, 가르시아 "추천대로" — 예전엔 아울렛·다산중앙공원·다산수변공원의 가운데). 내 동네는 [내 위치]를 누를 때만.
-  // 남한 본토·제주를 다 담는 네모(울릉·독도는 빼서 휴대폰 세로에서 너무 작아지지 않게) — walk.html과 같은 값
-  var KOREA = [[33.1, 124.6], [38.6, 130.0]];
+  // 처음 보이는 곳 = 서울(11/25 가르시아 "지도가 너무 줌아웃된 상태로 나와, 일단 서울 줌인하고" — 11/24 전국판 땐 남한 전체 네모,
+  // 그 전엔 아울렛·다산중앙공원·다산수변공원의 가운데). 위치를 허용한 기기는 열자마자 내 위치로(아래 autoLocate) — walk.html과 같은 값
+  var START = { center: [37.5665, 126.978], zoom: 12 };
   // 산책 기록·산책 중에 내가 찍은 핀(walk.html이 저장)·주민증·진행 중 산책은 store.js(WalsonStore)로 읽는다
   var LOCATION_EXPLAINED_KEY = 'petwalk_location_explained';  // 위치 쓰는 이유를 이미 설명했는지
 
@@ -469,7 +469,7 @@
   document.getElementById('tool-link').hidden = !InfraPins.isAdminDevice();
   document.getElementById('draft-note').hidden = !InfraPins.DRAFT_PREVIEW;
 
-  var map = L.map('map', { zoomControl: false }).fitBounds(KOREA, { animate: false });
+  var map = L.map('map', { zoomControl: false }).setView(START.center, START.zoom, { animate: false });
   // 수호견 예시 화면(2026-11-17): 예시가 모두 바로 보이게 옮기고, 아래에 '예시 화면' 띠를 단다
   // 예시는 스팟 편집에서 늘리거나 줄일 수 있어 몇 마리든 다 들어오게 맞춘다(한 마리면 그 자리로, 최대 확대 16)
   if (InfraPins.GUARDIAN_DEMO && InfraPins.DEMO_GUARDIANS.length) {
@@ -1876,18 +1876,26 @@
   locateBtn.addEventListener('click', function () { map.closePopup(); locateAndCenter(false); });
   // 시연 모드: 출발점 핀을 끌어 옮긴다(demo-geo.js) — 옮기면 내 위치·미션 카드·걸어서 몇 분이 그 자리 기준으로
   if (window.PetwalkDemoGeo && PetwalkDemoGeo.on) PetwalkDemoGeo.attachStartMarker(map, { onMove: function () { locate(true).then(refreshShops, function () {}); } });
-  // 탭을 열자마자 내 위치(2026-11-15 가르시아 "누르면 바로 체크가 안 된다") — 예전에 이유를 설명하고 허용받은 기기에서만.
+  // 탭을 열자마자 내 위치(2026-11-15 가르시아 "누르면 바로 체크가 안 된다") — 위치를 허용한 기기에서만.
   // 처음인 기기는 묻지 않고 기다린다(위치 버튼을 누를 때 이유부터 설명 — CLAUDE.md). 실패해도 조용히(버튼으로 다시).
+  // 11/25 가르시아 "위치 정보 동의한 상태면 바로 현재 위치로 가서 들여다보는 게 맞지 않나?" → 지도도 내 위치로 옮긴다(동네가 보이는 확대 15 —
+  // 골목 단위 17은 [내 위치] 버튼으로. 11/16엔 캡처 걱정으로 점만 찍었었다). 받는 사이 지도를 직접 움직였으면 옮기지 않는다.
   (function autoLocate() {
-    var explained = false;
+    var explained = false, moved = false;
     try { explained = localStorage.getItem(LOCATION_EXPLAINED_KEY) === '1'; } catch (e) { /* 안 함 */ }
-    if (!explained) return;
-    // 첫 화면이 되면서(2026-11-16) 열 때는 지도를 옮기지 않고 내 위치 점만 찍는다 — 집에서 열어 남에게 보여 주거나 캡처해도
-    // 골목 단위로 확대되지 않게(11/13 C안 때의 걱정). 가까운 가게·미션 거리는 그대로 계산되고, 확대는 [내 위치] 버튼으로.
-    var go = function () { locate(true).then(refreshShops, function () {}); };
+    map.once('dragstart zoomstart', function () { moved = true; });
+    var go = function () {
+      locate(true).then(function (p) {
+        if (!moved && !explore) map.setView([p.lat, p.lng], 15, { animate: false });
+        refreshShops();
+      }, function () {});
+    };
     try {
-      navigator.permissions.query({ name: 'geolocation' }).then(function (p) { if (p.state !== 'denied') go(); }, go);
-    } catch (e) { go(); }
+      // 브라우저에서 이미 허용했으면(다른 화면에서 허용한 것도) 바로, 이유를 설명한 적 있으면 거절만 아니면
+      navigator.permissions.query({ name: 'geolocation' }).then(function (p) {
+        if (p.state === 'granted' || (explained && p.state !== 'denied')) go();
+      }, function () { if (explained) go(); });
+    } catch (e) { if (explained) go(); }
   })();
 })();
 </script>
