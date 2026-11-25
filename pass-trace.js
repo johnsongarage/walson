@@ -421,7 +421,8 @@
     var T = splitText(value), manual = center === 'fit' && Array.isArray(T) ? T : null;
     var v = Array.isArray(T) ? T.join(' ') : T;
     var lw = Math.max.apply(null, (K.lcol || K.labels).map(textUnits)), lx = x + u + K.pad, ls = 1, two = null;   // 분홍 칸 폭 = NAME·TYPE 바로 뒤까지
-    var lf = Math.min(1, lw / textUnits(label));   // 칸 이름이 분홍 칸보다 길면(SKILL) 글자만 줄임 — 분홍 칸 폭은 다른 칸과 같게
+    // 칸 이름 글자 크기는 세 칸 모두 같게 — 가장 긴 칸 이름(ID No.)이 분홍 칸에 맞는 크기로(11/25 가르시아 "NAME이랑 TYPE을 위 ID No.에 맞게")
+    var lf = Math.min(1, lw / Math.max(textUnits(label), Math.max.apply(null, K.labels.map(textUnits))));
     var vh = 16 * K.kmax * V.uy / V.ux * 0.8, isHan = VEC && /[가-힣]/.test(v), vec = !!VF || isHan;
     var hmax = (h - 2 * u) * 0.92;   // 칸 안쪽 높이 — 글씨는 이보다 커지지 않게
     if (vec || manual) vh = Math.min(hmax, vh * sz);
@@ -430,15 +431,11 @@
       var full = x + w - u - (lx + lw * K.lux + K.lgap) - u;   // 지금 흰 칸에서 글씨가 쓸 수 있는 폭(가장자리 반 칸씩 뺌)
       if (manual) {   // 사용자가 나눈 두 줄 — 두 줄 높이로 재서 넘치면 TYPE 칸을 줄인다
         var lh0 = Math.min(vh, (h - 2 * u - K.twoGap) / 2 * 0.96), needM = Math.max(wEm(manual[0]), wEm(manual[1])) * lh0 / 0.9;
-        if (needM > full) ls = Math.max(K.typeShrink, 1 - (needM - full) / (lw * K.lux));
-        two = manual;
+        two = manual;   // 분홍 칸은 줄이지 않는다(11/25 — 세 칸 분홍 폭을 같게), 넘치면 글씨가 칸에 맞게 작아진다
       } else {
         var need = vec ? wEm(v) * vh / 0.9 : textUnits(v) * V.ux * sz;   // 제 크기로 쓰려면 필요한 폭
-        if (need * K.typeMin > full) {   // 제 크기의 typeMin배보다 작아질 만큼 길면 TYPE 칸을 줄인다
-          ls = Math.max(K.typeShrink, 1 - (need * K.typeMin - full) / (lw * K.lux));
-          var full2 = full + lw * K.lux * (1 - ls);
-          if (vec && need * K.typeTwo > full2 && /\s/.test(v)) two = twoLines(v, wEm);
-        }
+        // 분홍 칸은 줄이지 않고(11/25 — 세 칸 분홍 폭·칸 이름 크기를 ID No.와 같게), 아주 길면 띄어쓰기에서 두 줄
+        if (vec && need * K.typeTwo > full && /\s/.test(v)) two = twoLines(v, wEm);
       }
     }
     var sp = lx + lw * K.lux * ls + K.lgap;
