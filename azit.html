@@ -141,6 +141,26 @@
   .tip .throw { pointer-events: auto; display: inline-block; margin: 5px 0 1px; font: inherit; font-weight: 700; font-size: 12px; line-height: 1.2;
     color: var(--bg); background: var(--accent); border: 0; border-radius: 999px; padding: 5px 14px; cursor: pointer; }   /* 공 던지기(11/24) — 말풍선 안에서 이것만 눌린다 */
   #room.aim { cursor: crosshair; }
+  /* 소품 보기 창(11/25 가르시아 "선택 시 아이템 보는 창에 확대해서 — 어떤 아이템인지 이미지·정보·상호작용 설명·기능 버튼, 이미지 밑에 표로") —
+     예전엔 방 위 검은 말풍선 한 줄. 화면 아래에 뜨는 창: 왼쪽 큰 도트 그림 · 오른쪽 이름과 표 · 아래 버튼. 바닥을 누르거나 [닫기]로 닫는다 */
+  .itemcard { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h, 58px) + 10px); z-index: 1100;
+    width: min(460px, calc(100vw - 20px)); background: var(--panel); color: var(--ink); border: 3px solid var(--line); box-shadow: 4px 4px 0 var(--line);
+    padding: 10px 12px 12px; word-break: keep-all; }
+  .itemcard[hidden] { display: none; }
+  .itemcard .ic-top { display: flex; gap: 12px; align-items: stretch; }
+  .itemcard .ic-pic { flex: none; width: 108px; min-height: 108px; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); border: 2px solid var(--line); }
+  .itemcard .ic-pic canvas { display: block; image-rendering: pixelated; }
+  .itemcard .ic-info { flex: 1; min-width: 0; }
+  .itemcard .ic-name { font-family: 'Galmuri11', monospace; font-weight: 700; font-size: 24px; line-height: 1.1; margin: 2px 0 8px; }
+  .itemcard table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.4; }
+  .itemcard th { text-align: left; white-space: nowrap; color: var(--ink-soft); font-weight: 600; padding: 3px 8px 3px 0; vertical-align: top; width: 1%; }
+  .itemcard td { padding: 3px 0; vertical-align: top; }
+  .itemcard tr + tr th, .itemcard tr + tr td { border-top: 1px dashed var(--line); }
+  .itemcard .ic-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .itemcard .ic-btns .pbtn { flex: 1; padding: 9px 6px; }
+  .itemcard .ic-btns .ic-x { flex: none; padding: 9px 12px; }
+  .itemcard .ic-sub { margin: 6px 0 0; font-size: 12px; color: var(--ink-soft); text-align: center; }
   .bubble.react { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }   /* 소품과 놀 때 한마디(11/24) — 기분 말풍선과 구별 */
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
@@ -266,6 +286,14 @@
         <div class="bubble px react" id="react" aria-hidden="true" hidden></div>
       </div>
       <div class="closed" id="closed" hidden></div>
+    </div>
+    <div class="itemcard" id="itemcard" role="dialog" aria-label="소품 보기" hidden>
+      <div class="ic-top">
+        <div class="ic-pic"><canvas id="ic-pic" width="1" height="1" aria-hidden="true"></canvas></div>
+        <div class="ic-info"><p class="ic-name" id="ic-name"></p><table><tbody id="ic-rows"></tbody></table></div>
+      </div>
+      <div class="ic-btns" id="ic-btns"></div>
+      <p class="ic-sub" id="ic-sub"></p>
     </div>
     <p class="hint" id="hint"></p>
     <!-- 모델하우스에서만: 방 고르기 + [이 방처럼 놓기](11/23 2단계) -->
@@ -1286,7 +1314,7 @@
     closed.textContent = o.open ? '' : (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
       : '그 자리에서 서로 화면 QR을 찍어 단짝이 되면 ' + o.name + '네 방이 열려요.');
     closed.hidden = o.open;
-    $('tip').hidden = true;
+    $('tip').hidden = true; hideCard();
     bubble(); guestbook(); acts(); showBar();
     if (o.me) { undoRow(); dogPicker(); tray(); }
     kick();
@@ -1331,24 +1359,40 @@
   function itemAt(p) { return view === -1 ? spriteAt(p) : null; }   // 끄는 건 내 방에서만
   // 소품 안내(11/23 모델하우스) — 누른 소품 위에 "화분 — 산책 10번 하면 생겨요 · 나는 산책 4번 더" 잠깐
   var tipTimer = 0, tapItem = null, tipFor = null;
+  // 소품 보기 창(11/25) — 큰 도트 그림 · 이름 · 표(얻는 법 · 지금 · 놓는 곳 · 우리 개는) · 버튼([던지기] · [우리 개 보내기] · [닫기])
+  var KIND_TXT = { play: '가서 통통 놀아요', eat: '가서 냠냠·킁킁', rest: '올라가서 쉬어요', read: '가서 글씨를 읽어요', look: '가서 구경해요', walk: '산책 가자고 졸라요' };
+  function hideCard() { $('itemcard').hidden = true; tipFor = null; }
   function showTip(s) {
-    var it = AZ.byId(AZ.ITEMS, s.id), t = $('tip');
+    var it = AZ.byId(AZ.ITEMS, s.id);
     if (!it) return;
-    var h = AZ.howText(it.need, prog);
-    t.textContent = it.name + ' — ' + h.how + ' · ' + h.mine + (it.shelf && view === -1 ? ' · 선반에 올려놓을 수 있어요' : '');
-    var thr = canThrow(s.id);
-    if (thr) {   // 공 — [던지기] → 던질 곳 누르기(11/24)
-      var tb = el('button', 'throw', '던지기'); tb.type = 'button';
-      tb.addEventListener('click', function (e) { e.stopPropagation(); startAim(s.id); });
-      t.appendChild(document.createElement('br')); t.appendChild(tb);
+    $('tip').hidden = true; clearTimeout(tipTimer);
+    var h = AZ.howText(it.need, prog), r = REACT[it.id] || ['look', '킁킁'];
+    // 그림 — 점이 번지지 않게 정수배로 키움(칸 100점 안), 화면 배율만큼 또렷하게
+    var img = s.img, iw = img.width || img.naturalWidth || 1, ih = img.height || img.naturalHeight || 1;
+    var sc = Math.max(1, Math.floor(Math.min(100 / iw, 100 / ih))); if (iw * sc > 100 || ih * sc > 100) sc = Math.min(100 / iw, 100 / ih);
+    var dpr = window.devicePixelRatio || 1, pc = $('ic-pic');
+    pc.width = Math.round(iw * sc * dpr); pc.height = Math.round(ih * sc * dpr); pc.style.width = (iw * sc) + 'px'; pc.style.height = (ih * sc) + 'px';
+    var pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, pc.width, pc.height); pg.drawImage(img, 0, 0, pc.width, pc.height);
+    $('ic-name').textContent = it.name;
+    var place = it.corner ? '방 모서리' : it.wall ? '벽' : it.shelf ? '바닥 · 선반 위에 올려놓을 수 있어요' : it.decal ? '바닥에 까는 것' : '바닥';
+    if (view === -1 && !s.fixed && !it.corner) place += ' · 꾹 눌러 옮겨요';
+    var rows = [['얻는 법', h.how], ['지금', h.mine], ['놓는 곳', place], ['우리 개는', KIND_TXT[r[0]] + ' — “' + r[1] + '”']];
+    if (canThrow(s.id)) rows.push(['놀이', '[던지기]를 누르고 던질 곳을 찍으면 물어 와요']);
+    var tb = $('ic-rows'); tb.textContent = '';
+    rows.forEach(function (row) { var tr = el('tr'); tr.appendChild(el('th', '', row[0])); tr.appendChild(el('td', '', row[1])); tb.appendChild(tr); });
+    var bx = $('ic-btns'); bx.textContent = '';
+    if (canThrow(s.id)) {
+      var tw = el('button', 'pbtn main', '던지기'); tw.type = 'button';
+      tw.addEventListener('click', function () { hideCard(); startAim(s.id); });
+      bx.appendChild(tw);
     }
-    t.appendChild(el('span', 'tip-sub', '한 번 더 누르면 우리 개가 가 봐요'));
-    t.hidden = false;
-    var tw = t.offsetWidth, th = t.offsetHeight, rw = VW * K, cx = (s.x + s.w / 2 - OX) * K;
-    t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, cx)) + 'px';
-    t.style.top = Math.max(th + 2, s.y * K - 4) + 'px';
+    var go = el('button', 'pbtn' + (canThrow(s.id) ? '' : ' main'), '우리 개 보내기'); go.type = 'button';
+    go.addEventListener('click', function () { hideCard(); goPlay(s); });
+    bx.appendChild(go);
+    var x = el('button', 'pbtn ic-x', '닫기'); x.type = 'button'; x.addEventListener('click', hideCard); bx.appendChild(x);
+    $('ic-sub').textContent = '그림을 한 번 더 눌러도 우리 개가 가 봐요';
+    $('itemcard').hidden = false;
     tipFor = s.id;
-    clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; tipFor = null; }, thr ? 6500 : 4500);
   }
   // ── 소품과 놀기(11/24 가르시아 "아이템을 클릭하면 어떻게 얻는지 정보가 나오잖아? 한 번 더 클릭하면 가서 상호작용하게 해 줘") ──
   // 처음 누르면 안내, 안내가 떠 있는 동안 같은 소품을 또 누르면 우리 개(내 방 = 집주인, 친구 방·모델하우스 = 손님으로 간 우리 개)가
@@ -1380,7 +1424,7 @@
   var ACT_LEN = { play: 2.4, eat: 2.4, rest: 2.8, read: 2.6, look: 2.4, walk: 2.4 };   // 한마디가 떠 있는 초
   function tapOn(s) {
     if (s.id === 'lamp') { toggleLamp(); return; }   // 조명은 톡 = 켜고 끄기
-    if (tipFor === s.id && !$('tip').hidden) { clearTimeout(tipTimer); $('tip').hidden = true; tipFor = null; goPlay(s); return; }
+    if (tipFor === s.id && !$('itemcard').hidden) { hideCard(); goPlay(s); return; }
     showTip(s);
   }
   // 설 자리 {i, j} + 바라볼 곳의 화면 x(fx — 없으면 그대로)
@@ -1785,7 +1829,7 @@
     if (h.touch) { drag.touch = true; drag.tdy = -(40 / K) - (it0 && (it0.wall || s.decal) ? s.h / 2 : 0); }
     try { canvas.setPointerCapture(h.pid); } catch (er) { /* 무시 */ }
     try { if (navigator.vibrate) navigator.vibrate(15); } catch (er) { /* 무시 */ }
-    $('tip').hidden = true; tipFor = null;
+    $('tip').hidden = true; hideCard();
     canvas.classList.add('grab'); kick();
   }
   function endHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
@@ -1857,7 +1901,7 @@
     var p = at(e); if (!downAt) return; downAt = null;
     var q = unP(p.x, p.y);
     if (!onFloor(q)) return;                                            // 바닥 밖(벽)을 누르면 그대로
-    $('tip').hidden = true;
+    $('tip').hidden = true; hideCard();
     var who = view === -1 ? host : guest, c = clampFloor(q);
     if (fetchJob && fetchJob.dog === who) dropFetch();   // 공 가지러 가던 중이면 그만두고 누른 곳으로
     stopAct(who); who.fast = false;
