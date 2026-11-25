@@ -1360,7 +1360,7 @@
   // 소품 안내(11/23 모델하우스) — 누른 소품 위에 "화분 — 산책 10번 하면 생겨요 · 나는 산책 4번 더" 잠깐
   var tipTimer = 0, tapItem = null, tipFor = null;
   // 소품 보기 창(11/25) — 큰 도트 그림 · 이름 · 표(얻는 법 · 지금 · 놓는 곳 · 우리 개는) · 버튼([던지기] · [우리 개 보내기] · [닫기])
-  var KIND_TXT = { play: '가서 통통 놀아요', eat: '가서 냠냠·킁킁', rest: '올라가서 쉬어요', read: '가서 글씨를 읽어요', look: '가서 구경해요', walk: '산책 가자고 졸라요' };
+  var KIND_TXT = { play: '가지고 놀아요', eat: '냠냠·킁킁 맛봐요', rest: '올라가서 쉬어요', read: '글씨를 읽어요', look: '구경해요', walk: '산책 가자고 졸라요' };   // 반응 칸(11/25 가르시아 문구)
   function hideCard() { $('itemcard').hidden = true; tipFor = null; }
   function showTip(s) {
     var it = AZ.byId(AZ.ITEMS, s.id);
@@ -1374,10 +1374,13 @@
     pc.width = Math.round(iw * sc * dpr); pc.height = Math.round(ih * sc * dpr); pc.style.width = (iw * sc) + 'px'; pc.style.height = (ih * sc) + 'px';
     var pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, pc.width, pc.height); pg.drawImage(img, 0, 0, pc.width, pc.height);
     $('ic-name').textContent = it.name;
-    var place = it.corner ? '방 모서리' : it.wall ? '벽' : it.shelf ? '바닥 · 선반 위에 올려놓을 수 있어요' : it.decal ? '바닥에 까는 것' : '바닥';
+    // 표 문구(11/25 가르시아 "얻는 법: 처음부터 가지고 있어요 / 배치: 바닥, 선반에 놓을 수 있어요 · 꾹 눌러 옮겨요 / 반응: 가지고 놀아요 / 놀이: …")
+    var how = h.how === '처음부터 있어요' ? '처음부터 가지고 있어요' : h.how;
+    if (h.mine !== '나도 있어요') how += ' · ' + h.mine;   // 아직 없으면 얼마나 남았는지
+    var place = it.corner ? '방 모서리에 걸어요' : it.wall ? '벽에 걸어요' : it.shelf ? '바닥, 선반에 놓을 수 있어요' : it.decal ? '바닥에 깔아요' : '바닥에 놓아요';
     if (view === -1 && !s.fixed && !it.corner) place += ' · 꾹 눌러 옮겨요';
-    var rows = [['얻는 법', h.how], ['지금', h.mine], ['놓는 곳', place], ['우리 개는', KIND_TXT[r[0]] + ' — “' + r[1] + '”']];
-    if (canThrow(s.id)) rows.push(['놀이', '[던지기]를 누르고 던질 곳을 찍으면 물어 와요']);
+    var rows = [['얻는 법', how], ['배치', place], ['반응', KIND_TXT[r[0]]]];
+    if (canThrow(s.id)) rows.push(['놀이', '[던지기] 누르고 던질 곳을 찍으면 물어 와요']);
     var tb = $('ic-rows'); tb.textContent = '';
     rows.forEach(function (row) { var tr = el('tr'); tr.appendChild(el('th', '', row[0])); tr.appendChild(el('td', '', row[1])); tb.appendChild(tr); });
     var bx = $('ic-btns'); bx.textContent = '';
