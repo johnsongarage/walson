@@ -276,7 +276,7 @@
     // 이어서 "ID로 해. 밑에 NAME만큼 배경 간격 늘려" → 칸 이름은 "ID"(점 뺌), 분홍 칸은 세 칸 모두 가장 긴 칸 이름(NAME·TYPE)에 맞춰 같은 폭(값이 한 줄로 맞춰 시작)
     // 점선 아래 알약은 제목과 겹치는 WALSON 대신 홍보 문구 두 줄(사진 아래 한 줄은 뺌)
     kr: { nameH: 84, nameLatH: 62, nameFill: 0.74, typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8, ys: [702.5, 882.5, 1062.5],   // nameH·nameFill: 이름 글씨 높이·짧은 이름이 채울 칸 폭 비율(11/24 "두 글자면 더 차게, 자간 벌려")
-      labels: ['ID No', 'NAME', 'TYPE'], lcol: ['NAME', 'TYPE'], kmax: 4.3, lux: 3.1, luy: 3.25, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+      labels: ['ID No', 'NAME', 'TYPE'], lcol: ['ID No', 'NAME', 'TYPE'], kmax: 4.3, lux: 2.7, luy: 2.85, pad: 10, lgap: 6,   // 11/25 "입력칸 여유" — 칸 이름 글자·분홍 칸 줄임 vgap: 12, vpad: 10,
       dashY: 1255.5, pill: { y: 1314.5, h: 175, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20 },
       // 신호등·등급 뱃지 두 줄(알약 아래 ~ 사진 틀 아랫줄까지): 칸 높이 h, 사이 gap, 불 한 칸 lu
       light: { y: 1314.5, h: 78, solo: 150, gap: 16, u: 9.3, lu: 8 }, pillLow: 1513.5,   // 신호등·등급이 있으면 점선 바로 아래 두 줄, 홍보 알약은 맨 아래(11/24 가르시아 "유의미한 산책을 맨 아래로")
@@ -350,7 +350,7 @@
       title1: { y: ty1, ux: 5.877 * s, uy: t1v, center: true }, title2: { y: ty1 + 16 * t1v + tgap, ux: 5.06 * s, uy: t2v, center: true },
       pawU: { x: 83 / 29 * s, y: 80 / 27 * s }, pawGap: 34 * s,
       kr: { nameH: 84 * fs, nameLatH: 62 * fs, nameFill: 0.5,   /* 값 칸이 넓어서 짧은 이름을 덜 벌림 */ typeMin: 0.8, typeShrink: 0.62, typeTwo: 0.62, twoGap: 8 * fs, ys: ys,
-        labels: ['ID No', 'NAME', 'TYPE'], lcol: ['NAME', 'TYPE'], kmax: 4.3 * fs, lux: 3.1 * fs, luy: 3.25 * fs, pad: 14, lgap: 8, vgap: 12, vpad: 10,
+        labels: ['ID No', 'NAME', 'TYPE'], lcol: ['ID No', 'NAME', 'TYPE'], kmax: 4.3 * fs, lux: 2.7 * fs, luy: 2.85 * fs, pad: 10, lgap: 6, vgap: 12, vpad: 10,
         dashY: dashY, pill: { y: pillLow, h: pillH, u: 12.4, ux: 2.75, uy: 2.9, gap: 14, pad: 20, one: true },
         light: { y: dashY + 35.5, h: 72, solo: 110, soloSk: 92, gap: 14, u: 9.3, lu: 7 }, pillLow: pillLow,
         // 특기 칸(11/24 밤): 알약(118)보다 높게 사진 틀 아랫줄부터 150 — 등급 뱃지는 그만큼 낮게(soloSk)
