@@ -316,7 +316,7 @@
   var LK = Object.assign({}, LP, {
     card: Object.assign({}, LP.card, { h: LP.card.h + FOOT }),
     ref: { w: REF.w, h: REF.h + FOOT },
-    hole: { cx: LP.card.x + LP.card.w / 2, cy: (LP.card.y + LP.title1.y) / 2, u: 11 },
+    hole: { cx: LP.card.x + LP.card.w / 2, cy: (LP.card.y + LP.title1.y) / 2, u: 8 },   // 11/25 가르시아 "키링 구멍 크기 좀 줄여 줘" 11 → 8
     foot: { h: 60 }   // 홍보 한 줄 글씨 높이
   });
 
@@ -339,7 +339,7 @@
       ref: { w: W + 2 * x0, h: y0 + H + 210.5 },
       card: { x: x0, y: y0, w: W, h: H, r: 74 }, shadow: { dx: -29, dy: 39 },
       headB: y0 + headH, divB: y0 + headH + div,
-      hole: { cx: x0 + W / 2, cy: y0 + holeA / 2, u: holeU }, foot: { h: 62 },
+      hole: { cx: x0 + W / 2, cy: y0 + holeA / 2, u: holeU * 8 / 11 },   // 구멍만 줄임(11/25), 위 자리 높이는 그대로 foot: { h: 62 },
       frame: { ol: ol, or: or, ot: top, ob: bot, ux: ux, uy: uy },
       knot: { tl: [0, 0], tr: [0, 0], bl: [0, 0], br: [0, 0] },
       opaw: { x: ol + 34, y: top + 35, u: 3.3 },
