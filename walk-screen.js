@@ -63,21 +63,21 @@
     if (!window.WalsonQR || !window.ShopVisits) return false;
     WalsonQR.scan({
       title: 'QR 찍기',
-      hint: '친구 화면·키링 QR이나 가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
+      hint: '친구 화면 QR이나 가게 카운터의 왈슨 QR을 네모 안에 맞춰 주세요. 산책 기록은 그대로 이어져요.',
       onText: function (text) {
         var dp = window.WalsonDexCard ? WalsonDexCard.payloadOf(text) : null;
         if (dp) {   // 친구 QR — 받아만 두고 산책은 계속
           var got = WalsonDexCard.receive(dp);
           if (got.error === 'name') return '이름에 전화번호나 인터넷 주소가 든 카드라 넣지 않았어요.';
           if (got.error === 'mine') return '내 카드예요. 이 QR은 다른 강아지 휴대폰에서 찍어 주세요.';
-          if (got.error) return '왈슨 친구 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';
+          if (got.error) return '왈슨 친구 QR이 아니에요. 친구 화면의 QR을 찍어 주세요.';
           show(got.dog.n + ' 카드 받아 뒀어요 · 강아지 먼저! 넣을지는 산책 끝나고 골라요', 'stamp');
           return true;
         }
         var id = ShopVisits.idFromQr(text);
         if (!id) return /(?:dex\.html|WALSON[^#]{0,40})#d=/.test(text)   // 친구 QR인데 카드 도구(dex-card.js)를 못 불러온 경우
           ? '강아지 도감 QR이에요. 산책을 마치고 [워킹패스] → 도감에서 찍어 주세요.'
-          : '왈슨 QR이 아니에요. 친구 화면·키링 QR이나 가게 카운터의 QR을 찍어 주세요.';
+          : '왈슨 QR이 아니에요. 친구 화면 QR이나 가게 카운터의 QR을 찍어 주세요.';
         var shop = ShopVisits.findShop(id);
         if (!shop) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
         var r = ShopVisits.stamp(id);

@@ -1001,7 +1001,7 @@
       WalsonQR.scan({
         // 2026-11-23 밤 출시 점검: 등록 가게가 아직 없어서 친구 QR(도감)을 먼저 말한다 — 가게 QR도 그대로 읽힌다
         title: '친구 QR 찍기',
-        hint: '공원에서 만난 강아지의 화면 QR이나 키링 QR을 네모 안에 맞춰 주세요. 가게 QR도 찍혀요.',
+        hint: '공원에서 만난 강아지의 화면 QR을 네모 안에 맞춰 주세요. 가게 QR도 찍혀요.',
         // 11/24 — 친구 QR은 링크가 아니라 휴대폰 기본 카메라로는 안 열린다(qr-scan.js 기본 글 "기본 카메라로 찍어 주세요"를 쓰지 않게)
         texts: {
           noCamera: '이 브라우저에서는 카메라를 쓸 수 없어요. 크롬이나 사파리에서 왈슨을 열어 찍어 주세요(친구 QR은 왈슨 안에서만 읽혀요).',
@@ -1015,13 +1015,13 @@
             var got = WalsonDexCard.receive(dp);
             if (got.error === 'name') return '이름에 전화번호나 인터넷 주소가 든 카드라 넣지 않았어요.';
             if (got.error === 'mine') return '내 카드예요. 이 QR은 다른 강아지 휴대폰에서 찍어 주세요.';
-            if (got.error) return '왈슨 친구 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';
+            if (got.error) return '왈슨 친구 QR이 아니에요. 친구 화면의 QR을 찍어 주세요.';
             location.href = 'dex.html?got=' + got.dog.i;
             return true;
           }
-          if (/^WALSON/.test(text)) return '워킹패스 그림에 있는 QR이에요. 친구가 되려면 상대가 띄운 화면 QR이나 키링 뒷면 QR을 찍어 주세요.';
+          if (/^WALSON/.test(text)) return '워킹패스 그림에 있는 QR이에요. 친구가 되려면 상대가 띄운 화면 QR을 찍어 주세요.';
           var id = ShopVisits.idFromQr(text);
-          if (!id) return '왈슨 QR이 아니에요. 친구 화면의 QR이나 키링 QR을 찍어 주세요.';
+          if (!id) return '왈슨 QR이 아니에요. 친구 화면의 QR을 찍어 주세요.';
           if (!ShopVisits.findShop(id)) return '등록되지 않은 가게 QR이에요. 가게에 알려 주세요.';
           location.href = 'visit.html?s=' + encodeURIComponent(id);
           return true;
