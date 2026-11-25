@@ -31,12 +31,12 @@
   .brand b { font-size: 24px; line-height: 1; }
   .dots { display: flex; gap: 6px; }
   .dot { width: 26px; height: 26px; border: 2px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; padding: 0; }
-  .dot.on { background: var(--accent); color: var(--bg); }
-  .dot.done { background: var(--hl); color: var(--hl-ink); }
+  .dot.on { background: var(--hl); color: var(--hl-ink); }   /* 11/25 가르시아 "배경색을 핑크 톤으로, 와인이 아니라" — 칠한 곳은 --hl 핑크 */
+  .dot.done { background: color-mix(in srgb, var(--hl) 35%, var(--panel)); color: var(--ink); }
   .panel { display: none; padding: 18px 16px; }
   .panel.on { display: block; animation: pop .2s ease-out; }
   @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .tag { display: inline-block; font-size: 12px; color: var(--accent); border: 1.5px solid var(--line); padding: 3px 8px; margin-bottom: 8px; }
+  .tag { display: inline-block; font-size: 12px; color: var(--ink); background: color-mix(in srgb, var(--hl) 30%, var(--panel)); border: 1.5px solid var(--line); padding: 3px 8px; margin-bottom: 8px; }
   h2 { margin: 0 0 6px; font-size: 20px; line-height: 1.35; font-weight: 900; letter-spacing: -0.5px; word-break: keep-all; }
   .sub { margin: 0 0 16px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; word-break: keep-all; }
   .stage { background: var(--bg); border: 2px solid var(--line); padding: 16px 12px; text-align: center; margin-bottom: 14px; }
@@ -52,7 +52,7 @@
   .field input { width: 100%; min-width: 0; padding: 10px 12px; border: 2px solid var(--line); font: inherit; font-size: 16px; font-weight: 700; background: var(--panel); color: var(--ink); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .chip { border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); padding: 6px 9px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
-  .chip.on { background: var(--accent); color: var(--bg); }
+  .chip.on { background: var(--hl); color: var(--hl-ink); }
   /* 성향 고르기(start.html과 같은 셋) · 카드 미리 보기(id-card.js 기본 카드 앞면 그대로) */
   .sigs { display: flex; flex-direction: column; gap: 6px; }
   .sig { display: flex; align-items: center; gap: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; text-align: left; }
@@ -92,7 +92,7 @@
   .btns { display: flex; gap: 8px; }
   .btn { flex: 1; padding: 12px 10px; border: 2.5px solid var(--line); box-shadow: 3px 3px 0 var(--line); font: inherit; font-size: 14px; font-weight: 900; cursor: pointer;
     text-align: center; text-decoration: none; background: var(--panel); color: var(--ink); }
-  .btn.main { background: var(--accent); color: var(--bg); }
+  .btn.main { background: var(--hl); color: var(--hl-ink); }
   .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--line); }
 </style>
 <script src="store.js?v=1"></script>
