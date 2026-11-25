@@ -66,7 +66,9 @@
   .room .badge { position: absolute; left: 8px; top: 8px; background: var(--panel); color: var(--ink); border: 2px solid var(--line); font-size: 12px; padding: 3px 7px; }
   .room .gb { position: absolute; right: 8px; top: 8px; background: var(--panel); color: var(--ink); border: 1.5px dashed var(--line); font-size: 12px; padding: 3px 7px; cursor: pointer; }
   .room .say { position: absolute; left: 50%; top: 52px; transform: translateX(-50%); font-size: 12.5px; padding: 6px 10px; white-space: nowrap; margin: 0; }
-  .room .me { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); }
+  .room .me { position: absolute; left: 0; bottom: 14px; z-index: 2; transform-origin: 50% 100%; }
+  .room .it { position: absolute; left: 0; bottom: 18px; image-rendering: pixelated; z-index: 1; transform-origin: 50% 100%; }   /* 놀아 보기(11/25): 소품 */
+  .room .it.front { z-index: 3; }   /* 유모차는 강아지 앞에(타면 얼굴만) */
   .props { display: flex; gap: 8px; margin-bottom: 12px; }
   .prop { flex: 1; background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line); padding: 6px 4px 5px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
   .prop.on { background: var(--hl); color: var(--hl-ink); }
@@ -158,7 +160,8 @@
       <span class="badge px" id="room-name">초코네 아지트</span>
       <span class="gb px" id="gb">킁킁 방명록</span>
       <div class="say" id="room-say">"공 던져 줘!"</div>
-      <img class="me" src="icons/tutorial-dog.webp" width="84" height="90" alt="">
+      <img class="it" id="room-item" alt="" hidden>
+      <img class="me" id="room-dog" src="icons/tutorial-dog.webp" width="84" height="90" alt="">
     </div>
     <div class="props" id="props"></div>
     <div class="ic">
@@ -210,6 +213,7 @@
     document.querySelectorAll('.dot').forEach(function (b, k) { b.classList.toggle('on', k + 1 === n); b.classList.toggle('done', k + 1 < n); });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (n === 2 && typeof card === 'function') setTimeout(card, 0);
+    if (typeof demo === 'function') demo(n === 3);
   }
   document.addEventListener('click', function (e) { var t = e.target.closest('[data-go]'); if (t && t.tagName === 'BUTTON') go(+t.dataset.go); });
   go(1);
@@ -269,10 +273,66 @@
     var b = document.createElement('button'); b.type = 'button'; b.className = 'prop'; b.dataset.id = p.id;
     var im = document.createElement('img'); im.className = 'pxi'; im.src = 'icons/azit-room/' + p.img + '.png'; im.alt = '';
     b.appendChild(im); b.appendChild(document.createTextNode(p.name));
-    b.addEventListener('click', function () { pick(p); });
+    b.addEventListener('click', function () { pick(p); demoFrom(PROPS.indexOf(p)); });
     $('props').appendChild(b);
   });
   pick(PROPS[0]);
+
+  // ── 놀아 보기 자동 재생(11/25 가르시아 "3번째 아이템들 상호작용하는 거 자동으로 보여 줄 수 있어?") ──
+  // 3단계를 보는 동안 공 → 뼈다귀 → 유모차를 차례로: 공은 던지면 굴러가고 물어 옴, 뼈다귀는 가서 앙앙, 유모차는 쏙 타고 "출발!" 굴러감.
+  // 소품을 누르면 그것부터 다시. 강아지 그림은 왼쪽을 보고 있어서 오른쪽으로 갈 땐 뒤집는다(뒤집기는 순간 — 천천히 돌면 납작해짐). 움직임 줄이기를 켠 폰은 멈춘 그림만
+  var dogEl = $('room-dog'), itEl = $('room-item'), roomEl = dogEl.parentNode, anims = [], timers = [], demoOn = false, demoIdx = 0;
+  var IT_H = { ball: 24, bone: 22, stroller: 66 };
+  function T(x, y, flip, sc, w) { return 'translate(' + (x - w / 2) + 'px,' + (-y) + 'px) scaleX(' + (flip ? -1 : 1) + ') scale(' + (sc || 1) + ')'; }
+  function stopAll() { anims.forEach(function (a) { a.cancel(); }); anims = []; timers.forEach(clearTimeout); timers = []; }
+  function say(t, at) { timers.push(setTimeout(function () { $('room-say').textContent = t; }, at)); }
+  function run(el, frames, dur) { var a = el.animate(frames, { duration: dur, fill: 'forwards', easing: 'linear' }); anims.push(a); }
+  function playOne(p, done) {
+    stopAll();
+    var W = roomEl.clientWidth, DW = 84, iw, ih = IT_H[p.id];
+    itEl.src = 'icons/azit-room/' + p.img + '.png'; itEl.hidden = false; itEl.classList.toggle('front', p.id === 'stroller');
+    iw = Math.round(ih * (p.id === 'ball' ? 1 : p.id === 'bone' ? 18 / 14 : 39 / 55)); itEl.style.height = ih + 'px'; itEl.style.width = iw + 'px';
+    var x0 = W * 0.3, D = function (o, x, y, f, sc) { return { offset: o, transform: T(x, y || 0, f, sc, DW) }; },
+      I = function (o, x, y) { return { offset: o, transform: T(x, y || 0, false, 1, iw) }; }, dur;
+    $('room-say').textContent = p.say;
+    if (p.id === 'ball') {
+      dur = 4200; var xb = W * 0.82;
+      run(itEl, [I(0, x0 - 26, 42), I(0.18, x0 - 26, 42), I(0.28, (x0 + xb) / 2, 70), I(0.38, xb, 0), I(0.44, xb - 6, 6), I(0.5, xb - 10, 0),
+        I(0.66, xb - 10, 0), I(0.7, xb - 30, 40), I(0.92, x0 - 26, 42), I(1, x0 - 26, 42)], dur);
+      run(dogEl, [D(0, x0), D(0.36, x0), D(0.362, x0, 0, true), D(0.48, W * 0.55, 4, true), D(0.56, W * 0.62, 0, true), D(0.66, xb - 20, 3, true),
+        D(0.662, xb - 20, 3, false), D(0.8, W * 0.55, 4), D(0.92, x0), D(1, x0)], dur);
+      say('"물어 왔다!"', dur * 0.7);
+    } else if (p.id === 'bone') {
+      dur = 3600; var xn = W * 0.72;
+      run(itEl, [I(0, xn, 0), I(1, xn, 0)], dur);
+      var f = [D(0, x0), D(0.12, x0), D(0.122, x0, 0, true), D(0.3, (x0 + xn) / 2, 4, true), D(0.42, xn - 34, 0, true)];
+      for (var k = 0; k < 6; k++) f.push(D(0.46 + k * 0.07, xn - 34, k % 2 ? 0 : 7, true));
+      f.push(D(1, xn - 34, 0, true)); run(dogEl, f, dur);
+      say('"앙앙, 뼈다귀!"', dur * 0.42);
+    } else {
+      dur = 5200; var xs = W * 0.6, ride = 40;
+      run(itEl, [I(0, xs, 0), I(0.42, xs, 0), I(0.56, xs + W * 0.2, 0), I(0.7, xs - W * 0.12, 0), I(0.8, xs, 0), I(1, xs, 0)], dur);
+      run(dogEl, [D(0, x0), D(0.1, x0), D(0.102, x0, 0, true), D(0.26, xs - 46, 3, true), D(0.3, xs - 46, 0, true), D(0.34, xs - 18, 46, true, 0.62),
+        D(0.38, xs, ride, true, 0.55), D(0.42, xs, ride, true, 0.55), D(0.56, xs + W * 0.2, ride, true, 0.55), D(0.562, xs + W * 0.2, ride, false, 0.55), D(0.7, xs - W * 0.12, ride, false, 0.55),
+        D(0.8, xs, ride, false, 0.55), D(0.86, xs, ride, false, 0.55), D(0.9, xs - 40, 40, false, 0.8), D(0.95, xs - 60, 0, false), D(1, xs - 60, 0, false)], dur);
+      say('"출발!"', dur * 0.42); say('"재밌다!"', dur * 0.8);
+    }
+    timers.push(setTimeout(done, dur + 700));
+  }
+  function loop() {
+    if (!demoOn) return;
+    var p = PROPS[demoIdx % PROPS.length]; pick(p);
+    playOne(p, function () { demoIdx++; loop(); });
+  }
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function demo(on) {
+    if (!dogEl) return;   // 처음 go(1) 때는 아직 준비 전
+    if (still || !dogEl.animate) { dogEl.style.transform = 'translateX(' + (roomEl.clientWidth / 2 - 42) + 'px)'; return; }
+    if (on === demoOn) return;
+    demoOn = on; stopAll();
+    if (on) loop();
+  }
+  function demoFrom(i) { if (!demoOn || still) return; stopAll(); demoIdx = i; loop(); }
   $('gb').addEventListener('click', function () { alert('킁킁 방명록 — 공원에서 만난 친구와 서로 화면 QR을 찍으면 그 친구 발자국이 여기에 쌓여요.'); });
 })();
 </script>
