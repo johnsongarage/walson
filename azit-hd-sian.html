@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아지트 고해상도 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 아지트 고해상도 시안(2026-11-25 가르시아 "아지트 도트 퀄리티가 첨부한 이미지들보다 낮은 게 우려돼, 어떤 식으로 개편해야 해?" →
+     Claude 제안 "방을 원본 해상도로(방 한 점 = 원본 4.5픽셀)" → "시안부터 만들어 줘").
+     방 = 받은 크림 방 그림(sian-ref/azit-room-cream.webp) 그대로 — 방 둘레만 잘라 씀(sian-ref/azit-hd/room.webp, 원본 x 400부터 1930×1536).
+     소품 = 받은 시트·조명·엽서 원본에서 오린 18개(_dev/azit-hd-cut.py → sian-ref/azit-hd/items, 지금 앱 그림 크기 × 4.5).
+     강아지 = 지금 그림(icons/dot-dogs) 그대로 — 앱도 강아지는 이미 화면 픽셀에 맞춰 그린다.
+     [지금 앱] = 같은 방·같은 자리를 지금 앱처럼 방 한 점 단위로 그린 것(방은 원본을 4.5분의 1로 줄인 room-1x.webp, 소품은 icons/azit-room,
+     강아지는 icons/dot-dogs/px) — 해상도만 다르게 해서 비교한다.
+     바닥 칸(i·j)은 앱과 같은 101×86칸(받은 그림의 바닥이 그 크기 — 바닥 한 칸 = 원본 9픽셀)이라 앱 소품 자리를 그대로 쓸 수 있다.
+     주소로만 여는 시안 — 실제 [아지트]는 그대로. 아무것도 저장·전송하지 않는다. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink, #2a2026);
+    background: var(--bg, #fffdfd); padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; color: var(--accent, #ff5c9d); }
+  .lead { font-size: 13px; line-height: 1.55; color: var(--ink-soft, #6f6168); margin: 0 0 12px; word-break: keep-all; }
+  .stage { position: relative; border: 2px solid var(--line, #2a2026); box-shadow: 3px 3px 0 var(--line, #2a2026); background: var(--panel, #fff); line-height: 0; }
+  canvas { display: block; width: 100%; touch-action: manipulation; cursor: pointer; }
+  .badge { position: absolute; left: 6px; top: 6px; font-size: 12px; line-height: 1; font-weight: 800; padding: 5px 7px;
+    background: rgba(42, 32, 38, 0.82); color: #fff; pointer-events: none; }
+  .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1.4; color: var(--ink-soft, #6f6168); }
+  .loading[hidden] { display: none; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6f6168); margin: 8px 0 12px; word-break: keep-all; }
+  .ctrl { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .row > span { font-size: 12px; color: var(--ink-soft, #6f6168); min-width: 64px; }
+  .chip { font: inherit; font-size: 12.5px; color: var(--ink, #2a2026); background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    padding: 5px 9px; cursor: pointer; box-shadow: 2px 2px 0 var(--line, #2a2026); }
+  .chip[aria-pressed="true"] { background: var(--accent, #ff5c9d); color: var(--hl-ink, #fff); }
+  .note { font-size: 13px; line-height: 1.65; word-break: keep-all; background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    box-shadow: 3px 3px 0 var(--line, #2a2026); padding: 10px 12px; margin-bottom: 14px; }
+  .note h2 { font-size: 15px; margin: 0 0 4px; }
+  .note ul, .note ol { margin: 0; padding-left: 18px; }
+  .note li + li { margin-top: 3px; }
+  .note .soft { color: var(--ink-soft, #6f6168); font-size: 12px; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>아지트 고해상도 시안</h1>
+  <p class="lead">받은 방 그림과 소품 원본을 줄이지 않고 그대로 써 본 방이에요.
+    <b>[지금 앱]</b>을 누르면 같은 방·같은 자리를 지금 앱처럼 점으로 그려요 — 해상도만 달라요.</p>
+
+  <div class="stage" id="stage">
+    <canvas id="room" aria-label="아지트 방 — 바닥을 누르면 강아지가 걸어가요"></canvas>
+    <div class="badge" id="badge">고해상도</div>
+    <div class="loading" id="loading">그림을 읽는 중이에요</div>
+  </div>
+  <p class="hint">바닥 톡 걸어가기 · 조명 톡 켜기</p>
+
+  <div class="ctrl">
+    <div class="row"><span>그림</span>
+      <button type="button" class="chip" data-k="res" data-v="hd">고해상도(원본)</button>
+      <button type="button" class="chip" data-k="res" data-v="app">지금 앱(점)</button></div>
+    <div class="row"><span>보기</span>
+      <button type="button" class="chip" data-k="view" data-v="app">앱처럼</button>
+      <button type="button" class="chip" data-k="view" data-v="all">방 전체</button></div>
+    <div class="row"><span>원본 없는 소품</span>
+      <button type="button" class="chip" data-k="extra" data-v="off">빼기</button>
+      <button type="button" class="chip" data-k="extra" data-v="on">섞어 보기</button></div>
+    <div class="row" id="dogrow"><span>강아지</span></div>
+  </div>
+
+  <div class="note">
+    <h2>이 시안에 쓴 것</h2>
+    <ul>
+      <li>방: 받은 크림 방 그림 원본 그대로(방 한 점에 원본 4.5픽셀 — 지금 앱은 1픽셀)</li>
+      <li>소품 18개: 받은 시트·조명·엽서 원본에서 오림. 놓인 자리·크기는 앱과 같아요</li>
+      <li>강아지: 지금 그림 그대로(앱도 강아지는 이미 화면 픽셀에 맞춰 그려요)</li>
+      <li><b>섞어 보기</b>: 원본이 없는 소품(화분·밥그릇·공·뼈다귀·분재)을 지금 그림으로 키워 넣은 것 — 원본 없이 키우면 이렇게 거칠어요</li>
+    </ul>
+  </div>
+  <div class="note">
+    <h2>앱에 넣으려면</h2>
+    <ol>
+      <li><b>소품 원본</b>: 18개는 있어요. 나머지 약 50개는 원본 시트가 있으면 바로 오리고, 없으면 다시 받아야 해요.</li>
+      <li><b>방 원본</b>: 크림 방 하나만 있어요. 분홍·라일락·밤 벽지와 밤 창밖도 같은 크기 원본이 필요해요.</li>
+      <li><b>방 그리기</b>: 방 한 점 단위로 그리던 것을 원본 크기로 — 바닥 칸은 그대로라 소품 자리는 그대로 옮겨져요. 선반·창 자리와 걷기·던지기·개모차 타기는 새 방에 맞춰 다시 잡아요.</li>
+      <li><b>무게</b>: 아지트 그림이 지금 0.8MB → 원본으로 2MB 남짓(처음 한 번만 받아요).</li>
+    </ol>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+  // ── 자리(원본 그림 좌표, 픽셀) ──
+  var S = 4.5, X0 = 400, RW = 1930, RH = 1536;   // 방 한 점 = 원본 4.5픽셀 · room.webp는 원본 x 400부터 1930×1536
+  var CX = 1379, CY = 736, U = 9, SR = 0.398, SL = 0.4325;   // 두 벽 모서리(바닥) · 바닥 한 칸 · 벽 바닥 줄 기울기(오른쪽·왼쪽 벽)
+  var IMAX = 101, JMAX = 86, DOG_H = 44;   // 바닥 칸 수(앱과 같음) · 강아지 키(방 점, 앱과 같음)
+  var HD = 'sian-ref/azit-hd/', APP = 'icons/azit-room/', BG = '#d3c4b0';
+  function F(i, j) { return { x: CX + U * (i - j), y: CY + U * (SR * i + SL * j) }; }   // 바닥 칸 → 원본 좌표
+  function WP(side, u, h) {   // 벽 자리(벽 R·L, 모서리에서 u칸, 그림 가운데가 벽 바닥 줄에서 h점 위) — 앱 W()와 같은 뜻
+    return side === 'R' ? { x: CX + U * u, y: CY + U * SR * u - h * S } : { x: CX - U * u, y: CY + U * SL * u - h * S };
+  }
+  function toFloor(x, y) { var a = (x - CX) / U, b = (y - CY) / U, j = (b - SR * a) / (SR + SL); return { i: a + j, j: j }; }
+  // 받은 그림의 붙박이 선반 둘 — 윗면 가운데 줄(왼쪽 끝 → 오른쪽 끝, 실측)
+  var SHELF = [{ x0: 1430, y0: 297, x1: 1675, y1: 397 }, { x0: 1430, y0: 425, x1: 1675, y1: 525 }];
+
+  // 소품 — 원본이 있는 18개(face: 그림이 어느 벽 방향으로 그려졌는지, 다른 벽에 걸면 뒤집음 · 앱과 같음)
+  var ITEMS = [
+    { spr: 'neon_chihuahua', face: 'R', wall: 'L', u: 14, h: 70 },
+    { spr: 'postcard_paw', face: 'L', wall: 'L', u: 30, h: 80 },
+    { spr: 'keyhook_rail', face: 'R', wall: 'L', u: 44, h: 64 },
+    { spr: 'leash_hook', face: 'L', wall: 'L', u: 60, h: 66 },
+    { spr: 'bag_dispenser', face: 'L', wall: 'L', u: 28, h: 46 },
+    { spr: 'cafe_cup', shelf: 0, t: 0.3 },
+    { spr: 'treat_jar', shelf: 1, t: 0.62 },
+    { spr: 'picnic_mat', decal: true, i: 24, j: 62 },
+    { spr: 'pee_pad', decal: true, i: 82, j: 50 },
+    { spr: 'lamp_stand', lamp: true, i: 6, j: 22 },
+    { spr: 'food_box', i: 4, j: 38 },
+    { spr: 'raincoat_rack', i: 8, j: 62 },
+    { spr: 'pet_stairs', i: 24, j: 4 },
+    { spr: 'flag_stand', i: 44, j: 4 },
+    { spr: 'stroller', i: 74, j: 8 },
+    { spr: 'donut_cushion', i: 40, j: 40 },
+    { spr: 'grooming_basket', i: 30, j: 70 },
+    { spr: 'carrot_plush', i: 58, j: 44 }
+  ];
+  // 원본이 없는 소품(섞어 보기) — 지금 앱 그림(방 한 점 = 1픽셀)을 원본 크기로 키운 것
+  var EXTRA = [
+    { spr: 'plant_pot', i: 2, j: 4, extra: true },
+    { spr: 'feeder_wood_2bowl', i: 14, j: 52, extra: true },
+    { spr: 'toy_bone', i: 36, j: 58, extra: true },
+    { spr: 'ball_yellow', i: 80, j: 30, extra: true },
+    { spr: 'plant_cherry_blossom', shelf: 0, t: 0.74, extra: true }
+  ];
+  var DOGS = [['pom', '포메'], ['poodle', '푸들'], ['maltese', '말티즈'], ['knit', '파란 니트'], ['chihuahua', '치와와'],
+    ['dachs', '닥스훈트'], ['jindo', '진돗개'], ['shiba', '시바']];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cv = $('room'), ctx = cv.getContext('2d');
+  var st = { res: 'hd', view: 'app', extra: 'off', dog: 'pom', lamp: false };
+  var dog = { i: 48, j: 34, ti: 48, tj: 34, flip: false, walking: false, phase: 0 };
+  var img = {}, ready = false;
+
+  function load(key, src) {
+    return new Promise(function (ok) {
+      var im = new Image();
+      im.onload = function () { img[key] = im; ok(); };
+      im.onerror = function () { ok(); };   // 못 읽은 그림은 빼고 그린다
+      im.src = src;
+    });
+  }
+  function loadAll() {
+    var jobs = [load('room', HD + 'room.webp'), load('room1', HD + 'room-1x.webp'),
+      load('hd:lamp_stand_on', HD + 'items/lamp_stand_on.webp'), load('app:lamp_stand_on', APP + 'lamp_stand_on.png')];
+    ITEMS.forEach(function (it) { jobs.push(load('hd:' + it.spr, HD + 'items/' + it.spr + '.webp'), load('app:' + it.spr, APP + it.spr + '.png')); });
+    EXTRA.forEach(function (it) { jobs.push(load('app:' + it.spr, APP + it.spr + '.png')); });
+    return Promise.all(jobs);
+  }
+  var dogJobs = {};
+  function loadDog(id) {   // 고른 강아지만 그때 읽는다
+    if (!dogJobs[id]) dogJobs[id] = Promise.all([load('dog:' + id, 'icons/dot-dogs/' + id + '.webp?v=1'), load('px:' + id, 'icons/dot-dogs/px/' + id + '.png')]);
+    return dogJobs[id];
+  }
+
+  // ── 그리기 준비 ──
+  // 곱게 줄이기(한 번에 많이 줄이면 거칠어서 반씩) — 앱 smallCopy와 같음. flip이면 좌우로 뒤집어서
+  function smallCopy(src, w, h, flip) {
+    var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+    while (sw / 2 >= w * 1.5) {
+      var t = document.createElement('canvas'); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
+      var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(src, 0, 0, t.width, t.height);
+      src = t; sw = t.width; sh = t.height;
+    }
+    var c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h);
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    if (flip) { g.translate(c.width, 0); g.scale(-1, 1); }
+    g.drawImage(src, 0, 0, c.width, c.height);
+    return c;
+  }
+  function blocky(src, w, h, flip) {   // 가장 가까운 점으로 키우기(지금 앱처럼 — 점이 커진다)
+    var c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h);
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    if (flip) { g.translate(c.width, 0); g.scale(-1, 1); }
+    g.drawImage(src, 0, 0, c.width, c.height);
+    return c;
+  }
+  function flipped(src) {
+    var c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+    var g = c.getContext('2d'); g.translate(c.width, 0); g.scale(-1, 1); g.drawImage(src, 0, 0);
+    return c;
+  }
+  var cache = {};
+  function hdSprite(spr, k, flip) {   // 원본 소품을 화면 배율 k(화면 픽셀 / 원본 픽셀)로 미리 줄여 둔 것
+    var key = 'hd|' + spr + '|' + k + '|' + !!flip;
+    if (cache[key]) return cache[key];
+    var im = img['hd:' + spr]; if (!im) return null;
+    return (cache[key] = smallCopy(im, Math.round(im.naturalWidth * k), Math.round(im.naturalHeight * k), flip));
+  }
+  function bigSprite(spr, R, flip) {   // 원본 없는 소품 — 지금 그림(방 점)을 화면 배율로 점째 키운 것
+    var key = 'big|' + spr + '|' + R + '|' + !!flip;
+    if (cache[key]) return cache[key];
+    var im = img['app:' + spr]; if (!im) return null;
+    return (cache[key] = blocky(im, Math.round(im.naturalWidth * R), Math.round(im.naturalHeight * R), flip));
+  }
+  function appSprite(spr, flip) {
+    var im = img['app:' + spr]; if (!im) return null;
+    if (!flip) return im;
+    var key = 'appf|' + spr;
+    return cache[key] || (cache[key] = flipped(im));
+  }
+
+  // ── 보는 칸 ──
+  var cssW = 0, cssH = 0, dpr = 1, scale = 1, vx = X0, vy = 0;   // scale = CSS px / 원본 픽셀 · (vx, vy) = 보이는 칸 왼쪽 위(원본 좌표)
+  function frameView() {
+    if (st.view === 'all') { scale = cssW / RW; vx = X0; vy = 0; return; }
+    // 앱처럼: 방 한 점 = CSS 1px(앱과 같은 크기). 점 경계에 맞춰 지금 앱 그림도 점이 고르게
+    var w = Math.min(cssW * S, RW); scale = cssW / w;
+    var h = cssH / scale;
+    vx = Math.min(Math.max(X0, 1450 - w / 2), X0 + RW - w);
+    vy = Math.max(0, Math.min(195, RH - h));   // 위 선반 소품까지 보이게 위를 맞춘다(좁은 화면은 바닥 앞 끝이 잘림 — 앱도 그렇다)
+    vx = X0 + Math.round((vx - X0) / S) * S; vy = Math.round(vy / S) * S;
+  }
+  function resize() {
+    cssW = $('stage').clientWidth; cssH = Math.round(cssW * 0.8);
+    dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr); cv.style.height = cssH + 'px';
+    frameView(); staticLayer = null; cache = {}; dogBmp = {};
+    draw();
+  }
+  function K() { return scale * dpr; }   // 화면 픽셀 / 원본 픽셀
+  function dev(p) { return { x: (p.x - vx) * K(), y: (p.y - vy) * K() }; }   // 원본 좌표 → 화면 픽셀
+  function pt(p) { return { x: (p.x - X0) / S, y: p.y / S }; }   // 원본 좌표 → 방 점(지금 앱 보기)
+
+  function shelfPos(it) { var s = SHELF[it.shelf]; return { x: s.x0 + (s.x1 - s.x0) * it.t, y: s.y0 + (s.y1 - s.y0) * it.t }; }
+  function list() { return st.extra === 'on' ? ITEMS.concat(EXTRA) : ITEMS; }
+  function kindOf(it) { return it.wall ? 'wall' : it.decal ? 'decal' : it.shelf != null ? 'shelf' : 'floor'; }
+  function sprName(it) { return it.lamp && st.lamp ? 'lamp_stand_on' : it.spr; }
+  function needFlip(it) { return !!(it.wall && it.face && it.face !== it.wall); }
+
+  // ── 바닥 그림자 ──
+  function softShadow(g, x, y, w, alpha) {   // 고해상도: 부드러운 타원(화면 픽셀)
+    var h = w / 3;
+    g.save(); g.translate(x, y - h / 2); g.scale(1, h / w);
+    var gr = g.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+    gr.addColorStop(0, 'rgba(70, 25, 10, ' + (alpha * 1.25) + ')'); gr.addColorStop(0.7, 'rgba(70, 25, 10, ' + alpha + ')'); gr.addColorStop(1, 'rgba(70, 25, 10, 0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, w / 2, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  function dotShadow(g, x, y, w, alpha) {   // 지금 앱: 점 타원(앱 shadowOn과 같음, 방 점 단위)
+    w = Math.max(6, Math.min(44, Math.round(w)));
+    var h = Math.max(3, Math.floor(w / 3));
+    g.fillStyle = 'rgba(70, 25, 10, ' + alpha + ')';
+    for (var yy = 0; yy < h; yy++) {
+      var dy = (yy + 0.5 - h / 2) / (h / 2), half = Math.floor((w / 2) * Math.sqrt(Math.max(0, 1 - dy * dy)));
+      if (half > 0) g.fillRect(Math.round(x) - half, Math.round(y) + yy - h + 1, half * 2, 1);
+    }
+  }
+
+  // ── 움직이지 않는 것(방·깔개·벽·선반·그림자) — 화면 크기·보기·그림이 바뀔 때만 다시 ──
+  var staticLayer = null;
+  function buildStatic() {
+    var c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+    var g = c.getContext('2d'), k = K(), items = list();
+    g.fillStyle = BG; g.fillRect(0, 0, c.width, c.height);
+    if (st.res === 'hd') {
+      if (img.room) {   // 방 그림도 한 번에 곱게 줄여 둔다
+        var rw = Math.round(RW * k), rh = Math.round(RH * k), r = cache.room || (cache.room = smallCopy(img.room, rw, rh));
+        g.drawImage(r, Math.round((X0 - vx) * k), Math.round(-vy * k));
+      }
+      items.forEach(function (it) {
+        var kind = kindOf(it); if (kind === 'floor') return;
+        var p = kind === 'wall' ? WP(it.wall, it.u, it.h) : kind === 'shelf' ? shelfPos(it) : F(it.i, it.j);
+        var s = it.extra ? bigSprite(it.spr, k * S, needFlip(it)) : hdSprite(it.spr, k, needFlip(it)); if (!s) return;
+        var d = dev(p), y = kind === 'shelf' ? d.y - s.height : d.y - s.height / 2;
+        g.drawImage(s, Math.round(d.x - s.width / 2), Math.round(y));
+      });
+      items.forEach(function (it) {
+        if (kindOf(it) !== 'floor') return;
+        var im = it.extra ? img['app:' + it.spr] : img['hd:' + it.spr]; if (!im) return;
+        var w = it.extra ? im.naturalWidth * S : im.naturalWidth, d = dev(F(it.i, it.j));
+        softShadow(g, d.x, d.y, Math.max(6 * S, Math.min(44 * S, w * 0.7)) * k, 0.2);
+      });
+    } else {
+      // 지금 앱: 방 점 캔버스(429×342)에 그린 뒤 점째 키운다
+      var pc = document.createElement('canvas'); pc.width = Math.ceil(RW / S); pc.height = Math.ceil(RH / S);
+      var q = pc.getContext('2d'); q.imageSmoothingEnabled = false;
+      if (img.room1) q.drawImage(img.room1, 0, 0);
+      items.forEach(function (it) {
+        var kind = kindOf(it); if (kind === 'floor') return;
+        var s = appSprite(it.spr, needFlip(it)); if (!s) return;
+        var p = pt(kind === 'wall' ? WP(it.wall, it.u, it.h) : kind === 'shelf' ? shelfPos(it) : F(it.i, it.j)), w = s.width, h = s.height;
+        q.drawImage(s, Math.round(p.x - w / 2), kind === 'shelf' ? Math.round(p.y) - h + 1 : Math.round(p.y - h / 2));
+      });
+      items.forEach(function (it) {
+        if (kindOf(it) !== 'floor') return;
+        var s = img['app:' + it.spr]; if (!s) return;
+        var p = pt(F(it.i, it.j)); dotShadow(q, p.x, p.y, s.width * 0.7, 0.2);
+      });
+      var R = k * S;
+      g.save(); g.imageSmoothingEnabled = false;
+      g.setTransform(R, 0, 0, R, -((vx - X0) / S) * R, -(vy / S) * R);
+      g.drawImage(pc, 0, 0); g.restore();
+    }
+    staticLayer = c;
+  }
+
+  // ── 조명 빛(켜면) — 고해상도는 부드럽게, 지금 앱은 3겹 계단(앱 glowLayer와 같은 값, 바닥이 납작한 만큼 세로만 줄임) ──
+  var FLAT = 0.42;   // 받은 그림 바닥의 세로/가로(앱 방은 0.5)
+  function lampItem() { for (var n = 0; n < ITEMS.length; n++) if (ITEMS[n].lamp) return ITEMS[n]; return null; }
+  function lightHD(g, k) {
+    var it = lampItem(); if (!it) return;
+    var d = dev(F(it.i, it.j)), rx = 46 * S * k;
+    g.save(); g.globalCompositeOperation = 'lighter';
+    g.save(); g.translate(d.x, d.y); g.scale(1, FLAT * 1.05);
+    var gr = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+    gr.addColorStop(0, 'rgba(255, 196, 112, 0.30)'); gr.addColorStop(0.5, 'rgba(255, 196, 112, 0.17)'); gr.addColorStop(1, 'rgba(255, 196, 112, 0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, Math.PI * 2); g.fill(); g.restore();
+    var sx = d.x, sy = d.y - 41 * S * k, r = 26 * S * k, g2 = g.createRadialGradient(sx, sy, 0, sx, sy, r);
+    g2.addColorStop(0, 'rgba(255, 196, 112, 0.34)'); g2.addColorStop(0.4, 'rgba(255, 196, 112, 0.18)'); g2.addColorStop(1, 'rgba(255, 196, 112, 0)');
+    g.fillStyle = g2; g.beginPath(); g.arc(sx, sy, r, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+  var glow1 = null;
+  function light1x(g) {   // 방 점 단위 변환이 걸린 채로 부른다
+    var it = lampItem(); if (!it) return;
+    var f = pt(F(it.i, it.j)), fx = Math.round(f.x), fy = Math.round(f.y);
+    if (!glow1) {
+      var W = Math.ceil(RW / S), H = Math.ceil(RH / S), c = document.createElement('canvas'); c.width = W; c.height = H;
+      var cg = c.getContext('2d'), data = cg.createImageData(W, H), px = data.data, sx = fx, sy = fy - 41;
+      for (var y = Math.max(0, fy - 70); y < Math.min(H, fy + 30); y++) {
+        for (var x = Math.max(0, fx - 60); x < Math.min(W, fx + 60); x++) {
+          var a = 0, ex = (x - fx) / 46, ey = (y - fy) / (46 * FLAT), e = ex * ex + ey * ey;
+          if (e < 0.28) a = 0.24; else if (e < 0.6) a = 0.15; else if (e < 1) a = 0.08;
+          var dx = x - sx, dy = y - sy, rr = Math.sqrt(dx * dx + dy * dy);
+          a = Math.max(a, rr < 10 ? 0.30 : rr < 17 ? 0.17 : rr < 25 ? 0.08 : 0);
+          if (!a) continue;
+          var n = (y * W + x) * 4; px[n] = 255; px[n + 1] = 196; px[n + 2] = 112; px[n + 3] = Math.round(a * 255);
+        }
+      }
+      cg.putImageData(data, 0, 0); glow1 = c;
+    }
+    g.save(); g.globalCompositeOperation = 'lighter'; g.drawImage(glow1, 0, 0); g.restore();
+  }
+
+  // ── 강아지 ──
+  var dogBmp = {};
+  function dogBitmap(hd) {   // 화면 픽셀 크기로 미리 맞춘 강아지(고해상도 = 원본 그림을 곱게 줄임 · 지금 앱 = 점 그림을 앱처럼)
+    var key = st.dog + '|' + hd + '|' + K();
+    if (dogBmp[key]) return dogBmp[key];
+    var k = K(), b = null;
+    if (hd) {
+      var im = img['dog:' + st.dog]; if (!im) return null;
+      var vis = DOG_H * S * k, full = vis * im.naturalHeight / (im.naturalHeight - 32);   // 그림 위아래 16px 빈칸
+      b = { c: smallCopy(im, Math.round(im.naturalWidth * full / im.naturalHeight), Math.round(full)), pad: full * 16 / im.naturalHeight };
+    } else {
+      var p = img['px:' + st.dog]; if (!p) return null;
+      var R = k * S, hh = Math.round(DOG_H * R), ww = Math.round(p.naturalWidth * hh / p.naturalHeight);
+      b = { c: hh >= p.naturalHeight ? blocky(p, ww, hh) : smallCopy(p, ww, hh), pad: 0 };   // 앱 dogBitmap과 같음
+    }
+    b.f = flipped(b.c);
+    return (dogBmp[key] = b);
+  }
+  function drawDog(g, now) {
+    var hd = st.res === 'hd', b = dogBitmap(hd); if (!b) return;
+    var k = K(), d = dev(F(dog.i, dog.j)), hop;
+    if (dog.walking) hop = hd ? Math.abs(Math.sin(now * Math.PI * 3)) * 1.2 * S * k : (Math.floor(now * 6) % 2) * S * k;
+    else hop = ((now + dog.phase) % 4.2) < 0.2 ? S * k : 0;   // 쉴 땐 4초쯤마다 한 번 통통
+    var w = b.c.width, h = b.c.height;
+    if (hd) softShadow(g, d.x, d.y + 2 * k, w * 0.62, 0.22);
+    else { g.save(); g.setTransform(S * k, 0, 0, S * k, 0, 0); var p = { x: d.x / (S * k), y: d.y / (S * k) }; dotShadow(g, p.x, p.y + 1, w / (S * k) * 0.62, 0.22); g.restore(); }
+    var top = hd ? d.y - h + b.pad - hop : d.y - h + S * k - hop;
+    g.drawImage(dog.flip ? b.f : b.c, Math.round(d.x - w / 2), Math.round(top));
+  }
+
+  // ── 한 장 그리기 ──
+  function draw(now) {
+    if (!ready) return;
+    now = now != null ? now : performance.now() / 1000;
+    if (!staticLayer) buildStatic();
+    var hd = st.res === 'hd', k = K();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(staticLayer, 0, 0);
+    var things = [];
+    list().forEach(function (it) { if (kindOf(it) === 'floor') things.push({ it: it, z: F(it.i, it.j).y }); });
+    things.push({ dog: true, z: F(dog.i, dog.j).y + 0.5 });
+    things.sort(function (a, b) { return a.z - b.z; });
+    things.forEach(function (t) {
+      if (t.dog) { ctx.imageSmoothingEnabled = true; drawDog(ctx, now); return; }
+      var it = t.it, spr = sprName(it), d = dev(F(it.i, it.j)), s;
+      if (hd) s = it.extra ? bigSprite(spr, k * S, false) : hdSprite(spr, k, false);
+      else {
+        var a = appSprite(spr, false); if (!a) return;
+        var R = k * S, p = pt(F(it.i, it.j));
+        ctx.save(); ctx.imageSmoothingEnabled = false;
+        ctx.setTransform(R, 0, 0, R, -((vx - X0) / S) * R, -(vy / S) * R);
+        ctx.drawImage(a, Math.round(p.x - a.width / 2), Math.round(p.y - a.height + 1));
+        ctx.restore(); return;
+      }
+      if (!s) return;
+      ctx.drawImage(s, Math.round(d.x - s.width / 2), Math.round(d.y - s.height));
+    });
+    if (st.lamp) {
+      if (hd) lightHD(ctx, k);
+      else {
+        var R = k * S;
+        ctx.save(); ctx.imageSmoothingEnabled = false;
+        ctx.setTransform(R, 0, 0, R, -((vx - X0) / S) * R, -(vy / S) * R);
+        light1x(ctx); ctx.restore();
+      }
+    }
+  }
+
+  // ── 움직임 ──
+  var last = 0;
+  function tick(ms) {
+    var now = ms / 1000, dt = last ? Math.min(0.05, now - last) : 0; last = now;
+    var di = dog.ti - dog.i, dj = dog.tj - dog.j, dist = Math.sqrt(di * di + dj * dj);
+    if (dist > 0.2) {
+      var sp = Math.min(dist, 15 * dt);   // 1초에 바닥 15칸(앱과 같음)
+      dog.i += di / dist * sp; dog.j += dj / dist * sp; dog.walking = true;
+      if (Math.abs(di - dj) > 0.3) dog.flip = (di - dj) < 0;   // 화면 왼쪽으로 가면 뒤집기
+    } else dog.walking = false;
+    draw(now);
+    requestAnimationFrame(tick);
+  }
+
+  // ── 누르기 ──
+  cv.addEventListener('click', function (e) {   // 톡(화면을 밀어 내리는 건 걷기 아님)
+    if (!ready) return;
+    var r = cv.getBoundingClientRect(), x = vx + (e.clientX - r.left) / scale, y = vy + (e.clientY - r.top) / scale;
+    var it = lampItem();
+    if (it) {   // 조명 — 그림 둘레를 누르면 켜고 끈다
+      var f = F(it.i, it.j), im = img['hd:lamp_stand'], w = im ? im.naturalWidth : 83, h = im ? im.naturalHeight : 230;
+      if (Math.abs(x - f.x) <= w / 2 + 10 && y >= f.y - h - 6 && y <= f.y + 8) {
+        st.lamp = !st.lamp;
+        try { if (navigator.vibrate) navigator.vibrate(10); } catch (er) { /* 무시 */ }
+        return;
+      }
+    }
+    var p = toFloor(x, y);
+    dog.ti = Math.max(2, Math.min(IMAX - 2, p.i)); dog.tj = Math.max(2, Math.min(JMAX - 2, p.j));
+  });
+
+  // ── 고르기 ──
+  $('dogrow').insertAdjacentHTML('beforeend', DOGS.map(function (d) {
+    return '<button type="button" class="chip" data-k="dog" data-v="' + d[0] + '">' + d[1] + '</button>';
+  }).join(''));
+  function paint() {
+    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (b) {
+      b.setAttribute('aria-pressed', String(st[b.getAttribute('data-k')] === b.getAttribute('data-v')));
+    });
+    $('badge').textContent = st.res === 'hd' ? '고해상도(원본)' : '지금 앱(점)';
+  }
+  document.querySelector('.ctrl').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (!b) return;
+    var k = b.getAttribute('data-k'), v = b.getAttribute('data-v');
+    if (st[k] === v) return;
+    st[k] = v; paint();
+    if (k === 'dog') { dogBmp = {}; loadDog(v).then(function () { dogBmp = {}; }); return; }
+    if (k === 'view') { frameView(); cache = {}; dogBmp = {}; glow1 = null; }
+    staticLayer = null;
+  });
+  paint();
+
+  var rt = 0;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(resize, 120); });
+  Promise.all([loadAll(), loadDog(st.dog)]).then(function () {
+    ready = true; $('loading').hidden = true;
+    resize();
+    requestAnimationFrame(tick);
+  });
+  window.__hd = { st: st, dog: dog, view: function () { return { vx: vx, vy: vy, scale: scale, dpr: dpr, cssW: cssW, cssH: cssH }; },   // 시험용
+    at: function (i, j, up) { var p = F(i, j); return { x: (p.x - vx) * scale, y: (p.y - (up || 0) - vy) * scale }; } };
+})();
+</script>
+</body>
+</html>
