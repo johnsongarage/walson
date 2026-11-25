@@ -430,15 +430,26 @@
   $('show-btn').addEventListener('click', showMyCard);
   // 다른 앱에 갔다 오면 시각을 새로(타이머가 멈춰 있었을 수 있다)
   document.addEventListener('visibilitychange', function () { if (!document.hidden && !$('my-sheet').hidden) drawLiveQr(); });
-  $('share-btn').addEventListener('click', function () {
+  function shareNow(text) {
     if (!shareUrl) return;
     if (WalsonDevice.canShare()) {
-      WalsonDevice.share({ title: '왈슨 강아지 도감 카드', text: shareName + ' 도감 카드예요', url: shareUrl })
+      WalsonDevice.share({ title: '왈슨 강아지 도감 카드', text: text || (shareName + ' 도감 카드예요'), url: shareUrl })
         .catch(function (e) { if (!e || e.name !== 'AbortError') copyUrl(); });   // 공유 창을 그냥 닫은 건 그대로 둔다
       return;
     }
     copyUrl();
-  });
+  }
+  $('share-btn').addEventListener('click', function () { shareNow(); });
+  // ── 답장 보내기(2026-11-25 가르시아 "답장 보내기 먼저") ── 카드 주소로 받은 카드를 넣고 나면, 내 카드 주소를 그 사람에게 답장으로.
+  // 서버 없이 아는 견주끼리 서로 도감에 넣는 길(둘 다 발자국 — 단짝은 그대로 그 자리에서 찍은 사이만). 주소 끝 &re=1 = 답장으로 온 카드(또 답장하라고 묻지 않게).
+  function replyCard() {
+    if (nameBlocked()) return;
+    myCard().then(function (card) {
+      if (!card) { location.href = 'start.html'; return; }
+      shareUrl = cardUrl(card) + '&re=1'; shareName = card.n;
+      shareNow(card.n + ' 도감 카드예요 — 받은 카드 답장이에요');
+    });
+  }
 
   // ── 받은 강아지 넣기 ──
   // ── 받아 두기(2026-11-24 가르시아 "2번 받아 두기 만들어 줘", hq notes/petwalk-park-trouble.md 6절 C) ──
@@ -518,6 +529,8 @@
     if (live) sub = (exist && exist.pal ? '단짝이에요. 오늘 만난 걸로 적을까요?' : '그 자리에서 찍은 화면 QR이라 단짝으로 적어요.') +
       (dog.r ? ' 방 모습도 같이 와서 아지트에서 마실 갈 수 있어요.' : '') + ' 이 휴대폰에만 저장돼요.';
     else if (kind === 'stale') sub = '띄운 지 몇 분 지난 QR이라 발자국으로만 적어요. 그 자리에서 다시 띄워 달라고 하면 단짝이 되고 한마디도 남아요.';
+    else if (opts.reply) sub = '내 카드를 받고 답장으로 보내 준 카드예요. 발자국으로 적어요 — 넣으면 서로 도감에 있어요.';
+    else if (opts.link) sub = '카드 주소로 받은 카드라 발자국으로 적어요. 넣고 나면 내 카드도 답장으로 보낼 수 있어요.';
     else sub = '주소로 받은 QR이라 발자국으로 적어요. 상대 화면의 QR을 그 자리에서 찍으면 단짝이 되고 한마디도 남아요.';
     if (opts.pending) {   // 받아 둔 카드 — 언제 받은 건지, 그날 그 자리에서 찍은 거라 단짝인지
       sub = dayLabel(opts.day) + ' 받아 둔 카드예요. ' + (live ? (exist && exist.pal ? '단짝이에요. 그날 만난 걸로 적을까요?' : '그 자리에서 찍은 화면 QR이라 단짝으로 적어요.') +
@@ -595,8 +608,25 @@
       if (live && e.room) pa.appendChild(azitLink(e));
       return;
     }
-    // 서로 넣으려면 상대도 내 카드를 찍어야 한다 — 바로 이어서 보여 주게
     var mine = WalsonStore.profile();
+    // 카드 주소로 받은 경우 — 상대는 곁에 없으니 QR 대신 내 카드 주소를 답장으로(답장으로 온 카드면 이미 서로 있어서 묻지 않음)
+    if (opts.link && !opts.reply && mine && mine.name) {
+      $('add-sub').textContent = '발자국으로 적었어요. ' + dog.n + ' 도감에도 우리 개가 들어가게 내 카드를 답장으로 보내 볼까요?';
+      var ra = $('add-actions'); ra.innerHTML = '';
+      var rrow = el('div', 'row');
+      var rclose = el('button', 'btn btn-sub', '닫기'); rclose.type = 'button'; rclose.addEventListener('click', closeAll);
+      var rsend = el('button', 'btn btn-main', '내 카드 답장 보내기'); rsend.type = 'button'; rsend.addEventListener('click', replyCard);
+      rrow.appendChild(rclose); rrow.appendChild(rsend); ra.appendChild(rrow);
+      return;
+    }
+    if (opts.reply) {
+      $('add-sub').textContent = '발자국으로 적었어요. 이제 ' + dog.n + '하고 서로 도감에 있어요.';
+      var qa = $('add-actions'); qa.innerHTML = '';
+      var qclose = el('button', 'btn btn-main', '닫기'); qclose.type = 'button'; qclose.style.width = '100%'; qclose.addEventListener('click', closeAll);
+      qa.appendChild(qclose);
+      return;
+    }
+    // 서로 넣으려면 상대도 내 카드를 찍어야 한다 — 바로 이어서 보여 주게
     $('add-sub').textContent = (live ? '단짝으로 적었어요. ' : '발자국으로 적었어요. ') + dog.n + '도 우리 개를 넣으려면 내 카드를 보여 주세요' +
       (live ? ' — 한마디를 골라 보낼 수 있어요.' : '.');
     var acts = $('add-actions'); acts.innerHTML = '';
@@ -684,12 +714,13 @@
   function fromHash() {
     var m = /[#&]d=([A-Za-z0-9_-]+)/.exec(location.hash);
     if (!m) return;
+    var reply = /[#&]re=1(&|$)/.test(location.hash);
     // 주소창에 남지 않게 지운다(뒤로 가기·새로고침 때 또 묻지 않게)
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* 무시 */ }
     var dog = decode(m[1]);
     if (!dog) { toast('QR 내용을 읽지 못했어요'); return; }
     if (DC.nameProblem(dog.n)) { toast(BAD_CARD); return; }
-    offerAdd(dog);
+    offerAdd(dog, { link: true, reply: reply });
   }
   window.addEventListener('hashchange', fromHash);
 
