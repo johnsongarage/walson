@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 전 시안</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* [오늘] 산책 전 시안(2026-11-25 가르시아 — 인터뷰 "근본에 집중: 산책하러 나가기 전에 정보·알림·통찰이 먼저,
+     키링·아지트는 나중" → "시안 만들어 줘" + "지금 동네에서 산책 중인 강아지 몇 마리인지 보여 주는 것도 방법, 진위는 못 가려도").
+     [오늘] 링 위에 '산책 전' 칸 셋을 더한다:
+       ① 지금 나가도 될까 — 기온·미세먼지·노면 온도·해 지는 시각으로 한 줄 판단(좋아요 / 짧게 / 오늘은 실내 놀이)
+       ② 지금 동네에서 산책 중 — n마리 + 보통 이 시간엔 m마리(시간대 막대). 3마리 미만은 숫자 대신 '조용해요'
+       ③ 통찰 한 줄 — 내 기록에서(요즘 저녁 산책이 짧아요 등)
+     + 알림 미리 보기(나중 — 웹앱은 화면이 꺼지면 못 알린다. 앱 포장 뒤).
+     시안이라 날씨·마릿수는 모두 가짜 값이고 아무 데도 보내거나 받지 않는다. */
+  body { margin: 0; padding: 18px 16px 40px; font-family: 'Pretendard', system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 420px; margin: 0 auto; }
+  .sian-top { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); margin: 0 2px 12px; word-break: keep-all; }
+  .sian-top b { color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+  .chips button { border: 1.5px solid var(--panel-border); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 6px 11px;
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .chips button[aria-pressed="true"] { background: var(--hl); color: var(--hl-ink); border-color: var(--line); }
+  .chips small { display: block; width: 100%; font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  .who { display: flex; align-items: center; gap: 10px; margin: 0 2px 14px; }
+  .face { width: 50px; height: 50px; border-radius: 50%; border: 2.5px solid var(--gold-ring); background: var(--soft);
+    display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .who-name { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+
+  .panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px; padding: 16px;
+    box-shadow: 0 4px 16px rgba(var(--shadow-rgb), 0.08); margin-bottom: 12px; }
+  .panel > h2 { margin: 0 0 10px; font-size: 15px; font-weight: 800; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .panel > h2 small { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+  .new-tag { display: inline-block; font-size: 10.5px; font-weight: 900; padding: 1px 6px; border-radius: 6px; background: var(--butter); color: var(--butter-ink); margin-left: 6px; vertical-align: 2px; }
+
+  /* ① 지금 나가도 될까 */
+  .verdict { display: flex; align-items: center; gap: 12px; }
+  .v-badge { flex: none; width: 58px; height: 58px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 30px; border: 2px solid var(--line); }
+  .v-badge.good { background: var(--hl); }
+  .v-badge.short { background: var(--butter); }
+  .v-badge.stay { background: var(--soft); }
+  .v-txt b { display: block; font-size: 19px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.25; word-break: keep-all; }
+  .v-txt span { display: block; font-size: 13px; color: var(--ink-soft); margin-top: 3px; line-height: 1.45; word-break: keep-all; }
+  .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .fact { border-radius: 12px; background: var(--soft); padding: 8px 4px; text-align: center; }
+  .fact small { display: block; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+  .fact b { display: block; font-size: 16px; font-weight: 900; margin-top: 2px; }
+  .fact.warn { box-shadow: inset 0 0 0 2px var(--accent); }
+  .fact.warn b { color: var(--accent); }
+  .tip { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
+  .tip b { color: var(--ink); }
+
+  /* ② 지금 동네에서 산책 중 */
+  .now { display: flex; align-items: baseline; gap: 8px; }
+  .now-num { font-size: 44px; font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+  .now-num small { font-size: 16px; font-weight: 800; margin-left: 2px; }
+  .now-sub { font-size: 13.5px; font-weight: 700; color: var(--ink-soft); word-break: keep-all; }
+  .now-quiet { font-size: 22px; font-weight: 900; }
+  .dots { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 4px; min-height: 18px; }
+  .dots i { width: 16px; height: 16px; border-radius: 50%; background: var(--hl); border: 1.5px solid var(--line); font-style: normal;
+    display: flex; align-items: center; justify-content: center; font-size: 9px; }
+  .hours { display: flex; align-items: flex-end; gap: 3px; height: 54px; margin-top: 12px; }
+  .hours div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .hours i { display: block; width: 100%; border-radius: 4px 4px 0 0; background: var(--accent-tint); }
+  .hours div.is-now i { background: var(--hl); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .hours span { font-size: 9.5px; color: var(--ink-soft); margin-top: 3px; }
+  .hours div.is-now span { color: var(--ink); font-weight: 900; }
+  .fine { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--ink-soft); word-break: keep-all; }
+  details.how { margin-top: 8px; font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
+  details.how summary { cursor: pointer; font-weight: 800; color: var(--ink); }
+  details.how ul { margin: 6px 0 0; padding-left: 18px; }
+
+  /* ③ 통찰 한 줄 */
+  .insight { display: flex; gap: 10px; align-items: flex-start; }
+  .insight .ic { flex: none; font-size: 22px; }
+  .insight b { display: block; font-size: 15.5px; font-weight: 800; line-height: 1.4; word-break: keep-all; }
+  .insight span { display: block; font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.45; word-break: keep-all; }
+  .insight a { color: var(--accent); font-weight: 800; text-decoration: none; }
+
+  /* 링 자리(지금 [오늘]) — 시안에선 자리만 */
+  .hero-ghost { display: flex; align-items: center; gap: 12px; }
+  .hero-ghost .ring { flex: none; width: 92px; height: 92px; border-radius: 50%; border: 10px solid var(--soft); display: flex; align-items: center; justify-content: center; font-size: 34px; }
+  .hero-ghost b { font-size: 30px; font-weight: 900; }
+  .hero-ghost small { font-size: 14px; font-weight: 700; }
+  .hero-ghost p { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+  .btn-main { display: block; width: 100%; text-align: center; border: 2px solid var(--line); border-radius: 999px; padding: 12px 8px; margin-top: 14px;
+    background: var(--accent); color: #fff; font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; }
+  .ghost-note { font-size: 11.5px; color: var(--ink-soft); text-align: center; margin: 8px 0 0; }
+
+  /* 알림 미리 보기 */
+  .push { display: flex; gap: 10px; align-items: flex-start; border-radius: 16px; padding: 10px 12px; background: var(--soft); margin-top: 8px; }
+  .push img { flex: none; width: 34px; height: 34px; border-radius: 9px; }
+  .push b { display: block; font-size: 13px; }
+  .push span { display: block; font-size: 13px; line-height: 1.4; margin-top: 2px; word-break: keep-all; }
+  .push time { font-size: 11px; color: var(--ink-soft); font-weight: 700; margin-left: 4px; }
+  .later { font-size: 11.5px; font-weight: 800; color: var(--accent); }
+</style>
+</head>
+<body>
+<script src="store.js?v=1"></script>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
+<div class="wrap">
+  <p class="sian-top"><b>[오늘] 산책 전 시안</b> · 11/25 인터뷰 "나가기 전에 정보·알림·통찰이 먼저"를 [오늘] 맨 위에 넣어 본 모습이에요.
+    날씨·마릿수는 <b>모두 가짜 값</b>이고 아무 데도 보내거나 받지 않아요. 아래 칩으로 상황을 바꿔 보세요.</p>
+  <div class="chips" id="chips" role="group" aria-label="상황 바꿔 보기"></div>
+
+  <div class="who"><span class="face" aria-hidden="true">🐶</span><span class="who-name">콩이</span></div>
+
+  <!-- ① 지금 나가도 될까 -->
+  <section class="panel" id="p-weather">
+    <h2><span>지금 나가도 될까<span class="new-tag">새로</span></span><small id="w-where">우리 동네 · 방금</small></h2>
+    <div class="verdict">
+      <span class="v-badge" id="v-badge" aria-hidden="true"></span>
+      <div class="v-txt"><b id="v-title"></b><span id="v-sub"></span></div>
+    </div>
+    <div class="facts" id="facts"></div>
+    <p class="tip" id="tip"></p>
+  </section>
+
+  <!-- ② 지금 동네에서 산책 중 -->
+  <section class="panel" id="p-now">
+    <h2><span>지금 동네에서 산책 중<span class="new-tag">새로</span></span><small>왈슨 산책 기록을 켠 강아지</small></h2>
+    <div id="now-box"></div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="hours" id="hours" aria-label="시간대별 보통 몇 마리"></div>
+    <p class="fine" id="now-fine"></p>
+    <details class="how">
+      <summary>이 숫자는 어떻게 세나요?</summary>
+      <ul>
+        <li>왈슨에서 <b>산책 기록을 켠 사람만</b> 세요. 앱 없이 나온 강아지는 안 세서 실제보다 적어요.</li>
+        <li>산책 중에 보내는 건 <b>동네 칸(시·군·구) 하나와 '산책 중' 표시</b>뿐이에요. 걷는 길·좌표·강아지 이름은 안 보내요.</li>
+        <li>지도에 점으로 찍지 않아요 — 누가 어디 있는지는 아무도 몰라요. 3마리보다 적으면 숫자 대신 '조용해요'로만 보여요.</li>
+        <li>산책을 끝내거나 2시간이 지나면 저절로 빠져요. 끄고 싶으면 톱니 판에서 '나도 세어 주기'를 끄면 돼요.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- ③ 통찰 한 줄 -->
+  <section class="panel" id="p-insight">
+    <h2><span>콩이 요즘<span class="new-tag">새로</span></span><small>내 기록에서 · [기록]에 더</small></h2>
+    <div class="insight"><span class="ic" id="in-ic" aria-hidden="true"></span><div><b id="in-title"></b><span id="in-sub"></span></div></div>
+  </section>
+
+  <!-- 지금 [오늘] 링 자리 -->
+  <section class="panel">
+    <div class="hero-ghost">
+      <span class="ring" aria-hidden="true">🐶</span>
+      <div><b>0</b><small> / 30분</small><p>오늘 링 · 도장 6칸 · 이번 주는 지금처럼 이 아래에</p></div>
+    </div>
+    <button type="button" class="btn-main" id="go-btn">산책 나가기</button>
+    <p class="ghost-note" id="go-note"></p>
+  </section>
+
+  <!-- 알림 미리 보기(나중) -->
+  <section class="panel">
+    <h2><span>알림으로 오면 <span class="later">나중</span></span><small>앱으로 포장한 뒤</small></h2>
+    <div id="push"></div>
+    <p class="fine">지금 왈슨은 웹앱이라 화면이 꺼져 있으면 알릴 방법이 없어요. 안드로이드 앱으로 포장한 뒤(Capacitor 계획) 하루 한 번,
+      내가 고른 시간 앞뒤로 '나가기 좋은 때'만 알려 주는 걸로.</p>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ── 상황(전부 가짜 값) ──
+  var S = {
+    good: { name: '맑은 저녁', hour: 18, temp: 14, feel: 13, dust: '좋음', dustWarn: false, road: 15, roadWarn: false, sunset: '17:17',
+      v: 'good', title: '지금 나가기 딱 좋아요', sub: '바람도 잔잔하고 공기도 맑아요. 해 지기 전에 40분이면 충분해요.',
+      tip: '<b>해 지는 시각 5시 17분</b> — 이미 어두워졌으니 밝은 옷이나 목줄 불빛을 챙겨요.',
+      now: 9, usual: 12, insight: { ic: '🌙', t: '요즘 저녁 산책이 평소보다 8분 짧아요', s: '지난 2주 저녁 평균 22분 · 그전 30분. 오늘은 10분만 더 걸어 볼까요?' } },
+    dust: { name: '미세먼지 나쁨', hour: 8, temp: 6, feel: 4, dust: '나쁨', dustWarn: true, road: 5, roadWarn: false, sunset: '17:17',
+      v: 'short', title: '오늘은 짧게 다녀와요', sub: '미세먼지가 나빠요. 배변만 하고 15분 안쪽으로, 큰길보다 골목·공원 안쪽으로.',
+      tip: '<b>다녀와서 발·얼굴 닦기</b> — 털에 먼지가 붙어 있어요. 저녁 6시쯤 조금 나아질 거래요(가짜 예보).',
+      now: 3, usual: 14, insight: { ic: '💧', t: '먼지 많은 날엔 평균 12분 걸었어요', s: '지난달 먼지 나쁨 4일 — 그래도 하루도 안 빠졌어요.' } },
+    hot: { name: '한여름 한낮', hour: 13, temp: 33, feel: 36, dust: '보통', dustWarn: false, road: 55, roadWarn: true, sunset: '19:52',
+      v: 'stay', title: '지금은 바닥이 너무 뜨거워요', sub: '아스팔트가 55도쯤이라 발바닥을 데어요. 해가 기운 저녁 7시 반 넘어서 나가요.',
+      tip: '<b>손등을 바닥에 7초</b> 대 보고 못 참겠으면 강아지도 못 걸어요. 지금은 실내에서 노즈워크 10분 어때요?',
+      now: 1, usual: 4, insight: { ic: '☀️', t: '여름엔 아침 산책이 제일 길었어요', s: '7~8월 아침 평균 38분 · 저녁 24분.' } },
+    cold: { name: '영하 · 비 온 뒤', hour: 7, temp: -4, feel: -9, dust: '좋음', dustWarn: false, road: -3, roadWarn: true, sunset: '17:15',
+      v: 'short', title: '옷 입고 짧게 다녀와요', sub: '체감 영하 9도, 비 온 뒤라 길이 얼었을 수 있어요. 작은 강아지는 20분 안쪽으로.',
+      tip: '<b>염화칼슘</b> 뿌린 길은 피하고, 다녀와서 발바닥을 미지근한 물로 닦아요.',
+      now: 2, usual: 10, insight: { ic: '🧣', t: '이번 주 3일 나갔어요 — 오늘 나가면 4일째', s: '추운 날도 짧게라도 나가면 꾸준함 도장이 이어져요.' } }
+  };
+  // 시간대별 '보통 몇 마리'(가짜) — 6시~23시
+  var USUAL = [4, 9, 14, 11, 6, 4, 3, 3, 4, 5, 6, 8, 11, 12, 13, 10, 7, 4];
+  var cur = 'good';
+
+  var chips = document.getElementById('chips');
+  Object.keys(S).forEach(function (k) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = S[k].name; b.dataset.k = k;
+    b.onclick = function () { cur = k; draw(); };
+    chips.appendChild(b);
+  });
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function draw() {
+    var s = S[cur];
+    [].forEach.call(chips.children, function (b) { b.setAttribute('aria-pressed', b.dataset.k === cur ? 'true' : 'false'); });
+
+    // ① 날씨
+    var badge = document.getElementById('v-badge');
+    badge.className = 'v-badge ' + s.v;
+    badge.textContent = s.v === 'good' ? '🐾' : s.v === 'short' ? '⏱' : '🏠';
+    document.getElementById('v-title').textContent = s.title;
+    document.getElementById('v-sub').textContent = s.sub;
+    document.getElementById('w-where').textContent = '우리 동네 · ' + s.hour + '시';
+    var facts = [
+      ['기온', s.temp + '°', false],
+      ['체감', s.feel + '°', s.feel <= -5 || s.feel >= 31],
+      ['미세먼지', s.dust, s.dustWarn],
+      ['바닥', s.road + '°', s.roadWarn]
+    ];
+    document.getElementById('facts').innerHTML = facts.map(function (f) {
+      return '<div class="fact' + (f[2] ? ' warn' : '') + '"><small>' + f[0] + '</small><b>' + esc(f[1]) + '</b></div>';
+    }).join('');
+    document.getElementById('tip').innerHTML = s.tip;
+
+    // ② 지금 산책 중
+    var box = document.getElementById('now-box');
+    if (s.now >= 3) {
+      box.innerHTML = '<div class="now"><span class="now-num">' + s.now + '<small>마리</small></span>' +
+        '<span class="now-sub">지금 우리 동네에서 걷고 있어요<br>보통 이 시간엔 ' + s.usual + '마리</span></div>';
+      document.getElementById('dots').innerHTML = new Array(s.now + 1).join('<i>🐾</i>');
+    } else {
+      box.innerHTML = '<div class="now"><span class="now-quiet">지금은 조용해요</span>' +
+        '<span class="now-sub">보통 이 시간엔 ' + s.usual + '마리</span></div>';
+      document.getElementById('dots').innerHTML = '';
+    }
+    var max = Math.max.apply(null, USUAL);
+    document.getElementById('hours').innerHTML = USUAL.map(function (n, i) {
+      var h = i + 6;
+      return '<div class="' + (h === s.hour ? 'is-now' : '') + '"><i style="height:' + Math.round(n / max * 40 + 4) + 'px"></i>' +
+        '<span>' + (h % 3 === 0 || h === s.hour ? h : '') + '</span></div>';
+    }).join('');
+    document.getElementById('now-fine').textContent =
+      '막대 = 요일 상관없이 그 시간에 보통 몇 마리(지난 4주). 우리 동네는 아침 8시, 저녁 7시에 제일 많아요' +
+      (s.now < s.usual / 2 ? ' — 지금 나가면 한적하게 걸을 수 있어요.' : ' — 지금 나가면 친구를 만날지도 몰라요.');
+
+    // ③ 통찰
+    document.getElementById('in-ic').textContent = s.insight.ic;
+    document.getElementById('in-title').textContent = s.insight.t;
+    document.getElementById('in-sub').textContent = s.insight.s;
+
+    // 버튼 밑 한 줄
+    document.getElementById('go-note').textContent =
+      s.v === 'stay' ? '지금 나가도 되지만, 바닥부터 손으로 확인해 주세요.' :
+      s.v === 'short' ? '짧게 다녀와도 오늘 링이 채워져요.' : '오늘 목표 30분 · 해 지기 전에 다녀와요.';
+
+    // 알림 미리 보기
+    var msg = s.v === 'good' ? '지금 ' + s.temp + '도, 산책하기 좋은 저녁이에요 · 동네 강아지 ' + s.now + '마리 나와 있어요'
+      : s.v === 'short' ? s.title + ' — ' + (s.dustWarn ? '미세먼지 나쁨' : '체감 ' + s.feel + '도')
+      : '바닥이 뜨거워요. 저녁 7시 반쯤 다시 알려 줄게요';
+    document.getElementById('push').innerHTML = '<div class="push"><img src="icons/icon-192.png?v=3" alt="">' +
+      '<div><b>왈슨<time>' + s.hour + ':00</time></b><span>' + esc(msg) + '</span></div></div>';
+  }
+  draw();
+  document.getElementById('go-btn').onclick = function () { alert('시안이라 산책은 시작하지 않아요.'); };
+})();
+</script>
+</body>
+</html>
