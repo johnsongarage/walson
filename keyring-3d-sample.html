@@ -874,7 +874,7 @@ $('shot').addEventListener('click', () => {
 
 // ── 시작: 앞면 기본 = 받은 도트 워킹패스 그림에서 카드만(11/23 가르시아 "기본으로 이걸 넣어줘"). 못 불러오면 빈 판.
 //    카드 자리(그림 1493×2000의 픽셀) = pass-trace.js가 잰 값 { x: 153.5, y: 171, w: 1214, h: 1618.5, 둥글기 74 } — 안쪽으로 반올림.
-//    귀퉁이 둥글기 74px보다 키링 인쇄 칸 둥글기(3.8/45.6 → 약 101px)가 커서 바깥 바탕은 보이지 않는다. 이 휴대폰 사진은 미리 넣지 않는다.
+//    귀퉁이 둥글기 74px보다 키링 인쇄 칸 둥글기(3.8/45.6 → 약 101px)가 커서 바깥 바탕은 보이지 않는다. 이 휴대폰에 워킹패스가 있으면 그 사진·글자로 채운다(11/25, 아래 "내 워킹패스로 채우기").
 const DEFAULT_FRONT = { src: 'sian-ref/walking-pass-pom.webp', x: 154, y: 171, w: 1213, h: 1618 };
 // 11/24부터 처음 앞면 = 트레이싱판(pass-trace.js 키링판) — 그 그림을 같은 자리에 다시 그린 것이라 번호·이름·견종을 고쳐 쓸 수 있다.
 // 사진 칸 강아지는 그림에서 그대로 잘라(2배) 넣는다. pass-trace.js를 못 불러오면 예전처럼 그림에서 카드만 잘라 넣는다.
@@ -1033,6 +1033,25 @@ $('f-name').addEventListener('input', cardUi);
 if (EXP.has('card')) {   // ?export=… &card=카드 주소의 d= 뒤 글자(또는 주소 전체를 encodeURIComponent로)
   const c = parseCard(EXP.get('card'));
   if (c) { state.card = c; if (c.g) state.signal = SIG_I[c.g]; if (!EXP.has('name')) $('f-name').value = c.n; $('f-card').value = QR_BASE + 'dex.html#d=' + encodeCard(c); }
+}
+// 내 워킹패스로 채우기(11/25 가르시아 "지금 워킹패스를 만들면 키링 시안에도 데이터 연동되게") — 이 휴대폰에 워킹패스가 있으면
+// 번호·이름·견종·성향·사진을 그걸로, [워킹패스] 키링 카드에서 고친 글자·특기(walson_pass_dot.text)가 있으면 그것을 먼저.
+// 인쇄 파일 주소(?export=…)로 열면 주소 값 그대로(전처럼). 읽기만 하고 아무것도 저장·전송하지 않는다
+if (!EXP.get('export')) {
+  let prof = null, dot = null;
+  try { prof = JSON.parse(localStorage.getItem('petwalk_profile')); } catch (e) { /* 없음 */ }
+  try { dot = JSON.parse(localStorage.getItem('walson_pass_dot')); } catch (e) { /* 없음 */ }
+  if (prof && typeof prof === 'object' && prof.name) {
+    const t = (dot && dot.text && typeof dot.text === 'object') ? dot.text : {};
+    $('f-id').value = typeof t.id === 'string' ? t.id : (String(prof.cardNo || '').split('-').pop() || '');
+    $('f-name').value = (typeof t.name === 'string' && t.name.trim()) ? t.name : String(prof.name).slice(0, 12);
+    $('f-type').value = (typeof t.type === 'string' && t.type.trim()) ? t.type : (prof.breed || 'DOG');
+    if (typeof t.skill === 'string') state.skill = t.skill;
+    const sg = { green: 'g', yellow: 'y', red: 'r' }[prof.signal];
+    if (sg) state.signal = SIG_I[sg];
+    if (typeof prof.photo === 'string' && prof.photo) loadCardPhoto(prof.photo);
+    state.fromPass = true;
+  }
 }
 paintChips(); drawArt(); passUi(); cardUi(); editSum();
 loop();

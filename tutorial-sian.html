@@ -12,8 +12,8 @@
   /* 4단계 온보딩 튜토리얼 시안(2026-11-25 가르시아가 만든 초안 walson-tutorial.html → "지금 왈슨 버전에 맞게 시안 페이지로").
      초안 흐름(① 산책 협상 ② 워킹패스 ③ 아지트 소품 ④ 첫 산책 영수증·홈 화면 추가)은 그대로 두고, 지금 앱에 맞게 바꾼 것:
        - 색은 theme.js 변수(블랙 핑크에서도 보이게), 이모지 그림 대신 앱에 있는 도트 그림(icons/dot-dogs/px · icons/azit-room)
-       - ② 워킹패스 = 지금 [워킹패스] 키링 카드 모양(WALSON / WALKING PASS · ID No·NAME·TYPE · 산책 등급 + 특기 · 맨 아래 홍보 한 줄).
-         초안의 '칭호'는 앱에 없어서 빼고 특기만(키링 특기 목록에서 넷). 키링은 "조건을 채우면 실물로" — 받는 날·수량은 아직 안 정해서 적지 않음
+       - ② 워킹패스 = 카드 버전(11/25 가르시아 "가입 시 성향을 적어야 해서 워킹패스는 카드 버전이 필요") — 이름·견종·성향(start.html과 같은 셋)을
+         고르면 id-card.js 기본 카드 앞면이 그대로 바뀐다. 키링은 한 줄로만("키링 카드로도 — 조건을 채우면 실물"). 초안의 칭호·특기 고르기는 뺌
        - ③ 소품 = 실제 [아지트] 소품 보기 창 문구(얻는 법·배치·반응·놀이)와 실제 조건(공 처음부터 · 뼈다귀 산책 1번 · 강아지 유모차 40분 산책 5번).
          초안의 "방명록 100마리 모이면 오픈"은 지금 앱과 달라서 → 킁킁 방명록(공원에서 서로 QR을 찍은 친구 발자국이 쌓임)
        - ④ 영수증 아래 줄은 site-config brand(당신과 강아지의 유의미한 산책 · 왈슨), 숫자는 예시
@@ -53,23 +53,13 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .chip { border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); padding: 6px 9px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
   .chip.on { background: var(--accent); color: var(--bg); }
-  /* 키링 카드(지금 [워킹패스] 키링 카드 모양을 줄인 것) */
-  .kr { width: 260px; margin: 14px auto 18px; border: 2.5px solid #4a2523; border-radius: 16px; overflow: hidden; background: #fdeee4; box-shadow: 4px 4px 0 var(--line); color: #4a2523; }
-  .kr-head { background: #ffadc6; border-bottom: 3px solid #d77391; text-align: center; padding: 8px 0 6px; }
-  .kr-hole { width: 18px; height: 18px; border: 2px solid #4a2523; border-radius: 50%; background: var(--bg); margin: 0 auto 4px; }
-  .kr-head .t1 { font-size: 24px; line-height: 1; }
-  .kr-head .t2 { font-size: 12px; line-height: 1.2; margin-top: 3px; }
-  .kr-body { display: flex; gap: 8px; padding: 10px 10px 6px; }
-  .kr-photo { flex: none; width: 104px; height: 140px; border: 3px solid #e89aa4; outline: 2px solid #4a2523; background: #fff; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
-  .kr-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-  .kr-row { display: flex; border: 2px solid #4a2523; border-radius: 4px; overflow: hidden; height: 28px; }
-  .kr-row .k { flex: none; width: 40px; background: #ffd3dc; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-  .kr-row .v { flex: 1; min-width: 0; background: #fff; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 3px; }
-  .kr-combo { border: 2px solid #4a2523; border-radius: 4px; overflow: hidden; margin-top: 2px; }
-  .kr-combo .g { background: #ffd3dc; font-size: 12px; text-align: center; padding: 3px 0; }
-  .kr-combo .s { background: #fff; font-weight: 800; font-size: 11.5px; line-height: 1.3; text-align: center; padding: 5px 4px; word-break: keep-all; }
-  .kr-foot { text-align: center; font-weight: 800; font-size: 12px; padding: 2px 0 9px; }
+  /* 성향 고르기(start.html과 같은 셋) · 카드 미리 보기(id-card.js 기본 카드 앞면 그대로) */
+  .sigs { display: flex; flex-direction: column; gap: 6px; }
+  .sig { display: flex; align-items: center; gap: 10px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; text-align: left; }
+  .sig .lamp { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); }
+  .sig.on { background: var(--hl); color: var(--hl-ink); }
+  .cardview { display: block; width: 100%; max-width: 340px; aspect-ratio: 1600 / 1000; margin: 14px auto 8px; }
+  .note { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 14px; text-align: center; word-break: keep-all; }
   /* 아지트 */
   .room { position: relative; border: 2px solid var(--line); margin-bottom: 12px; height: 220px; overflow: hidden;
     background: linear-gradient(180deg, #e9dcf7 0, #e9dcf7 52%, #e0a06a 52%, #c97f4c 100%); }
@@ -108,6 +98,13 @@
 <script src="store.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
+<script src="card-shared.js?v=13"></script>
+<script src="spots-data.js"></script>
+<script src="reward-rules.js?v=12"></script>
+<script src="dog-tags.js?v=2"></script>
+<script src="card-color.js?v=2"></script>
+<script src="id-card.js?v=17"></script>
+<script src="canvas-view.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
@@ -131,11 +128,11 @@
     <div class="btns"><button type="button" class="btn main" data-go="2">좋아, 워킹패스 만들기 ▶</button></div>
   </section>
 
-  <!-- ② 워킹패스 -->
+  <!-- ② 워킹패스(카드) — 11/25 가르시아 "가입 시 성향을 적어야 해서 워킹패스는 카드 버전이 필요" -->
   <section class="panel box" data-step="2">
     <span class="tag px">2 / 4 · 우리 개 워킹패스</span>
     <h2>우리 개 워킹패스를<br>만들어 볼까요?</h2>
-    <p class="sub">조건을 채우면 이 그림 그대로 <b>실물 아크릴 키링</b>으로 받을 수 있어요.</p>
+    <p class="sub">산책길에서 만난 견주가 보는 카드예요. <b>성향</b>을 적어 두면 다른 강아지가 어떻게 다가오면 좋을지 알 수 있어요.</p>
     <div class="field">
       <label>강아지 이름 · 견종</label>
       <div class="two">
@@ -144,22 +141,11 @@
       </div>
     </div>
     <div class="field">
-      <label>특기 고르기</label>
-      <div class="chips" id="skills"></div>
+      <label>우리 아이 성향 <small style="font-weight:600;color:var(--ink-soft)">— 다른 강아지를 만났을 때</small></label>
+      <div class="sigs" id="sigs"></div>
     </div>
-    <div class="kr" aria-label="키링 카드 미리 보기">
-      <div class="kr-head"><div class="kr-hole"></div><div class="t1 px">WALSON</div><div class="t2 px">WALKING PASS</div></div>
-      <div class="kr-body">
-        <div class="kr-photo"><img class="pxi" src="icons/dot-dogs/px/chihuahua.png" width="62" height="120" alt=""></div>
-        <div class="kr-side">
-          <div class="kr-row"><span class="k px">ID No</span><span class="v">0026</span></div>
-          <div class="kr-row"><span class="k px">NAME</span><span class="v" id="kr-name">초코</span></div>
-          <div class="kr-row"><span class="k px">TYPE</span><span class="v" id="kr-type">치와와</span></div>
-          <div class="kr-combo"><div class="g px">산책 입문자</div><div class="s" id="kr-skill"></div></div>
-        </div>
-      </div>
-      <div class="kr-foot" id="kr-foot"></div>
-    </div>
+    <canvas class="cardview" id="cardview" width="1" height="1" aria-label="워킹패스 카드 미리 보기"></canvas>
+    <p class="note">워킹패스는 언제든 <b>키링 카드</b>로도 바꿔 볼 수 있어요 — 조건을 채우면 실물 아크릴 키링으로 받아요.</p>
     <div class="btns"><button type="button" class="btn" data-go="1">◀ 이전</button><button type="button" class="btn main" data-go="3">아지트 들어가기 ▶</button></div>
   </section>
 
@@ -206,7 +192,6 @@
 (function () {
   function $(id) { return document.getElementById(id); }
   var brand = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { tagline: '당신과 강아지의 유의미한 산책', nameKo: '왈슨' };
-  $('kr-foot').textContent = brand.tagline;
   $('rc-foot').textContent = brand.tagline + ' · ' + brand.nameKo;
   var d = new Date(); $('rc-date').textContent = d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate() + ' · 첫 산책(예시)';
 
@@ -224,25 +209,41 @@
     document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', +p.dataset.step === n); });
     document.querySelectorAll('.dot').forEach(function (b, k) { b.classList.toggle('on', k + 1 === n); b.classList.toggle('done', k + 1 < n); });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (n === 2 && typeof card === 'function') setTimeout(card, 0);
   }
   document.addEventListener('click', function (e) { var t = e.target.closest('[data-go]'); if (t && t.tagName === 'BUTTON') go(+t.dataset.go); });
   go(1);
 
-  // ② 이름·견종 → 키링·아지트·영수증
-  function sync() {
+  // ② 이름·견종·성향 → 워킹패스 카드(id-card.js 기본 카드 앞면 — 실제 워킹패스와 같은 그림)·아지트·영수증
+  var SIGS = [['green', '다가와도 좋아요', '#3f9b5b'], ['yellow', '천천히 인사해요', '#dfa21f'], ['red', '눈으로만 예뻐해 주세요', '#d2493f']], sig = 'yellow';
+  var dogImg = new Image(); dogImg.src = 'icons/dot-dogs/px/chihuahua.png';
+  var big = document.createElement('canvas');
+  function photo() {   // 사진 칸에 도트 강아지(흰 바탕, 번지지 않게)
+    if (!dogImg.naturalWidth) return null;
+    var c = document.createElement('canvas'), k = 6; c.width = dogImg.naturalWidth * k; c.height = dogImg.naturalHeight * k;
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = false;
+    g.drawImage(dogImg, 0, 0, c.width, c.height); return c;
+  }
+  function card() {
+    if (!window.WalsonIdCard) return;
     var n = $('in-name').value.trim() || '초코', t = $('in-type').value.trim() || '치와와';
-    $('kr-name').textContent = n; $('kr-type').textContent = t;
-    $('room-name').textContent = n + '네 아지트'; $('rc-name').textContent = n;
+    WalsonIdCard.drawFront(big, { name: n, breed: t, signal: sig, size: 'small', cardNo: 'WALSON-2026-0026' }, { photo: photo() });
+    if (window.WalsonView) WalsonView.show($('cardview'), big);
+  }
+  function sync() {
+    var n = $('in-name').value.trim() || '초코';
+    $('room-name').textContent = n + '네 아지트'; $('rc-name').textContent = n; card();
   }
   $('in-name').addEventListener('input', sync); $('in-type').addEventListener('input', sync);
-  // 특기 — 키링 특기 목록(card-shared.js SKILLS, 괄호 수치 뺀 것)에서 넷
-  var SKILLS = ['식탁 밑 아련한 눈빛 빔', '귀신같은 비닐 소리 감지', '천사표 얼굴로 배변 포즈', '3초 멈칫 냄새 탐정'];
-  SKILLS.forEach(function (s, k) {
-    var c = document.createElement('button'); c.type = 'button'; c.className = 'chip' + (k ? '' : ' on'); c.textContent = s;
-    c.addEventListener('click', function () { document.querySelectorAll('#skills .chip').forEach(function (x) { x.classList.remove('on'); }); c.classList.add('on'); $('kr-skill').textContent = s; });
-    $('skills').appendChild(c);
+  SIGS.forEach(function (x) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'sig' + (x[0] === sig ? ' on' : '');
+    var l = document.createElement('span'); l.className = 'lamp'; l.style.background = x[2]; b.appendChild(l); b.appendChild(document.createTextNode(x[1]));
+    b.addEventListener('click', function () { sig = x[0]; document.querySelectorAll('.sig').forEach(function (y) { y.classList.remove('on'); }); b.classList.add('on'); card(); });
+    $('sigs').appendChild(b);
   });
-  $('kr-skill').textContent = SKILLS[0];
+  dogImg.onload = card;
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(card);
+  sync();
 
   // ③ 소품 — 지금 [아지트] 소품 보기 창과 같은 표(조건은 azit-room.js 그대로)
   var PROPS = [
