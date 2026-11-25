@@ -130,6 +130,20 @@
     </ul>
   </section>
 
+  <section id="friends" hidden>
+    <h2>친구 방 · 방명록 (켠 사람만 · 동의 후)</h2>
+    <ul>
+      <li><strong>왜</strong>: 서로 카드를 도감에 넣은 친구와 지금 산책 아지트 방 모습을 보고, 다녀가며 고른 한마디를 남기기 위해서예요. 회원 가입은 없어요.</li>
+      <li><strong>언제</strong>: [아지트]에서 직접 켜고 동의한 사람만이에요. 켜지 않으면 아무것도 보내지 않아요. 켠 뒤엔 [아지트]를 열 때마다 한 번 맞춰요.</li>
+      <li><strong>보내는 것</strong>: 우리 개 카드 번호(무작위 8글자)와 이 휴대폰이 만든 열쇠(서버엔 열쇠를 알아볼 수 있는 값만), 카드(강아지 이름·크기·성향·털색), 방 모습(도트 강아지·벽지·놓은 소품·머리 장식·산책 등급), 도감에 넣은 강아지 번호들, 친구 방에 다녀가며 고른 한마디(정해진 8개 중 하나)와 날짜. 접속 주소(IP)는 서버 기록에 남을 수 있어요.</li>
+      <li><strong>보내지 않는 것</strong>: 위치·걸은 길·사진·견주 이름·전화번호·직접 쓴 글. 시각은 날짜까지만.</li>
+      <li><strong>누가 보나</strong>: 서로 카드를 도감에 넣은 친구(둘 다 켠 경우)만 내 방 모습과 카드를 봐요. 내 방명록은 나만 봐요. 공개 목록·검색은 없어요. 막은 친구에게는 서로 안 보여요.</li>
+      <li><strong>맡기는 곳(처리 위탁)</strong>: Supabase Inc.(미국 회사) — 서울 지역 서버. 위탁 내용: 카드·방 모습·친구 사이·방명록 보관·전달.</li>
+      <li><strong>보관</strong>: 1년 동안 쓰지 않으면 지워요. [아지트 → 끄고 서버에서 지우기]로 언제든 바로 지울 수 있어요(내가 넣은 것·받은·남긴 방명록까지).</li>
+      <li>만 14세 이상만 켤 수 있어요.</li>
+    </ul>
+  </section>
+
   <section id="stats">
     <h2>사용 통계 (자동 수집 · 끌 수 있음)</h2>
     <ul>
@@ -168,6 +182,7 @@
     <h2>내 정보에 대한 권리 · 문의</h2>
     <ul>
       <li>이 휴대폰에 있는 기록은 언제든 직접 보고 지울 수 있어요(위 '지우는 방법').</li>
+      <li>친구 방·방명록은 [아지트 → 끄고 서버에서 지우기]로 바로 지울 수 있어요.</li>
       <li>서버 백업은 [프로필 → 서버 백업 지우기]로 바로 지울 수 있어요. 복구 코드를 잃어버려 지우지 못하면 문의해 주세요 — 다만 운영자는 누구의 백업인지 알 수 없어서 코드 없이 특정 백업을 찾아 지우기는 어려워요(1년 동안 쓰지 않으면 저절로 지워져요).</li>
       <li>사용 통계는 위 [보내지 않기]로 멈출 수 있어요.</li>
       <li><strong>개인정보 보호책임자</strong>: 강훈민(존슨거라지 대표) · 문의: <a id="privacy-contact" href="#">카카오톡 채널 '왈슨'</a></li>
@@ -182,7 +197,7 @@
     </ul>
   </section>
 
-  <p class="date">2026년 11월 24일 기준 · 왈슨(시범 운영)</p>
+  <p class="date">2026년 11월 25일 기준 · 왈슨(시범 운영)</p>
   <footer id="operator" class="biz-footer" hidden></footer>
 </div>
 <script>window.WalsonBizInfo && WalsonBizInfo(document.getElementById('operator'), true);</script>
@@ -205,7 +220,7 @@
 </script>
 <script>
 // 서버 백업 안내는 서버가 준비된 뒤에만 보인다(site-config.js cloudBackup)
-(function () { var c = window.WALSON_CONFIG && WALSON_CONFIG.cloudBackup; if (c && c.url && c.anonKey) document.getElementById('cloud').hidden = false; })();
+(function () { var c = window.WALSON_CONFIG && WALSON_CONFIG.cloudBackup; if (c && c.url && c.anonKey) { document.getElementById('cloud').hidden = false; document.getElementById('friends').hidden = false; } })();
 </script>
 <script>
 // 문의처 = 카카오톡 채널(site-config.js)

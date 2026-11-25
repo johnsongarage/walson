@@ -588,7 +588,7 @@
     }
     if (live) e.pal = 1;   // 한 번 단짝이면 계속 단짝
     // 방 모습은 그 자리에서 찍은 화면 QR에서만 받는다(새로 받으면 새 모습으로) — 날짜만 같이(시각·장소 X)
-    if (live && dog.r && (!e.roomAt || today >= e.roomAt)) { e.room = dog.r; e.roomAt = today; }
+    if (live && dog.r && (!e.roomAt || today >= e.roomAt)) { e.room = dog.r; e.roomAt = today; delete e.roomSrv; }   // roomSrv: 서버로 받은 방(friends-cloud.js) — 그 자리 QR로 받으면 지운다
     logMeet(e, today, live ? 'l' : 'f', live ? dog.m : null);
     if (!saveDex(list)) return;
     if (opts.pending) DC.dropPending(dog.i);

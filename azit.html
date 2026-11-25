@@ -251,6 +251,22 @@
 
   .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .acts .pbtn { white-space: normal; line-height: 1.3; padding: 9px 6px; }
+  /* 친구 방·방명록 서버(11/25) */
+  .fc[hidden], .fc-visit[hidden] { display: none; }
+  .fc-title { font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+  .fc p { font-size: 13px; color: var(--ink); line-height: 1.55; margin: 0 0 8px; word-break: keep-all; }
+  .fc p.soft, .fc-visit p.soft { color: var(--ink-soft); font-size: 12px; }
+  .fc .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .fc .row .pbtn { flex: 1; padding: 9px 6px; }
+  .fc-visit { border: 3px solid var(--line); padding: 10px; background: var(--panel); color: var(--ink); }
+  .fc-visit p { font-size: 13px; margin: 0 0 8px; line-height: 1.5; word-break: keep-all; }
+  .fc-msgs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fc-msgs button { display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 12px; color: var(--ink); background: var(--bg);
+    border: 2px solid var(--line); padding: 6px 8px; cursor: pointer; }
+  .fc-msgs button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .fc-msgs .stamp { display: inline-block; width: 12px; height: 12px; color: var(--accent); }
+  .fc-msgs .stamp svg { display: block; width: 100%; height: 100%; }
+  .gb-row .tag { flex: none; margin-left: auto; padding-left: 6px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
   .foot-note { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin: 0; word-break: keep-all; }
   .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h, 58px) + 18px); transform: translateX(-50%); z-index: 1200; max-width: calc(100vw - 32px);
     background: var(--ink); color: var(--bg); padding: 10px 14px; font-size: 13px; line-height: 1.45; border-radius: 10px; word-break: keep-all; text-align: center;
@@ -304,6 +320,9 @@
     </div>
     <div class="undo-row" id="undo-row" hidden><span id="undo-text"></span><button type="button" class="more" id="undo-btn">되돌리기</button></div>
 
+    <!-- 친구 방에서: 한마디 남기고 가기(서로 넣은 사이 · 서버를 켠 사람, 11/25) -->
+    <div class="fc-visit" id="fc-visit" hidden></div>
+
     <div class="box">
       <div class="gb-title px" id="gb-title">킁킁 방명록</div>
       <ul class="gb-list" id="gb-list"></ul>
@@ -312,6 +331,9 @@
     </div>
 
     <div class="acts" id="acts"></div>
+
+    <!-- 친구 방·방명록 켜기·끄기(서버, 11/25 가르시아 "서버랑 같이 오픈에 열자") -->
+    <div class="box fc" id="fc-box" hidden></div>
 
     <!-- 방 꾸미기(접기 — 연 상태는 이 휴대폰에 기억, 새 소품이 생기면 저절로 펼친다) -->
     <details class="box px deco" id="mine-box">
@@ -330,7 +352,8 @@
     </details>
     <p class="foot-note">아지트는 이 휴대폰에만 있어요. 내 카드(화면 QR)를 그 자리에서 찍은 단짝 휴대폰에는 방 모습 —
       도트 강아지·벽지·놓은 소품·머리 장식·산책 등급만 가요. 놓은 자리·산책 횟수·장소는 가지 않아요.
-      워킹패스 사진으로 만든 우리 개는 이 휴대폰에서만 보이고, 단짝 휴대폰엔 닮은 도트 강아지로 가요.</p>
+      워킹패스 사진으로 만든 우리 개는 이 휴대폰에서만 보이고, 단짝 휴대폰엔 닮은 도트 강아지로 가요.
+      [친구 방·방명록]을 켜면 같은 방 모습이 서버(Supabase, 서울)를 거쳐 서로 카드를 넣은 친구에게 가요 — 끄면 서버에서 지워요.</p>
   </div>
 </main>
 
@@ -339,6 +362,7 @@
 <script src="dex-card.js?v=6"></script>
 <script src="azit-room.js?v=14"></script>
 <script src="photo-dot.js?v=2"></script>
+<script src="friends-cloud.js?v=1"></script>
 <script>
 (function () {
   'use strict';
@@ -743,7 +767,7 @@
       level: prog.level, rank: prog.rank, items: AZ.placedItems(state, prog), open: true };
   }
   function friendModel(e) {
-    var r = e.room ? AZ.parseRoom(e.room) : null;
+    var r = e.room && !e.blocked ? AZ.parseRoom(e.room) : null;   // 막은 친구(11/25)는 받아 둔 방도 닫는다
     return { me: false, entry: e, name: e.n.trim(), dog: (r && r.dog) || AZ.guessDog(e.s, e.c), theme: r ? r.theme : 'jelly', acc: r ? r.acc : '',
       level: r ? r.level : 0, rank: r ? AZ.rankName(r.level) : '', items: r ? r.items : [], open: !!r };
   }
@@ -1052,20 +1076,24 @@
       b.setAttribute('aria-label', x.v < 0 ? '내 아지트' : m.name + '네 아지트' + (m.open ? '로 마실' : '') + (x.e.pal ? ' — 단짝' : ' — 발자국'));
       var pic = el('div', 'pic'); pic.appendChild(dogThumb(m.dog)); b.appendChild(pic);
       b.appendChild(el('span', 'nm', x.v < 0 ? '내 방' : m.name));
-      if (x.v >= 0) b.appendChild(el('span', 'tg', x.e.pal ? (m.open ? '마실' : '단짝') : '발자국'));
+      if (x.v >= 0) b.appendChild(el('span', 'tg', m.open ? '마실' : x.e.pal ? '단짝' : '발자국'));
       b.addEventListener('click', function () { goTo(x.v); });
       f.appendChild(b);
       if (x.v === -1) showTile();   // 내 방 바로 다음
     });
-    var open = friends.filter(function (e) { return !!AZ.parseRoom(e.room); }).length, hint = $('fr-hint');
-    if (!friends.length) hint.textContent = '공원에서 만난 강아지와 도감 QR을 찍으면 여기 친구가 생겨요. 그 자리에서 서로 화면 QR을 찍은 단짝의 방에는 마실 갈 수 있어요.';
+    var open = friends.filter(function (e) { return !e.blocked && !!AZ.parseRoom(e.room); }).length, hint = $('fr-hint');
+    if (fcOk()) {   // 서버가 있으면(11/25) — 카드 주소·답장으로 서로 넣은 친구 방에도
+      if (!friends.length) hint.textContent = '아는 견주와 카드 주소로 서로 카드를 넣거나, 만나서 화면 QR을 서로 찍으면 여기 친구가 생겨요.';
+      else if (!open) hint.textContent = FC.on() ? '서로 카드를 넣은 친구가 생기면 그 친구 방에 놀러 갈 수 있어요.' : '아래 [친구 방·방명록 켜기]를 켜면 서로 카드를 넣은 친구 방에 놀러 갈 수 있어요.';
+      else hint.textContent = '';
+    } else if (!friends.length) hint.textContent = '공원에서 만난 강아지와 도감 QR을 찍으면 여기 친구가 생겨요. 그 자리에서 서로 화면 QR을 찍은 단짝의 방에는 마실 갈 수 있어요.';
     else if (!open) hint.textContent = '단짝과 그 자리에서 서로 화면 QR을 찍으면 그 친구 방 모습이 와서 마실 갈 수 있어요.';
     else hint.textContent = '';
     hint.hidden = !hint.textContent;
     $('visit').hidden = !open;
   }
   function nextOpen() {   // 마실 가기 ▶ — 방이 열린 친구만 차례대로, 끝나면 내 방(모델하우스에서 누르면 첫 친구부터)
-    for (var n = view < 0 ? 0 : view + 1; n < friends.length; n++) if (AZ.parseRoom(friends[n].room)) return n;
+    for (var n = view < 0 ? 0 : view + 1; n < friends.length; n++) if (!friends[n].blocked && AZ.parseRoom(friends[n].room)) return n;
     return -1;
   }
   // 고르면 바로 방에(11/24 가르시아 "고르면 즉각 방에 변경되게" — 전엔 저장만 하고 방 모습(cur)을 다시 만들지 않아서, 다른 방에 다녀와야 바뀌었다)
@@ -1204,6 +1232,7 @@
     if (o.show) { showList(); return; }
     if (o.me) friends.forEach(function (e, n) { lines = lines.concat(linesOf(e, n)); });
     else lines = linesOf(o.entry, view);
+    lines = lines.concat(fcLines(o));   // 서버 방명록(친구가 내 방에 다녀가며 남긴 것, 11/25)
     lines.sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; });
     $('gb-title').textContent = o.me ? '킁킁 방명록' : ga(o.name) + ' 남긴 것';
     var list = $('gb-list'); list.innerHTML = '';
@@ -1212,15 +1241,16 @@
       b.appendChild(el('span', 'day', dayLabel(x.d)));
       if (o.me) b.appendChild(el('span', 'who', x.name));
       if (x.m != null) { b.appendChild(stampEl(x.m)); b.appendChild(el('span', 'what', msgText(x.m))); }
-      else b.appendChild(el('span', 'what soft', x.k === 'l' ? '단짝으로 만났어요' : '발자국을 남겼어요'));
-      b.setAttribute('aria-label', dayLabel(x.d) + ' ' + x.name + ' — ' + (x.m != null ? msgText(x.m) : (x.k === 'l' ? '단짝으로 만남' : '발자국')) + (o.me ? ', ' + x.name + '네 아지트로' : ''));
-      b.addEventListener('click', function () { if (o.me) goTo(x.v); });
+      else b.appendChild(el('span', 'what soft', x.k === 'v' ? '다녀갔어요' : x.k === 'l' ? '단짝으로 만났어요' : '발자국을 남겼어요'));
+      if (x.k === 'v' && x.m != null) b.appendChild(el('span', 'tag', '다녀감'));
+      b.setAttribute('aria-label', dayLabel(x.d) + ' ' + x.name + ' — ' + (x.m != null ? msgText(x.m) : (x.k === 'v' ? '다녀감' : x.k === 'l' ? '단짝으로 만남' : '발자국')) + (x.k === 'v' && x.m != null ? ' (다녀가며 남김)' : '') + (o.me && x.v >= 0 ? ', ' + x.name + '네 아지트로' : ''));
+      b.addEventListener('click', function () { if (o.me && x.v >= 0) goTo(x.v); });
       if (!o.me) b.style.cursor = 'default';
       li.appendChild(b); list.appendChild(li);
     });
     $('gb-more').hidden = lines.length <= gbShown;
     var empty = $('gb-empty');
-    empty.textContent = lines.length ? '' : (o.me ? '아직 비어 있어요. 공원에서 만난 강아지와 도감 QR을 서로 찍으면 받은 한마디와 발자국이 여기 쌓여요.' : '아직 받은 한마디가 없어요.');
+    empty.textContent = lines.length ? '' : (o.me ? (fcOk() ? '아직 비어 있어요. 서로 카드를 넣은 친구가 내 방에 다녀가거나, 만나서 화면 QR을 서로 찍으면 한마디와 발자국이 여기 쌓여요.' : '아직 비어 있어요. 공원에서 만난 강아지와 도감 QR을 서로 찍으면 받은 한마디와 발자국이 여기 쌓여요.') : '아직 받은 한마디가 없어요.');
     empty.hidden = !!lines.length;
   }
   $('gb-more').addEventListener('click', function () { gbShown += 12; guestbook(); });
@@ -1290,6 +1320,136 @@
     $('undo-text').textContent = (sr ? sr.name : '모델하우스') + '처럼 놓았어요';
   }
   $('undo-btn').addEventListener('click', function () { AZ.undoCopy(state); save(); refreshModel(); ui(); toast('놓기 전으로 되돌렸어요'); });
+  // ── 친구 방·방명록 서버(2026-11-25 가르시아 "서버랑 같이 오픈에 열자", friends-cloud.js · docs/supabase-friends.sql) ──
+  // 서로 카드를 도감에 넣은 사이(카드 주소·답장, 또는 만나서 화면 QR)면 지금 방 모습을 받아 와 놀러 가고, 다녀가며 한마디를 남긴다.
+  // 켠 사람만(동의) — 꺼져 있으면 예전처럼 그 자리 화면 QR 단짝만 방이 열린다.
+  var FC = window.WalsonFriends, fcBusy = false, fcErr = '';
+  function fcOk() { return !!(FC && FC.available()); }
+  // 서버에서 받아 와 도감에 적은 것(지금 방·카드·서로 넣었나·막음)을 이 화면 친구 줄에도
+  function fcMerge() {
+    var map = {};
+    WalsonStore.dex().forEach(function (e) { if (e && e.i) map[e.i] = e; });
+    friends.forEach(function (f) {
+      var d = map[f.i]; if (!d) return;
+      ['n', 's', 'g', 'c', 'room', 'roomAt', 'roomSrv', 'mut', 'blocked'].forEach(function (k) { if (d[k] === undefined) delete f[k]; else f[k] = d[k]; });
+    });
+  }
+  function fcSync(quiet) {
+    if (!fcOk() || !FC.on() || fcBusy) return;
+    fcBusy = true;
+    FC.sync().then(function () {
+      fcBusy = false; fcErr = '';
+      fcMerge(); refreshModel(); ui();
+      var n = FC.unseen();
+      if (n && !quiet) toast('방명록에 새 한마디 ' + n + '줄이 왔어요');
+      FC.markSeen();
+    }, function (e) {
+      fcBusy = false;
+      fcErr = e && e.code === 'key' ? '이 휴대폰의 열쇠가 서버와 맞지 않아요. 끄고 다시 켜 주세요.' : (e && e.message) || '서버에 닿지 못했어요.';
+      fcPanel();
+    });
+  }
+  function fcIdx(id) { for (var n = 0; n < friends.length; n++) if (friends[n].i === id) return n; return -1; }
+  // 서버 방명록 줄 — 내 방이면 전부, 친구 방이면 그 친구가 내 방에 남긴 것만
+  function fcLines(o) {
+    if (!fcOk() || !FC.on() || o.show) return [];
+    return FC.guestbook().filter(function (x) { return o.me || x.i === o.entry.i; }).map(function (x) {
+      var v = fcIdx(x.i), f = friends[v];
+      if (f && f.blocked) return null;
+      return { d: x.d, k: 'v', m: x.m, name: (f ? f.n.trim() : x.n) || '친구', v: v };
+    }).filter(function (x) { return x && /^\d{4}-\d{2}-\d{2}$/.test(x.d); });
+  }
+  function fcClosed(o) {
+    if (!fcOk() || !o.entry) return '';
+    if (o.entry.blocked) return '막은 친구예요. 방과 방명록이 서로 안 보여요.';
+    if (!FC.on()) return '아래 [친구 방·방명록 켜기]를 켜면, 서로 카드를 넣은 친구의 지금 방에 놀러 갈 수 있어요.';
+    return o.name + '도 우리 개 카드를 도감에 넣고 친구 방·방명록을 켜면 방이 열려요. 카드 주소를 보내 주세요(도감 → 내 카드 보여 주기 → 카드 주소 보내기).';
+  }
+  // 친구 방에서 — 한마디 남기고 가기 · 막기
+  function fcVisit() {
+    var box = $('fc-visit'), o = cur;
+    box.innerHTML = '';
+    box.hidden = !(fcOk() && FC.on() && o && !o.me && !o.show && o.entry && o.entry.mut && !o.entry.blocked);
+    if (box.hidden) return;
+    var done = FC.visitedToday(o.entry.i);
+    box.appendChild(el('p', '', done ? '오늘 ' + o.name + '네 방에 다녀갔어요. 한마디를 바꿀 수 있어요.' : ga(myName || '우리 개') + ' 다녀간 걸 한마디로 남길까요? ' + o.name + '네 방명록에 보여요.'));
+    var row = el('div', 'fc-msgs');
+    DC.MSGS.forEach(function (x, i) {
+      var b = el('button'); b.type = 'button';
+      b.appendChild(stampEl(i)); b.appendChild(el('span', '', x.t));
+      b.addEventListener('click', function () {
+        if (fcBusy) return;
+        fcBusy = true;
+        FC.visit(o.entry.i, i).then(function (ok) {
+          fcBusy = false;
+          toast(ok ? o.name + '네 방명록에 남겼어요: ' + x.t : '남기지 못했어요. 서로 카드를 넣은 사이인지 확인해 주세요.');
+          fcVisit();
+        }, function (e) { fcBusy = false; toast((e && e.message) || '남기지 못했어요.'); });
+      });
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+    var blk = el('button', 'more', o.name + ' 막기'); blk.type = 'button';
+    blk.addEventListener('click', function () {
+      if (!confirm(o.name + (batchim(o.name) ? '을' : '를') + ' 막을까요? 서로 방과 방명록이 안 보이고, 앞으로 한마디도 안 와요. 도감에는 남아요. [아지트] 맨 아래에서 풀 수 있어요.')) return;
+      var id = o.entry.i;
+      FC.block(id, true).then(function () { fcMerge(); goTo(-1); toast('막았어요'); }, function (e) { toast((e && e.message) || '막지 못했어요.'); });
+    });
+    box.appendChild(blk);
+  }
+  // 켜기·끄기 판 — 꺼져 있으면 무엇이 어디로 가는지(동의), 켜져 있으면 내 방에서만 상태·막은 친구·끄기
+  function fcPanel() {
+    var box = $('fc-box'), o = cur;
+    box.innerHTML = '';
+    var st = fcOk() ? FC.state() : null, isOn = fcOk() && FC.on();
+    box.hidden = !fcOk() || !o || o.show || (isOn && !o.me);
+    if (box.hidden) return;
+    box.appendChild(el('div', 'fc-title px', '친구 방 · 방명록'));
+    if (st && st.taken && !isOn) {
+      box.appendChild(el('p', '', '우리 개 카드 번호를 이미 다른 휴대폰이 쓰고 있어서 켜지 못했어요. 장난일 수 있어요 — 카카오톡 채널 \'왈슨\'으로 알려 주시면 풀어 드려요.'));
+      return;
+    }
+    if (!isOn) {
+      box.appendChild(el('p', '', '켜면 서로 카드를 도감에 넣은 친구와 지금 방 모습·방명록을 주고받아요. 만나지 않아도, 카드 주소로 서로 넣은 사이면 돼요.'));
+      box.appendChild(el('p', 'soft', '서버(Supabase, 서울)로 가는 것: 강아지 번호 · 카드(이름·크기·성향·털색) · 방 모습(도트 강아지·벽지·놓은 소품·머리 장식·산책 등급) · ' +
+        '도감에 넣은 강아지 번호 · 다녀가며 고른 한마디와 날짜. 가지 않는 것: 위치 · 산책 길 · 사진 · 견주 이름 · 연락처. ' +
+        '서로 넣은 친구에게만 보이고, 끄면 서버에서 지워요.'));
+      var row = el('div', 'row');
+      if (myName) {
+        var on = el('button', 'pbtn main', fcBusy ? '켜는 중…' : '친구 방·방명록 켜기'); on.type = 'button';
+        on.addEventListener('click', function () {
+          if (fcBusy) return;
+          fcBusy = true; fcErr = ''; fcPanel();
+          FC.enable().then(function () {
+            fcBusy = false; fcMerge(); refreshModel(); ui(); toast('켰어요. 서로 카드를 넣은 친구 방에 놀러 갈 수 있어요');
+          }, function (e) {
+            fcBusy = false;
+            fcErr = e && e.code === 'taken' ? '' : (e && e.message) || '켜지 못했어요.';
+            fcPanel();
+          });
+        });
+        row.appendChild(on);
+      } else { var mk = el('a', 'pbtn main', '워킹패스 먼저 만들기'); mk.href = 'start.html'; row.appendChild(mk); }
+      var pv = el('a', 'pbtn', '개인정보 안내'); pv.href = 'privacy.html#friends'; row.appendChild(pv);
+      box.appendChild(row);
+    } else {
+      var mut = friends.filter(function (e) { return e.mut && !e.blocked; }).length;
+      box.appendChild(el('p', '', '켜져 있어요 · 서로 넣은 친구 ' + mut + '마리' + (fcBusy ? ' · 맞추는 중…' : '')));
+      var blocked = friends.filter(function (e) { return e.blocked; });
+      blocked.forEach(function (e) {
+        var b = el('button', 'more', e.n.trim() + ' 막기 풀기'); b.type = 'button';
+        b.addEventListener('click', function () { FC.block(e.i, false).then(function () { fcMerge(); fcSync(true); toast('풀었어요'); }, function (er) { toast((er && er.message) || '풀지 못했어요.'); }); });
+        box.appendChild(b);
+      });
+      var off = el('button', 'more', '끄고 서버에서 지우기'); off.type = 'button';
+      off.addEventListener('click', function () {
+        if (!confirm('친구 방·방명록을 끄고 서버에 있는 우리 개 카드·방 모습·받은 방명록을 지울까요? 친구들 휴대폰에서도 우리 방이 더는 바뀌지 않아요. 도감은 그대로예요.')) return;
+        FC.disable().then(function () { fcMerge(); refreshModel(); ui(); toast('끄고 서버에서 지웠어요'); }, function (e) { toast((e && e.message) || '지우지 못했어요. 인터넷 연결을 확인해 주세요.'); });
+      });
+      box.appendChild(off);
+    }
+    if (fcErr) box.appendChild(el('p', 'soft', fcErr));
+  }
   function ui() {
     var o = cur, walker = ga(myName || '우리 개');
     friendsRow();
@@ -1311,11 +1471,11 @@
     $('hint').textContent = o.me ? '바닥 톡 걸어가기 · 소품 톡 놀기 · 꾹 옮기기'   // 휴대폰에서 한 줄에(11/24 — 길어서 두 줄로 넘쳤다)
       : (o.open && o.items.length ? '소품을 누르면 어떻게 생기는지 보여요' : '바닥을 누르면 ' + walker + ' 걸어가요');
     var closed = $('closed');
-    closed.textContent = o.open ? '' : (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
+    closed.textContent = o.open ? '' : fcClosed(o) || (o.entry.pal ? '다음에 만나 서로 화면 QR을 찍으면 ' + o.name + '네 방 모습이 와요.'
       : '그 자리에서 서로 화면 QR을 찍어 단짝이 되면 ' + o.name + '네 방이 열려요.');
     closed.hidden = o.open;
     $('tip').hidden = true; hideCard();
-    bubble(); guestbook(); acts(); showBar();
+    bubble(); guestbook(); acts(); showBar(); fcVisit(); fcPanel();
     if (o.me) { undoRow(); dogPicker(); tray(); }
     kick();
   }
@@ -2069,6 +2229,7 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureBubble(); kick(); if (signParts && signParts.length) setSign(signParts); });   // 도트 글꼴이 늦게 오면 폭이 바뀐다
   fit(); refreshModel();
   if (!fromHash()) ui();
+  fcSync();   // 친구 방·방명록을 켰으면 열 때마다 한 번 맞추기(서로 넣은 친구의 지금 방 · 새 방명록)
   Promise.all([picsReady, dogsReady, photoReady]).then(function () { dogCache = {}; fillCache = {}; refreshModel(); ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시(워킹패스 사진 도트도)
   // 시험용 — 지금 보는 방·그리는 배율
   window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog, photo: usingPhoto(), fetch: fetchJob ? fetchJob.phase + ':' + fetchJob.mood + ':' + fetchJob.n : null,
