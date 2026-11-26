@@ -66,6 +66,9 @@
     <div class="row"><span>보기</span>
       <button type="button" class="chip" data-k="view" data-v="app">앱처럼</button>
       <button type="button" class="chip" data-k="view" data-v="all">방 전체</button></div>
+    <div class="row"><span>크리스마스</span>
+      <button type="button" class="chip" data-k="xmas" data-v="on">넣어 보기</button>
+      <button type="button" class="chip" data-k="xmas" data-v="off">빼기</button></div>
     <div class="row"><span>원본 없는 소품</span>
       <button type="button" class="chip" data-k="extra" data-v="off">빼기</button>
       <button type="button" class="chip" data-k="extra" data-v="on">섞어 보기</button></div>
@@ -79,6 +82,8 @@
       <li>소품 32개: 받은 시트·조명·엽서 원본에서 오린 18개 + 11/25 다시 받은 고화질 그림 14개(소파·러그·방석·밥그릇·장난감 바구니·뼈다귀·공·화분·트로피·액자 셋·게시판·가랜드). 크기는 앱과 같아요</li>
       <li>트로피는 새 그림에 벽 선반이 없어 방 그림 선반 위에, 가랜드는 창 위에 벽 기울기대로 걸었어요</li>
       <li>강아지: 지금 그림 그대로(앱도 강아지는 이미 화면 픽셀에 맞춰 그려요)</li>
+      <li><b>크리스마스 넷</b>(11/26 다시 받은 그림에 같이 온 새 소품 — 트리·벙어리장갑·양말·지팡이 사탕): 앱 소품 목록에 없던 거라 시안에만 넣어 봤어요.
+        트리는 구석 화분 자리에(넣으면 화분은 빠져요), 벙어리장갑·지팡이 사탕은 아래 선반 밑에, 양말은 그 옆 벽에 걸었어요. 앱에 넣을지·언제 생기게 할지는 아직이에요</li>
       <li><b>섞어 보기</b>: 원본이 아직 없는 소품(데이지·선인장 화분, 분홍 꽃 방석, 물그릇, 밧줄)을 지금 그림으로 키워 넣은 것 — 원본 없이 키우면 이렇게 거칠어요</li>
     </ul>
   </div>
@@ -161,12 +166,22 @@
     { spr: 'water_bowl_blue', i: 18, j: 44, extra: true },
     { spr: 'toy_rope_blue', i: 76, j: 66, extra: true }
   ];
+  // 크리스마스 넷(11/26 가르시아 "시안룸에 넣어 봐") — 다시 받은 그림 r18에 같이 온 새 소품(앱 소품 목록엔 없음, 앱엔 아직 안 넣음).
+  // 받은 그림을 방 크기로 줄인 것(sian-ref/azit-hd/xmas — 트리 키 290픽셀 = 방 64점, 강아지 44점보다 조금 크게 · -1x는 방 점 크기).
+  // 트리는 구석 화분 자리(켜면 화분은 뺌), 벙어리장갑·지팡이 사탕은 아래 선반 밑에 걸고(고리가 선반 앞 밑면에 닿게), 양말은 그 옆 엽서 아래 —
+  // 오른쪽 벽 한쪽을 크리스마스 구석으로(왼쪽 벽 문 위는 휴대폰 보기에서 끝이 잘려서). 벙어리장갑 왼쪽 위 흰 번짐은 지우고 테두리를 이음
+  var XMAS = [
+    { spr: 'xmas_tree', xmas: true, i: 2, j: 2 },
+    { spr: 'xmas_mitten', xmas: true, wall: 'R', u: 16.6, h: 56 },
+    { spr: 'xmas_candy_cane', xmas: true, wall: 'R', u: 27.7, h: 54 },
+    { spr: 'xmas_stocking', xmas: true, wall: 'R', u: 41, h: 75 }
+  ];
   var DOGS = [['pom', '포메'], ['poodle', '푸들'], ['maltese', '말티즈'], ['knit', '파란 니트'], ['chihuahua', '치와와'],
     ['dachs', '닥스훈트'], ['jindo', '진돗개'], ['shiba', '시바']];
 
   var $ = function (id) { return document.getElementById(id); };
   var cv = $('room'), ctx = cv.getContext('2d');
-  var st = { res: 'hd', view: 'app', extra: 'off', dog: 'pom', lamp: false };
+  var st = { res: 'hd', view: 'app', extra: 'off', xmas: 'on', dog: 'pom', lamp: false };
   var dog = { i: 46, j: 32, ti: 46, tj: 32, flip: false, walking: false, phase: 0 };
   var img = {}, ready = false;
 
@@ -186,6 +201,7 @@
         load('app:' + it.spr, it.one === 'sian' ? HD + 'items-1x/' + it.spr + '.png' : APP + it.spr + '.png?v=5'));   // 앱 방 그림 ?v=5(11/26 바뀐 그림)
     });
     EXTRA.forEach(function (it) { jobs.push(load('app:' + it.spr, APP + it.spr + '.png?v=5')); });
+    XMAS.forEach(function (it) { jobs.push(load('hd:' + it.spr, HD + 'xmas/' + it.spr + '.webp?v=1'), load('app:' + it.spr, HD + 'xmas/' + it.spr + '-1x.png?v=1')); });
     return Promise.all(jobs);
   }
   var dogJobs = {};
@@ -266,7 +282,10 @@
   function pt(p) { return { x: (p.x - X0) / S, y: p.y / S }; }   // 원본 좌표 → 방 점(지금 앱 보기)
 
   function shelfPos(it) { var s = SHELF[it.shelf]; return { x: s.x0 + (s.x1 - s.x0) * it.t, y: s.y0 + (s.y1 - s.y0) * it.t }; }
-  function list() { return st.extra === 'on' ? ITEMS.concat(EXTRA) : ITEMS; }
+  function list() {
+    var l = st.xmas === 'on' ? ITEMS.filter(function (it) { return it.spr !== 'plant_pot'; }).concat(XMAS) : ITEMS;   // 트리는 화분 자리에
+    return st.extra === 'on' ? l.concat(EXTRA) : l;
+  }
   function kindOf(it) { return it.wall ? 'wall' : it.decal ? 'decal' : it.shelf != null ? 'shelf' : 'floor'; }
   function sprName(it) { return it.lamp && st.lamp ? 'lamp_stand_on' : it.spr; }
   function needFlip(it) { return !!(it.wall && it.face && it.face !== it.wall); }
