@@ -51,15 +51,13 @@
        자리·누르기·걷기는 방 점 단위 그대로(새 방 바닥 기울기 P·unP·W), 그리기만 Z배. 옮겨 둔 자리는 새 처음 자리로(azit-room.js POS_V 3).
        트로피는 붙박이 선반 위, 가랜드는 창 위, 밤엔 창유리만 밤하늘(window_night). 벽지 셋은 원본이 없어 크림 방 색만 바꾼 것(_dev/azit-hd-app.py).
     색은 모두 화면 색 변수(theme.js) — 방 그림·소품·벽지 견본만 그림 색. */
-  /* 도트 글씨(11/24 가르시아 "아지트에 보이는 폰트체 개선이 될까?" → "추천대로"): 갈무리11 굵게(Galmuri 2.40.3, SIL OFL 1.1 — vendor/galmuri).
-     12px에 맞춰 점을 찍은 글꼴이라 12px·24px(12의 배수)에서만 점이 화면에 딱 맞는다 — 다른 크기로 쓰지 말 것.
-     예전 둥근모꼴은 16px 글꼴을 12~19px로 써서 점이 뭉개졌고(0.75~1.2배), 1.6MB를 바깥(jsdelivr)에서 받아 늦게 바뀌었다. 이건 167KB, 앱 안 */
-  @font-face { font-family: 'Galmuri11'; font-weight: 700; src: url('vendor/galmuri/Galmuri11-Bold.woff2?v=2.40.3') format('woff2'); font-display: swap; }
+  /* 글씨(11/26 가르시아 "아지트 글씨체 전체를 도트 느낌 말고 가독성 좋게 앱 전체 폰트에 맞게"): 앱 기본 글씨 Pretendard 하나로.
+     11/24부터 쓰던 도트 글씨(갈무리11 굵게)는 뺐다 — .px는 이제 굵기만(여러 칸이 이 이름을 쓴다) */
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body { font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink); background-color: var(--bg);
     padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 0; }
-  .px { font-family: 'Galmuri11', monospace; font-weight: 700; font-synthesis: none; }
+  .px { font-weight: 700; }
   .wrap { max-width: 470px; margin: 0 auto; }
 
   /* 홈 틀 */
@@ -72,7 +70,7 @@
   /* 제목은 도트 글씨 X — 다른 탭 머리 이름([오늘]·[기록] .who-name)과 같은 글씨(11/24 가르시아 "왈슨네 산책아지트는 도트로 하지 말자 통일성 있게 다른 탭 글씨랑 같게") */
   .title { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2; color: var(--ink); margin: 0; word-break: keep-all; }
   .sub { font-size: 12px; color: var(--ink-soft); margin-top: 3px; word-break: keep-all; }
-  .pbtn { font: inherit; font-family: 'Galmuri11', monospace; font-weight: 700; font-synthesis: none; font-size: 12px; cursor: pointer;
+  .pbtn { font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; text-align: center;
     border: 3px solid var(--line); box-shadow: 2px 2px 0 var(--line); padding: 7px 10px; background: var(--panel); color: var(--ink); white-space: nowrap; }
   .pbtn.main { background: var(--hl); color: var(--hl-ink); }
@@ -121,7 +119,7 @@
   .sign .seg { white-space: nowrap; }
   .sign.wrap .sep { display: block; height: 0; overflow: hidden; }
   .bubble { position: absolute; transform: translate(-50%, -100%); background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
-    padding: 3px 7px; font-size: 12px; line-height: 1.3; width: max-content; max-width: 78%; text-align: center; word-break: keep-all;
+    padding: 3px 7px; font-size: 13px; line-height: 1.3; width: max-content; max-width: 78%; text-align: center; word-break: keep-all;
     pointer-events: none; z-index: 3; display: flex; align-items: center; gap: 4px; }
   .bubble[hidden] { display: none; }
   /* 오늘 기분 = 내 방 왼쪽 위 모서리 칸을 눌러 고른다(11/24 가르시아 "기분은 왼쪽 상단 모서리에서 변경하는 걸로 올려 줘" —
@@ -149,7 +147,8 @@
     color: var(--bg); background: var(--accent); border: 0; border-radius: 999px; padding: 5px 14px; cursor: pointer; }   /* 공 던지기(11/24) — 말풍선 안에서 이것만 눌린다 */
   #room.aim { cursor: crosshair; }
   /* 소품 보기 창(11/25 가르시아 "선택 시 아이템 보는 창에 확대해서 — 어떤 아이템인지 이미지·정보·상호작용 설명·기능 버튼, 이미지 밑에 표로") —
-     예전엔 방 위 검은 말풍선 한 줄. 화면 아래에 뜨는 창: 왼쪽 큰 도트 그림 · 오른쪽 이름과 표 · 아래 버튼. 바닥을 누르거나 [닫기]로 닫는다 */
+     예전엔 방 위 검은 말풍선 한 줄. 화면 아래에 뜨는 창: 왼쪽 큰 그림 · 오른쪽 이름과 한 줄 · 아래 버튼(많아야 셋).
+     11/26 가르시아 "텍스트가 너무 많네, 닫기는 엑스로, 버튼만 3개" — 표와 아래 안내를 빼고, 닫기는 오른쪽 위 X(바닥을 눌러도 닫힘) */
   .itemcard { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h, 58px) + 10px); z-index: 1100;
     width: min(460px, calc(100vw - 20px)); background: var(--panel); color: var(--ink); border: 3px solid var(--line); box-shadow: 4px 4px 0 var(--line);
     padding: 10px 12px 12px; word-break: keep-all; }
@@ -159,15 +158,16 @@
     background: var(--bg); border: 2px solid var(--line); }
   .itemcard .ic-pic canvas { display: block; image-rendering: pixelated; }
   .itemcard .ic-info { flex: 1; min-width: 0; }
-  .itemcard .ic-name { font-family: 'Galmuri11', monospace; font-weight: 700; font-size: 24px; line-height: 1.1; margin: 2px 0 8px; }
-  .itemcard table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.4; }
-  .itemcard th { text-align: left; white-space: nowrap; color: var(--ink-soft); font-weight: 600; padding: 3px 8px 3px 0; vertical-align: top; width: 1%; }
-  .itemcard td { padding: 3px 0; vertical-align: top; }
-  .itemcard tr + tr th, .itemcard tr + tr td { border-top: 1px dashed var(--line); }
+  .itemcard .ic-name { font-weight: 800; font-size: 20px; line-height: 1.25; margin: 4px 0 6px; }
+  .itemcard .ic-line { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-soft); }
+  /* 11/26 가르시아 "닫기는 엑스로" — 창 오른쪽 위 X */
+  .itemcard .ic-close { position: absolute; right: 6px; top: 6px; width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--panel); color: var(--ink); border: 2px solid var(--line); cursor: pointer; }
+  .itemcard .ic-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+  .itemcard .ic-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .itemcard .ic-info { padding-right: 34px; }   /* X 자리 */
   .itemcard .ic-btns { display: flex; gap: 8px; margin-top: 10px; }
   .itemcard .ic-btns .pbtn { flex: 1; padding: 9px 6px; }
-  .itemcard .ic-btns .ic-x { flex: none; padding: 9px 12px; }
-  .itemcard .ic-sub { margin: 6px 0 0; font-size: 12px; color: var(--ink-soft); text-align: center; }
   .bubble.react { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }   /* 소품과 놀 때 한마디(11/24) — 기분 말풍선과 구별 */
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
@@ -241,7 +241,7 @@
     background: var(--bg); padding: 6px 8px; border: 0; border-left: 3px solid var(--hl); cursor: pointer; }
   .gb-row.foot { border-left-style: dashed; border-left-color: var(--ink-soft); }
   .gb-row .day { flex: none; font-size: 12px; color: var(--ink-soft); min-width: 46px; }
-  .gb-row .who { flex: none; font-family: 'Galmuri11', monospace; font-weight: 700; font-synthesis: none; font-size: 12px; color: var(--accent); }
+  .gb-row .who { flex: none; font-weight: 700; font-size: 12px; color: var(--accent); }
   .gb-row .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gb-row .soft { color: var(--ink-soft); }
   /* 모델하우스 "이 방에 있는 것" 줄 */
@@ -311,12 +311,12 @@
       <div class="closed" id="closed" hidden></div>
     </div>
     <div class="itemcard" id="itemcard" role="dialog" aria-label="소품 보기" hidden>
+      <button type="button" class="ic-close" id="ic-close" aria-label="닫기"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button>
       <div class="ic-top">
         <div class="ic-pic"><canvas id="ic-pic" width="1" height="1" aria-hidden="true"></canvas></div>
-        <div class="ic-info"><p class="ic-name" id="ic-name"></p><table><tbody id="ic-rows"></tbody></table></div>
+        <div class="ic-info"><p class="ic-name" id="ic-name"></p><p class="ic-line" id="ic-line"></p></div>
       </div>
       <div class="ic-btns" id="ic-btns"></div>
-      <p class="ic-sub" id="ic-sub"></p>
     </div>
     <p class="hint" id="hint"></p>
     <!-- 모델하우스에서만: 방 고르기 + [이 방처럼 놓기](11/23 2단계) -->
@@ -1652,9 +1652,10 @@
   function itemAt(p) { return view === -1 ? spriteAt(p) : null; }   // 끄는 건 내 방에서만
   // 소품 안내(11/23 모델하우스) — 누른 소품 위에 "화분 — 산책 10번 하면 생겨요 · 나는 산책 4번 더" 잠깐
   var tipTimer = 0, tapItem = null, tipFor = null;
-  // 소품 보기 창(11/25) — 큰 도트 그림 · 이름 · 표(얻는 법 · 지금 · 놓는 곳 · 우리 개는) · 버튼([던지기] · [우리 개 보내기] · [닫기])
+  // 소품 보기 창(11/25) — 큰 그림 · 이름 · 한 줄 · 버튼([던지기] · [우리 개 보내기] · [이동하기]) · 오른쪽 위 X(11/26)
   var KIND_TXT = { play: '가지고 놀아요', eat: '냠냠·킁킁 맛봐요', rest: '올라가서 쉬어요', read: '글씨를 읽어요', look: '구경해요', walk: '산책 가자고 졸라요' };   // 반응 칸(11/25 가르시아 문구)
   function hideCard() { $('itemcard').hidden = true; tipFor = null; }
+  $('ic-close').addEventListener('click', hideCard);   // 11/26 닫기 = 창 오른쪽 위 X
   // 소품 보기 창에서 큰 그림을 고화질판으로 보여 줄 소품(받은 고화질 원본에서 자른 것 — 트로피·가랜드는 방 그림과 모양이 달라 뺌)
   var HQ_ITEMS = ['sofa_bed', 'cushion_cafe_beige', 'rug_pattern', 'feeder_wood_2bowl', 'basket_blue_carrot', 'toy_bone', 'ball_yellow', 'plant_pot',
     'frame_jelly_pink', 'frame_gold', 'frame_dog', 'board_postcard', 'carrot_plush', 'donut_cushion', 'stroller'];
@@ -1671,8 +1672,10 @@
     var pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, pc.width, pc.height); pg.drawImage(img, 0, 0, pc.width, pc.height);
     // 고화질판이 있는 소품(11/25 — icons/azit-hq, _dev/azit-hq-items.py)은 큰 그림을 그걸로 바꿔 그린다(받는 동안은 위 점 그림).
     // 벽 반대쪽에 걸려 뒤집힌 그림(oriented)이면 같이 뒤집는다
-    // 11/26 고해상도 방 — 소품 원본(icons/azit-hd)이 있는 것도(사진·단짝 액자는 속을 채운 점 그림 그대로)
-    var hqSrc = HQ_ITEMS.indexOf(it.spr) >= 0 ? 'icons/azit-hq/' + it.spr + '.webp?v=1' : (hd(it.spr) && !frameSrc(cur, it)) ? HDI + it.spr + '.webp?v=' + HD_V : null;
+    // 11/26 고해상도 방 — 소품 원본(icons/azit-hd)이 있는 것도(사진·단짝 액자는 속을 채운 점 그림 그대로). 고화질판이 있는 15개는 같은 그림의
+    // 더 큰 판이라 그쪽이 먼저. 왼쪽 벽에 건 글자 판은 왼쪽 벽용 원본(뒤집으면 거울 글씨)
+    var hdN = (it.both && img === pic(it.spr + '_L') && hd(it.spr + '_L')) ? it.spr + '_L' : it.spr;
+    var hqSrc = HQ_ITEMS.indexOf(it.spr) >= 0 ? 'icons/azit-hq/' + it.spr + '.webp?v=1' : (hd(hdN) && !frameSrc(cur, it)) ? HDI + hdN + '.webp?v=' + HD_V : null;
     if (hqSrc) {
       var flipped = !!(it.face && img !== pic(it.spr) && img !== pic(it.spr + '_L')), hq = new Image();
       hq.onload = function () {
@@ -1686,15 +1689,10 @@
       hq.src = hqSrc;
     }
     $('ic-name').textContent = it.name;
-    // 표 문구(11/25 가르시아 "얻는 법: 처음부터 가지고 있어요 / 배치: 바닥, 선반에 놓을 수 있어요 · 꾹 눌러 옮겨요 / 반응: 가지고 놀아요 / 놀이: …")
+    // 11/26 가르시아 "아이템 누르면 텍스트가 너무 많네" — 표(얻는 법·배치·반응·놀이)와 아래 안내를 빼고 한 줄만:
+    // 내 것이면 우리 개가 어떻게 노는지, 아직 없으면 얻는 법(얼마나 남았는지). 옮기기·던지기는 버튼이 알려 준다
     var how = h.how === '처음부터 있어요' ? '처음부터 가지고 있어요' : h.how;
-    if (h.mine !== '나도 있어요') how += ' · ' + h.mine;   // 아직 없으면 얼마나 남았는지
-    var place = it.corner ? '창 위에 걸어요' : it.wall ? '벽에 걸어요' : it.shelf ? '바닥, 선반에 놓을 수 있어요' : it.decal ? '바닥에 깔아요' : '바닥에 놓아요';
-    if (canMove(s)) place += ' · [이동하기]나 꾹 눌러 옮겨요';
-    var rows = [['얻는 법', how], ['배치', place], ['반응', KIND_TXT[r[0]]]];
-    if (canThrow(s.id)) rows.push(['놀이', '[던지기] 누르고 던질 곳을 찍으면 물어 와요']);
-    var tb = $('ic-rows'); tb.textContent = '';
-    rows.forEach(function (row) { var tr = el('tr'); tr.appendChild(el('th', '', row[0])); tr.appendChild(el('td', '', row[1])); tb.appendChild(tr); });
+    $('ic-line').textContent = h.mine === '나도 있어요' ? '우리 개가 ' + KIND_TXT[r[0]] : how + ' · ' + h.mine;
     var bx = $('ic-btns'); bx.textContent = '';
     if (canThrow(s.id)) {
       var tw = el('button', 'pbtn main', '던지기'); tw.type = 'button';
@@ -1709,8 +1707,6 @@
       mv.addEventListener('click', function () { hideCard(); startMove(s); });
       bx.appendChild(mv);
     }
-    var x = el('button', 'pbtn ic-x', '닫기'); x.type = 'button'; x.addEventListener('click', hideCard); bx.appendChild(x);
-    $('ic-sub').textContent = '그림을 한 번 더 눌러도 우리 개가 가 봐요';
     $('itemcard').hidden = false;
     tipFor = s.id;
   }
