@@ -2,12 +2,14 @@
 // 기존 편집한 거 그대로 보여 줘" + 같은 날 "키링 앞뒤 같게 해").
 // [키링 카드]에서 고친 그림(my-card.html krFile — 사진·글자·특기·모양·색 그대로)을 투명 아크릴 키링 앞·뒷면에 같은 그림으로 넣고
 // 손가락으로 돌려 본다. 고리 구멍은 카드 위 분홍 칸 가운데(pass-trace.js geom().hole) 자리를 그대로 뚫고 작은 고리 → 집게 → 열쇠고리.
+// 11/26 가르시아 "고리를 D형으로 — 사슬 조금, 위에는 작은 D형 고리": 작은 고리 → 짧은 사슬 → 작은 D고리(keyring-hardware.js, 시안과 같이 씀).
 // 모양·재질은 3D 키링 시안(keyring-3d-sample.html)과 같은 수치(가로 50mm · 가로판 60mm, 가장자리 투명 2.2mm, 두께 3mm) — 크기는 예시.
 // three.js r160(vendor/three, MIT). 무거워서 [3D 키링]을 처음 누를 때만 my-card.html이 이 파일을 불러온다(type=module).
 // 그림은 이 휴대폰 안에서만 쓰고 어디로도 보내지 않는다. 고르는 칸·저장은 없다(보기만).
 import * as THREE from './vendor/three/three.module.min.js';
 import { OrbitControls } from './vendor/three/OrbitControls.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
+import { addHardware } from './keyring-hardware.js?v=1';
 
 const KR = 6, EDGE = 2.2, THICK = 3, BEV = 0.35, TUBE = 0.55;
 // 금속 고리 색 — 화면 색(theme.js)마다: 젤리 은색 · 블랙 건메탈 · 노랑 금색 · 바다 은색 · 딸기우유 로즈골드(시안과 같음)
@@ -97,23 +99,12 @@ function create(canvas, opt) {
     const gloss = new THREE.Mesh(new THREE.ShapeGeometry(gs, 32),
       new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.08, roughness: 0.04, clearcoat: 1, envMapIntensity: 2, depthWrite: false }));
     gloss.position.z = THICK / 2 + BEV + 0.06; keyring.add(gloss);
-    // 금속 고리 — 구멍 위쪽에 걸린 작은 고리(판 위 끝을 넘어가게 크기를 맞춤) → 집게(랍스터) → 열쇠고리(두 바퀴)
-    const cross = hy + hr - TUBE - 0.15, JR = Math.max(3.2, (KH / 2 + TUBE + 0.6 - cross) / 2), SR = 11;
-    const jump = new THREE.Mesh(new THREE.TorusGeometry(JR, TUBE, 18, 64), metal);
-    jump.rotation.y = Math.PI / 2; jump.position.set(hx, cross + JR, 0); keyring.add(jump);
-    const jumpTop = cross + JR * 2 - 0.5;
-    const clasp = new THREE.Group();
-    const eye = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.45, 12, 40), metal); eye.position.y = 1.2; clasp.add(eye);
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.9, 6.5, 8, 24), metal); body.scale.set(1, 1, 0.62); body.position.y = 7.2; clasp.add(body);
-    const gate = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 5.6, 10), metal); gate.position.set(1.95, 7.6, 0); gate.rotation.z = 0.12; clasp.add(gate);
-    const lever = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 0.9), metal); lever.position.set(2.1, 4.9, 0); clasp.add(lever);
-    const hook = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.6, 14, 48, Math.PI * 1.25), metal); hook.position.y = 11.4; hook.rotation.z = -0.35; clasp.add(hook);
-    clasp.position.set(hx, jumpTop - 0.4, 0); clasp.rotation.y = Math.PI / 2; keyring.add(clasp);
-    const ringY = clasp.position.y + 12.2 + SR - 0.8;
-    [-0.55, 0.55].forEach((dz) => { const r = new THREE.Mesh(new THREE.TorusGeometry(SR, 0.8, 18, 120), metal); r.position.set(hx, ringY, dz); keyring.add(r); });
+    // 금속 고리 — 구멍 위쪽에 걸린 작은 고리(판 위 끝을 넘어가게 크기를 맞춤) → 짧은 사슬 → 맨 위 작은 D고리(11/26 — 예전 집게·열쇠고리 대신)
+    const cross = hy + hr - TUBE - 0.15, JR = Math.max(3.2, (KH / 2 + TUBE + 0.6 - cross) / 2);
+    const top = addHardware(THREE, keyring, metal, { x: hx, cross, JR, tube: TUBE });
     shadow.position.y = -KH / 2 - 14;
     // 키링(판 + 고리)이 위아래 여유 있게 들어오게 — 처음 한 번과 모양(세로·가로)이 바뀔 때만(돌려 보던 각도는 그대로)
-    const top = ringY + SR, bottom = -KH / 2, mid = (top + bottom) / 2, span = top - bottom;
+    const bottom = -KH / 2, mid = (top + bottom) / 2, span = top - bottom;
     const dist = (span / 2 + 12) / Math.tan(THREE.MathUtils.degToRad(16));
     const key = (info.land ? 'h' : 'v');
     if (!framed || framed !== key) {
