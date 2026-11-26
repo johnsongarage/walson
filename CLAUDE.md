@@ -17,6 +17,9 @@ UI만 먼저 만들고 데이터는 로컬(localStorage)에 임시로 둔다.
   검토했으나 무료 티어도 카드 등록이 필요해 배제함(2026-09-02 결정, [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
   참고) — 실제 서비스 단계에서 상업적 트래픽 정책이나 세밀한 커스텀 스타일이 필요해지면 재검토.
 - 2026-11-19 가르시아 "배포": [동네] 지도(town.html)는 벡터 지도 — Leaflet은 그대로 두고 바탕만 MapLibre GL + OpenFreeMap(가입·키 없음, `map-vector.js`, `vendor/maplibre/`). 길·건물·공원·물·글자 색은 `map-vector.js`의 `COLORS`(밤=블랙 핑크, 낮=그 밖)에서. 데이터를 못 받으면 원래 그림 지도로. [산책] 등 다른 지도는 아직 그림 지도 — [산책]·[동네] 지도의 톱니(설정) 판(`quick-set.js`, 2026-11-23)에 화면 색과 지도 모양 [기본]·[도트]·길·장소 이름 전환이 있다(`pixel-map.js`, 기본은 각자 원래 지도, 고른 것은 두 화면이 같이 씀).
+- [아지트] 방은 고해상도(2026-11-26 가르시아 "고해상도 시안을 적용해줘"): 받은 크림 방 원본(`icons/azit-hd`, 방 한 점 = 원본 4.5픽셀)에 원본 있는 소품은 원본을 곱게,
+  원본 없는 소품은 점 그림(`icons/azit-room`)을 점째 키워 그린다 — 자리·누르기·크기는 점 그림 기준(방 점 단위), 그리기만 화면 픽셀(`azit.html` Z).
+  새 소품 원본을 받으면 `_dev/azit-hd-app.py`로 `icons/azit-hd`에 넣고 `azit.html` `HD_NAMES`에 한 줄. 벽지 셋(라일락·밤·분홍)은 원본이 없어 크림 방 색만 바꾼 것.
 - PWA: `manifest.json` + 서비스워커로 "홈 화면에 추가" 정도까지만 우선 지원. 오프라인 캐싱 등은
   필요해지면 그때 추가.
 - GPS 추적은 `navigator.geolocation.watchPosition` 기반. 브라우저 권한 요청 UX(왜 위치가

@@ -109,13 +109,14 @@ def peel_shadow(img, steps=16):
 
 
 def canvas_of(img, name):
-    """액자 속 그림 칸 — 그림 색 덩어리 중 가장 큰 것의 볼록 껍질"""
+    """액자 속 그림 칸 — 그림 색 덩어리(아주 작은 부스러기 빼고)의 볼록 껍질"""
     rgb = img[..., :3].astype(int)
     m = (PAINT[name](rgb[..., 0], rgb[..., 1], rgb[..., 2]) & (img[..., 3] > 0)).astype(np.uint8)
     m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
     k, lab, st, _ = cv2.connectedComponentsWithStats(m, 8)
-    big = 1 + int(np.argmax(st[1:, 4]))
-    ys, xs = np.nonzero(lab == big)
+    big = st[1:, 4].max()
+    keep = [i for i in range(1, k) if st[i, 4] >= max(30, big * 0.01)]   # 강아지 몸이 그림을 갈라도(오른쪽 아래 풀밭) 조각까지 — 액자 테두리엔 이 색이 없다
+    ys, xs = np.nonzero(np.isin(lab, keep))
     hull = cv2.convexHull(np.column_stack([xs, ys]).astype(np.int32))
     out = np.zeros(m.shape, np.uint8)
     cv2.fillPoly(out, [hull], 1)

@@ -46,6 +46,10 @@
        소품 19개 더(화분 셋·걸이 화분·액자 둘·깃발 배너·방석 넷·식기·물그릇·바구니·밧줄·공 넷 — 받은 그림 그대로, stash).
        붙박이 선반 셋에 작은 소품(화분·당근 인형·카페 컵·황금 똥 트로피·간식 통)을 올린다 — 끌어서 선반 가까이 놓으면 선반 위로(한 자리에 하나,
        azit-room.js SHELVES). 우리 개 사진 액자는 두 선반 사이, 엽서는 아래 선반 오른쪽 위로(선반에 화분 올릴 자리). 모델하우스 "꽉 찬 아지트".
+     - 11/26 고해상도 방(가르시아 "고해상도 시안을 적용해줘" → "실제 [아지트]에 적용", 시안 azit-hd-sian.html): 방 = 받은 크림 방 원본(icons/azit-hd,
+       방 한 점 = 원본 4.5픽셀 — 429×341점, 붙박이 선반 둘·창·문이 그림에 있음). 원본 있는 소품 33개는 원본을 화면 픽셀로 곱게, 없는 소품은 점 그림을 점째.
+       자리·누르기·걷기는 방 점 단위 그대로(새 방 바닥 기울기 P·unP·W), 그리기만 Z배. 옮겨 둔 자리는 새 처음 자리로(azit-room.js POS_V 3).
+       트로피는 붙박이 선반 위, 가랜드는 창 위, 밤엔 창유리만 밤하늘(window_night). 벽지 셋은 원본이 없어 크림 방 색만 바꾼 것(_dev/azit-hd-app.py).
     색은 모두 화면 색 변수(theme.js) — 방 그림·소품·벽지 견본만 그림 색. */
   /* 도트 글씨(11/24 가르시아 "아지트에 보이는 폰트체 개선이 될까?" → "추천대로"): 갈무리11 굵게(Galmuri 2.40.3, SIL OFL 1.1 — vendor/galmuri).
      12px에 맞춰 점을 찍은 글꼴이라 12px·24px(12의 배수)에서만 점이 화면에 딱 맞는다 — 다른 크기로 쓰지 말 것.
@@ -104,7 +108,7 @@
   .roomwrap { position: relative; line-height: 0; }
   /* 휴대폰에서 방 위를 위아래로 밀면 화면이 내려간다(pan-y, 11/23 가르시아 "고쳐줘" — 시안은 none이라 방 위에선 안 내려갔음).
      내 방 소품 위를 누를 때만 아래 스크립트(touchstart)가 막아서 끌기가 된다 */
-  #room { display: block; image-rendering: pixelated; touch-action: pan-y; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* 꾹 누를 때 저장·복사 메뉴가 안 뜨게 */
+  #room { display: block; touch-action: pan-y; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* 꾹 누를 때 저장·복사 메뉴가 안 뜨게 */
   #room.grab { cursor: grabbing; }
   /* 방 이름표 — 오른쪽 위 천장 자리(11/24: 왼쪽 위였을 땐 선반 위 화분·두 선반 사이 사진 액자를 가려서). 오른쪽 벽 위 천장은 소품이 안 가는 곳 */
   .sign { position: absolute; right: 8px; top: 6px; max-width: 46%; background: var(--panel); color: var(--ink); border: 2px solid var(--line);
@@ -360,7 +364,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=12"></script>
 <script src="dex-card.js?v=6"></script>
-<script src="azit-room.js?v=14"></script>
+<script src="azit-room.js?v=15"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script>
@@ -382,41 +386,47 @@
   function msgText(m) { return DC.MSGS[m] ? DC.MSGS[m].t : ''; }
   function stampEl(m) { var s = el('span', 'stamp'); s.innerHTML = DC.stampSvg(DC.MSGS[m] ? DC.MSGS[m].s : 'paw'); return s; }   // 우리 코드가 만든 그림만
 
-  // ── 새 방(2026-11-23 밤 가르시아 "탭에 넣기" — 산책 아지트 C안 azit-sian-c.html) ──
-  // 분홍 빈 방 394×220점(받은 그림을 원래 점으로 되돌린 것, 붙박이 창은 지움 — _dev/azit-fit.py)과 소품 그림(icons/azit-room — 방 한 점 = 그림 한 점).
-  // 바닥 자리: 두 벽 모서리(199,74)에서 오른쪽 벽 따라 i, 왼쪽 벽 따라 j(한 칸 = 가로 2점·세로 1점 — 2:1).
-  // 벽 자리: (벽 R·L, 모서리에서 u칸, 그림 가운데가 바닥 줄에서 h점 위). 강아지는 지금 그림 그대로(icons/dot-dogs/px, 키 44점 — C안 '보통').
-  var RW = 394, RH = 220, IMG = 'icons/azit-room/', DOG_VIS = 44, CORNER = 199, FLOOR0 = 74;
-  function P(i, j) { return { x: CORNER + 2 * (i - j), y: FLOOR0 + i + j }; }
-  function unP(x, y) { var a = (x - CORNER) / 2, b = y - FLOOR0; return { i: (a + b) / 2, j: (b - a) / 2 }; }
-  function W(side, u, h) { return { x: side === 'R' ? CORNER + 2 * u : CORNER - 2 * u, y: FLOOR0 + u - h }; }
-  function onFloor(q) { return q.i >= 0 && q.j >= 0 && q.i <= 101 && q.j <= 86 && q.i + q.j <= 146; }
+  // ── 고해상도 방(2026-11-26 가르시아 "고해상도 시안을 적용해줘" → "실제 [아지트]에 적용", hq DECISIONS 11/26 — 시안 azit-hd-sian.html) ──
+  // 방 = 받은 크림 방 원본(icons/azit-hd/room.webp 1930×1536 — 방 한 점 = 원본 4.5픽셀, 429×341점). 자리·누르기·걷기는 예전처럼 방 점 단위로 두고
+  // 그리기만 화면 픽셀로(Z = 화면 픽셀 / 방 점): 방·원본 있는 소품(icons/azit-hd, _dev/azit-hd-app.py)은 곱게 줄여서,
+  // 원본이 아직 없는 소품은 점 그림(icons/azit-room — 방 한 점 = 그림 한 점, 누르는 자리·크기도 이 그림)을 점째 키워서. 강아지는 예전 그대로(키 44점).
+  // 바닥 자리: 두 벽 모서리 바닥(CX, CY)에서 오른쪽 벽 따라 i(한 칸 = 가로 2점·세로 2·SR점), 왼쪽 벽 따라 j(가로 2점·세로 2·SL점) — 받은 그림 바닥(실측).
+  // 벽 자리: (벽 R·L, 모서리에서 u칸, 그림 가운데가 바닥 줄에서 h점 위). 예전 점 방(394×220, 2:1)은 11/23~25(azit-room.js POS_V 2)
+  var HS = 4.5, RW = 1930 / HS, RH = 1536 / HS, IMG = 'icons/azit-room/', HDI = 'icons/azit-hd/', DOG_VIS = 44;
+  var CX = 979 / HS, CY = 736 / HS, SR = 0.398, SL = 0.4325, CORNER = CX;
+  function P(i, j) { return { x: CX + 2 * (i - j), y: CY + 2 * (SR * i + SL * j) }; }
+  function unP(x, y) { var a = (x - CX) / 2, b = (y - CY) / 2, j = (b - SR * a) / (SR + SL); return { i: a + j, j: j }; }
+  function W(side, u, h) { return side === 'R' ? { x: CX + 2 * u, y: CY + 2 * SR * u - h } : { x: CX - 2 * u, y: CY + 2 * SL * u - h }; }
+  function wallH(side, u, y) { return CY + 2 * (side === 'R' ? SR : SL) * u - y; }   // W의 거꾸로(끌 때)
+  function onFloor(q) { return q.i >= 0 && q.j >= 0 && q.i <= 101 && q.j <= 95; }    // 받은 그림 바닥(앞쪽은 j 95쯤까지)
   // 깔개 자리(그림 가운데) — 마름모 그림의 네 끝(가운데에서 i·j로 폭/8·높이/4쯤)이 벽·바닥 끝을 넘지 않게 그만큼 안쪽으로(11/24 배변판 옮기기)
   function clampDecal(q, s) {
     var m = s ? Math.ceil(Math.max(s.width / 8, s.height / 4)) : 10, c = clampFloor(q);
-    var i = Math.max(m, Math.min(101 - m, c.i)), j = Math.max(m, Math.min(86 - m, c.j));
-    if (i + j > 146 - 2 * m) { var t = (i + j - (146 - 2 * m)) / 2; i -= t; j -= t; }
+    var i = Math.max(m, Math.min(101 - m, c.i)), j = Math.max(m, Math.min(94 - m, c.j));
     return { i: i, j: j };
   }
-  function clampFloor(q) {   // 강아지·소품이 설 수 있는 바닥(계단·화면 밖 빼고)
-    var i = Math.max(3, Math.min(97, q.i)), j = Math.max(3, Math.min(82, q.j));
-    if (i + j > 138) { var s = (i + j - 138) / 2; i -= s; j -= s; }
+  // 강아지·소품이 설 수 있는 바닥 — 좁은 휴대폰에서도 보이는 칸(가로 방 점 64~409) 안에. 왼쪽 문 앞 끝·오른쪽 끝은 잘려 보여서 뺀다
+  function clampFloor(q) {
+    var i = Math.max(3, Math.min(99, q.i)), j = Math.max(3, Math.min(92, q.j));
     if (i - j < -70) { var t = (-70 - (i - j)) / 2; i += t; j -= t; }
+    if (i - j > 89) { var t2 = (i - j - 89) / 2; i -= t2; j += t2; }
     return { i: i, j: j };
   }
-  // 벽지 셋(방 모습 글자 j·l·n 그대로) — 기본 크림 발바닥 방(11/24, 옛 분홍 방의 벽지·바닥만 바꿈)과, 옛 분홍 방에서 색만 바꾼 라일락·밤 블랙 핑크(_dev/azit-extra.py — 다시 돌리면 크림 방에서 만들어지니 주의)
+  // 벽지 넷(방 모습 글자 j·l·n·p 그대로) — 크림 발바닥 = 받은 크림 방 원본, 라일락·밤 블랙 핑크·분홍은 원본이 없어 크림 방의 벽만 색을 바꾼 것
+  // (_dev/azit-hd-app.py — 창·커튼·선반·문은 그대로, 밤은 바닥도 어둡게). 원본을 받으면 바꾼다. paper = 벽지 고르기 견본 색
   var ROOM = {
-    jelly: { name: '크림 발바닥', img: 'room', paper: '#f3e9da', ink: '#2a2026' },   // 11/24 가르시아 받은 그림으로 기본 벽지·바닥 교체(_dev/azit-cream-room.py) — 방 모습 글자 j 그대로
+    jelly: { name: '크림 발바닥', img: 'room', paper: '#f3e9da', ink: '#2a2026' },
     lilac: { name: '라일락', img: 'room_lilac', paper: '#e4d2f4', ink: '#2a2026' },
     night: { name: '밤 블랙 핑크', img: 'room_night', paper: '#3b2a3e', ink: '#ffffff' },
-    pink: { name: '분홍 줄무늬', img: 'room_pink', paper: '#ffbcba', ink: '#2a2026' }   // 옛 기본 방 그대로(11/24 가르시아 "네 번째 벽지로 남겨줘")
+    pink: { name: '분홍', img: 'room_pink', paper: '#ffbcba', ink: '#2a2026' }   // 11/26 고해상도 방부터 줄무늬 대신 분홍 발바닥 벽지(원본이 없어 크림 방 색만 바꿈)
   };
-  var WIN_AT = [316, 121], GARLAND_AT = [199, 30];   // 창(붙박이 창이 있던 자리)·모서리 가랜드 — 그림 아래 가운데
+  // 밤 창(창유리만 밤하늘로 바꾼 덧그림, 방 점 x·y·w·h) · 가랜드(창 위 오른쪽 벽, 벽 기울기대로 민 그림 — 가운데 자리)
+  var WIN_BOX = [1470 / HS, 350 / HS, 230 / HS, 410 / HS], GARLAND_AT = W('R', 67, 140);
 
   // ── 그림 불러오기 ──
   var pics = {};
   function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
-  var picNames = ['room', 'room_lilac', 'room_night', 'room_pink', 'lamp_stand_on', 'stroller_win', 'window_day', 'window_night', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
+  var picNames = ['lamp_stand_on', 'stroller_win', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
     .concat(AZ.ITEMS.map(function (it) { return it.spr; }))
     .concat(AZ.ITEMS.filter(function (it) { return it.both; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
     .filter(function (n, k, a) { return a.indexOf(n) === k; });
@@ -431,8 +441,30 @@
   var REDO_V5 = ['sofa_bed', 'cushion_cafe_beige', 'rug_pattern', 'feeder_wood_2bowl', 'basket_blue_carrot', 'toy_bone', 'ball_yellow', 'plant_pot',
     'frame_jelly_pink', 'frame_gold', 'frame_photo', 'frame_dog', 'frame_pal', 'board_postcard'];
   function picV(n) { return REDO_V5.indexOf(n) >= 0 ? 5 : REDO_V4.indexOf(n) >= 0 ? 4 : REDO_V3.indexOf(n) >= 0 ? 3 : /^room(_|$)/.test(n) ? 5 : LETTER_V2.indexOf(n.replace(/_L$/, '')) >= 0 ? 2 : 1; }   // 방 그림 v5 = 크림 발바닥 방·선반 모서리 고침·왼쪽 토끼 귀 입구를 벽으로(11/24, _dev/azit-close-door.py)
-  var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) pics[n] = im; }); }));
+  var picsReady = Promise.all(picNames.map(function (n) { return loadImg(IMG + n + '.png?v=' + picV(n)).then(function (im) { if (im) { im.__spr = n; pics[n] = im; } }); }));
   function pic(n) { return pics[n] || null; }
+  // 고해상도 원본(11/26, icons/azit-hd — _dev/azit-hd-app.py): 소품 원본 33개 + 속 칸을 비운 사진 액자·단짝 액자. 받는 대로 다시 그린다(그동안은 점 그림)
+  var HD_NAMES = ['bag_dispenser', 'ball_yellow', 'basket_blue_carrot', 'board_postcard', 'cafe_cup', 'carrot_plush', 'cushion_cafe_beige', 'donut_cushion',
+    'feeder_wood_2bowl', 'flag_stand', 'food_box', 'frame_dog', 'frame_gold', 'frame_jelly_pink', 'garland_R', 'grooming_basket', 'keyhook_rail',
+    'lamp_stand', 'lamp_stand_on', 'leash_hook', 'neon_chihuahua', 'pee_pad', 'pet_stairs', 'picnic_mat', 'plant_pot', 'postcard_paw', 'raincoat_rack',
+    'rug_pattern', 'sofa_bed', 'stroller', 'toy_bone', 'treat_jar', 'trophy', 'frame_photo', 'frame_pal'];
+  var hdPics = {}, HD_V = 1;
+  var hdReady = Promise.all(HD_NAMES.map(function (n) { return loadImg(HDI + n + '.webp?v=' + HD_V).then(function (im) { if (im) { hdPics[n] = im; bmpCache = {}; fillCache = {}; staticDirty = true; kick(); } }); }));
+  hdReady.then(function () { if (cur && cur.me) tray(); if (cur && cur.show) showList(); });   // 소품 칸 작은 그림도 원본으로
+  function hd(n) { return hdPics[n] || null; }
+  // 방 그림 — 벽지마다 큰 원본(받는 데 조금 걸림)과 1x 미리보기(작아서 먼저 옴 — 흐리게 먼저 보인다). 고른 벽지만 받는다
+  var roomPics = {}, roomLoading = {};
+  function roomPic(name) {
+    if (roomPics[name]) return roomPics[name];
+    if (!roomLoading[name]) {
+      roomLoading[name] = true;
+      loadImg(HDI + name + '-1x.webp?v=' + HD_V).then(function (im) { if (im && !roomPics[name]) { roomPics[name] = im; roomPics[name].small = true; roomCache = {}; staticDirty = true; kick(); } });
+      loadImg(HDI + name + '.webp?v=' + HD_V).then(function (im) { if (im) { roomPics[name] = im; roomCache = {}; staticDirty = true; kick(); } });
+    }
+    return null;
+  }
+  var winNight = null;
+  loadImg(HDI + 'window_night.webp?v=' + HD_V).then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
   var flipCache = {};
   function oriented(it, side) {
@@ -506,13 +538,88 @@
     return (fillCache[key] = c);
   }
   // 벽 소품 그림 — 액자 둘은 속을 채운 것
-  function wallSprite(o, it, side) {
+  function frameSrc(o, it) {   // 사진 액자·단짝 액자에 넣을 그림 [주소, 꽉 채워 자르기]
     if (it.id === 'photo') {   // 사진이 없으면(워킹패스에 사진을 안 넣음) 우리 개 도트 강아지로
       var ps = photoSrcOf(o) || AZ.dogPxSrc(o.dog === PHOTO_ID ? state.dog : o.dog);
-      return filledFrame(it, side, ps, ps.indexOf('dot-dogs') < 0);
+      return [ps, ps.indexOf('dot-dogs') < 0];
     }
-    if (it.id === 'palframe') return filledFrame(it, side, AZ.dogPxSrc(palDogsOf(o)[0]), false);
-    return oriented(it, side);
+    if (it.id === 'palframe') return [AZ.dogPxSrc(palDogsOf(o)[0]), false];
+    return null;
+  }
+  function wallSprite(o, it, side) {
+    var fs = frameSrc(o, it);
+    return fs ? filledFrame(it, side, fs[0], fs[1]) : oriented(it, side);
+  }
+
+  // ── 화면 픽셀 그림(11/26 고해상도) — 방 점 크기 w×h 그림을 지금 배율 Z로 한 번 만들어 둔다(배율이 바뀌면 다시) ──
+  var bmpCache = {}, roomCache = {};
+  // 원본 → 칸(w×h 방 점) 안에 가로세로 비율대로, 아래 가운데에 맞춰 곱게 줄인 것. flip = 좌우 뒤집기(점 그림과 같은 방향으로)
+  function hdBitmap(n, w, h, flip) {
+    var key = n + '|' + w + 'x' + h + '|' + (flip ? 1 : 0) + '|' + Z;
+    if (bmpCache[key]) return bmpCache[key];
+    var im = hd(n); if (!im) return null;
+    var W2 = Math.max(1, Math.round(w * Z)), H2 = Math.max(1, Math.round(h * Z));
+    var k = Math.min(W2 / im.naturalWidth, H2 / im.naturalHeight), dw = Math.max(1, Math.round(im.naturalWidth * k)), dh = Math.max(1, Math.round(im.naturalHeight * k));
+    var c = document.createElement('canvas'); c.width = W2; c.height = H2;
+    var g = c.getContext('2d');
+    if (flip) { g.translate(W2, 0); g.scale(-1, 1); }
+    g.drawImage(smallCopy(im, dw, dh), Math.round((W2 - dw) / 2), H2 - dh);
+    return (bmpCache[key] = c);
+  }
+  function hdFlip(it, side) { return !!(it.face && side && it.face !== side); }   // 벽 소품을 그려진 방향과 다른 벽에 걸면 뒤집는다
+  function hdName(it) { return it && hd(it.spr) ? it.spr : null; }
+  // 소품 그리기(g는 방 점 단위) — 원본이 있으면 화면 픽셀 그림을 곱게, 없으면 점 그림을 점째 키워서. s = 점 그림(크기·누르는 자리 기준)
+  function putItem(g, s, x, y, n, flip) {
+    var b = n ? hdBitmap(n, s.width, s.height, flip) : null;
+    if (b) { g.imageSmoothingEnabled = true; g.drawImage(b, x, y, s.width, s.height); return; }
+    g.imageSmoothingEnabled = false; g.drawImage(s, x, y, s.width, s.height);
+  }
+  // 사진 액자·단짝 액자(고해상도) — 속 칸(점 그림의 알파 1 칸, 세로줄마다 위·아래)에 사진·도트 강아지를 화면 픽셀로 비스듬히 끼우고,
+  // 그 위에 속 칸이 투명한 원본 액자를 덮는다. 원본 액자를 아직 못 받았으면 null(점 그림 액자로)
+  function hdFilled(o, it, side) {
+    var fs = frameSrc(o, it), base = oriented(it, side);
+    if (!fs || !base || !hd(it.spr)) return null;
+    var im = srcPic(fs[0]), w = base.width, h = base.height;
+    var key = 'fill|' + it.id + '|' + side + '|' + fs[0] + '|' + Z + (im ? '' : '|0');
+    if (bmpCache[key]) return bmpCache[key];
+    var W2 = Math.max(1, Math.round(w * Z)), H2 = Math.max(1, Math.round(h * Z)), c = document.createElement('canvas'); c.width = W2; c.height = H2;
+    var g = c.getContext('2d');
+    if (im) {
+      var bc = document.createElement('canvas'); bc.width = w; bc.height = h; bc.getContext('2d').drawImage(base, 0, 0);
+      var a = bc.getContext('2d').getImageData(0, 0, w, h).data, top = [], bot = [], x0 = w, x1 = -1, x, y;
+      for (x = 0; x < w; x++) for (y = 0; y < h; y++) {
+        if (a[(y * w + x) * 4 + 3] !== 1) continue;
+        if (top[x] === undefined) top[x] = y;
+        bot[x] = y; if (x < x0) x0 = x; if (x > x1) x1 = x;
+      }
+      if (x1 >= 0) {
+        var fh = 0; for (x = x0; x <= x1; x++) if (top[x] !== undefined) fh = Math.max(fh, bot[x] - top[x] + 1);
+        var FW = Math.max(1, Math.round((x1 - x0 + 1) * Z)), FH = Math.max(1, Math.round(fh * Z)), ph = fitInto(im, FW, FH, fs[1]);
+        for (var xd = 0; xd < FW; xd++) {   // 화면 세로줄마다 — 속 칸 위·아래를 이웃한 방 점 세로줄 사이에서 고르게
+          var xf = (xd + 0.5) / Z - 0.5, xa = Math.max(0, Math.min(x1 - x0, Math.floor(xf))), xb = Math.min(x1 - x0, xa + 1), t = Math.max(0, Math.min(1, xf - xa));
+          var ta = top[x0 + xa], tb = top[x0 + xb]; if (ta === undefined || tb === undefined) continue;
+          var tp = ta + (tb - ta) * t, bt = bot[x0 + xa] + (bot[x0 + xb] - bot[x0 + xa]) * t + 1;
+          g.drawImage(ph, xd, 0, 1, FH, Math.round(x0 * Z) + xd, Math.round(tp * Z) - 1, 1, Math.round((bt - tp) * Z) + 2);
+        }
+      }
+    }
+    g.drawImage(hdBitmap(it.spr, w, h, hdFlip(it, side)), 0, 0);
+    return (bmpCache[key] = c);
+  }
+  // 방 그림(+ 밤이면 창유리만 밤하늘) — 방 전체를 화면 픽셀로 한 장. 큰 원본을 받기 전엔 1x 미리보기를 키워서(흐림)
+  function roomBitmap(name, night) {
+    var rp = roomPic(name); if (!rp) return null;
+    var key = name + '|' + Z + '|' + (night && winNight ? 1 : 0) + '|' + (rp.small ? 1 : 0);
+    if (roomCache.key === key) return roomCache.c;
+    var W2 = Math.round(RW * Z), H2 = Math.round(RH * Z), c;
+    if (rp.small) { c = document.createElement('canvas'); c.width = W2; c.height = H2; var g0 = c.getContext('2d'); g0.imageSmoothingEnabled = true; g0.drawImage(rp, 0, 0, W2, H2); }
+    else c = smallCopy(rp, W2, H2);
+    if (night && winNight) {
+      var g = c.getContext('2d'), ww = Math.round(WIN_BOX[2] * Z), wh = Math.round(WIN_BOX[3] * Z);
+      g.drawImage(smallCopy(winNight, ww, wh), Math.round(WIN_BOX[0] * Z), Math.round(WIN_BOX[1] * Z));
+    }
+    roomCache = { key: key, c: c };
+    return c;
   }
   // 친구 발자국 — 흰 발자국 그림을 그 친구 털색으로
   var pawCache = {};
@@ -523,21 +630,20 @@
     var g = c.getContext('2d'); g.drawImage(im, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
     return (pawCache[color] = c);
   }
-  // 발밑 그림자 — 바닥을 조금 어둡게(번지지 않게 점으로)
+  // 발밑 그림자 — 바닥을 조금 어둡게. 11/26 고해상도 방부터 점 계단 대신 납작하고 부드러운 타원(g는 방 점 단위)
   function shadowOn(g, x, y, w, alpha) {
-    w = Math.max(6, Math.min(44, Math.round(w)));
-    var h = Math.max(3, Math.floor(w / 3));
-    g.fillStyle = 'rgba(70, 25, 10, ' + alpha + ')';
-    for (var yy = 0; yy < h; yy++) {
-      var dy = (yy + 0.5 - h / 2) / (h / 2), half = Math.floor((w / 2) * Math.sqrt(Math.max(0, 1 - dy * dy)));
-      if (half > 0) g.fillRect(Math.round(x) - half, Math.round(y) + yy - h + 1, half * 2, 1);
-    }
+    w = Math.max(6, Math.min(44, w));
+    var h = w / 3;
+    g.save(); g.translate(x, y - h / 2); g.scale(1, h / w);
+    var gr = g.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+    gr.addColorStop(0, 'rgba(70, 25, 10, ' + (alpha * 1.25) + ')'); gr.addColorStop(0.7, 'rgba(70, 25, 10, ' + alpha + ')'); gr.addColorStop(1, 'rgba(70, 25, 10, 0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, w / 2, 0, Math.PI * 2); g.fill(); g.restore();
   }
   // 창(지금 시각대로 낮·밤)
   function isNight() { var hr = new Date().getHours(); return hr >= 19 || hr < 6; }
 
   // ── 도트 강아지(받은 그림의 점 그대로 — 시안 B안 '원본') ──
-  // 원래 점 격자로 되돌린 그림(icons/dot-dogs/px, 점 하나 = 한 픽셀)을 지금 화면 픽셀(R)에 맞춰 가장 가까운 점으로 키운다.
+  // 원래 점 격자로 되돌린 그림(icons/dot-dogs/px, 점 하나 = 한 픽셀)을 지금 화면 픽셀(Z)에 맞춰 가장 가까운 점으로 키운다.
   // 화면 픽셀이 점보다 적을 때(PC 등)만 곱게 줄인다. 점 그림을 못 받으면 받은 그림(webp)을 곱게 줄여서.
   var dogSrc = {}, dogCache = {};
   var PHOTO_ID = 'photo';   // 우리 개 = 워킹패스 사진으로 만든 도트(11/24) — dogSrc·dogCache·그리기에서 이 이름으로(방 모습 QR엔 안 감)
@@ -596,18 +702,18 @@
     return c;
   }
   function dogBitmap(id) {
-    var key = id + '@' + R;
+    var key = id + '@' + Z;
     if (key in dogCache) return dogCache[key];
     var s = dogSrc[id];
     if (!s) return null;
     var im = s.im, vis = DOG_VIS;
     // 워킹패스 사진 도트가 옆으로 길면(누운 사진) 너무 넓어지지 않게 — 폭을 키의 1.4배까지로
     if (id === PHOTO_ID && im.naturalWidth > im.naturalHeight * 1.4) vis = DOG_VIS * 1.4 * im.naturalHeight / im.naturalWidth;
-    var hd = Math.round(vis * R), wd = Math.round(im.naturalWidth * hd / im.naturalHeight), c;
-    if (s.px && hd >= im.naturalHeight) {
-      c = document.createElement('canvas'); c.width = wd; c.height = hd;
-      var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hd);
-    } else c = smallCopy(im, wd, hd);
+    var hh = Math.round(vis * Z), wd = Math.round(im.naturalWidth * hh / im.naturalHeight), c;
+    if (s.px && hh >= im.naturalHeight) {
+      c = document.createElement('canvas'); c.width = wd; c.height = hh;
+      var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hh);
+    } else c = smallCopy(im, wd, hh);
     return (dogCache[key] = c);
   }
   // 바닥 (px, py)에 발을 딛고 서 있는 강아지 — 걸으면 한 칸씩 통통, 쉴 땐 가끔 한 번. 발밑에 그림자(점으로)
@@ -616,9 +722,9 @@
     var b = dogBitmap(dogId);
     if (!b) { d.box = null; return py - DOG_VIS; }
     var hop = d.hop != null ? d.hop : (d.frame === 1 || d.frame === 3) ? 1 : 0;   // d.hop = 소품과 노는 동안(actStep)
-    var w = b.width / R, h = b.height / R;
+    var w = b.width / Z, h = b.height / Z;
     var sink = d.sink || 0;   // 방석에 앉은 만큼 내려앉음(11/24) — 앉는 점 아래로 내려간 다리는 방석 앞에 가려진다
-    var x = Math.round((px - w / 2) * R) / R, top = Math.round((py - h + 1 + sink) * R) / R - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
+    var x = Math.round((px - w / 2) * Z) / Z, top = Math.round((py - h + 1 + sink) * Z) / Z - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
     if (!d.seat) shadowOn(ctx, px, py + 1, w * 0.62, 0.22);   // 방석 위에선 바닥 그림자 X
     ctx.save();
     ctx.imageSmoothingEnabled = false;
@@ -842,30 +948,31 @@
     var t = $('tip'); t.textContent = msg; t.hidden = false;
     var tw = t.offsetWidth, th = t.offsetHeight, rw = VW * K;
     t.style.left = Math.max(tw / 2 + 2, Math.min(rw - tw / 2 - 2, (x - OX) * K)) + 'px';
-    t.style.top = Math.max(th + 2, (y - 20) * K) + 'px';
+    t.style.top = Math.max(th + 2, (y - OY - 20) * K) + 'px';
     tipFor = null; clearTimeout(tipTimer); tipTimer = setTimeout(function () { t.hidden = true; }, 3500);
   }
 
   // ── 그리기 ──
   var canvas = $('room'), ctx = canvas.getContext('2d');
-  var K = 1, R = 2, VW = RW, OX = 0, CROP_MAX = 66;
-  // 방 크기 — 방 한 점 = 화면 점 R개(정수)로 딱 맞게 그리고, 화면에서 다시 늘리거나 줄이지 않는다(그러면 점이 들쭉날쭉 — C안 11/23).
-  // 방 칸은 양옆 여백 없이 홈 틀 안쪽 끝까지. 폭이 모자라면 왼쪽(계단 쪽)부터 잘라 보인다(최대 66점 — 더 잘라야 하면 한 단계 작게).
-  // K = 방 한 점의 화면 CSS 크기
+  // 보는 칸(11/26 고해상도) — 방 한 점 = CSS 1픽셀이 기본(휴대폰 화면 점 2·3개 = Z). 방(429점)이 칸보다 넓으면 가운데(XC)를 두고 양옆을 잘라 보이고
+  // (문 쪽 왼쪽 끝·오른쪽 벽 끝), 칸이 VW_MIN보다 좁으면 방을 조금 줄인다. 위는 선반 위 트로피까지(OY), 아래는 바닥 앞 끝까지(VH).
+  // K = 방 한 점의 CSS 크기, Z = 방 한 점의 화면 픽셀 수(정수가 아닐 수 있음 — 원본 그림은 곱게, 점 그림은 점째)
+  var K = 1, Z = 3, VW = 345, VH = 300, OX = 64, OY = 30, XC = 236, VW_MIN = 340;   // 390폭 휴대폰 방 칸 ≈ 345 CSS 픽셀 → 1점 = 1픽셀(Z 정수)
   function fit() {
     var avail = $('stage').clientWidth, dpr = window.devicePixelRatio || 1;
     if (avail <= 0) return;
-    var dev = Math.floor(avail * dpr), r = Math.max(1, Math.round(dev / RW));
-    if (RW * r > dev && RW - Math.floor(dev / r) > CROP_MAX) r = Math.max(1, r - 1);
-    if (r !== R) dogCache = {};
-    R = r; VW = Math.min(RW, Math.floor(dev / r)); OX = RW - VW; K = R / dpr;
-    canvas.width = VW * R; canvas.height = RH * R;
-    canvas.style.width = (VW * K) + 'px'; canvas.style.height = (RH * K) + 'px';
+    var vw = Math.min(RW, Math.max(VW_MIN, avail)), z = avail / vw * dpr;
+    if (z !== Z) { dogCache = {}; bmpCache = {}; roomCache = {}; fillCache = {}; rideCache = {}; rideMasks = {}; ballSmall = {}; }
+    VW = vw; K = avail / vw; Z = z;
+    OX = Math.round(Math.max(0, Math.min(RW - VW, XC - VW / 2))); OY = 30; VH = 300;
+    canvas.width = Math.round(VW * Z); canvas.height = Math.round(VH * Z);
+    canvas.style.width = (VW * K) + 'px'; canvas.style.height = (VH * K) + 'px';
+    staticDirty = true;
   }
-  // 방·창·러그·벽 소품·가랜드·발자국·소품 그림자는 바뀔 때만 다시 그려 두고(staticLayer), 바닥 소품·강아지는 앞뒤 순서대로 매번
+  // 방·러그·벽 소품·가랜드·발자국·소품 그림자는 바뀔 때만 다시 그려 두고(staticLayer — 보는 칸만, 화면 픽셀), 바닥 소품·강아지는 앞뒤 순서대로 매번
   var staticDirty = true, staticLayer = null, staticNight = null, wallHits = [], sprites = [];
-  var HOME_DOGS = { host: [55, 46], guest: [72, 36] };
-  var host = { i: 55, j: 46, ti: 55, tj: 46, flip: false, frame: 0, phase: 0, rest: 4 }, guest = { i: 72, j: 36, ti: 72, tj: 36, flip: true, frame: 0, phase: 2.1, rest: 7 };
+  var HOME_DOGS = { host: [46, 38], guest: [64, 34] };   // 나란히(가로로 40점쯤 떨어져)
+  var host = { i: 46, j: 38, ti: 46, tj: 38, flip: false, frame: 0, phase: 0, rest: 4 }, guest = { i: 64, j: 34, ti: 64, tj: 34, flip: true, frame: 0, phase: 2.1, rest: 7 };
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
   function itemsOf(o, kind) {   // kind: wall · decal · corner · shelf(선반 위) · floor
     return o.items.map(function (id) { return AZ.byId(AZ.ITEMS, id); }).filter(function (it) {
@@ -874,26 +981,27 @@
       return k === kind;
     });
   }
-  function put(g, s, x, y) { g.drawImage(s, x, y); }
+  function toDots(g) { g.setTransform(Z, 0, 0, Z, -OX * Z, -OY * Z); }   // 아래 그리기는 모두 방 점 단위로
   function buildStatic() {
-    var o = cur, c = document.createElement('canvas'); c.width = RW; c.height = RH;
-    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    var bg = pic((ROOM[o.theme] || ROOM.jelly).img) || pic('room');
-    if (bg) g.drawImage(bg, 0, 0);
+    var o = cur, c = staticLayer || document.createElement('canvas');
+    if (c.width !== canvas.width || c.height !== canvas.height) { c.width = canvas.width; c.height = canvas.height; }
+    var g = c.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#d3c4b0'; g.fillRect(0, 0, c.width, c.height);   // 방 그림 바깥 바탕(받은 그림과 같은 색)
     staticNight = isNight();
+    var rb = roomBitmap((ROOM[o.theme] || ROOM.jelly).img, staticNight);
+    if (rb) g.drawImage(rb, Math.round(-OX * Z), Math.round(-OY * Z));
+    toDots(g);
     shelfAt = {}; shelfAt = shelfPlan(o);   // 선반 위 소품은 바닥 그림자·앞뒤 순서에서 빠진다
-    var win = pic(staticNight ? 'window_night' : 'window_day');
-    if (win) put(g, win, Math.round(WIN_AT[0] - win.width / 2), Math.round(WIN_AT[1] - win.height + 1));
     itemsOf(o, 'decal').forEach(function (it) {   // 바닥에 까는 것(러그·매트) — 맨 아래, 자리는 그림 가운데
       var s = pic(it.spr), p = posOf(o, it); if (!s) return;
-      var q = P(p.i, p.j); put(g, s, Math.round(q.x - s.width / 2), Math.round(q.y - s.height / 2));
+      var q = P(p.i, p.j); putItem(g, s, Math.round(q.x - s.width / 2), Math.round(q.y - s.height / 2), hdName(it), false);
     });
     // 내 방 바닥 — 최근에 만난 친구 발자국(그 친구 털색, 자리는 번호로 정해져 늘 같은 곳)
     if (o.me) friends.slice(0, 8).forEach(function (e) {
       var hh = hash(e.i), i = 10 + (hh % 997) / 997 * 76, j = 10 + ((hh >>> 10) % 991) / 991 * 62;
       if (i + j > 128) { var k = 128 / (i + j); i *= k; j *= k; }
       var q = P(i, j), s = pawOf(hexOk(e.c));
-      if (s) put(g, s, Math.round(q.x - s.width / 2), Math.round(q.y - s.height / 2));
+      if (s) { g.imageSmoothingEnabled = false; g.drawImage(s, Math.round(q.x - s.width / 2), Math.round(q.y - s.height / 2)); }
     });
     itemsOf(o, 'floor').forEach(function (it) {   // 바닥 소품 발밑 그림자(소파는 그림에 있다)
       var s = pic(it.spr), p = posOf(o, it); if (!s || it.id === 'house') return;
@@ -909,28 +1017,31 @@
     itemsOf(o, 'wall').forEach(function (it) {
       var p = posOf(o, it), s = wallSprite(o, it, p.wall); if (!s) return;
       var w = W(p.wall, p.u, p.h), x = Math.round(w.x - s.width / 2), y = Math.round(w.y - s.height / 2);
-      put(g, s, x, y);
+      var fb = hdFilled(o, it, p.wall);   // 사진 액자·단짝 액자(원본 액자 + 화면 픽셀 사진)
+      if (fb) { g.imageSmoothingEnabled = true; g.drawImage(fb, x, y, s.width, s.height); }
+      else putItem(g, s, x, y, frameSrc(o, it) ? null : hdName(it), hdFlip(it, p.wall));
       wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, img: s });
     });
-    itemsOf(o, 'corner').forEach(function (it) {   // 가랜드 — 두 벽 모서리에 걸쳐(양 끝이 같은 높이 = 모서리에서 같은 거리)
+    itemsOf(o, 'corner').forEach(function (it) {   // 가랜드 — 창 위 오른쪽 벽에 벽 기울기대로(11/26 고해상도 방, 끌지 않음)
       var s = pic(it.spr); if (!s) return;
-      var x = Math.round(GARLAND_AT[0] - s.width / 2), y = Math.round(GARLAND_AT[1] - s.height + 1);
-      put(g, s, x, y);
+      var x = Math.round(GARLAND_AT.x - s.width / 2), y = Math.round(GARLAND_AT.y - s.height / 2);
+      putItem(g, s, x, y, hdName(it), false);
       wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, fixed: true, img: s });
     });
     itemsOf(o, 'shelf').forEach(function (it) {   // 선반 위 작은 소품(11/24) — 가랜드보다 앞에(선반은 벽에서 튀어나와 있다)
       var s = pic(it.spr), sl = AZ.SHELVES[shelfAt[it.id]]; if (!s || !sl) return;
-      var x = Math.round(sl.x - s.width / 2), y = sl.y - s.height + 1;
-      put(g, s, x, y);
+      var x = Math.round(sl.x - s.width / 2), y = Math.round(sl.y - s.height + 1);
+      putItem(g, s, x, y, hdName(it), false);
       wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, foot: { x: sl.x, y: sl.y }, img: s });
     });
     staticLayer = c; staticDirty = false;
   }
   // ── 스탠드 조명(11/24 가르시아 "조명은 액션 취하면 불이 들어와야", "켜진 등이 아래로 빛을 쏴 주는 효과") ──
   // 톡 누르면 켜고 끈다(내 방은 저장, 친구 방·모델하우스는 보는 동안만). 켜면 갓이 밝은 그림으로 바뀌고, 방을 다 그린 뒤
-  // 빛을 '더하기'로 덧칠 — 바닥에 2:1 타원 웅덩이 + 갓 둘레 동그란 빛, 각각 3겹 계단(점 그림 느낌). 벽지·바닥 색이 무엇이든 그 색이 밝아진다.
+  // 빛을 '더하기'로 덧칠 — 바닥에 납작한 타원 웅덩이 + 갓 둘레 동그란 빛. 벽지·바닥 색이 무엇이든 그 색이 밝아진다.
+  // 11/26 고해상도 방부터 점 계단(3겹) 대신 부드럽게, 웅덩이는 받은 그림 바닥만큼 납작하게(FLAT — 시안 azit-hd-sian.html과 같은 값).
   // 밤(창밖이 밤)이면 방을 조금 어둡게 한 뒤 빛을 더 세게.
-  var guestLamp = false, glowCache = { key: '', c: null };
+  var guestLamp = false, FLAT = 0.42;
   function lampLit() { return view === -1 ? !!state.lampOn : guestLamp; }
   function lampFoot(o) {
     var it = AZ.byId(AZ.ITEMS, 'lamp');
@@ -938,34 +1049,20 @@
     var p = posOf(o, it); if (!p || p.i == null) return null;
     return P(p.i, p.j);
   }
-  function glowLayer(fx, fy, night) {
-    var key = fx + ',' + fy + ',' + night;
-    if (glowCache.key === key) return glowCache.c;
-    var c = document.createElement('canvas'); c.width = RW; c.height = RH;
-    var g = c.getContext('2d'), img = g.createImageData(RW, RH), d = img.data, k = night ? 1.6 : 1;
-    var sx = fx, sy = fy - 41;   // 갓 가운데(조명 키 51점)
-    for (var y = Math.max(0, fy - 70); y < Math.min(RH, fy + 30); y++) {
-      for (var x = Math.max(0, fx - 60); x < Math.min(RW, fx + 60); x++) {
-        var a = 0, ex = (x - fx) / 46, ey = (y - fy) / 23, e = ex * ex + ey * ey;   // 바닥 웅덩이(2:1)
-        if (e < 0.28) a = 0.24; else if (e < 0.6) a = 0.15; else if (e < 1) a = 0.08;
-        var dx = x - sx, dy = y - sy, r = Math.sqrt(dx * dx + dy * dy);   // 갓 둘레
-        var b = r < 10 ? 0.30 : r < 17 ? 0.17 : r < 25 ? 0.08 : 0;
-        a = Math.max(a, b) * k;
-        if (!a) continue;
-        var n = (y * RW + x) * 4; d[n] = 255; d[n + 1] = 196; d[n + 2] = 112; d[n + 3] = Math.round(Math.min(1, a) * 255);
-      }
-    }
-    g.putImageData(img, 0, 0);
-    glowCache = { key: key, c: c };
-    return c;
-  }
-  function drawLampLight(o) {
+  function drawLampLight(o) {   // ctx는 방 점 단위
     if (!lampLit()) return;
     var f = lampFoot(o); if (!f) return;
-    var night = isNight();
-    if (night) { ctx.fillStyle = 'rgba(24,18,52,0.30)'; ctx.fillRect(0, 0, RW, RH); }
+    var night = isNight(), k = night ? 1.6 : 1;
+    function c(a) { return 'rgba(255, 196, 112, ' + Math.min(1, a * k) + ')'; }
+    if (night) { ctx.fillStyle = 'rgba(24,18,52,0.30)'; ctx.fillRect(OX, OY, VW, VH); }
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    ctx.drawImage(glowLayer(Math.round(f.x), Math.round(f.y), night), 0, 0);
+    ctx.save(); ctx.translate(f.x, f.y); ctx.scale(1, FLAT * 1.05);   // 바닥 웅덩이
+    var gr = ctx.createRadialGradient(0, 0, 0, 0, 0, 46);
+    gr.addColorStop(0, c(0.30)); gr.addColorStop(0.5, c(0.17)); gr.addColorStop(1, c(0));
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, 46, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    var sx = f.x, sy = f.y - 41, g2 = ctx.createRadialGradient(sx, sy, 0, sx, sy, 26);   // 갓 둘레(조명 키 51점)
+    g2.addColorStop(0, c(0.34)); g2.addColorStop(0.4, c(0.18)); g2.addColorStop(1, c(0));
+    ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(sx, sy, 26, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   function toggleLamp() {
@@ -974,20 +1071,28 @@
     kick();
   }
 
+  // 공·장난감 그림(던진 것·바닥에 구르는 것) — 원본이 있으면 곱게, 90도씩 돌려(rot) 그린다. s = 점 그림
+  function drawToy(s, x, y, rot) {
+    var b = hd(s.__spr) ? hdBitmap(s.__spr, s.width, s.height, false) : null;
+    ctx.save(); ctx.imageSmoothingEnabled = !!b;
+    if (rot) { ctx.translate(x + s.width / 2, y + s.height / 2); ctx.rotate(rot * Math.PI / 2); ctx.drawImage(b || s, -s.width / 2, -s.height / 2, s.width, s.height); }
+    else ctx.drawImage(b || s, x, y, s.width, s.height);
+    ctx.restore();
+  }
   function render() {
     var o = cur;
     if (!o) return;
     if (staticDirty || !staticLayer || staticNight !== isNight()) buildStatic();
-    ctx.setTransform(R, 0, 0, R, -OX * R, 0);   // 아래는 모두 방 점 단위로(왼쪽 OX점은 잘려 안 보임)
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, RW, RH); ctx.drawImage(staticLayer, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(staticLayer, 0, 0);
+    toDots(ctx);   // 아래는 모두 방 점 단위로(보는 칸 밖은 잘려 안 보임)
     sprites = wallHits.slice();
     var things = [];
     var fj = fetchJob, tnow = nowSec();
     itemsOf(o, 'floor').forEach(function (it) {
       if (fj && it.id === fj.id) return;   // 던진 공은 아래에서 따로(날아가는 중·바닥·입에)
-      var p = posOf(o, it), q = P(p.i, p.j), ro = rollOf(it.id);   // 개모차는 탄 강아지가 "출발!" 하는 동안 살짝 굴러간다
-      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: (it.id === 'lamp' && lampLit() && pic('lamp_stand_on')) || pic(it.spr) });
+      var p = posOf(o, it), q = P(p.i, p.j), ro = rollOf(it.id), lit = it.id === 'lamp' && lampLit() && pic('lamp_stand_on');   // 개모차는 탄 강아지가 "출발!" 하는 동안 살짝 굴러간다
+      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: lit || pic(it.spr), hdn: lit ? 'lamp_stand_on' : it.spr });
     });
     var fp = fj && fj.phase !== 'carry' ? (fj.phase === 'move' ? tossPos(fj, tnow - fj.t0) : { x: fj.Ls.x, y: fj.Ls.y, hgt: 0, rot: fj.rot }) : null;
     if (fp && fp.hgt <= 0.5) things.push({ ball: true, z: fp.y, x: fp.x, y: fp.y, spr: fj.spr, rot: fp.rot, shadow: fj.phase === 'move' });   // 바닥(구르는 중·멈춘 것)
@@ -998,12 +1103,11 @@
     }
     things.sort(function (a, b) { return a.z - b.z || a.x - b.x; });   // 뒤에서 앞으로
     things.forEach(function (t) {
-      if (t.ball) {   // 던진 공·장난감(바닥) — 구르는 공은 90도씩 돌려 그린다(정사각 그림이라 점이 어긋나지 않음)
+      if (t.ball) {   // 던진 공·장난감(바닥) — 구르는 공은 90도씩 돌려 그린다
         if (!t.spr) return;
         var bw = t.spr.width, bh = t.spr.height, bx0 = Math.round(t.x - bw / 2), by0 = Math.round(t.y - bh + 1);
         if (t.shadow) shadowOn(ctx, t.x, t.y, bw * 0.5, 0.14);
-        if (t.rot) { ctx.save(); ctx.translate(bx0 + bw / 2, by0 + bh / 2); ctx.rotate(t.rot * Math.PI / 2); ctx.drawImage(t.spr, -bw / 2, -bh / 2); ctx.restore(); }
-        else ctx.drawImage(t.spr, bx0, by0);
+        drawToy(t.spr, bx0, by0, t.rot);
         return;
       }
       if (t.dog) {
@@ -1022,7 +1126,7 @@
       }
       if (!t.spr) return;
       var x = Math.round(t.x - t.spr.width / 2), y = Math.round(t.y - t.spr.height + 1);
-      ctx.drawImage(t.spr, x, y);
+      putItem(ctx, t.spr, x, y, hd(t.hdn) ? t.hdn : null, false);
       sprites.push({ id: t.id, x: x, y: y, w: t.spr.width, h: t.spr.height, foot: { x: t.x, y: t.y }, img: t.spr });
     });
     if (fp && fp.hgt > 0.5) drawAir(fj, fp);   // 공중에 뜬 것은 맨 위에
@@ -1047,7 +1151,7 @@
   function placeBubble(x, y) {
     var b = $('bubble'); if (b.hidden) return;
     var rw = VW * K, half = bubbleW / 2, left = Math.max(half + 2, Math.min(rw - half - 2, (x - OX) * K));
-    b.style.left = left + 'px'; b.style.top = Math.max(0, (y - 6) * K) + 'px';
+    b.style.left = left + 'px'; b.style.top = Math.max(0, (y - OY - 6) * K) + 'px';
   }
 
   // ── 화면 글자 ──
@@ -1152,9 +1256,10 @@
   function slotCanvas(name, dim, cssH) {
     var s = pic(name) || pic('acc_' + name), H = cssH || 30, dpr = window.devicePixelRatio || 1, c = document.createElement('canvas');
     if (!s) { c.width = 1; c.height = 1; return c; }
-    var ch = Math.round(H * dpr), cw = Math.max(1, Math.round(s.width * ch / s.height)), g;
+    var ch = Math.round(H * dpr), cw = Math.max(1, Math.round(s.width * ch / s.height)), g, big = name === 'frame_photo' || name === 'frame_pal' ? null : hd(name);
     c.width = cw; c.height = ch; g = c.getContext('2d');
-    if (ch >= s.height) { g.imageSmoothingEnabled = false; g.drawImage(s, 0, 0, cw, ch); }
+    if (big) g.drawImage(smallCopy(big, cw, ch), 0, 0);   // 11/26 원본이 있으면 곱게(사진·단짝 액자는 속이 빈 원본이라 점 그림 그대로)
+    else if (ch >= s.height) { g.imageSmoothingEnabled = false; g.drawImage(s, 0, 0, cw, ch); }
     else g.drawImage(smallCopy(s, cw, ch), 0, 0);
     if (dim) {
       var d = g.getImageData(0, 0, cw, ch), a = d.data;
@@ -1485,7 +1590,7 @@
 
   // ── 누르기: 소품이면 끌기(내 방만), 아니면 강아지가 그 바닥 칸으로 ──
   var drag = null, downAt = null;
-  function at(e) { var r = canvas.getBoundingClientRect(); return { x: OX + (e.clientX - r.left) * VW / r.width, y: (e.clientY - r.top) * RH / r.height }; }
+  function at(e) { var r = canvas.getBoundingClientRect(); return { x: OX + (e.clientX - r.left) * VW / r.width, y: OY + (e.clientY - r.top) * VH / r.height }; }
   // 그 자리에 놓인 소품(위에 그린 것부터) — 그림이 실제로 있는 점(둘레 2점까지)을 눌렀을 때만(11/24 꽉 찬 방: 네모 칸으로 보면
   // 앞 소품의 빈 귀퉁이가 뒤 소품을 가로채서). 그림의 불투명 점은 그림마다 한 번만 읽어 둔다
   var maskCache = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -1541,7 +1646,9 @@
     var pg = pc.getContext('2d'); pg.imageSmoothingEnabled = false; pg.clearRect(0, 0, pc.width, pc.height); pg.drawImage(img, 0, 0, pc.width, pc.height);
     // 고화질판이 있는 소품(11/25 — icons/azit-hq, _dev/azit-hq-items.py)은 큰 그림을 그걸로 바꿔 그린다(받는 동안은 위 점 그림).
     // 벽 반대쪽에 걸려 뒤집힌 그림(oriented)이면 같이 뒤집는다
-    if (HQ_ITEMS.indexOf(it.spr) >= 0) {
+    // 11/26 고해상도 방 — 소품 원본(icons/azit-hd)이 있는 것도(사진·단짝 액자는 속을 채운 점 그림 그대로)
+    var hqSrc = HQ_ITEMS.indexOf(it.spr) >= 0 ? 'icons/azit-hq/' + it.spr + '.webp?v=1' : (hd(it.spr) && !frameSrc(cur, it)) ? HDI + it.spr + '.webp?v=' + HD_V : null;
+    if (hqSrc) {
       var flipped = !!(it.face && img !== pic(it.spr) && img !== pic(it.spr + '_L')), hq = new Image();
       hq.onload = function () {
         if (tipFor !== s.id || $('itemcard').hidden) return;   // 그사이 다른 소품을 눌렀거나 닫았으면 그대로
@@ -1551,13 +1658,13 @@
         if (flipped) { g2.translate(pc.width, 0); g2.scale(-1, 1); }
         g2.drawImage(hq, 0, 0, pc.width, pc.height);
       };
-      hq.src = 'icons/azit-hq/' + it.spr + '.webp?v=1';
+      hq.src = hqSrc;
     }
     $('ic-name').textContent = it.name;
     // 표 문구(11/25 가르시아 "얻는 법: 처음부터 가지고 있어요 / 배치: 바닥, 선반에 놓을 수 있어요 · 꾹 눌러 옮겨요 / 반응: 가지고 놀아요 / 놀이: …")
     var how = h.how === '처음부터 있어요' ? '처음부터 가지고 있어요' : h.how;
     if (h.mine !== '나도 있어요') how += ' · ' + h.mine;   // 아직 없으면 얼마나 남았는지
-    var place = it.corner ? '방 모서리에 걸어요' : it.wall ? '벽에 걸어요' : it.shelf ? '바닥, 선반에 놓을 수 있어요' : it.decal ? '바닥에 깔아요' : '바닥에 놓아요';
+    var place = it.corner ? '창 위에 걸어요' : it.wall ? '벽에 걸어요' : it.shelf ? '바닥, 선반에 놓을 수 있어요' : it.decal ? '바닥에 깔아요' : '바닥에 놓아요';
     if (view === -1 && !s.fixed && !it.corner) place += ' · 꾹 눌러 옮겨요';
     var rows = [['얻는 법', how], ['배치', place], ['반응', KIND_TXT[r[0]]]];
     if (canThrow(s.id)) rows.push(['놀이', '[던지기] 누르고 던질 곳을 찍으면 물어 와요']);
@@ -1614,7 +1721,7 @@
   function playSpot(it, s, who, kind) {
     var p = posOf(cur, it), side, u;
     if (it.corner || p.wall || p.shelf != null) {   // 벽·선반·모서리 — 그 아래 바닥, 벽 앞 몇 칸에서 조금 비켜(소품이 머리에 가려지지 않게)
-      if (it.corner) return { i: 8, j: 8, fx: null };
+      if (it.corner) { var cg = clampFloor({ i: 67, j: 8 }); return { i: cg.i, j: cg.j, fx: GARLAND_AT.x }; }   // 가랜드 = 창 위(11/26) — 창 아래 바닥에서 올려다봄
       if (p.wall) { side = p.wall; u = p.u; }
       else { var sl = AZ.SHELVES[p.shelf]; side = sl.x >= CORNER ? 'R' : 'L'; u = Math.abs(sl.x - CORNER) / 2; }
       var c = clampFloor(side === 'R' ? { i: u + 2, j: 8 } : { i: 8, j: u + 2 });
@@ -1697,8 +1804,8 @@
   }
   function floorPose(d, dogId, px, py) {   // 바닥 (px, py)에 선 보통 강아지(drawDog와 같은 크기·자리)
     var b = dogBitmap(dogId); if (!b) return null;
-    var w = b.width / R, h = b.height / R, hd = heads[dogId];
-    return { x: px - w / 2, top: py - h + 1, w: w, h: h, ax: hd ? (d.flip ? 1 - hd.hx : hd.hx) : 0.5, ay: hd ? hd.hy : 0 };
+    var w = b.width / Z, h = b.height / Z, hdd = heads[dogId];
+    return { x: px - w / 2, top: py - h + 1, w: w, h: h, ax: hdd ? (d.flip ? 1 - hdd.hx : hdd.hx) : 0.5, ay: hdd ? hdd.hy : 0 };
   }
   function mixPose(a, b, k) {
     function m(p, q) { return p + (q - p) * k; }
@@ -1706,21 +1813,22 @@
   }
   // 가리개(화면 점 배율로 한 번 만들어 둠, 흰 곳만 보임) — dx·dy = 개모차 그림 왼쪽 위에서 가리개 왼쪽 위까지(방 점)
   function winMask(r) {   // 창으로만(탄 동안)
-    var key = 'win:' + r.win + '@' + R; if (rideMasks[key]) return rideMasks[key];
+    var key = 'win:' + r.win + '@' + Z; if (rideMasks[key]) return rideMasks[key];
     var m = pic(r.win); if (!m) return null;
-    var c = document.createElement('canvas'); c.width = m.width * R; c.height = m.height * R;
-    var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(m, 0, 0, c.width, c.height);
+    var c = document.createElement('canvas'); c.width = Math.round(m.width * Z); c.height = Math.round(m.height * Z);
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(m, 0, 0, c.width, c.height);   // 원본 개모차라 창 가장자리도 곱게
     return (rideMasks[key] = { c: c, dx: 0, dy: 0 });
   }
   var IN_MX = 24, IN_MY = 48;   // 뛰는 강아지가 개모차 그림 밖으로 나가는 만큼(양옆·위)
   function inMask(r) {   // 개모차 안(타고 내리는 동안) — 창 + 바구니 앞판 윗선보다 위의 개모차 그림 바깥(지붕·손잡이·바구니 뒤는 가림)
-    var key = 'in:' + r.spr + '@' + R; if (rideMasks[key]) return rideMasks[key];
+    var key = 'in:' + r.spr + '@' + Z; if (rideMasks[key]) return rideMasks[key];
     var sp = pic(r.spr), m = pic(r.win); if (!sp || !m) return null;
-    var c = document.createElement('canvas'); c.width = (sp.width + IN_MX * 2) * R; c.height = (sp.height + IN_MY) * R;
-    var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, (IN_MY + r.rim) * R);
-    g.globalCompositeOperation = 'destination-out'; g.drawImage(sp, IN_MX * R, IN_MY * R, sp.width * R, sp.height * R);
-    g.globalCompositeOperation = 'source-over'; g.drawImage(m, IN_MX * R, IN_MY * R, m.width * R, m.height * R);
+    var hs = hd(r.spr) ? hdBitmap(r.spr, sp.width, sp.height, false) : null;   // 원본 개모차 모양으로 가린다(점 그림과 같은 칸)
+    var c = document.createElement('canvas'); c.width = Math.round((sp.width + IN_MX * 2) * Z); c.height = Math.round((sp.height + IN_MY) * Z);
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = !!hs;
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, Math.round((IN_MY + r.rim) * Z));
+    g.globalCompositeOperation = 'destination-out'; g.drawImage(hs || sp, Math.round(IN_MX * Z), Math.round(IN_MY * Z), Math.round(sp.width * Z), Math.round(sp.height * Z));
+    g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = true; g.drawImage(m, Math.round(IN_MX * Z), Math.round(IN_MY * Z), Math.round(m.width * Z), Math.round(m.height * Z));
     return (rideMasks[key] = { c: c, dx: -IN_MX, dy: -IN_MY });
   }
   // 출발! — 탄 강아지가 한마디 하는 동안 개모차(와 창 안 강아지)가 앞바퀴 쪽으로 갔다 왔다(방 점)
@@ -1738,7 +1846,7 @@
   // still = 창 안에 가만히(곱게 줄인 그림을 한 번 만들어 둠) — 뛰는 동안은 크기가 계속 바뀌어 원본에서 바로 그린다.
   // 돌려주는 값 = 머리 장식 자리(말풍선을 띄울 곳)
   function drawRidePose(d, dogId, acc, r, p, how, still, off) {
-    var src = dogSrc[dogId], W = Math.max(1, Math.round(p.w * R)), H = Math.max(1, Math.round(p.h * R));
+    var src = dogSrc[dogId], W = Math.max(1, Math.round(p.w * Z)), H = Math.max(1, Math.round(p.h * Z));
     var img = still ? rideBitmap(dogId, W, H) : src && src.im;
     if (!img) return null;
     var m = how === 'win' ? winMask(r) : how === 'in' ? inMask(r) : null;
@@ -1746,7 +1854,7 @@
     var x = p.x + off.x, top = p.top + off.y, a = acc && pic('acc_' + acc), k = p.h / DOG_VIS;
     var hx = x + p.ax * p.w, hy = top + p.ay * p.h;
     function paint(g, bx, by) {   // g = 화면 점 그대로(변환 없음), (bx, by) = 그 캔버스 왼쪽 위의 방 점
-      var X = Math.round((x - bx) * R), Y = Math.round((top - by) * R);
+      var X = Math.round((x - bx) * Z), Y = Math.round((top - by) * Z);
       g.save();
       g.imageSmoothingEnabled = !still && !(src.px && H >= src.im.naturalHeight); g.imageSmoothingQuality = 'high';   // 점 그림을 키울 땐 점 그대로
       if (d.flip) { g.translate(X * 2 + W, 0); g.scale(-1, 1); }
@@ -1755,11 +1863,11 @@
       if (a) {   // 머리 장식도 강아지 크기만큼 줄여 정수리에(지붕에 걸리면 같이 가려진다)
         var aw = a.width * k, ah = a.height * k;
         g.imageSmoothingEnabled = false;
-        g.drawImage(a, Math.round((hx - aw / 2 - bx) * R), Math.round((hy + 4 * k - ah - by) * R), Math.max(1, Math.round(aw * R)), Math.max(1, Math.round(ah * R)));
+        g.drawImage(a, Math.round((hx - aw / 2 - bx) * Z), Math.round((hy + 4 * k - ah - by) * Z), Math.max(1, Math.round(aw * Z)), Math.max(1, Math.round(ah * Z)));
       }
     }
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (!m) paint(ctx, OX, 0);
+    if (!m) paint(ctx, OX, OY);
     else {   // 따로 그려 가리개 모양으로 오린 뒤 방에 올린다
       var mx = r.x0 + m.dx + off.x, my = r.y0 + m.dy + off.y, key = m.c.width + 'x' + m.c.height;
       var can = rideCans[key] || (rideCans[key] = document.createElement('canvas'));
@@ -1770,7 +1878,7 @@
       g.globalCompositeOperation = 'destination-in'; g.imageSmoothingEnabled = false; g.drawImage(m.c, 0, 0);
       g.globalCompositeOperation = 'source-over';
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(can, Math.round((mx - OX) * R), Math.round(my * R));
+      ctx.drawImage(can, Math.round((mx - OX) * Z), Math.round((my - OY) * Z));
     }
     ctx.restore();
     d.box = { x: x, w: p.w, h: p.h }; d.headX = hx;
@@ -1841,7 +1949,7 @@
   function placeReact(x, y) {
     var r = $('react'); if (r.hidden) return;
     var rw = VW * K, half = reactW / 2, left = Math.max(half + 2, Math.min(rw - half - 2, (x - OX) * K));
-    r.style.left = left + 'px'; r.style.top = Math.max(0, (y - 6) * K) + 'px';
+    r.style.left = left + 'px'; r.style.top = Math.max(0, (y - OY - 6) * K) + 'px';
   }
   // ── 공 던지기(11/24 가르시아 "공을 상호작용하면 던지기 버튼이 뜨게, 누르고 던질 곳을 찍으면 강쥐가 물어 오게. 여러 번 하면 반항도") ──
   // 내 방 공(다섯 가지)·뼈다귀·밧줄 장난감·당근 인형·닭 인형을 톡 → 안내에 [던지기] → 바닥을 누르면 지금 놓인 자리에서 출발해 공은 굴러, 나머지는 날아가고 →
@@ -1958,7 +2066,7 @@
       if (t < 0.3) return;
       d.hop = null; f.phase = 'carry';
       var to = f.mood === 'steal' ? clampFloor({ i: 8 + Math.random() * 22, j: 8 + Math.random() * 22 })   // 물고 안쪽 구석으로 도망
-        : clampFloor(unP(OX + VW / 2, RH - 26));                                                          // 화면 앞 가운데(던진 사람 쪽)로
+        : clampFloor(unP(OX + VW / 2, OY + VH - 34));                                                     // 화면 앞 가운데(던진 사람 쪽)로
       d.ti = to.i; d.tj = to.j; d.fast = f.mood === 'happy' || f.mood === 'steal';
       if (f.mood === 'steal') sayFor(d, '내 거야!', 1.6);
       return;
@@ -1976,10 +2084,10 @@
     if (f.phase === 'grab' || f.phase === 'carry') setBallPos(f.id, clampFloor({ i: f.dog.i + 2, j: f.dog.j + 2 }));
     f.dog.hop = null; fetchJob = null; saveIfMine();
   }
-  function ballSmallOf(spr, k) {   // 입에 문 공·장난감(공은 3/4 크기, 곱게 줄임)
+  function ballSmallOf(spr, k) {   // 입에 문 공·장난감(공은 3/4 크기, 곱게 줄임 — 원본이 있으면 원본에서)
     k = k || 0.75;
-    var key = spr.src + '@' + R + '@' + k;
-    if (!ballSmall[key]) ballSmall[key] = smallCopy(spr, Math.max(1, Math.round(spr.width * R * k)), Math.max(1, Math.round(spr.height * R * k)));
+    var key = spr.src + '@' + Z + '@' + k, src = hd(spr.__spr) || spr;
+    if (!ballSmall[key]) ballSmall[key] = smallCopy(src, Math.max(1, Math.round(spr.width * Z * k)), Math.max(1, Math.round(spr.height * Z * k)));
     return ballSmall[key];
   }
   function drawCarried(d, dogId, top) {   // 입(턱 조금 위) — 개모차 얼굴 자리 표(RIDE_FACE)·사진 강아지는 머리 자리에서 어림
@@ -1987,15 +2095,14 @@
     var fc = RIDE_FACE[dogId], hd = heads[dogId];
     if (!fc) fc = hd ? [hd.hx, hd.hy, Math.min(0.75, hd.hy + 0.32)] : [0.5, 0.05, 0.4];
     var mx = b.x + (d.flip ? 1 - fc[0] : fc[0]) * b.w, my = top + (fc[2] - (fc[2] - fc[1]) * 0.18) * b.h;
-    var sm = ballSmallOf(f.spr, (TOSS[f.id] || {}).carry), w = sm.width / R, h = sm.height / R;
-    ctx.drawImage(sm, Math.round((mx - w / 2) * R) / R, Math.round((my - h / 2) * R) / R, w, h);
+    var sm = ballSmallOf(f.spr, (TOSS[f.id] || {}).carry), w = sm.width / Z, h = sm.height / Z;
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(sm, Math.round((mx - w / 2) * Z) / Z, Math.round((my - h / 2) * Z) / Z, w, h);
   }
   function drawAir(f, p) {   // 공중(던진 장난감·선반에서 떨어지는 공·통통 튀는 공) — 바닥엔 그림자(높이 뜰수록 조금 작게)
     var s = f.spr; if (!s) return;
     shadowOn(ctx, p.x, p.y, s.width * Math.max(0.3, 0.5 - p.hgt * 0.008), 0.15);
     var bx0 = Math.round(p.x - s.width / 2), by0 = Math.round(p.y - p.hgt - s.height + 1);
-    if (p.rot) { ctx.save(); ctx.translate(bx0 + s.width / 2, by0 + s.height / 2); ctx.rotate(p.rot * Math.PI / 2); ctx.drawImage(s, -s.width / 2, -s.height / 2); ctx.restore(); }
-    else ctx.drawImage(s, bx0, by0);
+    drawToy(s, bx0, by0, p.rot);
   }
 
   // 톡 = 놀기, 꾹(0.6초) = 옮기기(11/24 가르시아 "상호작용이랑 드래그 이동이랑 겹쳐" → "꾹 누르기, 좀 더 오래") —
@@ -2042,9 +2149,9 @@
     var ax = p.x + drag.dx, ay = p.y + (drag.touch ? drag.tdy : drag.dy);   // 소품 기준점(벽 소품 = 그림 가운데, 바닥 소품 = 발 자리, 깔개 = 그림 가운데)
     if (it.wall) {   // 벽 소품 — 모서리를 넘기면 다른 벽으로(그림도 그 벽 방향으로 뒤집힌다)
       var side = ax >= CORNER ? 'R' : 'L', u = side === 'R' ? (ax - CORNER) / 2 : (CORNER - ax) / 2;
-      u = Math.max(5, Math.min(side === 'R' ? 94 : 74, u));
-      var h = FLOOR0 + u - ay;
-      state.pos[drag.id] = { wall: side, u: Math.round(u * 10) / 10, h: Math.round(Math.max(24, Math.min(95, h)) * 10) / 10 };
+      u = Math.max(4, Math.min(side === 'R' ? 97 : 66, u));   // 오른쪽 벽 끝까지 · 왼쪽 벽은 문 앞까지(11/26 고해상도 방)
+      var h = wallH(side, u, ay);
+      state.pos[drag.id] = { wall: side, u: Math.round(u * 10) / 10, h: Math.round(Math.max(30, Math.min(140, h)) * 10) / 10 };
       staticDirty = true;
     } else if (it.decal && it.move) {   // 옮길 수 있는 깔개(배변판, 11/24) — 그림 네 끝이 바닥 밖으로 안 나가게
       var dq = clampDecal(unP(ax, ay), pic(it.spr));
@@ -2252,7 +2359,7 @@
   fcSync();   // 친구 방·방명록을 켰으면 열 때마다 한 번 맞추기(서로 넣은 친구의 지금 방 · 새 방명록)
   Promise.all([picsReady, dogsReady, photoReady]).then(function () { dogCache = {}; fillCache = {}; refreshModel(); ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시(워킹패스 사진 도트도)
   // 시험용 — 지금 보는 방·그리는 배율
-  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: R, K: K, OX: OX, VW: VW, friends: friends.length, me: state.dog, photo: usingPhoto(), fetch: fetchJob ? fetchJob.phase + ':' + fetchJob.mood + ':' + fetchJob.n : null,
+  window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: Z, Z: Z, K: K, OX: OX, OY: OY, VW: VW, VH: VH, friends: friends.length, me: state.dog, photo: usingPhoto(), fetch: fetchJob ? fetchJob.phase + ':' + fetchJob.mood + ':' + fetchJob.n : null,
     to: [Math.round(host.ti * 100) / 100, Math.round(host.tj * 100) / 100] }; },
     // 시험용(11/24 소품과 놀기): 소품을 누를 수 있는 점(방 점 좌표 — 앞에 다른 그림이 없는 곳), 강아지 둘의 자리·노는 중인지
     hit: function (id) {
