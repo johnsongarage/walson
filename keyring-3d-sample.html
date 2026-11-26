@@ -212,6 +212,7 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import { OrbitControls } from './vendor/three/OrbitControls.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
+import { addHardware } from './keyring-hardware.js?v=1';
 
 const $ = (id) => document.getElementById(id);
 // ── 키링 모양(mm) — 가로 50 고정, 세로는 올린 그림 비율대로. 그림 위에 고리 구멍 칸(9mm)이 붙는다 ──
@@ -667,23 +668,12 @@ function build(reframe) {
   buv.needsUpdate = true;
   const back = new THREE.Mesh(bgeo, new THREE.MeshBasicMaterial({ map: backTex, side: THREE.BackSide, toneMapped: false, alphaTest: 0.5 }));
   back.position.z = -(t / 2 + bev + 0.02); keyring.add(back);
-  // 금속 고리 — 실물처럼: 구멍을 지나는 작은 고리 → 집게(랍스터) → 열쇠고리(두 바퀴).
+  // 금속 고리 — 구멍을 지나는 작은 고리 → 짧은 사슬 → 맨 위 작은 D고리(11/26 가르시아 "고리를 D형으로 — 사슬 조금, 위에는 작은 D형 고리",
+  // keyring-hardware.js — [워킹패스] 3D 키링과 같이 씀. 그 전엔 작은 고리 → 집게(랍스터) → 열쇠고리(두 바퀴)).
   // 그림 안 구멍이면 작은 고리를 구멍 위쪽에 걸고, 판 위 끝을 넘어가게 크기를 맞춘다(구멍이 위 끝에서 더 아래라서)
   const tube = 0.55, cross = L.inArt ? L.holeY + L.holeR - tube - 0.15 : L.holeY - 0.7;
-  const JR = L.inArt ? Math.max(3.2, (KH / 2 + tube + 0.6 - cross) / 2) : 3.2, SR = 11;
-  const jump = new THREE.Mesh(new THREE.TorusGeometry(JR, tube, 18, 64), metal);
-  jump.rotation.y = Math.PI / 2; jump.position.set(L.holeX, cross + JR, 0); keyring.add(jump);
-  const jumpTop = cross + JR * 2 - 0.5;
-  const clasp = new THREE.Group();
-  const eye = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.45, 12, 40), metal); eye.position.y = 1.2; clasp.add(eye);   // 아래 눈(작은 고리가 걸림)
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.9, 6.5, 8, 24), metal); body.scale.set(1, 1, 0.62); body.position.y = 7.2; clasp.add(body);
-  const gate = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 5.6, 10), metal); gate.position.set(1.95, 7.6, 0); gate.rotation.z = 0.12; clasp.add(gate);   // 여닫는 걸쇠
-  const lever = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 0.9), metal); lever.position.set(2.1, 4.9, 0); clasp.add(lever);
-  const hook = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.6, 14, 48, Math.PI * 1.25), metal); hook.position.y = 11.4; hook.rotation.z = -0.35; clasp.add(hook);
-  clasp.position.y = jumpTop - 0.4; clasp.rotation.y = Math.PI / 2; keyring.add(clasp);
-  const ringY = clasp.position.y + 12.2 + SR - 0.8;
-  [-0.55, 0.55].forEach((dz) => { const r = new THREE.Mesh(new THREE.TorusGeometry(SR, 0.8, 18, 120), metal); r.position.set(0, ringY, dz); keyring.add(r); });
-  L.top = ringY + SR;
+  const JR = L.inArt ? Math.max(3.2, (KH / 2 + tube + 0.6 - cross) / 2) : 3.2;
+  L.top = addHardware(THREE, keyring, metal, { x: L.holeX, cross, JR, tube });
   shadow.position.y = -KH / 2 - 14;
   if (state.scene === 'table') { placeOnTable(reframe); return; }
   if (reframe) {   // 키링(판 + 고리)이 위아래 여유 있게 들어오게

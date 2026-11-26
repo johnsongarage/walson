@@ -786,7 +786,7 @@
     k3dP = new Promise(function (res, rej) {
       if (window.WalsonKeyring3D) { res(window.WalsonKeyring3D); return; }
       var s = document.createElement('script');
-      s.type = 'module'; s.src = 'keyring-3d-view.js?v=1';
+      s.type = 'module'; s.src = 'keyring-3d-view.js?v=2';
       s.onload = function () { if (window.WalsonKeyring3D) res(window.WalsonKeyring3D); else rej(new Error('3d')); };
       s.onerror = function () { rej(new Error('load')); };
       document.head.appendChild(s);
