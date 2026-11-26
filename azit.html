@@ -447,7 +447,14 @@
   var HD_NAMES = ['bag_dispenser', 'ball_yellow', 'basket_blue_carrot', 'board_postcard', 'cafe_cup', 'carrot_plush', 'cushion_cafe_beige', 'donut_cushion',
     'feeder_wood_2bowl', 'flag_stand', 'food_box', 'frame_dog', 'frame_gold', 'frame_jelly_pink', 'garland_R', 'grooming_basket', 'keyhook_rail',
     'lamp_stand', 'lamp_stand_on', 'leash_hook', 'neon_chihuahua', 'pee_pad', 'pet_stairs', 'picnic_mat', 'plant_pot', 'postcard_paw', 'raincoat_rack',
-    'rug_pattern', 'sofa_bed', 'stroller', 'toy_bone', 'treat_jar', 'trophy', 'frame_photo', 'frame_pal'];
+    'rug_pattern', 'sofa_bed', 'stroller', 'toy_bone', 'treat_jar', 'trophy', 'frame_photo', 'frame_pal',
+    // 11/26 남은 소품을 한 장씩 다시 받은 그림(_dev/azit-remake.py — 받은 원본 sian-ref/azit-remake) — 글자 판은 글씨를 써 넣고 왼쪽 벽용 _L도
+    'cushion_yellow', 'cushion_blue', 'cushion_pink', 'cushion_cafe_mint', 'feeder_blue_2bowl', 'water_bowl_blue', 'basket_wicker_carrot',
+    'banner_flag_blue', 'plant_hanging', 'toy_rope_blue', 'ball_tennis', 'ball_watermelon', 'ball_pastel', 'ball_spiky_pink_1', 'toy_chicken',
+    'plant_cherry_blossom', 'plant_cactus', 'plant_daisy', 'balloons', 'nosework_mat', 'trophy_poop', 'parasol_set', 'cone_barricade', 'cart_bungeoppang',
+    'bubble_visited', 'bubble_visited_L', 'bubble_interior', 'bubble_interior_L', 'panel_guestbook', 'panel_guestbook_L', 'stamp_regular', 'stamp_regular_L',
+    'bubble_poop', 'bubble_poop_L', 'bubble_chihuahua', 'bubble_chihuahua_L', 'scroll_dogslife', 'scroll_dogslife_L', 'board_refuse', 'sign_snack',
+    'acc_ribbon', 'acc_cap', 'acc_crown'];
   var hdPics = {}, HD_V = 1;
   var hdReady = Promise.all(HD_NAMES.map(function (n) { return loadImg(HDI + n + '.webp?v=' + HD_V).then(function (im) { if (im) { hdPics[n] = im; bmpCache = {}; fillCache = {}; staticDirty = true; kick(); } }); }));
   hdReady.then(function () { if (cur && cur.me) tray(); if (cur && cur.show) showList(); });   // 소품 칸 작은 그림도 원본으로
@@ -565,6 +572,12 @@
     if (flip) { g.translate(W2, 0); g.scale(-1, 1); }
     g.drawImage(smallCopy(im, dw, dh), Math.round((W2 - dw) / 2), H2 - dh);
     return (bmpCache[key] = c);
+  }
+  // 머리 장식 원본(11/26, icons/azit-hd acc_*) — 가로는 점 그림 폭 그대로, 세로는 원본 비율대로(새 그림이 예전 점 그림보다 위로 높다)
+  function accHD(id, a) {
+    var im = hd('acc_' + id); if (!im || !a) return null;
+    var w = a.width, h = Math.max(1, Math.round(w * im.naturalHeight / im.naturalWidth));
+    return { w: w, h: h, b: hdBitmap('acc_' + id, w, h, false) };
   }
   function hdFlip(it, side) { return !!(it.face && side && it.face !== side); }   // 벽 소품을 그려진 방향과 다른 벽에 걸면 뒤집는다
   function hdName(it) { return it && hd(it.spr) ? it.spr : null; }
@@ -1019,7 +1032,10 @@
       var w = W(p.wall, p.u, p.h), x = Math.round(w.x - s.width / 2), y = Math.round(w.y - s.height / 2);
       var fb = hdFilled(o, it, p.wall);   // 사진 액자·단짝 액자(원본 액자 + 화면 픽셀 사진)
       if (fb) { g.imageSmoothingEnabled = true; g.drawImage(fb, x, y, s.width, s.height); }
-      else putItem(g, s, x, y, frameSrc(o, it) ? null : hdName(it), hdFlip(it, p.wall));
+      else {   // 11/26 글자 판(both)을 그려진 벽과 다른 벽에 걸면 그 벽용 원본(_L) — 원본을 뒤집으면 글씨가 거울처럼 된다
+        var bothL = it.both && it.face && it.face !== p.wall && hd(it.spr + '_L');
+        putItem(g, s, x, y, frameSrc(o, it) ? null : bothL ? it.spr + '_L' : hdName(it), bothL ? false : hdFlip(it, p.wall));
+      }
       wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, img: s });
     });
     itemsOf(o, 'corner').forEach(function (it) {   // 가랜드 — 창 위 오른쪽 벽에 벽 기울기대로(11/26 고해상도 방, 끌지 않음)
@@ -1116,8 +1132,12 @@
         else {
           top = drawDog(t.dog, t.dogId, t.x, t.y);
           ctx.imageSmoothingEnabled = false;
-          var a = t.acc && pic('acc_' + t.acc);
-          if (a) { var head = headPoint(t.dog, t.dogId, t.x, top); ctx.drawImage(a, Math.round(head.x - a.width / 2), Math.round(head.y) + 4 - a.height); }   // 머리 꼭대기에(11/24)
+          var a = t.acc && pic('acc_' + t.acc), ahd = a && accHD(t.acc, a);
+          if (a) {   // 머리 꼭대기에(11/24) — 원본이 있으면 곱게(11/26)
+            var head = headPoint(t.dog, t.dogId, t.x, top);
+            if (ahd) { ctx.imageSmoothingEnabled = true; ctx.drawImage(ahd.b, Math.round(head.x - ahd.w / 2), Math.round(head.y) + 4 - ahd.h, ahd.w, ahd.h); }
+            else ctx.drawImage(a, Math.round(head.x - a.width / 2), Math.round(head.y) + 4 - a.height);
+          }
         }
         if (fj && fj.phase === 'carry' && t.dog === fj.dog && rt == null) drawCarried(t.dog, t.dogId, top);   // 문 공
         if (t.dog === reactDog) placeReact(bx, top + 2);
@@ -1256,7 +1276,8 @@
   function slotCanvas(name, dim, cssH) {
     var s = pic(name) || pic('acc_' + name), H = cssH || 30, dpr = window.devicePixelRatio || 1, c = document.createElement('canvas');
     if (!s) { c.width = 1; c.height = 1; return c; }
-    var ch = Math.round(H * dpr), cw = Math.max(1, Math.round(s.width * ch / s.height)), g, big = name === 'frame_photo' || name === 'frame_pal' ? null : hd(name);
+    var big = name === 'frame_photo' || name === 'frame_pal' ? null : (hd(name) || hd('acc_' + name)), g;   // 11/26 머리 장식 원본도
+    var ch = Math.round(H * dpr), cw = Math.max(1, Math.round((big ? big.naturalWidth / big.naturalHeight : s.width / s.height) * ch));   // 원본은 원본 비율대로
     c.width = cw; c.height = ch; g = c.getContext('2d');
     if (big) g.drawImage(smallCopy(big, cw, ch), 0, 0);   // 11/26 원본이 있으면 곱게(사진·단짝 액자는 속이 빈 원본이라 점 그림 그대로)
     else if (ch >= s.height) { g.imageSmoothingEnabled = false; g.drawImage(s, 0, 0, cw, ch); }
@@ -1860,10 +1881,10 @@
       if (d.flip) { g.translate(X * 2 + W, 0); g.scale(-1, 1); }
       g.drawImage(img, X, Y, W, H);
       g.restore();
-      if (a) {   // 머리 장식도 강아지 크기만큼 줄여 정수리에(지붕에 걸리면 같이 가려진다)
-        var aw = a.width * k, ah = a.height * k;
-        g.imageSmoothingEnabled = false;
-        g.drawImage(a, Math.round((hx - aw / 2 - bx) * Z), Math.round((hy + 4 * k - ah - by) * Z), Math.max(1, Math.round(aw * Z)), Math.max(1, Math.round(ah * Z)));
+      if (a) {   // 머리 장식도 강아지 크기만큼 줄여 정수리에(지붕에 걸리면 같이 가려진다) — 원본이 있으면 곱게(11/26)
+        var ahd = accHD(acc, a), aw = (ahd ? ahd.w : a.width) * k, ah = (ahd ? ahd.h : a.height) * k;
+        g.imageSmoothingEnabled = !!ahd; g.imageSmoothingQuality = 'high';
+        g.drawImage(ahd ? hd('acc_' + acc) : a, Math.round((hx - aw / 2 - bx) * Z), Math.round((hy + 4 * k - ah - by) * Z), Math.max(1, Math.round(aw * Z)), Math.max(1, Math.round(ah * Z)));
       }
     }
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
