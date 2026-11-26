@@ -10,7 +10,8 @@
   /* 아지트 고해상도 시안(2026-11-25 가르시아 "아지트 도트 퀄리티가 첨부한 이미지들보다 낮은 게 우려돼, 어떤 식으로 개편해야 해?" →
      Claude 제안 "방을 원본 해상도로(방 한 점 = 원본 4.5픽셀)" → "시안부터 만들어 줘").
      방 = 받은 크림 방 그림(sian-ref/azit-room-cream.webp) 그대로 — 방 둘레만 잘라 씀(sian-ref/azit-hd/room.webp, 원본 x 400부터 1930×1536).
-     소품 = 받은 시트·조명·엽서 원본에서 오린 18개(_dev/azit-hd-cut.py → sian-ref/azit-hd/items, 지금 앱 그림 크기 × 4.5).
+     소품 = 받은 시트·조명·엽서 원본에서 오린 18개(_dev/azit-hd-cut.py → sian-ref/azit-hd/items, 지금 앱 그림 크기 × 4.5)
+       + 11/26 새로 받은 고화질판 14개(icons/azit-hq — 다른 세션 _dev/azit-hq-items.py, 트로피·가랜드는 시안용으로 다시 맞춤 azit-hd-cut.py --hq).
      강아지 = 지금 그림(icons/dot-dogs) 그대로 — 앱도 강아지는 이미 화면 픽셀에 맞춰 그린다.
      [지금 앱] = 같은 방·같은 자리를 지금 앱처럼 방 한 점 단위로 그린 것(방은 원본을 4.5분의 1로 줄인 room-1x.webp, 소품은 icons/azit-room,
      강아지는 icons/dot-dogs/px) — 해상도만 다르게 해서 비교한다.
@@ -75,15 +76,16 @@
     <h2>이 시안에 쓴 것</h2>
     <ul>
       <li>방: 받은 크림 방 그림 원본 그대로(방 한 점에 원본 4.5픽셀 — 지금 앱은 1픽셀)</li>
-      <li>소품 18개: 받은 시트·조명·엽서 원본에서 오림. 놓인 자리·크기는 앱과 같아요</li>
+      <li>소품 32개: 받은 시트·조명·엽서 원본에서 오린 18개 + 새로 받은 고화질 그림 14개(소파·러그·방석·밥그릇·장난감 바구니·뼈다귀·공·화분·트로피·액자 셋·게시판·가랜드). 크기는 앱과 같아요</li>
+      <li>트로피는 새 그림에 벽 선반이 없어 방 그림 선반 위에, 가랜드는 창 위에 벽 기울기대로 걸었어요</li>
       <li>강아지: 지금 그림 그대로(앱도 강아지는 이미 화면 픽셀에 맞춰 그려요)</li>
-      <li><b>섞어 보기</b>: 원본이 없는 소품(화분·밥그릇·공·뼈다귀·분재)을 지금 그림으로 키워 넣은 것 — 원본 없이 키우면 이렇게 거칠어요</li>
+      <li><b>섞어 보기</b>: 원본이 아직 없는 소품(데이지·선인장 화분, 분홍 꽃 방석, 물그릇, 밧줄)을 지금 그림으로 키워 넣은 것 — 원본 없이 키우면 이렇게 거칠어요</li>
     </ul>
   </div>
   <div class="note">
     <h2>앱에 넣으려면</h2>
     <ol>
-      <li><b>소품 원본</b>: 18개는 있어요. 나머지 48개는 다시 만들 목록대로 받으면 같은 방법으로 오려 바로 넣어요.</li>
+      <li><b>소품 원본</b>: 32개는 있어요. 나머지 34개는 다시 만들 목록대로 받으면 같은 방법으로 오려 바로 넣어요.</li>
       <li><b>방 원본</b>: 크림 방 하나만 있어요. 분홍·라일락·밤 벽지와 밤 창밖도 같은 크기 원본이 필요해요.</li>
       <li><b>방 그리기</b>: 방 한 점 단위로 그리던 것을 원본 크기로 — 바닥 칸은 그대로라 소품 자리는 그대로 옮겨져요. 선반·창 자리와 걷기·던지기·개모차 타기는 새 방에 맞춰 다시 잡아요.</li>
       <li><b>무게</b>: 아지트 그림이 지금 0.8MB → 원본으로 2MB 남짓(처음 한 번만 받아요).</li>
@@ -106,34 +108,58 @@
   // 받은 그림의 붙박이 선반 둘 — 윗면 가운데 줄(왼쪽 끝 → 오른쪽 끝, 실측)
   var SHELF = [{ x0: 1430, y0: 297, x1: 1675, y1: 397 }, { x0: 1430, y0: 425, x1: 1675, y1: 525 }];
 
-  // 소품 — 원본이 있는 18개(face: 그림이 어느 벽 방향으로 그려졌는지, 다른 벽에 걸면 뒤집음 · 앱과 같음)
+  // 소품 — 받은 원본에서 오린 18개(sian-ref/azit-hd/items) + 11/26 새로 받은 고화질판 14개(src 'hq' = icons/azit-hq, 다른 세션이 앱에 넣은 것).
+  // 크기는 앱 방 그림(icons/azit-room) 칸 × 4.5 안에 맞춘다. face: 그림이 어느 벽 방향으로 그려졌는지(다른 벽에 걸면 뒤집음 — 앱과 같음).
+  // 트로피·가랜드는 새 그림 모양이 앱 방 그림과 달라(벽 선반 없음 · 짧은 반원) 시안용으로 따로 만든 것(src·one 'sian' — _dev/azit-hd-cut.py --hq):
+  //   트로피는 받은 방 그림의 위 선반에, 가랜드는 창 위 오른쪽 벽에(벽 기울기만큼 비스듬히). 아래 선반은 위 선반까지 약 100픽셀이라 낮은 것만.
   var ITEMS = [
-    { spr: 'neon_chihuahua', face: 'R', wall: 'L', u: 14, h: 70 },
-    { spr: 'postcard_paw', face: 'L', wall: 'L', u: 30, h: 80 },
-    { spr: 'keyhook_rail', face: 'R', wall: 'L', u: 44, h: 64 },
-    { spr: 'leash_hook', face: 'L', wall: 'L', u: 60, h: 66 },
-    { spr: 'bag_dispenser', face: 'L', wall: 'L', u: 28, h: 46 },
-    { spr: 'cafe_cup', shelf: 0, t: 0.3 },
-    { spr: 'treat_jar', shelf: 1, t: 0.62 },
-    { spr: 'picnic_mat', decal: true, i: 24, j: 62 },
-    { spr: 'pee_pad', decal: true, i: 82, j: 50 },
+    // 왼쪽 벽 — 위 줄 네온·액자 셋, 아래 줄 걸이·게시판
+    { spr: 'neon_chihuahua', face: 'R', wall: 'L', u: 10, h: 96 },
+    { spr: 'frame_gold', src: 'hq', face: 'R', wall: 'L', u: 26, h: 96 },
+    { spr: 'frame_dog', src: 'hq', face: 'R', wall: 'L', u: 40, h: 97 },
+    { spr: 'frame_jelly_pink', src: 'hq', face: 'L', wall: 'L', u: 54, h: 96 },
+    { spr: 'bag_dispenser', face: 'L', wall: 'L', u: 12, h: 56 },
+    { spr: 'keyhook_rail', face: 'R', wall: 'L', u: 28, h: 58 },
+    { spr: 'board_postcard', src: 'hq', face: 'R', wall: 'L', u: 43, h: 56 },
+    { spr: 'leash_hook', face: 'L', wall: 'L', u: 59, h: 60 },
+    // 오른쪽 벽 — 선반 끝 위 엽서 · 창 위 가랜드
+    { spr: 'postcard_paw', face: 'L', wall: 'R', u: 40, h: 116 },
+    { spr: 'garland_R', src: 'sian', one: 'sian', wall: 'R', u: 67, h: 140 },
+    // 붙박이 선반(위 0 · 아래 1)
+    { spr: 'trophy', src: 'sian', one: 'sian', shelf: 0, t: 0.18 },
+    { spr: 'cafe_cup', shelf: 0, t: 0.52 },
+    { spr: 'treat_jar', shelf: 1, t: 0.3 },
+    // 깔개
+    { spr: 'rug_pattern', src: 'hq', decal: true, i: 70, j: 50 },
+    { spr: 'picnic_mat', decal: true, i: 24, j: 72 },
+    { spr: 'pee_pad', decal: true, i: 98, j: 24 },
+    // 바닥 — 오른쪽 벽 따라
+    { spr: 'plant_pot', src: 'hq', i: 2, j: 2 },
+    { spr: 'pet_stairs', i: 22, j: 3 },
+    { spr: 'flag_stand', i: 40, j: 3 },
+    { spr: 'sofa_bed', src: 'hq', i: 66, j: 10 },
+    { spr: 'stroller', i: 92, j: 8 },
+    // 왼쪽 벽 따라
     { spr: 'lamp_stand', lamp: true, i: 6, j: 22 },
-    { spr: 'food_box', i: 4, j: 38 },
-    { spr: 'raincoat_rack', i: 8, j: 62 },
-    { spr: 'pet_stairs', i: 24, j: 4 },
-    { spr: 'flag_stand', i: 44, j: 4 },
-    { spr: 'stroller', i: 74, j: 8 },
-    { spr: 'donut_cushion', i: 40, j: 40 },
-    { spr: 'grooming_basket', i: 30, j: 70 },
-    { spr: 'carrot_plush', i: 58, j: 44 }
+    { spr: 'food_box', i: 5, j: 36 },
+    { spr: 'feeder_wood_2bowl', src: 'hq', i: 10, j: 48 },
+    { spr: 'raincoat_rack', i: 8, j: 70 },
+    // 가운데·앞
+    { spr: 'donut_cushion', i: 56, j: 44 },
+    { spr: 'carrot_plush', i: 62, j: 36 },
+    { spr: 'ball_yellow', src: 'hq', i: 52, j: 24 },
+    { spr: 'cushion_cafe_beige', src: 'hq', i: 84, j: 46 },
+    { spr: 'toy_bone', src: 'hq', i: 50, j: 62 },
+    { spr: 'basket_blue_carrot', src: 'hq', i: 40, j: 72 },
+    { spr: 'grooming_basket', i: 18, j: 76 }
   ];
-  // 원본이 없는 소품(섞어 보기) — 지금 앱 그림(방 한 점 = 1픽셀)을 원본 크기로 키운 것
+  // 원본이 아직 없는 소품(섞어 보기) — 지금 앱 그림(방 한 점 = 1픽셀)을 원본 크기로 키운 것
   var EXTRA = [
-    { spr: 'plant_pot', i: 2, j: 4, extra: true },
-    { spr: 'feeder_wood_2bowl', i: 14, j: 52, extra: true },
-    { spr: 'toy_bone', i: 36, j: 58, extra: true },
-    { spr: 'ball_yellow', i: 80, j: 30, extra: true },
-    { spr: 'plant_cherry_blossom', shelf: 0, t: 0.74, extra: true }
+    { spr: 'plant_daisy', shelf: 0, t: 0.85, extra: true },
+    { spr: 'plant_cactus', shelf: 1, t: 0.75, extra: true },
+    { spr: 'cushion_pink', i: 30, j: 40, extra: true },
+    { spr: 'water_bowl_blue', i: 18, j: 44, extra: true },
+    { spr: 'toy_rope_blue', i: 76, j: 66, extra: true }
   ];
   var DOGS = [['pom', '포메'], ['poodle', '푸들'], ['maltese', '말티즈'], ['knit', '파란 니트'], ['chihuahua', '치와와'],
     ['dachs', '닥스훈트'], ['jindo', '진돗개'], ['shiba', '시바']];
@@ -141,7 +167,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var cv = $('room'), ctx = cv.getContext('2d');
   var st = { res: 'hd', view: 'app', extra: 'off', dog: 'pom', lamp: false };
-  var dog = { i: 48, j: 34, ti: 48, tj: 34, flip: false, walking: false, phase: 0 };
+  var dog = { i: 46, j: 32, ti: 46, tj: 32, flip: false, walking: false, phase: 0 };
   var img = {}, ready = false;
 
   function load(key, src) {
@@ -155,8 +181,11 @@
   function loadAll() {
     var jobs = [load('room', HD + 'room.webp'), load('room1', HD + 'room-1x.webp'),
       load('hd:lamp_stand_on', HD + 'items/lamp_stand_on.webp'), load('app:lamp_stand_on', APP + 'lamp_stand_on.png')];
-    ITEMS.forEach(function (it) { jobs.push(load('hd:' + it.spr, HD + 'items/' + it.spr + '.webp'), load('app:' + it.spr, APP + it.spr + '.png')); });
-    EXTRA.forEach(function (it) { jobs.push(load('app:' + it.spr, APP + it.spr + '.png')); });
+    ITEMS.forEach(function (it) {
+      jobs.push(load('hd:' + it.spr, it.src === 'hq' ? 'icons/azit-hq/' + it.spr + '.webp' : HD + 'items/' + it.spr + '.webp'),
+        load('app:' + it.spr, it.one === 'sian' ? HD + 'items-1x/' + it.spr + '.png' : APP + it.spr + '.png?v=5'));   // 앱 방 그림 ?v=5(11/26 바뀐 그림)
+    });
+    EXTRA.forEach(function (it) { jobs.push(load('app:' + it.spr, APP + it.spr + '.png?v=5')); });
     return Promise.all(jobs);
   }
   var dogJobs = {};
@@ -197,7 +226,9 @@
     var key = 'hd|' + spr + '|' + k + '|' + !!flip;
     if (cache[key]) return cache[key];
     var im = img['hd:' + spr]; if (!im) return null;
-    return (cache[key] = smallCopy(im, Math.round(im.naturalWidth * k), Math.round(im.naturalHeight * k), flip));
+    var a = img['app:' + spr], bw = a ? a.naturalWidth * S : im.naturalWidth, bh = a ? a.naturalHeight * S : im.naturalHeight;
+    var f = Math.min(bw / im.naturalWidth, bh / im.naturalHeight) * k;   // 앱 방 그림 칸 × 4.5 안에(가로·세로 중 빡빡한 쪽)
+    return (cache[key] = smallCopy(im, Math.round(im.naturalWidth * f), Math.round(im.naturalHeight * f), flip));
   }
   function bigSprite(spr, R, flip) {   // 원본 없는 소품 — 지금 그림(방 점)을 화면 배율로 점째 키운 것
     var key = 'big|' + spr + '|' + R + '|' + !!flip;
@@ -220,7 +251,7 @@
     var w = Math.min(cssW * S, RW); scale = cssW / w;
     var h = cssH / scale;
     vx = Math.min(Math.max(X0, 1450 - w / 2), X0 + RW - w);
-    vy = Math.max(0, Math.min(195, RH - h));   // 위 선반 소품까지 보이게 위를 맞춘다(좁은 화면은 바닥 앞 끝이 잘림 — 앱도 그렇다)
+    vy = Math.max(0, Math.min(165, RH - h));   // 위 선반 트로피까지 보이게 위를 맞춘다(좁은 화면은 바닥 앞 끝이 잘림 — 앱도 그렇다)
     vx = X0 + Math.round((vx - X0) / S) * S; vy = Math.round(vy / S) * S;
   }
   function resize() {
@@ -278,9 +309,9 @@
       });
       items.forEach(function (it) {
         if (kindOf(it) !== 'floor') return;
-        var im = it.extra ? img['app:' + it.spr] : img['hd:' + it.spr]; if (!im) return;
-        var w = it.extra ? im.naturalWidth * S : im.naturalWidth, d = dev(F(it.i, it.j));
-        softShadow(g, d.x, d.y, Math.max(6 * S, Math.min(44 * S, w * 0.7)) * k, 0.2);
+        var a = img['app:' + it.spr]; if (!a) return;   // 그림자 폭은 앱 방 그림 폭으로(두 보기가 같게)
+        var d = dev(F(it.i, it.j));
+        softShadow(g, d.x, d.y, Math.max(6 * S, Math.min(44 * S, a.naturalWidth * S * 0.7)) * k, 0.2);
       });
     } else {
       // 지금 앱: 방 점 캔버스(429×342)에 그린 뒤 점째 키운다

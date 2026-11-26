@@ -7,12 +7,14 @@
 #   색을 줄이지 않고 곱게 줄인다(가장자리 반투명 — 바탕과 자연스럽게).
 # 원본이 있는 18개만(받은 시트 셋·조명·엽서). 나머지 약 50개는 원본이 저장소에 없다.
 # 쓰는 법(pip pillow numpy opencv-python-headless): python3 _dev/azit-hd-cut.py [sian-ref/azit-redo] [sian-ref/azit-hd/items]
+#   새 고화질판 둘(트로피·가랜드): python3 _dev/azit-hd-cut.py --hq
 import importlib.util, os, sys
 import numpy as np
 from PIL import Image
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else "sian-ref/azit-redo"
-OUT = sys.argv[2] if len(sys.argv) > 2 else "sian-ref/azit-hd/items"
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]   # --hq: 새 고화질판 둘(트로피·가랜드)만
+SRC = ARGS[0] if len(ARGS) > 0 else "sian-ref/azit-redo"
+OUT = ARGS[1] if len(ARGS) > 1 else "sian-ref/azit-hd/items"
 S = 4.5   # 방 한 점 → 고해상도 픽셀
 spec = importlib.util.spec_from_file_location("redo", os.path.join(os.path.dirname(__file__), "azit-redo-items.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
@@ -77,5 +79,42 @@ def main():
     finish(c, a, "postcard_paw")
 
 
+# ── 11/26 새로 받은 고화질판(icons/azit-hq, 다른 세션 _dev/azit-hq-items.py) 중 앱 방 그림과 모양이 다른 둘 ──
+# 트로피: 새 그림엔 벽 선반이 없다 → 받은 방 그림의 붙박이 선반 위에 놓는다(키 32점).
+# 가랜드: 모서리를 가로지르던 긴 줄이 아니라 짧은 반원(정면) → 오른쪽 벽 창 위에 걸게 벽 기울기(0.398)만큼 비스듬히 민다(폭 72점).
+# 둘 다 "지금 앱" 보기용 방 점 그림(items-1x)도 같은 길(azit-hq-items.py to_room — 색 줄이기·테두리)로 만든다.
+HQ_DIR = os.path.join(os.path.dirname(__file__), "..", "icons", "azit-hq")
+SHEAR_R = 0.398   # 받은 방 그림 오른쪽 벽 바닥 줄 기울기
+
+
+def hq_extra():
+    spec2 = importlib.util.spec_from_file_location("hq", os.path.join(os.path.dirname(__file__), "azit-hq-items.py"))
+    hq = importlib.util.module_from_spec(spec2)
+    keep = sys.argv; sys.argv = [sys.argv[0]]; spec2.loader.exec_module(hq); sys.argv = keep
+    out1 = os.path.join(os.path.dirname(OUT), "items-1x"); os.makedirs(out1, exist_ok=True)
+
+    def save(full, name, pts_h=None, pts_w=None):   # full: 원본 크기 RGBA 배열 → 고화질판(×S) + 방 점 그림
+        h0, w0 = full.shape[:2]
+        f1 = (pts_h / h0) if pts_h else (pts_w / w0)          # 원본 → 방 점
+        im = Image.fromarray(full)
+        hd = im.convert("RGBa").resize((max(1, round(w0 * f1 * S)), max(1, round(h0 * f1 * S))), Image.LANCZOS).convert("RGBA")
+        hd.save(os.path.join(OUT, name + ".webp"), "WEBP", quality=92, method=6)
+        one = Image.fromarray(hq.to_room(full, f1))
+        one.save(os.path.join(out1, name + ".png"), optimize=True)
+        print(f"  {name}: 고화질 {hd.width}×{hd.height} · 방 점 {one.width}×{one.height}")
+
+    tro = np.asarray(Image.open(os.path.join(HQ_DIR, "trophy_shelf.webp")).convert("RGBA"))
+    save(hq.crop_alpha(tro), "trophy", pts_h=32)
+    gar = Image.open(os.path.join(HQ_DIR, "garland_bunting.webp")).convert("RGBA")
+    w, h = gar.size
+    al = np.asarray(gar)[..., 3] > 128
+    xs = np.nonzero(al.any(axis=0))[0]
+    end = (np.nonzero(al[:, xs[-1]])[0].min() - np.nonzero(al[:, xs[0]])[0].min()) / max(1, xs[-1] - xs[0])   # 그림 자체가 이미 기운 만큼(0.14)
+    k = SHEAR_R - end   # 두 끝 고리가 벽을 따라 같은 높이가 되게 더 미는 만큼
+    sh = gar.convert("RGBa").transform((w, int(np.ceil(h + k * w))), Image.AFFINE, (1, 0, 0, -k, 1, 0), resample=Image.BICUBIC).convert("RGBA")
+    print(f"  가랜드 끝 기울기 {end:.3f} → {k:.3f}만큼 더 밂")
+    save(hq.crop_alpha(np.asarray(sh)), "garland_R", pts_w=72)
+
+
 if __name__ == "__main__":
-    main()
+    main() if "--hq" not in sys.argv else hq_extra()
