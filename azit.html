@@ -574,9 +574,10 @@
     return (bmpCache[key] = c);
   }
   // 머리 장식 원본(11/26, icons/azit-hd acc_*) — 가로는 점 그림 폭 그대로, 세로는 원본 비율대로(새 그림이 예전 점 그림보다 위로 높다)
+  var ACC_HD_SCALE = { cap: 0.68 };   // 11/26 가르시아 "모자 사이즈 너무 커" — 새 모자는 둥근 정면이라 예전 납작한 모자 폭(19점)이면 세로까지 20점이 돼 머리를 덮었다
   function accHD(id, a) {
     var im = hd('acc_' + id); if (!im || !a) return null;
-    var w = a.width, h = Math.max(1, Math.round(w * im.naturalHeight / im.naturalWidth));
+    var w = Math.max(1, Math.round(a.width * (ACC_HD_SCALE[id] || 1))), h = Math.max(1, Math.round(w * im.naturalHeight / im.naturalWidth));
     return { w: w, h: h, b: hdBitmap('acc_' + id, w, h, false) };
   }
   function hdFlip(it, side) { return !!(it.face && side && it.face !== side); }   // 벽 소품을 그려진 방향과 다른 벽에 걸면 뒤집는다
