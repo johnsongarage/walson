@@ -13,8 +13,8 @@
 #   4) 글자 판 9개는 빈 판으로 받았다 → 글씨는 5)에서 써 넣는다(azit-remake-letter 부분).
 #   크리스마스 넷(r18 — 트리·벙어리장갑·양말·지팡이 사탕)은 목록에 없던 새 소품이라 자르기만 해 두고(sian-ref/azit-remake/xmas) 앱엔 아직 안 넣는다.
 #
-# 쓰는 법(pip pillow numpy opencv-python-headless): python3 _dev/azit-remake.py 글꼴/Galmuri11-Bold.ttf
-#   (글꼴: npm pack galmuri@2.40.3 → package/dist/Galmuri11-Bold.ttf, SIL OFL — 그림에 찍어 넣은 글씨라 저장소엔 글꼴 파일을 더 넣지 않는다)
+# 쓰는 법(pip pillow numpy opencv-python-headless): python3 _dev/azit-remake.py 글꼴/Pretendard-ExtraBold.ttf
+#   (글꼴: npm pack pretendard@1.3.9 → package/dist/public/static/alternative/Pretendard-ExtraBold.ttf, SIL OFL — 그림에 찍어 넣은 글씨라 저장소엔 글꼴 파일을 넣지 않는다)
 import importlib.util, os, sys
 import numpy as np
 import cv2
@@ -148,21 +148,22 @@ def main(only=None):
     return blanks
 
 
-# ── 5) 글자 판에 글씨 쓰기 — 앱 도트 글씨(갈무리11 굵게)로, 예전 판(azit-letter.py)과 같은 말 ──
-# 판 앞면(가장 많은 색)의 세로줄마다 위·아래 가운데를 이어 판 기울기·가운데를 잰다. 글씨는 갈무리11을 12px(점 하나 = 1px)로 한 줄씩 찍고
-# 점 세로줄을 가로 2점에 세로 1점씩 내려(아이소 도트 그림의 2:1 비탈) 판 기울기에 맞춘 뒤, 점 크기(dot)만큼 점째 키워 판에 얹는다.
-# (음절을 똑바로 세워 자리만 내리던 azit-letter.py 방식은 고해상도 판에선 두 줄이 계단처럼 엇갈려 읽기 어려웠다 — 11/26 비교)
+# ── 5) 글자 판에 글씨 쓰기 — 매끈한 굵은 글씨(Pretendard ExtraBold)로, 예전 판(azit-letter.py)과 같은 말 ──
+# 11/26 가르시아 "글씨도 매끄럽게 해, 안 보여서": 처음엔 앱 도트 글씨(갈무리11)를 점째 2:1로 기울였는데 휴대폰 크기에선 점이 뭉개져 안 읽혔다
+#   → 앱 기본 글씨 Pretendard ExtraBold(SIL OFL — 그림에 찍어 넣은 글씨라 저장소엔 글꼴 파일을 넣지 않음)를 4배로 곱게 찍고,
+#   판 기울기만큼 세로로 밀어(세로획은 곧게, 가로획만 판을 따라) 4분의 1로 줄여 얹는다. 판에 들어가는 만큼 크게(폭·두께 비율 wmax·hmax).
+# 판 앞면(가장 많은 색)의 세로줄마다 위·아래 가운데를 이어 판 기울기·가운데를 잰다.
 # 벽에 거는 것(both)은 왼쪽 벽용 이름_L도 — 빈 판을 좌우로 뒤집어 다시 재고 같은 글씨를 반대 비탈로(거울 글씨 X).
-# dx·dy: 글씨 가운데를 판 앞면 가운데에서 옮길 비율(판 폭·두께 기준 — 발바닥·우표·응가·치와와 그림을 피해서) · lh: 줄 간격(점)
+# dx·dy: 글씨 가운데를 판 앞면 가운데에서 옮길 비율(판 폭·두께 기준 — 발바닥·우표·응가·치와와 그림을 피해서)
 INK = (42, 32, 38, 255)
 LETTER = {
     "bubble_visited": dict(lines=["다녀감"], dx=0.06, dy=-0.04, both=True),
-    "bubble_interior": dict(lines=["인테리어", "맛집"], dx=-0.04, dy=-0.06, both=True),
-    "panel_guestbook": dict(lines=["집사의 삶"], dx=0.02, dy=0.0, both=True, wmax=0.86),
-    "stamp_regular": dict(lines=["단골", "인증"], dx=0.10, dy=0.06, both=True, lh=15, hmax=0.98),
-    "bubble_poop": dict(lines=["오늘도 똥줍"], dx=0.09, dy=-0.04, both=True),
-    "bubble_chihuahua": dict(lines=["참지않긔"], dx=-0.05, dy=-0.02, both=True),
-    "scroll_dogslife": dict(cols=["개팔자", "상팔자"], dx=0.0, dy=0.03, both=True, wmax=0.96),   # 세로 두 줄 — 오른쪽 줄부터(옛 족자처럼)
+    "bubble_interior": dict(lines=["인테리어", "맛집"], dx=-0.04, dy=-0.04, both=True, wmax=0.68),   # 타원이라 위아래로 갈수록 좁다
+    "panel_guestbook": dict(lines=["집사의 삶"], dx=0.02, dy=0.0, both=True, wmax=0.8),
+    "stamp_regular": dict(lines=["단골", "인증"], dx=0.13, dy=0.08, both=True, hmax=0.84),
+    "bubble_poop": dict(lines=["오늘도 똥줍"], dx=0.10, dy=-0.04, both=True, wmax=0.74),
+    "bubble_chihuahua": dict(lines=["참지않긔"], dx=-0.10, dy=-0.02, both=True, wmax=0.62),
+    "scroll_dogslife": dict(cols=["개팔자", "상팔자"], dx=0.0, dy=0.03, both=True, wmax=0.92, hmax=0.86),   # 세로 두 줄 — 오른쪽 줄부터(옛 족자처럼)
     "board_refuse": dict(lines=["안가", "안걸어"], dx=0.0, dy=0.02, both=False),
     "sign_snack": dict(lines=["간식", "내놔라"], dx=0.0, dy=0.0, both=False),
 }
@@ -192,56 +193,49 @@ def face_of(im):
     return mask, m, c, x0, x1
 
 
-def text_dots(font, lines, vertical=False, lh=14):
-    """갈무리11 12px로 찍은 글씨 점(참·거짓 배열) — 가로는 줄마다 가운데 맞춤, 세로는 열마다(오른쪽 열부터)"""
+def text_mask(font, lines, vertical=False, gap=0.16):
+    """곱게 찍은 글씨 덩어리(L, 0~255) — 가로는 줄마다 가운데 맞춤, 세로는 열마다 위에서 아래로(첫 열이 오른쪽)"""
     from PIL import ImageDraw
+    size = font.size
 
     def one(t):
-        w = int(sum(font.getlength(ch) * (0.5 if ch == " " else 1) for ch in t)) + 4
-        im = Image.new("L", (w, 16), 0); g = ImageDraw.Draw(im); g.fontmode = "1"
-        x = 1
-        for ch in t:
-            if ch != " ":
-                g.text((x, 1), ch, font=font, fill=255)
-            x += font.getlength(ch) * (0.5 if ch == " " else 1)
-        a = np.asarray(im) > 127
-        ys, xs = np.nonzero(a)
-        return a[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
-    if vertical:   # 열마다 음절을 위에서 아래로
+        bb = font.getbbox(t)
+        im = Image.new("L", (bb[2] - bb[0] + 4, bb[3] - bb[1] + 4), 0)
+        ImageDraw.Draw(im).text((2 - bb[0], 2 - bb[1]), t, font=font, fill=255)
+        return im
+    if vertical:
         cols = []
         for t in lines:
             gl = [one(ch) for ch in t]
-            cw = max(g.shape[1] for g in gl)
-            col = np.zeros((lh * len(gl), cw), bool)
+            cw = max(g.width for g in gl); step = round(size * 1.06)
+            col = Image.new("L", (cw, step * (len(gl) - 1) + gl[-1].height), 0)
             for k, g in enumerate(gl):
-                col[k * lh:k * lh + g.shape[0], (cw - g.shape[1]) // 2:(cw - g.shape[1]) // 2 + g.shape[1]] = g
+                col.paste(g, ((cw - g.width) // 2, k * step))
             cols.append(col)
-        gap = 3; H = max(c.shape[0] for c in cols); W = sum(c.shape[1] for c in cols) + gap * (len(cols) - 1)
-        out = np.zeros((H, W), bool); x = W
-        for c in cols:   # 첫 열이 오른쪽
-            x -= c.shape[1]; out[:c.shape[0], x:x + c.shape[1]] = c; x -= gap
+        sp = round(size * 0.18); W = sum(c.width for c in cols) + sp * (len(cols) - 1); H = max(c.height for c in cols)
+        out = Image.new("L", (W, H), 0); x = W
+        for c in cols:
+            x -= c.width; out.paste(c, (x, 0)); x -= sp
         return out
     rows = [one(t) for t in lines]
-    W = max(r.shape[1] for r in rows); out = np.zeros((lh * (len(rows) - 1) + max(r.shape[0] for r in rows), W), bool)
-    for j, r in enumerate(rows):
-        x = (W - r.shape[1]) // 2; out[j * lh:j * lh + r.shape[0], x:x + r.shape[1]] = r
+    step = round(size * (1 + gap)); W = max(r.width for r in rows)
+    out = Image.new("L", (W, step * (len(rows) - 1) + rows[-1].height), 0)
+    for k, r in enumerate(rows):
+        out.paste(r, ((W - r.width) // 2, k * step))
     return out
 
 
-def slant(a, down):
-    """점 세로줄을 가로 2점에 세로 1점씩 내림(down=True: 오른쪽이 아래 — 오른쪽 벽) / 올림(왼쪽 벽)"""
-    h, w = a.shape
-    sh = [(x // 2) if down else ((w - 1 - x) // 2) for x in range(w)]
-    out = np.zeros((h + max(sh), w), bool)
-    for x in range(w):
-        out[sh[x]:sh[x] + h, x] = a[:, x]
-    return out
+def shear(mask, m):
+    """세로로 밀기 — 오른쪽으로 갈수록 m만큼 아래로(m<0이면 위로). 세로획은 곧게"""
+    w, h = mask.size
+    H = int(np.ceil(h + abs(m) * w))
+    off = 0 if m >= 0 else abs(m) * w
+    return mask.transform((w, H), Image.AFFINE, (1, 0, 0, -m, 1, -off), resample=Image.BICUBIC)
 
 
 def write_on(im, spec, font_path):
-    """빈 판 그림(PIL RGBA)에 글씨 — (새 그림, 점 크기, 판 기울기)"""
+    """빈 판 그림(PIL RGBA)에 글씨 — (새 그림, 글씨 크기 px, 판 기울기)"""
     from PIL import ImageFont
-    f12 = ImageFont.truetype(font_path, 12)
     mask, m, c, x0, x1 = face_of(im)
     W = x1 - x0
     hh = [np.ptp(np.nonzero(mask[:, x])[0]) for x in range(int(x0), int(x1) + 1) if mask[:, x].any()]
@@ -249,20 +243,21 @@ def write_on(im, spec, font_path):
     cxc = (x0 + x1) / 2 + spec["dx"] * W
     cyc = m * cxc + c + spec["dy"] * face_h
     vertical = "cols" in spec
-    dots = text_dots(f12, spec.get("cols") or spec["lines"], vertical, spec.get("lh", 14))
-    sl = slant(dots, m > 0)
-    for dot in (4, 3, 2):
-        tw, th = sl.shape[1] * dot, dots.shape[0] * dot
-        if tw > W * spec.get("wmax", 0.8) or th > face_h * spec.get("hmax", 0.86):
+    SS = 4   # 4배로 찍어 곱게 줄인다
+    for size in range(64, 15, -2):
+        f = ImageFont.truetype(font_path, size * SS)
+        tm = text_mask(f, spec.get("cols") or spec["lines"], vertical)
+        tw, th = tm.width / SS, tm.height / SS
+        if tw > W * spec.get("wmax", 0.84) or th > face_h * spec.get("hmax", 0.8):
             continue
-        big = np.kron(sl, np.ones((dot, dot), bool))
-        X0 = int(round((cxc - big.shape[1] / 2) / dot) * dot)
-        Y0 = int(round((cyc - big.shape[0] / 2) / dot) * dot)
-        px = np.array(im.convert("RGBA"))
-        ys, xs = np.nonzero(big); yy, xx = ys + Y0, xs + X0
-        ok = (yy >= 0) & (yy < px.shape[0]) & (xx >= 0) & (xx < px.shape[1])
-        px[yy[ok], xx[ok]] = INK
-        return Image.fromarray(px), dot, m
+        sm = shear(tm, m)
+        small = sm.resize((max(1, round(sm.width / SS)), max(1, round(sm.height / SS))), Image.LANCZOS)
+        ink = Image.new("RGBA", small.size, INK); ink.putalpha(small)
+        out = im.convert("RGBA").copy()
+        out.alpha_composite(ink, (int(round(cxc - small.width / 2)), int(round(cyc - small.height / 2))))
+        # 판 밖으로 번지지 않게 — 원래 판 알파를 넘지 않게
+        a0 = np.asarray(im.convert("RGBA"))[..., 3]; o = np.array(out); o[..., 3] = np.minimum(o[..., 3], a0)
+        return Image.fromarray(o), size, m
     raise RuntimeError("글씨가 판에 안 들어감")
 
 
@@ -271,11 +266,11 @@ def letter_all(blanks, font_path):
         spec = LETTER[name]
         im, size, m = write_on(hd, spec, font_path)
         im.save(os.path.join(OUT, name + ".webp"), "WEBP", quality=92, method=6)
-        msg = f"  {name}: 글씨 점 {size}px · 판 기울기 {m:+.2f}"
+        msg = f"  {name}: 글씨 {size}px · 판 기울기 {m:+.2f}"
         if spec["both"]:
             imL, sizeL, mL = write_on(hd.transpose(Image.FLIP_LEFT_RIGHT), spec_mirror(spec), font_path)
             imL.save(os.path.join(OUT, name + "_L.webp"), "WEBP", quality=92, method=6)
-            msg += f" · 왼쪽 벽용 점 {sizeL}px {mL:+.2f}"
+            msg += f" · 왼쪽 벽용 {sizeL}px {mL:+.2f}"
         print(msg)
 
 
@@ -285,9 +280,9 @@ def spec_mirror(spec):
 
 
 if __name__ == "__main__":
-    font = next((a for a in sys.argv[1:] if a.endswith(".ttf")), None)
+    font = next((a for a in sys.argv[1:] if a.endswith((".ttf", ".otf"))), None)
     bl = main()
     if font:
         letter_all(bl, font)
     else:
-        print("글자 판 9개는 빈 판 — 글씨를 쓰려면 Galmuri11-Bold.ttf 주소를 같이: npm pack galmuri@2.40.3 → package/dist/Galmuri11-Bold.ttf")
+        print("글자 판 9개는 빈 판 — 글씨를 쓰려면 Pretendard-ExtraBold.ttf 주소를 같이: npm pack pretendard@1.3.9 → package/dist/public/static/alternative/Pretendard-ExtraBold.ttf")
