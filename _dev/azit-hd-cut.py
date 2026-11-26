@@ -5,7 +5,8 @@
 #   방 한 점 = 원본 방 그림(sian-ref/azit-room-cream.webp, 2752×1536)의 4.5픽셀(바닥 한 칸 = 9픽셀 — 그 그림의 바닥이 우리 방 바닥 칸
 #   (101×86칸)과 거의 같은 크기가 되는 값). 소품 크기는 지금 앱 그림(icons/azit-room) 크기 × 4.5 — 자리·비율은 앱과 같다.
 #   색을 줄이지 않고 곱게 줄인다(가장자리 반투명 — 바탕과 자연스럽게).
-# 원본이 있는 18개만(받은 시트 셋·조명·엽서). 나머지 약 50개는 원본이 저장소에 없다.
+# 원본이 있는 18개(받은 시트 셋·조명·엽서) + 11/25 다시 받은 기본 방 소품 4개(화분·밥그릇·뼈다귀·공 — azit-hq-items.py가 오리고
+# 앱 그림과 좌우를 맞춰 둔 고화질판 icons/azit-hq에서, 11/26 가르시아 "고화질판으로").
 # 쓰는 법(pip pillow numpy opencv-python-headless): python3 _dev/azit-hd-cut.py [sian-ref/azit-redo] [sian-ref/azit-hd/items]
 import importlib.util, os, sys
 import numpy as np
@@ -28,6 +29,8 @@ WHERE = {
 }
 CLOSE = {"grooming_basket": 9, "cafe_cup": 7, "treat_jar": 9, "food_box": 9, "pee_pad": 9, "postcard_paw": 9}
 HOLES = {"stroller": 400}
+FROM_HQ = ["plant_pot", "feeder_wood_2bowl", "toy_bone", "ball_yellow"]   # icons/azit-hq에서(시안에서 "원본 없는 소품"이던 것)
+HQ = os.path.join(os.path.dirname(__file__), "..", "icons", "azit-hq")
 
 
 def app_size(name):
@@ -75,6 +78,9 @@ def main():
     pb = R.comps(post)
     c, a, _ = R.cut(post, max(pb, key=lambda b: b[2] * b[3]), close=CLOSE["postcard_paw"])
     finish(c, a, "postcard_paw")
+    for name in FROM_HQ:   # 이미 오려 둔 투명 바탕 그림 — 같은 크기 규칙(앱 그림 높이 × 4.5)으로 곱게 줄이기만
+        im = np.asarray(Image.open(os.path.join(HQ, name + ".webp")).convert("RGBA"))
+        finish(im[..., :3], im[..., 3] > 0, name)
 
 
 if __name__ == "__main__":
