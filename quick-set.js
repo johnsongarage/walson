@@ -23,7 +23,8 @@
 //     onPalette(prev, next),       // 화면 색을 바꾼 뒤(벡터 지도 다시 칠하기 등)
 //     more: { href, label },       // 판 맨 아래 다른 설정으로 가는 링크(예: 프로필) — 없으면 안 보임. app이면 쓰지 않는다
 //     app: true,                   // 위 앱 링크·시연용 칸(산책 중 화면처럼 다른 화면으로 나가면 안 되는 곳엔 안 씀)
-//     demo: [{ label, onClick, id }]   // 시연용 칸에 더할 것(예: [기록] 데모 기록 지우기)
+//     demo: [{ label, onClick, id }],  // 시연용 칸에 더할 것(예: [기록] 데모 기록 지우기)
+//     notes: [{ title, text, href }]   // 접힌 안내 칸(2026-11-27 — [아지트] "어디로 가나요"를 화면에서 빼고 여기로). href = 더 보기 링크
 //   });
 //   qs.close()  // 지도를 닫을 때 등
 (function () {
@@ -102,6 +103,15 @@
       if (!btn || (!hasPal && !map)) { if (btn) btn.hidden = true; return { close: function () {} }; }
       addCss();
       var box = el('div', 'quick-set'); box.hidden = true;
+      function addNotes() {   // 접힌 안내 칸(notes) — 화면에 늘 보이던 긴 안내를 옮겨 두는 곳
+        (opt.notes || []).forEach(function (n) {
+          if (!n || !n.title) return;
+          var d = el('details', 'qs-demo'); d.appendChild(el('summary', '', n.title));
+          var np = el('p', 'qs-note', n.text || ''); np.style.textAlign = 'left'; np.style.lineHeight = '1.6'; d.appendChild(np);
+          if (n.href) { var a = el('a', 'qs-dl', '더 보기'); a.href = n.href; d.appendChild(a); }
+          box.appendChild(d);
+        });
+      }
       box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', '설정');
       if (btn.id) { box.id = btn.id + '-panel'; btn.setAttribute('aria-controls', box.id); }
       btn.setAttribute('aria-expanded', 'false');
@@ -173,6 +183,7 @@
         var sa = link(sOn ? 'index.html?sample=off' : 'sample/', sOn ? '샘플 끄기 · 내 기록으로' : '샘플로 둘러보기');
         sa.id = 'qs-sample';
         box.appendChild(links);
+        addNotes();
         var foot = el('p', 'qs-foot');
         foot.innerHTML = '<a href="about.html">왈슨 소개</a> · <a href="privacy.html">개인정보 안내</a>';
         box.appendChild(foot);
@@ -208,6 +219,7 @@
         });
         box.appendChild(demo);
       } else if (opt.more && opt.more.href) {
+        addNotes();
         var more = el('a', 'qs-more', opt.more.label || '다른 설정'); more.href = opt.more.href;
         box.appendChild(more);
       }
