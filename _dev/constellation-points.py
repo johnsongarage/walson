@@ -20,10 +20,11 @@ HEAD = {"chihuahua": (0, 58), "pom": (0, 56), "maltese": (0, 50), "shiba": (0, 7
         "poodle": (0, 46), "dachs": (0, 38), "jindo": (0, 60), "knit": None,
         # 11/27 새 견종(제미나이 초록 바탕 — _dev/dot-dog-green.py)
         "spitz": (0, 48), "cocker": (0, 66), "chihuahua_long": (0, 50), "bichon": (0, 52), "golden": (0, 56),
-        "schnauzer": (0, 46), "frenchie": (0, 50), "sheltie": (0, 58), "bedlington": (0, 70), "maltipoo": (0, 46)}
+        "schnauzer": (0, 46), "frenchie": (0, 50), "sheltie": (0, 58), "bedlington": (0, 70), "maltipoo": (0, 46),
+        "greyhound": (0, 46), "bordercollie": (0, 62), "beagle": (0, 56), "corgi": (0, 48)}
 # 머리가 아닌 데를 더 지우는 칸 [x0, y0, x1, y1) — 푸들은 오른쪽 아래 꼬리 방울이 귀 옆에 붙어 있다
 CUT = {"poodle": [(53, 32, 99, 99)], "spitz": [(53, 30, 99, 99)], "bichon": [(52, 40, 99, 99)], "chihuahua_long": [(50, 34, 99, 99)],
-       "schnauzer": [(50, 38, 99, 99)], "frenchie": [(44, 48, 99, 99)], "maltipoo": [(50, 36, 99, 99)]}
+       "schnauzer": [(50, 38, 99, 99)], "frenchie": [(44, 48, 99, 99)], "maltipoo": [(50, 36, 99, 99)], "corgi": [(50, 40, 99, 99)]}
 # 눈 둘(왼·오른)·코 — 그림 점 좌표(그림 전체 기준)
 FACE = {"chihuahua": [(20, 32.5), (42, 32.5), (30.5, 39)],
         "pom": [(25, 30), (44, 31.5), (34.5, 38.5)],
@@ -42,8 +43,12 @@ FACE = {"chihuahua": [(20, 32.5), (42, 32.5), (30.5, 39)],
         "frenchie": [(13, 27.5), (35, 27.5), (24.5, 31.5)],
         "sheltie": [(64.7, 26.9), (80.2, 26.8), (72.5, 42.3)],
         "bedlington": [(36.4, 30.6), (57.6, 30.6), (45.4, 50.5)],
-        "maltipoo": [(22.7, 24.4), (39.4, 24.4), (31, 32.1)]}
-ORDER = ["chihuahua", "pom", "maltese", "shiba", "poodle", "dachs", "jindo", "knit", "spitz", "cocker", "chihuahua_long", "bichon", "golden", "schnauzer", "frenchie", "sheltie", "bedlington", "maltipoo"]
+        "maltipoo": [(22.7, 24.4), (39.4, 24.4), (31, 32.1)],
+        "greyhound": [(38.8, 16.6), (56.3, 16.6), (47, 33)],
+        "bordercollie": [(68, 28), (91, 28), (79.5, 43)],
+        "beagle": [(62, 22.1), (89.2, 22.2), (76, 35)],
+        "corgi": [(19.8, 24.8), (37.2, 24.8), (28.5, 32.1)]}
+ORDER = ["chihuahua", "pom", "maltese", "shiba", "poodle", "dachs", "jindo", "knit", "spitz", "cocker", "chihuahua_long", "bichon", "golden", "schnauzer", "frenchie", "sheltie", "bedlington", "maltipoo", "greyhound", "bordercollie", "beagle", "corgi"]
 
 
 def mask_of(name):

@@ -33,11 +33,16 @@
     { id: 'frenchie',       breed: '프렌치불독',   fur: '#e3c497', sizes: 'sm' },
     { id: 'sheltie',        breed: '셔틀랜드 쉽독', fur: '#c8762e', sizes: 'm' },
     { id: 'bedlington',     breed: '베들링턴 테리어', fur: '#d4dbe2', sizes: 'm' },
-    { id: 'maltipoo',       breed: '말티푸',       fur: '#f2ece0', sizes: 's' }
+    { id: 'maltipoo',       breed: '말티푸',       fur: '#f2ece0', sizes: 's' },
+    { id: 'greyhound',      breed: '그레이하운드', fur: '#8c939c', sizes: 'l' },
+    { id: 'bordercollie',   breed: '보더콜리',     fur: '#2f2d30', sizes: 'ml' },
+    { id: 'beagle',         breed: '비글',         fur: '#c98a4b', sizes: 'sm' },
+    { id: 'corgi',          breed: '웰시코기',     fur: '#e0954a', sizes: 'sm' }
   ];
   // 프로필 견종 글자 → 도트 강아지(처음 한 번 — 아지트에서 언제든 바꿀 수 있다). 위에서부터 먼저 맞는 것
   var BREED_RULES = [
     [/말티푸|maltipoo/i, 'maltipoo'], [/슈나우저|schnauzer/i, 'schnauzer'], [/프렌치|프불|french|불독|bulldog/i, 'frenchie'],
+    [/보더|border/i, 'bordercollie'], [/그레이하운드|greyhound|휘핏|whippet/i, 'greyhound'], [/비글|beagle/i, 'beagle'], [/코기|corgi|웰시|welsh/i, 'corgi'],
     [/셸티|쉘티|셔틀랜드|sheltie|shetland|콜리|collie/i, 'sheltie'], [/베들링턴|bedlington/i, 'bedlington'], [/포메|pomeranian/i, 'pom'], [/푸들|poodle/i, 'poodle'],
     [/비숑|bichon/i, 'bichon'], [/스피츠|spitz|사모예드|samoyed/i, 'spitz'], [/코카|cocker|스패?니엘|spaniel/i, 'cocker'],
     [/골든|golden|리트리버|retriever|래브라도|labrador/i, 'golden'],
