@@ -172,6 +172,16 @@
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
   .closed[hidden] { display: none; }
+  /* 창가 별자리(2026-11-27 첫 경험 ②④⑤ — walk-stars.js) — 내 방에서만. 누르면 큰 하늘(저장·공유) */
+  .skyrow { display: flex; align-items: center; gap: 10px; width: 100%; margin: 2px 0 0; padding: 8px 10px; font: inherit; text-align: left; color: var(--ink);
+    background: var(--panel); border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
+  .skyrow[hidden] { display: none; }
+  .skyrow canvas { width: 52px; height: 52px; border-radius: 10px; flex: none; background: #0b0a24; }
+  .skyrow .sk-t { flex: 1; min-width: 0; }
+  .skyrow b { display: block; font-size: 14px; font-weight: 900; }
+  .skyrow small { display: block; font-size: 12px; color: var(--ink-soft); line-height: 1.4; word-break: keep-all; }
+  .skyrow .sk-n { flex: none; font-size: 13px; font-weight: 900; color: var(--accent); }
+  .skyrow.new { border-color: var(--accent); }
   .hint { font-size: 12px; color: var(--ink-soft); text-align: center; margin: -4px 0 0; word-break: keep-all; }   /* 넘쳐도 낱말 가운데서 자르지 않게 */
   /* 모델하우스 방 고르기 · 이 방처럼 놓기 */
   .show-bar { display: flex; flex-direction: column; gap: 8px; margin-top: -2px; }
@@ -319,6 +329,7 @@
       <div class="ic-btns" id="ic-btns"></div>
     </div>
     <p class="hint" id="hint"></p>
+    <button type="button" class="skyrow" id="skyrow" hidden><canvas id="skythumb" aria-hidden="true"></canvas><span class="sk-t"><b id="sky-t">✦ 창가 별자리</b><small id="sky-s"></small></span><span class="sk-n" id="sky-n"></span></button>
     <!-- 모델하우스에서만: 방 고르기 + [이 방처럼 놓기](11/23 2단계) -->
     <div class="show-bar" id="show-bar" hidden>
       <div class="rooms px" id="rooms" role="group" aria-label="모델하우스 방 고르기"></div>
@@ -370,6 +381,9 @@
 <script src="azit-room.js?v=19"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
+<script src="device.js?v=1"></script>
+<script src="save-image.js?v=4"></script>
+<script src="walk-stars.js?v=1"></script>
 <script>
 (function () {
   'use strict';
@@ -1070,6 +1084,24 @@
     });
   }
   function toDots(g) { g.setTransform(Z, 0, 0, Z, -OX * Z, -OY * Z); }   // 아래 그리기는 모두 방 점 단위로
+  // 밤 창유리 별(2026-11-27 첫 경험 ④) — 분홍 만난 날 별 하나 + 이번 달 뜬 별 수만큼 작은 별. g는 방 점 단위, 창 칸은 WIN_BOX
+  function winStars(g) {
+    if (!window.WalsonStars) return;
+    var n = 0; try { n = WalsonStars.month().stars.length; } catch (e) { n = 0; }
+    var x0 = WIN_BOX[0] + WIN_BOX[2] * 0.18, y0 = WIN_BOX[1] + WIN_BOX[3] * 0.1, w = WIN_BOX[2] * 0.64, h = WIN_BOX[3] * 0.5, seed = 7;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    function dot(x, y, r, c, core) {
+      var gr = g.createRadialGradient(x, y, 0, x, y, r * 3.2);
+      gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 3.2, 0, Math.PI * 2); g.fill();
+      g.fillStyle = core; g.beginPath(); g.arc(x, y, r * 0.6, 0, Math.PI * 2); g.fill();
+    }
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (var i = 0; i < Math.min(n, 15); i++) dot(x0 + rnd() * w, y0 + rnd() * h, 0.55, 'rgba(220,230,255,.75)', '#fff');
+    g.globalCompositeOperation = 'source-over';
+    dot(x0 + w * 0.2, y0 + h * 0.45, 1.6, 'rgba(255,120,185,.9)', '#ffc2de');   // 분홍 = 우리가 만난 날 별(왼쪽 창유리)
+    g.restore();
+  }
   function buildStatic() {
     var o = cur, c = staticLayer || document.createElement('canvas');
     if (c.width !== canvas.width || c.height !== canvas.height) { c.width = canvas.width; c.height = canvas.height; }
@@ -1079,6 +1111,7 @@
     var rb = roomBitmap((ROOM[o.theme] || ROOM.jelly).img, staticNight);
     if (rb) g.drawImage(rb, Math.round(-OX * Z), Math.round(-OY * Z));
     toDots(g);
+    if (o.me && staticNight) winStars(g);   // 창가 별자리(11/27) — 밤 창유리에 만난 날 별 + 이번 달 별
     shelfAt = {}; shelfAt = shelfPlan(o);   // 선반 위 소품은 바닥 그림자·앞뒤 순서에서 빠진다
     itemsOf(o, 'decal').forEach(function (it) {   // 바닥에 까는 것(러그·매트) — 맨 아래, 자리는 그림 가운데
       var s = pic(it.spr), p = posOf(o, it); if (!s) return;
@@ -1655,6 +1688,28 @@
     }
     if (fcErr) box.appendChild(el('p', 'soft', fcErr));
   }
+  // 창가 별자리(2026-11-27) — 내 방에서만 한 줄. 처음 온 날도 "우리가 만난 날 별"이 떠 있다(④). ?sky=new면 산책 끝에서 온 것 — 큰 하늘을 열고 새 별이 날아와 앉는다(②)
+  var skyFresh = /[?&]sky=new\b/.test(location.search), skyOpened = false;
+  function skyRow(me) {
+    var row = $('skyrow');
+    if (!window.WalsonStars || !me || cur.show) { row.hidden = true; return; }
+    var S = WalsonStars, m = S.month(), n = m.stars.length;
+    row.hidden = false;
+    $('sky-t').textContent = '✦ 창가 별자리 · ' + S.starName();
+    $('sky-s').textContent = n ? (m.full ? '이번 달 별자리가 눈을 떴어요' : '산책하면 별이 하나씩 — ' + (S.GOAL - n) + '개 더 뜨면 얼굴 완성')
+      : '창밖에 우리가 만난 날 별이 떴어요 · 산책하면 첫 별';
+    $('sky-n').textContent = n + ' / ' + S.GOAL;
+    row.classList.toggle('new', skyFresh);
+    S.thumb($('skythumb'));
+    if (skyFresh && !skyOpened) { skyOpened = true; setTimeout(function () { openSky(true); }, 250); }
+  }
+  function openSky(fresh) {
+    WalsonStars.open({ fresh: fresh, room: canvas, onClose: function () {
+      if (skyFresh) { skyFresh = false; $('skyrow').classList.remove('new'); try { history.replaceState(null, '', location.pathname); } catch (e) { /* 주소 정리 못 해도 그대로 */ } }
+    } });
+  }
+  $('skyrow').addEventListener('click', function () { openSky(false); });
+
   function ui() {
     var o = cur, walker = ga(myName || '우리 개');
     friendsRow();
@@ -1682,6 +1737,7 @@
     $('tip').hidden = true; hideCard();
     bubble(); guestbook(); acts(); showBar(); fcVisit(); fcPanel();
     if (o.me) { undoRow(); dogPicker(); tray(); }
+    skyRow(o.me);
     kick();
   }
 
@@ -2235,11 +2291,15 @@
     $('tip').hidden = true; hideCard();
     canvas.classList.add('grab'); kick();
   }
+  var winTap = false;   // 창가 별자리 — 창(WIN_BOX)을 누른 중
+  function inWindow(p) { return p.x >= WIN_BOX[0] && p.x <= WIN_BOX[0] + WIN_BOX[2] && p.y >= WIN_BOX[1] && p.y <= WIN_BOX[1] + WIN_BOX[3]; }
   function endHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });   // 안드로이드 꾹 누르기 메뉴 막기
   canvas.addEventListener('pointerdown', function (e) {
     if (aim || moveSel) { downAt = at(e); drag = null; tapItem = null; endHold(); return; }   // 던질 곳·옮길 곳 고르는 중 — 떼는 곳에서 정한다
     var p = at(e), s = itemAt(p); downAt = p; drag = null; tapItem = null; endHold();   // 지난 끌기가 덜 끝났어도 새로 시작
+    winTap = !s && view === -1 && !!window.WalsonStars && inWindow(p);
+    if (winTap) { downAt = null; return; }
     if (s && !s.fixed) {   // 모서리 가랜드는 끌지 않는다(톡 누르면 안내만)
       hold = { s: s, p: p, cx: e.clientX, cy: e.clientY, pid: e.pointerId, touch: e.pointerType === 'touch' };
       var h = hold; h.timer = setTimeout(function () { if (hold === h) { hold = null; armDrag(h); } }, HOLD_MS);
@@ -2290,9 +2350,10 @@
     [host, guest].forEach(function (d) { if (d.seat && d.seat.id === it.id) unseat(d); });   // 앉아 있던 방석을 옮기면 그 자리에 선다
     return kind;
   }
-  canvas.addEventListener('pointercancel', function () { endHold(); canvas.classList.remove('grab'); if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; });
+  canvas.addEventListener('pointercancel', function () { endHold(); canvas.classList.remove('grab'); if (drag && drag.moved) save(); drag = null; downAt = null; tapItem = null; winTap = false; });
   canvas.addEventListener('pointerup', function (e) {
     canvas.classList.remove('grab');
+    if (winTap) { winTap = false; openSky(false); return; }
     if (aim) {   // 던질 곳 — 바닥이면 던지고, 아니면 그만
       var ap = at(e), aq = unP(ap.x, ap.y), aid = aim.id; endAim(); downAt = null;
       if (onFloor(aq)) throwTo(aid, aq);

@@ -76,14 +76,15 @@
     for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
     return new File([u8], fileName, { type: 'image/png' });
   }
-  function share(c, fileName) {
+  // text(있으면): 그림과 같이 보낼 글 — 앱 주소처럼 받은 사람이 왈슨으로 들어올 길(2026-11-27 별자리 공유). 받는 앱에 따라 글은 빠질 수 있다.
+  function share(c, fileName, text) {
     var file = null;
     try { file = fileOf(c, fileName); } catch (e) { file = null; }
     // 공유 창이 있고 브라우저가 이 그림을 거절하지 않으면(미리 답하지 못하는 브라우저는 일단 해 본다 — canShare가 null)
     var ok = false;
     try { ok = !!(file && WalsonDevice.canShare() && WalsonDevice.canShare({ files: [file] }) !== false); } catch (e) { ok = false; }
     if (!ok) { alert('이 브라우저에서는 바로 공유할 수 없어요. [저장]한 뒤 보내 주세요.'); return; }
-    WalsonDevice.share({ files: [file] }).catch(function (err) {
+    WalsonDevice.share(text ? { files: [file], text: text } : { files: [file] }).catch(function (err) {
       if (err && err.name === 'AbortError') return;   // 사용자가 닫음
       alert('공유 창을 열지 못했어요. [저장]한 뒤 보내 주세요.');
     });
