@@ -24,18 +24,17 @@ for _ in range(70):                                                   # 몸(목 
     SPOTS.append((cx, cy, rng.uniform(0.55, 1.25)))
 
 def part_of(x, y):
-    """0 검정 · 1 흰(대플 바탕) · 2 탄 — 점 그림 좌표(실수)"""
-    body = (y >= 36.5) | ((y >= 33) & (np.abs(x - 26.5) <= 9))      # 목 아래 몸
-    part = np.where(body, 1, 0)
+    """0 검정 · 2 탄 — 점 그림 좌표(실수). 11/27 가르시아 "몸통도 같은 톤으로": 몸도 머리처럼 블랙 앤 탄
+    (검은 등·옆구리·꼬리, 탄 가슴 두 점·앞다리 아래·발) — 흰 바탕 잔점(대플)은 뺌"""
+    body = (y >= 36.5) | ((y >= 33) & (np.abs(x - 26.5) <= 9))
     tan = ell(x, y, 18.3, 10.6, 2.3, 1.7) | ell(x, y, 34.2, 10.6, 2.3, 1.7)          # 눈썹 점
     tan |= (ell(x, y, 26.5, 28.5, 10, 6.5) & ~ell(x, y, 26.5, 22.5, 4.2, 6))        # 주둥이 양옆·턱(콧등은 검정)
     tan |= ell(x, y, 17, 24, 3, 3) | ell(x, y, 36, 24, 3, 3)                         # 볼
-    part = np.where(tan & ~body, 2, part)
-    spot = np.zeros_like(x, bool)
-    for cx, cy, r in SPOTS:
-        spot |= ell(x, y, cx, cy, r, r)
-    part = np.where(body & spot & ~((y >= 60.5) & (x <= 40)), 0, part)            # 잔점(앞발 끝은 깨끗이)
-    return part
+    tan = tan & ~body
+    tan |= body & (ell(x, y, 23.5, 40, 2.0, 1.6) | ell(x, y, 30.5, 40, 2.0, 1.6))    # 가슴 작은 두 점
+    tan |= body & (y >= 52) & (x >= 14) & (x <= 40) & ~ell(x, y, 27, 50, 4.5, 5)     # 앞다리 아래·발(가운데 배는 검정)
+    tan |= body & ell(x, y, 47, 56, 3, 3)                                            # 뒷발
+    return np.where(tan, 2, 0)
 
 def recolor(im):
     a = np.asarray(im.convert("RGBA")).astype(float)
