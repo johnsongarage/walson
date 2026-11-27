@@ -532,7 +532,8 @@
     return null;
   }
   var winNight = null;
-  loadImg(HDI + 'window_night.webp?v=2')   // 11/27 창살 자리까지 밤하늘로 덮는 판(별이 창살에 안 가림).then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
+  // 11/27 창살 자리까지 밤하늘로 덮는 판(별이 창살에 안 가림)
+  loadImg(HDI + 'window_night.webp?v=2').then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
   var flipCache = {};
   function oriented(it, side) {

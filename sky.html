@@ -143,6 +143,12 @@
       try { document.execCommand('copy') ? ok() : no(); } catch (e) { no(e); } ta.remove();
     });
   }
+  // 복사도 안 되면 — 링크를 화면에 띄워 길게 눌러 복사하게(prompt는 막힌 곳이 있다)
+  function showLink(url) {
+    var e = $('toast'); clearTimeout(toastT);
+    e.textContent = '이 링크를 길게 눌러 복사해 보내 주세요\n' + url; e.style.whiteSpace = 'pre-wrap'; e.style.wordBreak = 'break-all'; e.style.userSelect = 'text'; e.hidden = false;
+    toastT = setTimeout(function () { e.hidden = true; }, 15000);
+  }
   $('send').addEventListener('click', function () {
     var url = S.shareUrl(S.encode(data, { name: $('o-name').checked, color: $('o-color').checked }));
     var who = $('o-name').checked && nm ? nm : '우리 개';
@@ -153,10 +159,10 @@
     if (canShare) {
       WalsonDevice.share({ title: '왈슨 산책 별자리', text: text, url: url }).catch(function (err) {
         if (err && err.name === 'AbortError') return;
-        copy(text + '\n' + url).then(function () { toast('링크를 복사했어요 — 카톡에 붙여 넣어 보내 주세요'); }, function () { prompt('이 링크를 복사해 보내 주세요', url); });
+        copy(text + '\n' + url).then(function () { toast('링크를 복사했어요 — 카톡에 붙여 넣어 보내 주세요'); }, function () { showLink(url); });
       });
     } else {
-      copy(text + '\n' + url).then(function () { toast('링크를 복사했어요 — 카톡에 붙여 넣어 보내 주세요'); }, function () { prompt('이 링크를 복사해 보내 주세요', url); });
+      copy(text + '\n' + url).then(function () { toast('링크를 복사했어요 — 카톡에 붙여 넣어 보내 주세요'); }, function () { showLink(url); });
     }
   });
   window.addEventListener('hashchange', function () { location.reload(); });
