@@ -98,7 +98,7 @@
     { id: 'balloons', spr: 'balloons', i: 90, j: 30, name: '헬륨 풍선 다발', need: { walks: 50 }, stash: true },
     { id: 'cafe_cup', spr: 'cafe_cup', shelf: true, sh: 2, i: 80, j: 14, name: '동네 카페 컵', need: { shop: 2 }, stash: true },
     { id: 'stamp_regular', spr: 'stamp_regular', face: 'R', both: true, wall: 'R', u: 37, h: 44, name: '단골 인증 스탬프', need: { shop: 3 }, stash: true },
-    { id: 'sign_meetup', spr: 'sign_meetup', i: 94, j: 40, turn: true, name: '산책길 조우 팻말', need: { stamps: 5 }, stash: true },
+    { id: 'sign_meetup', spr: 'sign_meetup', i: 94, j: 40, name: '산책길 조우 팻말', need: { stamps: 5 }, stash: true },
     { id: 'cone_barricade', spr: 'cone_barricade', i: 86, j: 64, name: '라바콘 바리케이드', need: { stamps: 8 }, stash: true },
     { id: 'parasol_set', spr: 'parasol_set', i: 76, j: 82, name: '편의점 파라솔', need: { stamps: 10 }, stash: true },
     { id: 'bubble_poop', spr: 'bubble_poop', face: 'R', both: true, wall: 'L', u: 24, h: 116, name: '오늘도 똥줍 말풍선', need: { poop: 5 }, stash: true },
@@ -410,7 +410,7 @@
   }
   function cleanTurn(raw) {   // 팻말 방향 { id: 'L' | 'R' } — 정면은 적지 않는다
     var t = {};
-    if (raw && typeof raw === 'object') Object.keys(raw).forEach(function (id) { var it = byId(ITEMS, id); if (it && it.turn && (raw[id] === 'L' || raw[id] === 'R')) t[id] = raw[id]; });
+    if (raw && typeof raw === 'object') Object.keys(raw).forEach(function (id) { var it = byId(ITEMS, id); if (it && it.turn && raw[id] === 'L') t[id] = 'L'; });
     return t;
   }
   function cleanHidden(raw) { return Array.isArray(raw) ? raw.filter(function (id) { return !!byId(ITEMS, id); }) : []; }
