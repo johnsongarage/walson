@@ -1,6 +1,6 @@
 # 새 도트 강아지 — 제미나이 프롬프트 (2026-11-27)
 
-기존 8마리(icons/dot-dogs)와 같은 느낌으로. 제미나이에 **정면 강아지 한 장(ref-jindo.png 또는 ref-shiba.png — 체형 비슷한 쪽)을 첨부**하고
+기존 8마리(icons/dot-dogs)와 같은 느낌으로. 제미나이에 **정면 강아지 한 장을 첨부**하고(체형 비슷한 쪽 — 대형·귀 선 개 ref-jindo, 중형 ref-shiba, 소형 털복숭이 ref-maltese·ref-poodle, 소형 단모 ref-chihuahua)
 (11/27 8마리 모음을 붙였더니 비스듬한 옆모습·굵은 점으로 나옴 — "three-quarter"를 옆으로 읽음),
 아래 [공통]을 먼저 붙인 뒤 [견종] 한 줄을 끝에 넣는다. 한 번에 한 마리.
 
@@ -8,15 +8,30 @@
 azit-room.js `DOGS`(맨 뒤에 — 순서는 방 모습 번호라 바꾸지 않음)·`BREED_RULES`에 한 줄.
 
 ## [공통]
-Pixel art of a single dog, in exactly the same style as the attached reference sheet of 8 pixel-art dogs.
-- FRONT VIEW. The dog sits facing the viewer straight on, perfectly symmetrical like the attached reference: face, chest and both front legs pointing straight at the camera, front paws side by side, both eyes and both ears fully visible and level. The body is NOT turned sideways. The tail curls up beside the hip, visible from the front.
-- Crisp square pixels, no blur, no anti-aliasing. Same pixel resolution and detail as the reference: small pixels, about 120–180 pixels tall, then upscaled with nearest-neighbor.
-- Dark brown (#2b1d16) outline — not pure black, not chunky. Soft 4–5 step fur shading, warm light from the top left.
-- Big round dark eyes with one small white highlight pixel each, small shiny nose, gentle friendly expression, mouth closed or a small happy open mouth.
-- Realistic breed proportions but slightly cute (head a little bigger), exactly like the reference — not chibi, not cartoon-flat.
-- No clothes, no collar, no accessories, no text, no shadow on the ground, no props.
-- Background: one flat solid color #CFE3CF (light sage green) filling the whole image, nothing else.
-- Square-ish canvas with the dog centered and small even margins. Do not crop the ears, tail or paws.
+Draw ONE dog as pixel art, matching the attached reference dog image as closely as possible in style, angle, pixel size and shading. Only the breed and coat change.
+
+POSE (most important):
+- FRONT VIEW, exactly like the reference: the dog sits and looks straight at the viewer.
+- Perfectly symmetrical: face, chest and both front legs point straight at the camera, front paws side by side.
+- Both eyes and both ears fully visible and at the same height. The body is NOT turned to the side, NOT three-quarter, NOT profile.
+- The tail is visible beside the hip.
+
+STYLE:
+- Crisp square pixels, no blur, no anti-aliasing. Small pixels: the dog is about 120–180 pixels tall on the pixel grid (same density as the reference), upscaled with nearest-neighbor.
+- Dark brown outline (#2b1d16), one pixel thick — not pure black, not chunky.
+- Soft 4–5 step fur shading with visible fur texture, warm light from the top left, like the reference.
+- Big round dark eyes, each with one small white highlight, small shiny nose, gentle friendly face.
+- Realistic breed proportions, head slightly bigger to look cute — not chibi, not flat cartoon.
+
+DO NOT:
+- No clothes, collar, bandana or accessories. No text, logo, sparkle or watermark. No ground shadow, no props.
+
+CANVAS:
+- Background is one flat solid color #CFE3CF (light sage green), nothing else.
+- Dog centered with small even margins. Do not crop ears, tail or paws.
+
+BREED:
+(아래 견종 줄 하나를 여기 붙인다)
 
 ## [견종] — 끝에 한 줄 붙이기
 1순위
