@@ -69,7 +69,9 @@
   /* 순찰대 말풍선(11/27) — 3D 로켓 위를 따라다님 */
   .say3d { position: fixed; left: 0; top: 0; z-index: 4; max-width: 220px; font-size: 12px; font-weight: 800; line-height: 1.35; color: #1b1d33; background: #fff;
     padding: 6px 9px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.35); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .25s; }
-  .say3d::after { content: ''; position: absolute; left: 18px; bottom: -6px; border: 6px solid transparent; border-top-color: #fff; border-bottom: 0; }
+  .say3d::after { content: ''; position: absolute; left: var(--ax, 18px); bottom: -6px; border: 6px solid transparent; border-top-color: #fff; border-bottom: 0; }
+  /* 로켓이 위 제목 가까이 오면 말풍선을 로켓 아래로 — 제목을 가리지 않게 */
+  .say3d.below::after { bottom: auto; top: -6px; border-top: 0; border-bottom: 6px solid #fff; }
 </style>
 </head>
 <body>
@@ -422,7 +424,7 @@ function start(renderer) {
   const NX = window.WalsonNightExtras, deg = THREE.MathUtils.degToRad;
   const who = D.name || (D.mine && S.dogName ? S.dogName() : '') || '멍멍이';
   const patrol = { sprite: null, tex: null, texL: null, aspect: NX ? NX.ROCKET.aspect : 1.4, R: 150, el: deg(50), W: 22 };
-  const sayEl = $('say3d');
+  const sayEl = $('say3d'), headEl = document.querySelector('.top > div');
   let sayI = 0, sayHold = performance.now() + 5200, faceL = false, seenN = 0;
   try { seenN = +(localStorage.getItem('walson_alien_seen') || 0); } catch (e) { seenN = 0; }
   function speak(text, hold) { sayEl.textContent = text.replace('{who}', who); sayHold = performance.now() + (hold || 5200); }
@@ -459,7 +461,7 @@ function start(renderer) {
   function pxPerUnit(dist) { const rc = canvas.getBoundingClientRect(); return rc.height / (2 * Math.tan(deg(camera.fov / 2)) * dist); }
   function updatePatrol(t) {
     if (!patrol.sprite) return;
-    const posAt = (T) => dirOf(REDUCE ? 0.25 : -T * (Math.PI * 2 / 46), patrol.el + (REDUCE ? 0 : deg(4) * Math.sin(T * 0.9))).multiplyScalar(patrol.R);
+    const posAt = (T) => dirOf(REDUCE ? 0.25 : -T * (Math.PI * 2 / 46), patrol.el + (REDUCE ? 0 : deg(2.5) * Math.sin(T * 0.9))).multiplyScalar(patrol.R);
     const T = t / 1000;
     patrol.sprite.position.copy(posAt(T));
     const a = screenOf(patrol.sprite.position), b = screenOf(posAt(T + 0.15));   // 조금 뒤 자리 — 화면에서 가는 쪽
@@ -472,8 +474,15 @@ function start(renderer) {
     const showing = a.on && t < sayHold;
     sayEl.style.opacity = showing ? '1' : '0';
     if (a.on) {
-      const ph = patrol.sprite.scale.y * pxPerUnit(patrol.R), sw = sayEl.offsetWidth || 120;
-      sayEl.style.transform = 'translate(' + Math.max(8, Math.min(innerWidth - sw - 8, a.x - 24)).toFixed(1) + 'px,' + Math.max(8, a.y - ph / 2 - 36).toFixed(1) + 'px)';
+      const ph = patrol.sprite.scale.y * pxPerUnit(patrol.R), sw = sayEl.offsetWidth || 120, sh = sayEl.offsetHeight || 26;
+      const headB = headEl ? headEl.getBoundingClientRect().bottom + 6 : 8;
+      let y = a.y - ph / 2 - sh - 8;
+      const below = y < headB;   // 위에 자리가 없으면 로켓 아래로
+      if (below) y = a.y + ph / 2 + 8;
+      if (below !== sayEl.classList.contains('below')) sayEl.classList.toggle('below', below);
+      const x = Math.max(8, Math.min(innerWidth - sw - 8, a.x - 24));
+      sayEl.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
+      sayEl.style.setProperty('--ax', Math.max(10, Math.min(sw - 22, a.x - x - 6)).toFixed(0) + 'px');   // 꼬리는 로켓 쪽으로
     }
   }
   function updateUfo(t) {
