@@ -4161,3 +4161,12 @@ Black Han Sans 굵게 뭉개짐 0곳. 실제 폰은 아직.
 - 링크: 설정 판 맨 아래 줄 "왈슨 소개 · 보상 받는 법 · 개인정보 안내"(quick-set.js v6, 모든 탭) · [아지트] "아직 안 생긴 소품" 접힌 칸 아래 · 다녀왔어요 끝 화면 안내 줄 끝.
 - 확인: 375폭 젤리·블랙 화면 찍기, 가로 넘침 없음, 링크 셋, 화면 오류 없음. CLAUDE.md에 "보상 규칙 바꾸면 이 표도" 규칙.
 - **배포**: 11/27 가르시아 "배포" — main `0217969`.
+
+## 산책 보상표를 한 곳에서 — WALK_REWARDS · 베타 칸 (2026-11-27)
+
+- 가르시아 "산책 보상 테이블을 변경할 수 있게 해 두자. 오픈 초기 베타 기간엔 원칙으로 정한 것도 다 쉽게 획득할 수 있게 하는 것 어떻게 생각하냐?"
+- `reward-rules.js` `WALK_REWARDS`: live/after 각각 dayCap(아지트 소품 하루 셈)·special(특별 소품)·stars(창가 별) + starsPerDay·needScale(소품 횟수 조건 배율, 올림·최소 1) +
+  beta { on, until, label, 덮을 값 }. `walkRewards()`가 지금 쓰는 값(베타면 덮은 값). 읽는 곳: `azit-room.js` progress·eff(needScale)·`walk-stars.js` month·문구, `rewards.html` 표(이제 값으로 그림 + 베타 띠).
+- 한 번 받은 소품은 계속 남김(`unlockedItems`가 받은 것을 kept에 더함, 샘플 중 제외) — 베타가 끝나도 그대로.
+- 베타는 **꺼 둠**(on: false). 시험으로 켰을 때 값(제안): 잰 산책 하루 3번 · 다녀왔어요 하루 2번 + 특별 소품 · 별 하루 3개 · 조건 절반 → 같은 가짜 기록 9개로 소품 17 → 34개.
+- 확인: 평소 값 셈은 바꾸기 전과 같음, 베타 켠 셈·표·띠, 화면 오류 없음. azit-room.js v22 · reward-rules.js v14 · walk-stars.js v4.

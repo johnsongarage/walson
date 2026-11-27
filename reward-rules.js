@@ -250,7 +250,50 @@
     return { target: target, total: total, reached: total >= target, left: Math.max(0, target - total) };
   }
 
+  // ── 산책 보상표(2026-11-27 가르시아 "산책 보상 테이블을 변경할 수 있게 해 두자") ──
+  // 잰 산책(길 기록·시간만 재기)과 다녀와서 적은 산책이 무엇을 받는지 — 숫자는 여기 한 곳만 고친다.
+  // 셈: [아지트] 소품 azit-room.js progress · 창가 별 walk-stars.js · 유저용 표 rewards.html(이 값으로 그린다).
+  //   dayCap   하루에 세는 산책 수(아지트 소품). 다녀와서 적은 산책은 그 안에서 after.dayCap까지
+  //   special  특별 소품(밤·40분 긴 산책·킁킁·오늘의 한 장·응가)을 받나
+  //   stars    창가 별을 받나 · starsPerDay 하루 별 수
+  //   needScale 소품 조건(산책 n번·밤 n번 …)에 곱하는 수 — 1이면 그대로, 0.5면 절반(올림, 최소 1)
+  // beta: 오픈 초기 베타(제안 — 가르시아가 켜기 전까지 on: false). on이고 until(그날까지, 'YYYY-MM-DD')이 안 지났으면 위 값을 덮는다.
+  //   베타 동안 받은 소품은 끝나도 그대로 남는다(azit-room.js keptItems).
+  var WALK_REWARDS = {
+    live:  { dayCap: 2, special: true, stars: true },
+    after: { dayCap: 1, special: false, stars: true },
+    starsPerDay: 2,
+    needScale: 1,
+    beta: {
+      on: false, until: '', label: '베타 기간',
+      live:  { dayCap: 3 },
+      after: { dayCap: 2, special: true },
+      starsPerDay: 3,
+      needScale: 0.5
+    }
+  };
+  function dayKeyOf(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  // 지금 쓰는 보상표(베타가 켜져 있으면 덮은 값). betaOn·betaUntil·betaLabel도 같이
+  function walkRewards(now) {
+    var b = WALK_REWARDS.beta || {}, on = !!b.on && (!b.until || dayKeyOf(now || new Date()) <= b.until);
+    function pick(k, sub) {
+      var base = sub ? WALK_REWARDS[k][sub] : WALK_REWARDS[k];
+      if (!on) return base;
+      var v = sub ? (b[k] || {})[sub] : b[k];
+      return v === undefined ? base : v;
+    }
+    return {
+      live:  { dayCap: pick('live', 'dayCap'), special: pick('live', 'special'), stars: pick('live', 'stars') },
+      after: { dayCap: pick('after', 'dayCap'), special: pick('after', 'special'), stars: pick('after', 'stars') },
+      starsPerDay: pick('starsPerDay'), needScale: pick('needScale'), minMinutes: RECORD_MIN_MINUTES,
+      betaOn: on, betaUntil: on ? (b.until || '') : '', betaLabel: b.label || '베타 기간'
+    };
+  }
+
   window.RewardRules = {
+    WALK_REWARDS: WALK_REWARDS,
+    walkRewards: walkRewards,
+    isLive: isLive,
     FRAME_TIERS: FRAME_TIERS,
     RANKS: RANKS,
     rankFor: rankFor,

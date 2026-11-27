@@ -171,6 +171,11 @@
   }
   // 실시간 산책 = [시작]·[끝]을 눌러 잰 산책(길 기록·시간만 재기). 다녀와서 몇 분만 적은 것(logged: 'after')은 아님
   function isLive(w) { return !!w && w.logged !== 'after'; }
+  function rewardCfg() {
+    var RR = window.RewardRules;
+    try { if (RR && RR.walkRewards) return RR.walkRewards(); } catch (e) { /* 아래 기본값 */ }
+    return { live: { dayCap: 2, special: true }, after: { dayCap: 1, special: false }, needScale: 1 };
+  }
   function progress() {
     var RR = window.RewardRules, walks = WalsonStore.walks(), p = null, st = null;
     try { p = RR ? RR.computeProgress(walks) : null; } catch (e) { p = null; }
@@ -184,7 +189,9 @@
     // 11/27 가르시아 "12번 그렇게 해" — 실시간 산책(길 기록·시간만 재기: [시작]과 [끝]을 눌러 잰 것)과 다녀와서 적은 산책을 나눈다.
     //   다녀왔어요는 하루 1번까지만 세고(하루 2번 중 한 자리), 특별 소품(밤·긴·킁킁·사진·응가)은 실시간 산책만. 겨울은 날짜뿐이라 모두.
     //   거리는 웹앱에서 화면이 꺼지면 끊겨 믿기 어려워서 소품 조건에 쓰지 않는다(시간만).
-    var perDay = {}, perDayAfter = {}, itemWalks = 0, DAY_CAP = 2, AFTER_CAP = 1;
+    // 숫자는 reward-rules.js WALK_REWARDS(산책 보상표) 한 곳에서 — 베타면 덮은 값
+    var cfg = rewardCfg();
+    var perDay = {}, perDayAfter = {}, itemWalks = 0, DAY_CAP = cfg.live.dayCap, AFTER_CAP = cfg.after.dayCap;
     // 같은 날이면 잰 산책을 먼저 센다 — 다녀왔어요는 시작 시각이 없어 맨 앞에 서서 잰 밤 산책 자리를 뺏었다
     walks.slice().sort(function (a, b) { return (isLive(b) ? 1 : 0) - (isLive(a) ? 1 : 0) || String((a && a.startedAt) || '').localeCompare(String((b && b.startedAt) || '')); }).forEach(function (w) {
       if (!w || (Number(w.durationMin) || 0) < 5) return;
@@ -195,15 +202,15 @@
     });
     walks.forEach(function (w) {
       if (!w) return;
-      var live = isLive(w);
-      if (w.photoKey && live) photos++;                           // 오늘의 한 장을 남긴 산책
-      var pp = Number(w.poop); if (live && (pp === 1 || pp === 2)) poop += pp;   // "응가 치웠나요" — 1번·2번 이상(2로 셈)
+      var live = isLive(w), sp = live ? cfg.live.special : cfg.after.special;   // 특별 소품을 받는 산책인가
+      if (w.photoKey && sp) photos++;                             // 오늘의 한 장을 남긴 산책
+      var pp = Number(w.poop); if (sp && (pp === 1 || pp === 2)) poop += pp;   // "응가 치웠나요" — 1번·2번 이상(2로 셈)
       var mins = Number(w.durationMin) || 0;
       var cnt = w.__cnt; delete w.__cnt;
       if (mins < 5 || !cnt) return;                               // 하루 3번째부터는 밤·겨울·긴·킁킁 산책에도 안 셈
       var mo = /^\d{4}-(\d{2})/.exec(w.date || ''), m = mo ? Number(mo[1]) : 0;
       if (m === 12 || m === 1 || m === 2) winter++;               // 겨울(12~2월) 산책 — 다녀왔어요도
-      if (!live) return;                                          // 밤·긴·킁킁은 실시간 산책만
+      if (!sp) return;                                            // 밤·긴·킁킁은 특별 소품을 받는 산책만(기본: 잰 산책)
       var at = w.startedAt ? new Date(w.startedAt) : null, hr = at && !isNaN(at) ? at.getHours() : -1;
       if (hr >= 20 || (hr >= 0 && hr < 5)) night++;                // 밤 산책(저녁 8시~새벽 5시에 나감)
       if (mins >= 40) long++;                                     // 40분 넘게 걸은 산책
@@ -230,8 +237,17 @@
     var RR = window.RewardRules;
     return ((RR && RR.PLACES) || []).filter(function (pl) { return !pl.pending; }).length;
   }
+  // 보상표 needScale(베타 등) — 횟수 조건을 줄인다(올림, 최소 1). 등급·워킹패스·키링·단짝처럼 한 번짜리는 그대로
+  var SCALE_KEYS = ['walks', 'steady', 'photos', 'poop', 'night', 'winter', 'long', 'sniff', 'steady5'];
+  function scaled(need) {
+    var k = rewardCfg().needScale;
+    if (!k || k === 1) return need;
+    var o = {}; for (var f in need) o[f] = need[f];
+    SCALE_KEYS.forEach(function (f) { if (o[f]) o[f] = Math.max(1, Math.ceil(o[f] * k)); });
+    return o;
+  }
   function eff(need) {
-    need = need || {};
+    need = scaled(need || {});
     if (!need.stamps && !need.park) return need;
     var n = placeCount(), o = {};
     for (var k in need) o[k] = need[k];
@@ -525,7 +541,14 @@
   function hasItem(it, p) { return !!it && (met(it.need, p) || keptItems().indexOf(it.id) >= 0); }
   function unlockedItems(p) {
     var kept = keptItems();
-    return ITEMS.filter(function (it) { return met(it.need, p) || kept.indexOf(it.id) >= 0; }).map(function (it) { return it.id; });
+    var ids = ITEMS.filter(function (it) { return met(it.need, p) || kept.indexOf(it.id) >= 0; }).map(function (it) { return it.id; });
+    // 한 번 받은 소품은 남긴다 — 베타(조건 완화)가 끝나도, 보상표를 고쳐도 사라지지 않게. 샘플을 켠 동안은 남기지 않음
+    var add = ids.filter(function (id) { return kept.indexOf(id) < 0; });
+    if (add.length && !(WalsonStore.sampleOn && WalsonStore.sampleOn())) {
+      keptCache = kept.concat(add);
+      try { if (WalsonStore.setJSON) WalsonStore.setJSON(KEPT_KEY, keptCache); else localStorage.setItem(KEPT_KEY, JSON.stringify(keptCache)); } catch (e) {}
+    }
+    return ids;
   }
   function placedItems(st, p) { return unlockedItems(p).filter(function (id) { return st.hidden.indexOf(id) < 0; }); }
   function accOn(st, p) { var a = byId(ACCS, st.acc); return a && met(a.need, p) ? a.id : ''; }

@@ -245,8 +245,8 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=13"></script>
-<script src="walk-stars.js?v=3"></script>
+<script src="reward-rules.js?v=14"></script>
+<script src="walk-stars.js?v=4"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=5"></script>
 <script src="mock-server.js?v=2"></script>
@@ -370,7 +370,7 @@
           S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
         chip(r.dust ? '별가루' : '별 하나', true);
       } else if (r.reason === 'day') {
-        d = row(STAR, true, '오늘 별은 다 떴어요', '하루 ' + S.PER_DAY + '개까지 · ' + S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
+        d = row(STAR, true, '오늘 별은 다 떴어요', '하루 ' + (S.perDay ? S.perDay() : S.PER_DAY) + '개까지 · ' + S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
       } else return;   // 5분 미만 — 아래 안내 줄에 이미 나온다
       d.classList.add('is-star');
       var a = document.createElement('a');

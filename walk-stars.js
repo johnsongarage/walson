@@ -57,15 +57,22 @@
     if (t) { var d = new Date(t); if (!isNaN(d)) return d.getHours() + d.getMinutes() / 60; }
     return 18;   // 시간을 모르는 기록(예전 기록)은 저녁 별
   }
+  // 하루 별 수 — 보상표(reward-rules.js WALK_REWARDS)가 있으면 그 값, 베타면 덮은 값
+  function starsPerDay() { try { var RR = window.RewardRules; if (RR && RR.walkRewards) return RR.walkRewards().starsPerDay; } catch (e) {} return PER_DAY; }
   function countable(w) { return w && typeof w.date === 'string' && (Number(w.durationMin) || 0) >= MIN; }
   // 그 달 별 — 기록 순서대로, 하루 2개까지. ym 'YYYY-MM'
   function month(walks, ym) {
     walks = walks || allWalks(); ym = ym || ymOf(new Date());
     var perDay = {}, stars = [], over = [], capped = false;
+    // 하루 별 수·다녀와서 적은 산책도 별을 받나 — reward-rules.js WALK_REWARDS(산책 보상표, 11/27)
+    var RR = window.RewardRules, cfg = null;
+    try { cfg = RR && RR.walkRewards ? RR.walkRewards() : null; } catch (e) { cfg = null; }
+    var cap = starsPerDay();
     walks.forEach(function (w) {
       if (!countable(w) || w.date.slice(0, 7) !== ym) return;
+      if (cfg && !(w.logged === 'after' ? cfg.after.stars : cfg.live.stars)) return;
       var k = w.date;
-      if ((perDay[k] || 0) >= PER_DAY) { capped = true; return; }
+      if ((perDay[k] || 0) >= cap) { capped = true; return; }
       perDay[k] = (perDay[k] || 0) + 1;
       var s = { date: w.date, min: Math.round(Number(w.durationMin) || 0), h: hourOf(w) };
       (stars.length < GOAL ? stars : over).push(s);
@@ -356,7 +363,7 @@
         : '산책할 때마다 별이 하나씩 떠서 ' + esc(dogName() || '우리 개') + ' 얼굴이 돼요. ' + (GOAL - m.stars.length) + '개 남았어요.') + '</p>' +
       '<div class="wst-sky"><canvas aria-label="이번 달 별자리 하늘"></canvas><span class="wst-tag">분홍 별 · 우리가 만난 날 ' + esc(fmtDay(met)) + '</span></div>' +
       (n ? '' : '<p class="wst-empty">분홍 별은 우리가 만난 날 별이에요. 5분 넘게 산책하고 오면 창밖에 첫 별이 떠요.</p>') +
-      '<p class="wst-rule">5분 넘게 걸은 산책 1번 = 별 1개(하루 2개까지) · 별 크기는 걸은 시간, 색은 아침·낮·저녁·밤 · 별을 누르면 그날 산책</p>' +
+      '<p class="wst-rule">5분 넘게 걸은 산책 1번 = 별 1개(하루 ' + starsPerDay() + '개까지) · 별 크기는 걸은 시간, 색은 아침·낮·저녁·밤 · 별을 누르면 그날 산책</p>' +
       // 별이 아직 없으면 공유는 숨긴다 — 처음 온 사람에게 "보내기"부터 보이지 않게(11/27). 3D는 앞으로 생길 얼굴 윤곽이 보여서 둔다
       '<a class="wst-3d" href="sky.html">✦ 하늘을 3D로 둘러보기 ›</a>' +
       '<div class="wst-btns">' + (n ? '<button type="button" data-a="save">저장</button><button type="button" data-a="share" class="main">공유</button>' : '') +
@@ -448,7 +455,7 @@
     return c;
   }
 
-  window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, MIN: MIN, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
+  window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, perDay: starsPerDay, MIN: MIN, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
     starName: starName, countText: countText, thumb: thumb, open: open, card: card, todOf: todOf,
     // 3D 하늘(sky.html)이 같이 쓰는 것
     sky: sky, encode: encode, decode: decode, shareUrl: shareUrl, shapePoints: shapePoints, shapeEdges: shapeEdges, starSize: starSize,
