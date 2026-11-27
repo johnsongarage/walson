@@ -87,6 +87,12 @@
   /* ── 카드 ── */
   .card { border-radius: 18px; background: var(--panel); box-shadow: var(--card-shadow); border: 1px solid rgba(var(--shadow-rgb), 0.05); padding: 16px 16px 18px; margin-bottom: 14px; }
   html[data-palette="black"] .card { border-color: var(--panel-border); }
+  /* 밤하늘로(11/27 가르시아 "기록은 남기자, 밤하늘에 이 기능을 구현해 보고 뺄 수 있으면 빼자") — 맨 위 한 줄. 밤하늘이라 화면 색과 상관없이 남색 */
+  .night-link { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #eef1fb; background: #121a3d linear-gradient(135deg, #0b1029, #1b1548); border-color: rgba(255,255,255,.1); padding: 14px 16px; }
+  .night-link .nl-sky { flex: none; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #ffd38a; background: rgba(255,255,255,.08); }
+  .night-link b { display: block; font-size: 15px; font-weight: 900; color: #fff; }
+  .night-link small { display: block; margin-top: 2px; font-size: 12px; color: #c3cbe2; }
+  .night-link .nl-go { margin-left: auto; font-size: 20px; color: #ffd38a; }
   .card > h2 { margin: 0 0 12px; font-size: 18px; font-weight: 900; letter-spacing: -0.02em; }
   .card > h2 small { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-left: 4px; letter-spacing: 0; }
 
@@ -272,6 +278,8 @@
     <p>아직 산책 기록이 없어요.<br>산책을 다녀오면 영수증이 한 장씩 쌓여요.</p>
     <a class="btn-main" href="go.html">산책 나가기</a>
   </div>
+
+  <a class="card night-link" href="night.html"><span class="nl-sky" aria-hidden="true">✦</span><span><b>밤하늘로 보기</b><small>켜고 걸은 날마다 별 하나 — 이번 달 하늘과 별 목록</small></span><span class="nl-go" aria-hidden="true">›</span></a>
 
   <!-- ① 이달 산책 기록 리포트 -->
   <section class="card" id="report-card" hidden>

@@ -638,7 +638,7 @@
 
   window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, perDay: starsPerDay, MIN: MIN, MILKY: MILKY, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
     starName: starName, countText: countText, goalText: goalText, thumb: thumb, open: open, card: card, todOf: todOf,
-    dayCard: dayCard, openDay: openDay,
+    dayCard: dayCard, openDay: openDay, dogId: dogId, dogName: dogName, fmtDay: fmtDay, milestone: milestone,
     // 3D 하늘(sky.html)이 같이 쓰는 것
     sky: sky, encode: encode, decode: decode, shareUrl: shareUrl, shapePoints: shapePoints, shapeEdges: shapeEdges, starSize: starSize,
     rng: rng, SkyCanvas: Sky, MET_C: MET_C, brand: brand, appUrl: appUrl };

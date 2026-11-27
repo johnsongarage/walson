@@ -246,7 +246,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=15"></script>
-<script src="walk-stars.js?v=5"></script>
+<script src="walk-stars.js?v=6"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=5"></script>
 <script src="mock-server.js?v=2"></script>
@@ -381,7 +381,7 @@
       d.classList.add('is-star');
       // 오늘의 산책 별 카드(11/27 1번) — 카드에서 [하늘에서 보기]로 아지트 창가
       var a = document.createElement('a');
-      a.href = 'azit.html' + (r.got ? '?sky=new' : ''); a.textContent = '오늘의 산책 별 ›';
+      a.href = 'night.html' + (r.got ? '?new=1' : ''); a.textContent = '오늘의 산책 별 ›';   // 카드의 [하늘에서 보기] = 밤하늘 화면(11/27 3단계)
       if (S.openDay && r.date) a.addEventListener('click', function (e) { if (S.openDay(r.date, { skyLink: a.getAttribute('href') })) e.preventDefault(); });
       d.querySelector('small').appendChild(a);
     }

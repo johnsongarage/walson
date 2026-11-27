@@ -452,7 +452,7 @@
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=5"></script>
+<script src="walk-stars.js?v=6"></script>
 <script>
 (function () {
   'use strict';
@@ -1806,8 +1806,9 @@
     var S = WalsonStars, m = S.month(), n = m.stars.length;
     row.hidden = false;
     $('sky-t').textContent = '✦ 창가 별자리 · ' + S.starName();
-    $('sky-s').textContent = n ? (m.full ? '이번 달 별자리가 눈을 떴어요' : '산책하면 별이 하나씩 — ' + (S.GOAL - n) + '개 더 뜨면 얼굴 완성')
-      : '창밖에 우리가 만난 날 별이 떴어요 · 산책하면 첫 별';
+    // 11/27 날 기준 — 켜고 걸은 날마다 별 하나, 보름이면 얼굴 완성 · 25일 은하수 · 하루도 안 빠지면 보름달
+    $('sky-s').textContent = n ? (S.milestone && S.milestone(m) ? '이번 달 ' + S.milestone(m) + ' · 창문 너머 밤하늘로' : '켜고 걸은 날마다 별 하나 — 보름까지 ' + (S.GOAL - m.days) + '일')
+      : '창밖에 우리가 만난 날 별이 떴어요 · [산책 시작]하고 걸으면 첫 별';
     $('sky-n').textContent = n + ' / ' + S.GOAL;
     row.classList.toggle('new', skyFresh);
     S.thumb($('skythumb'));
@@ -1819,7 +1820,8 @@
       if (skyFresh) { skyFresh = false; $('skyrow').classList.remove('new'); try { history.replaceState(null, '', location.pathname); } catch (e) { /* 주소 정리 못 해도 그대로 */ } }
     } });
   }
-  $('skyrow').addEventListener('click', function () { openSky(false); });
+  // 11/27 [밤하늘] 3단계 — 창문을 누르면 밤하늘 화면으로(산책 끝 ?sky=new·받은 하늘 ?sky=mine은 예전처럼 여기서 큰 하늘 판)
+  $('skyrow').addEventListener('click', function () { location.href = 'night.html'; });
 
   function ui() {
     var o = cur, walker = ga(myName || '우리 개');

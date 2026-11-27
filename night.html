@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>밤하늘</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="왈슨">
+<meta name="theme-color" content="#0e1430">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* [밤하늘](2026-11-27 가르시아 기획 평가 검토 → "기록도 밤하늘로 바꾸는 게 통일감 있어 보여" → "기록은 남기자, 밤하늘에 이 기능을 구현해 보고 뺄 수 있으면 빼자" ·
+     "순서대로 진행하자" — 3단계, hq DECISIONS 11/27). 산책 기록을 숫자 대신 밤하늘로 만나는 화면:
+     이번 달 하늘(별 = 켜고 걸은 날, 누르면 그날의 산책 별 카드) · 지난달 넘기기 · 보름·은하수·보름달 · 접힌 "이번 달 숫자"(결산) · 접힌 "별 목록"(산책 목록).
+     별 규칙·그리기는 walk-stars.js 한 곳. [기록](walk-history.html)은 그대로 — 꾸준함 도장판·응가 달력·최근 7일은 아직 거기만.
+     화면 색은 밤하늘이라 테마와 상관없이 늘 어두운 남색(탭 막대만 화면 색). 아무것도 밖으로 보내지 않는다. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: #eef1fb;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(var(--tabbar-h, 58px) + 28px); min-height: 100vh; }
+  /* theme.js가 화면 색 바탕·강아지 무늬를 body에 깔아서 — 밤하늘 화면은 늘 남색으로 덮는다 */
+  html body.night, html.has-pattern body.night { background: #0e1430 linear-gradient(180deg, #0b1029 0%, #121a3d 55%, #1b1548 100%) fixed !important; color: #eef1fb; }
+  .wrap { max-width: 470px; margin: 0 auto; }
+  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .head h1 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.2; color: #fff; word-break: keep-all; }
+  .head .sub { margin: 3px 0 0; font-size: 12px; color: #aab3d4; }
+  .to-rec { flex: none; font-size: 12px; font-weight: 800; color: #ffd38a; text-decoration: none; padding: 6px 10px; border: 1px solid rgba(255, 211, 138, .4); border-radius: 999px; }
+  .months { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 8px; }
+  .months b { font-size: 16px; font-weight: 900; color: #ffd38a; }
+  .months button { width: 40px; height: 36px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: #fff; font: inherit; font-size: 18px; cursor: pointer; }
+  .months button:disabled { opacity: .25; cursor: default; }
+  .sky { position: relative; border-radius: 20px; overflow: hidden; background: #0b0a24; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .sky canvas { display: block; width: 100%; cursor: pointer; touch-action: manipulation; }
+  .sky .hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: 11px; font-weight: 800; color: #ffd1e6;
+    background: rgba(20,16,50,.6); padding: 4px 9px; border-radius: 999px; pointer-events: none; white-space: nowrap; }
+  .pop { position: absolute; max-width: 210px; font-size: 12px; line-height: 1.4; color: #fff; background: rgba(20,16,50,.9); border: 1px solid rgba(255,255,255,.18);
+    padding: 6px 9px; border-radius: 10px; pointer-events: none; }
+  .goal { margin: 12px 2px 8px; font-size: 14px; line-height: 1.5; font-weight: 700; color: #fff; word-break: keep-all; }
+  .miles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mile { border-radius: 14px; padding: 9px 8px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); text-align: center; }
+  .mile b { display: block; font-size: 13px; font-weight: 900; color: #fff; }
+  .mile small { display: block; margin-top: 2px; font-size: 11px; color: #aab3d4; }
+  .mile.on { background: rgba(255, 211, 138, .14); border-color: rgba(255, 211, 138, .55); }
+  .mile.on b { color: #ffd38a; }
+  .fold { margin-top: 10px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
+  .fold summary { list-style: none; cursor: pointer; padding: 12px 14px; font-size: 14px; font-weight: 800; display: flex; align-items: baseline; gap: 6px; }
+  .fold summary::-webkit-details-marker { display: none; }
+  .fold summary::after { content: '▸'; margin-left: auto; color: #aab3d4; }
+  .fold[open] summary::after { content: '▾'; }
+  .fold summary small { font-size: 12px; font-weight: 700; color: #aab3d4; }
+  .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 12px; }
+  .num { border-radius: 12px; background: rgba(255,255,255,.05); padding: 10px; }
+  .num b { display: block; font-size: 17px; font-weight: 900; color: #ffd38a; }
+  .num small { display: block; margin-top: 2px; font-size: 12px; color: #c3cbe2; }
+  .num.wide { grid-column: 1 / -1; }
+  .num button { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .list { list-style: none; margin: 0; padding: 0 8px 8px; }
+  .list li button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 8px; border: 0; border-top: 1px solid rgba(255,255,255,.07);
+    background: none; color: #eef1fb; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+  .list li:first-child button { border-top: 0; }
+  .list .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+  .list .d { flex: none; min-width: 74px; font-weight: 800; }
+  .list .m { color: #c3cbe2; }
+  .list .go { margin-left: auto; color: #ffd38a; font-weight: 800; }
+  .acts { display: flex; gap: 8px; margin-top: 14px; }
+  .acts button { flex: 1; min-height: 46px; border-radius: 12px; border: 0; background: #2b3358; color: #fff; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .acts button.main { background: #ff5c9d; }
+  .threed { display: block; margin-top: 10px; padding: 13px 14px; border-radius: 12px; background: #17123f; border: 1px solid rgba(255, 209, 230, .25);
+    color: #ffd1e6; font-weight: 900; font-size: 15px; text-decoration: none; text-align: center; }
+  .empty { margin-top: 12px; padding: 14px; border-radius: 14px; background: rgba(255, 92, 157, .12); border: 1px solid rgba(255, 92, 157, .35); font-size: 13px; line-height: 1.55; }
+  .empty a { display: inline-block; margin-top: 8px; padding: 10px 16px; border-radius: 12px; background: #ff5c9d; color: #fff; font-weight: 800; text-decoration: none; }
+  .note { margin: 14px 2px 0; font-size: 12px; line-height: 1.55; color: #8f99bd; word-break: keep-all; }
+  .note a { color: #ffd38a; font-weight: 800; }
+  .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h, 58px) + 18px); transform: translateX(-50%); z-index: 1200; max-width: calc(100vw - 32px);
+    background: #fff; color: #1b1d33; padding: 10px 14px; font-size: 13px; line-height: 1.45; border-radius: 10px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+</style>
+<script src="store.js?v=2"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
+<script src="site-config.js?v=11"></script>
+<script src="inapp.js?v=5"></script>
+<script src="install.js?v=1"></script>
+<script src="track.js?v=10"></script>
+</head>
+<body class="night">
+<main class="wrap">
+  <header class="head">
+    <div><h1 id="title">우리 개 밤하늘</h1><p class="sub" id="sub"></p></div>
+    <a class="to-rec" href="walk-history.html">숫자 기록 ›</a>
+  </header>
+  <nav class="months" aria-label="달 고르기">
+    <button type="button" id="prev" aria-label="지난달">‹</button>
+    <b id="ym" aria-live="polite"></b>
+    <button type="button" id="next" aria-label="다음 달">›</button>
+  </nav>
+  <div class="sky" id="skybox">
+    <canvas id="sky" role="img" aria-label="이번 달 별자리 하늘 — 별을 누르면 그날의 산책 별"></canvas>
+    <span class="hint" id="hint">별을 누르면 그날의 산책 별</span>
+  </div>
+  <p class="goal" id="goal"></p>
+  <div class="miles" id="miles" aria-label="이번 달 이정표"></div>
+  <div class="empty" id="empty" hidden></div>
+  <details class="fold" id="nums-fold">
+    <summary>이번 달 숫자 <small id="nums-sum"></small></summary>
+    <div class="nums" id="nums"></div>
+  </details>
+  <details class="fold" id="list-fold">
+    <summary>별 목록 <small id="list-n"></small></summary>
+    <ul class="list" id="list"></ul>
+  </details>
+  <div class="acts"><button type="button" id="save">이달의 별자리 저장</button><button type="button" id="share" class="main">공유</button></div>
+  <a class="threed" href="sky.html">✦ 하늘을 3D로 둘러보기 ›</a>
+  <p class="note">별은 [산책 시작]을 누르고 5분 넘게 걸은 날마다 하나씩 떠요. 같은 날 또 걸으면 그 별이 밝아져요.
+    꾸준함 도장판·응가 달력은 <a href="walk-history.html">숫자 기록</a>에 있어요.</p>
+</main>
+<script src="reward-rules.js?v=15"></script>
+<script src="azit-room.js?v=22"></script>
+<script src="save-image.js?v=4"></script>
+<script src="walk-stars.js?v=6"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.WalsonStars, $ = function (id) { return document.getElementById(id); };
+  if (!S) return;
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymOf(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
+  function ymBack(ym, b) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 - b; while (m < 0) { m += 12; y--; } return y + '-' + pad2(m + 1); }
+  function ymText(ym) { return ym.slice(0, 4) + '년 ' + Number(ym.slice(5, 7)) + '월'; }
+  function hm(min) { min = Math.round(min); return min >= 60 ? Math.floor(min / 60) + '시간' + (min % 60 ? ' ' + (min % 60) + '분' : '') : min + '분'; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  var TOD_CSS = { '아침': '#ffd24a', '낮': '#ffe58a', '저녁': '#ff9cc6', '밤': '#a7cdff' };
+
+  // 넘겨 볼 달 — 이번 달(별이 없어도)과 지난 11달 중 별이 있는 달. months[0] = 이번 달
+  var thisYm = ymOf(new Date()), months = [];
+  for (var b = 0; b < 12; b++) { var y = ymBack(thisYm, b); if (!b || S.month(null, y).days) months.push(y); }
+  var idx = 0, fresh = /[?&]new=1\b/.test(location.search);
+  var cv = $('sky'), box = $('skybox'), sky = null, st = null, raf = 0, popEl = null, dpr = 1, cw = 0;
+  var who = S.dogName() || '우리 개';
+  $('title').textContent = who + '의 밤하늘';
+  S.metDay();
+
+  function frame(now) { raf = 0; if (!sky) return; var moving = sky.draw(cv.getContext('2d'), now); raf = requestAnimationFrame(frame); return moving; }
+  function show(i, isFresh) {
+    idx = i;
+    var ym = months[i], m = S.month(null, ym);
+    st = { dog: S.dogId(), stars: m.stars, over: m.over, milky: m.milky, moon: m.moon, fresh: isFresh && m.days ? performance.now() + 350 : 0, m: m };
+    dpr = Math.min(3, window.devicePixelRatio || 1); cw = box.clientWidth || 360;
+    var ch = Math.round(cw * 1.05);
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); cv.style.height = ch + 'px';
+    sky = new S.SkyCanvas(cv.width, cv.height, dpr, st);
+    if (!raf) raf = requestAnimationFrame(frame);
+    if (popEl) { popEl.remove(); popEl = null; }
+    // 글자
+    $('ym').textContent = ymText(ym) + (i === 0 ? ' · 이번 달' : '');
+    $('prev').disabled = i >= months.length - 1; $('next').disabled = i <= 0;
+    $('sub').textContent = S.starName() + ' · ' + S.countText(m) + (S.milestone(m) ? ' · ' + S.milestone(m) : '');
+    $('goal').textContent = i === 0 ? S.goalText(m) : (S.milestone(m) ? ymText(ym) + ' — ' + S.milestone(m) + '. ' : ymText(ym) + ' — ') + m.days + '일 함께 걸었어요.';
+    var miles = [['보름', Math.min(m.days, S.GOAL) + ' / ' + S.GOAL + '일', m.full], ['은하수', Math.min(m.days, S.MILKY) + ' / ' + S.MILKY + '일', m.milky], ['보름달', m.days + ' / ' + m.dim + '일', m.allDays]];
+    $('miles').innerHTML = miles.map(function (x) { return '<div class="mile' + (x[2] ? ' on' : '') + '"><b>' + (x[2] ? '✓ ' : '') + x[0] + '</b><small>' + x[1] + '</small></div>'; }).join('');
+    // 이번 달 숫자(결산) — 별이 된 날 + 그 달 산책 전부(다녀와서 적은 산책·5분 미만 포함)
+    var all = m.stars.concat(m.over), walks = (WalsonStore.walks() || []).filter(function (w) { return w && typeof w.date === 'string' && w.date.slice(0, 7) === ym; });
+    var totMin = 0, totKm = 0, after = 0, best = null;
+    walks.forEach(function (w) { totMin += Number(w.durationMin) || 0; totKm += Number(w.distanceKm) || 0; if (w.logged === 'after') after++; });
+    all.forEach(function (s) { if (!best || s.min > best.min) best = s; });
+    $('nums-sum').textContent = walks.length ? '산책 ' + walks.length + '번 · ' + hm(totMin) : '아직 없어요';
+    $('nums').innerHTML = !walks.length ? '<div class="num wide"><small>이 달엔 산책 기록이 없어요.</small></div>' :
+      '<div class="num"><b>' + m.days + '일</b><small>별이 뜬 날(켜고 걸은 날)</small></div>' +
+      '<div class="num"><b>' + walks.length + '번</b><small>산책' + (after ? ' · 다녀와서 적은 ' + after + '번 포함' : '') + '</small></div>' +
+      '<div class="num"><b>' + hm(totMin) + '</b><small>함께 걸은 시간</small></div>' +
+      '<div class="num"><b>' + (totKm >= 0.05 ? (Math.round(totKm * 10) / 10) + 'km' : '—') + '</b><small>걸은 거리(길을 잰 산책만)</small></div>' +
+      (best ? '<div class="num wide"><b><button type="button" data-day="' + best.date + '">' + esc(S.fmtDay(best.date)) + ' · ' + hm(best.min) + '</button></b><small>가장 오래 함께 걸은 날</small></div>' : '');
+    // 별 목록(산책 목록) — 날짜 순, 누르면 그날의 산책 별
+    $('list-n').textContent = all.length ? all.length + '개' : '';
+    $('list').innerHTML = all.length ? all.slice().reverse().map(function (s) {
+      var d = new Date(+s.date.slice(0, 4), +s.date.slice(5, 7) - 1, +s.date.slice(8, 10)), t = S.todOf(s.h).name;
+      return '<li><button type="button" data-day="' + s.date + '"><span class="dot" style="color:' + (TOD_CSS[t] || '#fff') + ';background:' + (TOD_CSS[t] || '#fff') + '"></span>' +
+        '<span class="d">' + Number(s.date.slice(8, 10)) + '일 (' + DOW[d.getDay()] + ')</span><span class="m">' + t + ' · ' + hm(s.min) + (s.km >= 0.05 ? ' · ' + (Math.round(s.km * 10) / 10) + 'km' : '') + (s.n > 1 ? ' · ' + s.n + '번' : '') + '</span><span class="go">›</span></button></li>';
+    }).join('') : '<li style="padding:4px 8px 10px;font-size:13px;color:#aab3d4">아직 뜬 별이 없어요.</li>';
+    // 처음(별 없음) 안내
+    var e = $('empty');
+    if (i === 0 && !m.days) {
+      e.hidden = false;
+      e.innerHTML = '왼쪽 위 분홍 별은 우리가 만난 날 별이에요. [산책 시작]을 누르고 5분 넘게 걸으면 이 하늘에 첫 별이 떠요.<br><a href="go.html">산책 나가기</a>';
+    } else e.hidden = true;
+    $('hint').hidden = !all.length;
+  }
+
+  // 별 누르기 → 그날의 산책 별(만난 날 별은 말풍선)
+  cv.addEventListener('click', function (e) {
+    if (!sky || !st) return;
+    var rc = cv.getBoundingClientRect(), x = (e.clientX - rc.left) * cv.width / rc.width, y = (e.clientY - rc.top) * cv.height / rc.height;
+    var all = st.stars.concat(st.over), best = -2, bd = 26 * dpr;
+    if (Math.hypot(sky.met.x - x, sky.met.y - y) < bd) { best = -1; bd = Math.hypot(sky.met.x - x, sky.met.y - y); }
+    for (var i = 0; i < all.length; i++) { var p = sky.pos(i), d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = i; } }
+    if (popEl) { popEl.remove(); popEl = null; }
+    if (best >= 0) { S.openDay(all[best].date); return; }
+    if (best === -1) {
+      popEl = document.createElement('div'); popEl.className = 'pop';
+      popEl.innerHTML = '<b>우리가 만난 날 별</b><br>' + esc(S.fmtDay(S.metDay())) + ' — 왈슨에서 처음 만난 날';
+      box.appendChild(popEl);
+      popEl.style.left = Math.max(6, Math.min(cw - 216, sky.met.x / dpr - 20)) + 'px'; popEl.style.top = (sky.met.y / dpr + 16) + 'px';
+      setTimeout(function () { if (popEl) { popEl.remove(); popEl = null; } }, 3200);
+    }
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest && e.target.closest('[data-day]');
+    if (t) S.openDay(t.getAttribute('data-day'));
+  });
+  $('prev').addEventListener('click', function () { if (idx < months.length - 1) show(idx + 1, false); });
+  $('next').addEventListener('click', function () { if (idx > 0) show(idx - 1, false); });
+  function toast(msg) { var t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2600); }
+  function shareCard(kind) {
+    if (!st || !window.WalsonSave) return;
+    var m = st.m, c = S.card({ st: st }), file = 'walson-sky-' + m.ym + '.png';
+    if (kind === 'save') WalsonSave.save(c, file);
+    else WalsonSave.share(c, file, who + '와 ' + Number(m.ym.slice(5, 7)) + '월 산책 별자리 ' + Math.min(m.days, S.GOAL) + '/' + S.GOAL + ' ✦\n' + S.brand().name + ' — ' + S.brand().tagline + '\n' + S.appUrl());
+  }
+  $('save').addEventListener('click', function () { shareCard('save'); });
+  $('share').addEventListener('click', function () { shareCard('share'); });
+  var rt = 0;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (Math.abs((box.clientWidth || 0) - cw) > 2) show(idx, false); }, 150); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && raf) { cancelAnimationFrame(raf); raf = 0; } else if (!document.hidden && !raf && sky) raf = requestAnimationFrame(frame); });
+  show(0, fresh);
+  if (fresh) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* 그대로 */ } if (st && st.m.days) toast('오늘 별이 떴어요 ✦'); }
+  window.__night = { show: show, months: months, state: function () { return st; } };   // 시험용
+})();
+</script>
+<script src="tabbar.js?v=11" data-tab="history"></script>
+</body>
+</html>
