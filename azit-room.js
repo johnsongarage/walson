@@ -28,11 +28,17 @@
     { id: 'cocker',         breed: '코카스파니엘', fur: '#d9a868', sizes: 'm' },
     { id: 'chihuahua_long', breed: '장모 치와와',  fur: '#ecd3a8', sizes: 's' },
     { id: 'bichon',         breed: '비숑',         fur: '#f3f0ea', sizes: 's' },
-    { id: 'golden',         breed: '골든 리트리버', fur: '#e2b45c', sizes: 'l' }
+    { id: 'golden',         breed: '골든 리트리버', fur: '#e2b45c', sizes: 'l' },
+    { id: 'schnauzer',      breed: '슈나우저',     fur: '#8a8a8c', sizes: 'sm' },
+    { id: 'frenchie',       breed: '프렌치불독',   fur: '#e3c497', sizes: 'sm' },
+    { id: 'sheltie',        breed: '셔틀랜드 쉽독', fur: '#c8762e', sizes: 'm' },
+    { id: 'bedlington',     breed: '베들링턴 테리어', fur: '#d4dbe2', sizes: 'm' },
+    { id: 'maltipoo',       breed: '말티푸',       fur: '#f2ece0', sizes: 's' }
   ];
   // 프로필 견종 글자 → 도트 강아지(처음 한 번 — 아지트에서 언제든 바꿀 수 있다). 위에서부터 먼저 맞는 것
   var BREED_RULES = [
-    [/말티푸|maltipoo/i, 'poodle'], [/포메|pomeranian/i, 'pom'], [/푸들|poodle/i, 'poodle'],
+    [/말티푸|maltipoo/i, 'maltipoo'], [/슈나우저|schnauzer/i, 'schnauzer'], [/프렌치|프불|french|불독|bulldog/i, 'frenchie'],
+    [/셸티|쉘티|셔틀랜드|sheltie|shetland|콜리|collie/i, 'sheltie'], [/베들링턴|bedlington/i, 'bedlington'], [/포메|pomeranian/i, 'pom'], [/푸들|poodle/i, 'poodle'],
     [/비숑|bichon/i, 'bichon'], [/스피츠|spitz|사모예드|samoyed/i, 'spitz'], [/코카|cocker|스패?니엘|spaniel/i, 'cocker'],
     [/골든|golden|리트리버|retriever|래브라도|labrador/i, 'golden'],
     [/(장모|롱코트|long).*(치와와|chihuahua)|(치와와|chihuahua).*(장모|롱코트|long)/i, 'chihuahua_long'],
@@ -600,7 +606,7 @@
     guessDog: guessDog, dogFromBreed: dogFromBreed, myDog: myDog,
     loadState: loadState, saveState: saveState, unlockedItems: unlockedItems, hasItem: hasItem, isLive: isLive, placedItems: placedItems, accOn: accOn,
     snapshot: snapshot, mySnapshot: mySnapshot, parseRoom: parseRoom, todayKey: todayKey,
-    dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=5'; },
-    dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=5'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
+    dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=6'; },
+    dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=6'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
   };
 })();
