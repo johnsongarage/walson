@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>산책 캡슐 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 산책 캡슐 시안(2026-11-27 가르시아 "가챠에 대해서 내 앱이나 홍보에 넣을 거 아이디어 — 마케터 말로는 사은품을 주더라도 까 보는 재미를"
+     → Claude 추천 "앱 산책 캡슐 + 행사 캡슐 키링 뽑기를 같은 캡슐 모양으로" → "만들어봐").
+     ① 앱: 산책을 끝내면 캡슐 하나 — 톡 돌리고 톡 열기. 안에는 늘 계절 재료 하나 + 우리 개 한마디, 가끔(20번에 1번) 날짜 새긴 기념 메달.
+        같은 재료가 겹치면 버리지 않고 쌓여서 다섯 개면 방 소품(리스)을 만든다 — 동물의 숲 '줍기 → 만들기' 구조만 빌림(그림·이름은 왈슨 것).
+        재료는 실제 산책의 날짜·시간대·걸은 분·계절에서만 — 장소·길 모양은 안 씀. 돈 받고 뽑지 않는다. 확률은 화면에 그대로 적는다.
+     ② 홍보: 캡슐 안에 넣는 쪽지(55×55mm) 아홉 가지 — 8견종 + 시크릿(왈슨 강아지). 키링은 같아도 쪽지는 진짜로 다르다
+        ("다양한 척"은 속이는 광고가 될 수 있어서, 다양함을 돈 안 드는 쪽지에 둔다). 홍보물 규칙대로 WALSON + 문구 두 줄(site-config brand).
+        쪽지 QR은 왈슨이 직접 내놓는 링크(왈슨 첫 화면) — QR 원칙에서 허용하는 쪽.
+     주소로만 여는 시안 — 아무것도 저장·전송하지 않는다(모은 재료는 이 화면을 닫으면 사라짐). */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink, #2a2026);
+    background: var(--bg, #fffdfd); padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; color: var(--accent, #ff5c9d); }
+  h2.sec { font-size: 16px; margin: 24px 0 6px; }
+  .lead, .sub { font-size: 13px; line-height: 1.55; color: var(--ink-soft, #6f6168); margin: 0 0 12px; word-break: keep-all; }
+  .box { position: relative; border: 2px solid var(--line, #2a2026); box-shadow: 3px 3px 0 var(--line, #2a2026); background: var(--panel, #fff); }
+  .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .row > span { font-size: 12px; color: var(--ink-soft, #6f6168); min-width: 56px; }
+  .chip, .btn { font: inherit; font-size: 12.5px; color: var(--ink, #2a2026); background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    padding: 5px 9px; cursor: pointer; box-shadow: 2px 2px 0 var(--line, #2a2026); }
+  .chip[aria-pressed="true"], .btn.main { background: var(--accent, #ff5c9d); color: var(--hl-ink, #fff); }
+  .btn { font-weight: 800; padding: 9px 14px; font-size: 14px; }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .chip:active, .btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--line, #2a2026); }
+  .stage { height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+  .hint { font-size: 13px; font-weight: 800; margin-top: 6px; min-height: 18px; color: var(--ink-soft, #6f6168); }
+  #cap { width: 128px; height: 150px; cursor: pointer; touch-action: manipulation; }
+  #cap.idle { animation: bob 1.6s ease-in-out infinite; }
+  #cap .half { transform-origin: 60px 72px; }
+  #cap.twist #capTop { animation: twist 0.55s ease-in-out; }
+  #cap.twist { animation: shake 0.55s ease-in-out; }
+  #cap.open #capTop { animation: popTop 0.5s ease-out forwards; }
+  #cap.open #capBot { animation: dropBot 0.5s ease-in forwards; }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+  @keyframes twist { 25% { transform: rotate(-22deg); } 55% { transform: rotate(16deg); } 80% { transform: rotate(-6deg); } }
+  @keyframes shake { 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+  @keyframes popTop { to { transform: translate(-30px, -70px) rotate(-40deg); opacity: 0; } }
+  @keyframes dropBot { to { transform: translate(20px, 60px) rotate(20deg); opacity: 0; } }
+  .burst { position: absolute; left: 50%; top: 45%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 230, 140, 0.95), rgba(255, 92, 157, 0.35) 55%, rgba(255, 92, 157, 0) 70%); opacity: 0; }
+  .burst.go { animation: burst 0.6s ease-out; }
+  @keyframes burst { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(14); } }
+  .result { display: none; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 4px 12px; }
+  .result.show { display: flex; animation: pop 0.35s ease-out; }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
+  .result canvas { width: 72px; height: 72px; image-rendering: pixelated; }
+  .result .name { font-size: 16px; font-weight: 900; }
+  .result .cnt { font-size: 12px; color: var(--ink-soft, #6f6168); }
+  .say { font-size: 13px; line-height: 1.5; background: var(--bg, #fffdfd); border: 2px solid var(--line, #2a2026); padding: 6px 10px; max-width: 300px; word-break: keep-all; }
+  .medal { font-size: 12.5px; font-weight: 800; color: var(--accent, #ff5c9d); }
+  .inv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+  .slot { text-align: center; font-size: 12px; }
+  .slot canvas { width: 40px; height: 40px; image-rendering: pixelated; display: block; margin: 0 auto 2px; }
+  .bar { height: 6px; border: 1.5px solid var(--line, #2a2026); margin: 4px 6px; }
+  .bar i { display: block; height: 100%; background: var(--accent, #ff5c9d); }
+  .slot .btn { font-size: 12px; padding: 4px 8px; margin-top: 4px; }
+  .room { display: flex; gap: 10px; flex-wrap: wrap; padding: 10px; min-height: 64px; align-items: center; }
+  .room .empty { font-size: 12px; color: var(--ink-soft, #6f6168); }
+  .made { text-align: center; font-size: 11.5px; }
+  .made canvas { width: 72px; height: 72px; image-rendering: pixelated; display: block; }
+  .odds { font-size: 12px; line-height: 1.6; color: var(--ink-soft, #6f6168); margin: 8px 0 0; word-break: keep-all; }
+  .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .notes canvas { width: 100%; aspect-ratio: 1; display: block; border: 1px solid var(--line, #2a2026); }
+  .note { font-size: 13px; line-height: 1.65; word-break: keep-all; background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    box-shadow: 3px 3px 0 var(--line, #2a2026); padding: 10px 12px; margin: 14px 0; }
+  .note h3 { font-size: 15px; margin: 0 0 4px; }
+  .note ul { margin: 0; padding-left: 18px; }
+  .note li + li { margin-top: 3px; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
+<script src="site-config.js?v=12"></script>
+<script src="canvas-view.js?v=1"></script>
+<script src="vendor/qrcode/qrcode.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>산책 캡슐 시안</h1>
+  <p class="lead">산책을 끝내면 캡슐 하나 — 톡 돌리고 톡 열어요. 같은 재료가 겹쳐도 쌓여서 다섯 개면 방 소품이 돼요.
+    아래는 행사 때 캡슐 키링에 같이 넣을 쪽지예요. 앱과 행사가 같은 캡슐 모양이에요.</p>
+
+  <h2 class="sec">① 앱 — 산책 끝 캡슐</h2>
+  <div class="row"><span>산책</span>
+    <button type="button" class="chip" data-k="min" data-v="10">10분</button>
+    <button type="button" class="chip" data-k="min" data-v="30">30분</button>
+    <button type="button" class="chip" data-k="min" data-v="50">50분</button></div>
+  <div class="row"><span>시간대</span>
+    <button type="button" class="chip" data-k="tod" data-v="morning">아침</button>
+    <button type="button" class="chip" data-k="tod" data-v="day">낮</button>
+    <button type="button" class="chip" data-k="tod" data-v="evening">저녁</button>
+    <button type="button" class="chip" data-k="tod" data-v="night">밤</button></div>
+  <div class="row"><span>계절</span>
+    <button type="button" class="chip" data-k="season" data-v="fall">가을</button>
+    <button type="button" class="chip" data-k="season" data-v="winter">겨울</button></div>
+  <div class="row"><button type="button" class="btn main" id="walk">산책 끝내기 → 캡슐 받기</button></div>
+
+  <div class="box stage" id="stage">
+    <svg id="cap" viewBox="0 0 120 140" aria-label="산책 캡슐 — 눌러서 열기" role="button" style="display:none">
+      <ellipse cx="60" cy="132" rx="34" ry="5" fill="rgba(70,25,10,0.18)"/>
+      <g class="half" id="capBot">
+        <path d="M18 72 A42 42 0 0 0 102 72 Z" fill="#fffaf5" stroke="#3a2b2e" stroke-width="3"/>
+        <path d="M30 90 A30 30 0 0 0 52 106" fill="none" stroke="#f1e3d6" stroke-width="5" stroke-linecap="round"/>
+      </g>
+      <g class="half" id="capTop">
+        <path d="M18 72 A42 42 0 0 1 102 72 Z" fill="#ff5c9d" stroke="#3a2b2e" stroke-width="3"/>
+        <path d="M34 52 A28 28 0 0 1 56 38" fill="none" stroke="#ffb3cf" stroke-width="6" stroke-linecap="round"/>
+        <rect x="14" y="68" width="92" height="8" rx="3" fill="#ffd9e8" stroke="#3a2b2e" stroke-width="3"/>
+      </g>
+    </svg>
+    <div class="burst" id="burst"></div>
+    <div class="result" id="result" aria-live="polite">
+      <canvas id="resIcon" width="12" height="12"></canvas>
+      <div class="name" id="resName"></div>
+      <div class="cnt" id="resCnt"></div>
+      <div class="say" id="resSay"></div>
+      <div class="medal" id="resMedal"></div>
+    </div>
+    <div class="hint" id="hint">산책을 끝내면 캡슐이 와요</div>
+  </div>
+  <p class="odds" id="odds"></p>
+
+  <h2 class="sec">모은 재료</h2>
+  <div class="box inv" id="inv"></div>
+  <h2 class="sec">방에 놓인 것</h2>
+  <div class="box room" id="room"><span class="empty">재료 다섯 개로 만들면 여기 놓여요 — 실제 앱에선 [아지트] 방에</span></div>
+  <div class="row" style="margin-top:8px"><button type="button" class="chip" id="medalTry">기념 메달 나오게 해 보기(시안용)</button></div>
+
+  <h2 class="sec">② 홍보 — 캡슐 쪽지(55×55mm)</h2>
+  <p class="sub">행사·카페 카운터의 캡슐 키링에 한 장씩. 키링은 같아도 쪽지는 아홉 가지(8견종 + 시크릿 왈슨 강아지)라 진짜로 달라요. 꽝 없음.
+    QR은 왈슨 첫 화면으로 가요(왈슨이 직접 내놓는 링크).</p>
+  <div class="notes" id="notes"></div>
+  <div class="row" style="margin-top:10px"><button type="button" class="btn" id="save">쪽지 아홉 장 한 장으로 저장(PNG)</button></div>
+
+  <div class="note">
+    <h3>지킬 것</h3>
+    <ul>
+      <li>돈 받고 뽑게 하지 않아요 — 산책해서 얻거나 행사에서 그냥 받는 것만(유료 무작위 뽑기는 확률형 아이템·사행성 문제).</li>
+      <li>확률은 그대로 적어요. 시크릿이 있다고 하면 정말 넣어요(예: 쪽지 묶음 20장에 1장) — "다양한 척"은 속이는 광고가 될 수 있어요.</li>
+      <li>돈 드는 것(키링·간식)은 확인된 산책에만 — 직원이 강아지를 보고 건네는 식(11/15 결정).</li>
+      <li>앱 캡슐 재료는 날짜·시간대·걸은 분·계절에서만 — 장소·길 모양은 안 써요(집 위치가 드러나서).</li>
+      <li>안 나간 날 벌은 없어요. 캡슐은 쌓이지 않고, 산책하면 그날 하나.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <h3>앱에 넣으려면</h3>
+    <ul>
+      <li>산책 끝 화면(walk-end) 영수증 다음에 캡슐 한 번 — 재료·메달은 이 휴대폰에 저장(아지트 소품과 같은 곳).</li>
+      <li>[아지트]에 만든 리스를 벽에 걸기(새 소품 칸 하나), 메달은 선반에.</li>
+      <li>재료 그림은 지금 점으로 찍은 임시 그림 — 받으면 제미나이로 같은 화풍 재료 여섯 개(가을 셋·겨울 셋)를 다시 받아요.</li>
+    </ul>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var BRAND = (window.WALSON_CONFIG && window.WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
+  var SITE = 'https://johnsongarage.co.kr/walson/';
+
+  // ── 재료 그림(12×12 점, 임시) — 글자 하나 = 점 하나, '.'은 빈칸 ──
+  var PAL = { K: '#3a2b2e', r: '#e0503c', o: '#f39a45', y: '#f2c230', Y: '#d39a12', s: '#7a4a26', c: '#8a5a32', C: '#5f3a1e',
+    b: '#c98b4e', B: '#a8693a', p: '#a5703f', P: '#6e4220', w: '#7cc0ee', W: '#d8eeff', R: '#d8323c', g: '#4f9a4a' };
+  var ART = {
+    maple: ['.....K......', '....KrK.....', '.K..KoK..K..', 'KrK.KrrK.KrK', 'KrrKrorrKrrK', '.KrrrorrrrK.', '..KrrorrrK..', '.KrrrorrrrK.',
+      'KKKrrorrrKKK', '...KKorKK...', '.....Ks.....', '.....s......'],
+    ginkgo: ['............', '.KKKKKKKKK..', 'KyyyyKyyyyK.', 'KyYyyKyyYyK.', '.KyyyyyyyK..', '.KyyyYyyyK..', '..KyyyyyK...', '...KyYyK....',
+      '....KyK.....', '.....s......', '.....s......', '.....s......'],
+    acorn: ['.....s......', '...KKsKK....', '..KccccccK..', '.KcCcCcCccK.', '.KKKKKKKKKK.', '..KbbbbbbK..', '..KbBbbbbK..', '..KbBbbbbK..',
+      '...KbbbbK...', '....KbbK....', '.....KK.....', '............'],
+    pine: ['.....s......', '....KKK.....', '...KpPpK....', '..KPpPpPK...', '..KpPpPpK...', '.KPpPpPpPK..', '.KpPpPpPpK..', '..KPpPpPK...',
+      '..KpPpPpK...', '...KPpPK....', '....KKK.....', '............'],
+    snow: ['.....w......', '...w.w.w....', '....wWw.....', '.w..wWw..w..', '..w.wWw.w...', 'wwwwwWwwwww.', '..w.wWw.w...', '.w..wWw..w..',
+      '....wWw.....', '...w.w.w....', '.....w......', '............'],
+    berry: ['......g.....', '.....gg.....', '....g..g....', '..KK....KK..', '.KRRK..KRRK.', '.KRrK..KRrK.', '..KK.KK.KK..', '....KRRK....',
+      '....KRrK....', '.....KK.....', '............', '............'],
+    medal: ['...RR..RR...', '...RR..RR...', '....RRRR....', '...KKKKKK...', '..KyyyyyyK..', '.KyyYyyYyyK.', '.KyYYyyYYyK.', '.KyyyyyyyyK.',
+      '.KyYyyyyYyK.', '..KyYYYYyK..', '...KKKKKK...', '............']
+  };
+  var SEASONS = {
+    fall: { name: '가을', items: [['maple', '단풍잎'], ['ginkgo', '은행잎'], ['acorn', '도토리']], say: '낙엽 밟는 소리 바삭바삭!' },
+    winter: { name: '겨울', items: [['pine', '솔방울'], ['snow', '눈송이'], ['berry', '빨간 열매']], say: '발바닥이 시려도 좋아' }
+  };
+  var SAY = {
+    tod: { morning: '아침 공기 차갑다! 코가 쨍해', day: '햇볕 냄새 진짜 좋았어', evening: '노을 냄새가 났어, 진짜야', night: '밤 산책은 비밀 작전 같아' },
+    min: { 10: '짧았지만 최고였어', 30: '딱 좋았어, 내일도 가자', 50: '다리가 뿌듯해… 이제 낮잠 각' }
+  };
+  var MEDAL_P = 0.05;   // 기념 메달 — 20번에 1번(화면에 그대로 적음)
+  var NEED = 5;         // 같은 재료 다섯 개 = 리스 하나
+
+  function drawArt(c, key, scale) {   // 점 그림 하나를 캔버스에(scale = 점 하나의 픽셀)
+    var rows = ART[key], g = c.getContext('2d');
+    c.width = 12 * scale; c.height = 12 * scale; g.clearRect(0, 0, c.width, c.height);
+    rows.forEach(function (row, y) { for (var x = 0; x < row.length; x++) { var col = PAL[row[x]]; if (!col) continue; g.fillStyle = col; g.fillRect(x * scale, y * scale, scale, scale); } });
+  }
+  function drawWreath(c, key) {   // 리스 — 재료 여덟 개를 동그랗게 + 아래 분홍 리본(36×36점)
+    var S = 2, g = c.getContext('2d'), tmp = document.createElement('canvas');
+    c.width = 36 * S * 2; c.height = 36 * S * 2; g.imageSmoothingEnabled = false; drawArt(tmp, key, S);
+    for (var k = 0; k < 8; k++) {
+      var a = k / 8 * Math.PI * 2 - Math.PI / 2, x = Math.round(36 * S + Math.cos(a) * 22 * S - 6 * S), y = Math.round(36 * S + Math.sin(a) * 22 * S - 6 * S);
+      g.drawImage(tmp, x, y, 12 * S, 12 * S);
+    }
+    g.fillStyle = '#ff5c9d'; g.strokeStyle = '#3a2b2e'; g.lineWidth = S;
+    [[-1, 1], [1, 1]].forEach(function (d) { g.beginPath(); g.moveTo(36 * S, 58 * S); g.lineTo(36 * S + d[0] * 10 * S, 52 * S); g.lineTo(36 * S + d[0] * 10 * S, 64 * S); g.closePath(); g.fill(); g.stroke(); });
+    g.fillRect(33 * S, 55 * S, 6 * S, 6 * S); g.strokeRect(33 * S, 55 * S, 6 * S, 6 * S);
+  }
+
+  var st = { min: '30', tod: 'evening', season: [12, 1, 2].indexOf(new Date().getMonth() + 1) >= 0 ? 'winter' : 'fall' };
+  var bag = {}, made = [], phase = 'none', pending = null, forceMedal = false;
+
+  function paint() {
+    Array.prototype.forEach.call(document.querySelectorAll('.chip[data-k]'), function (b) { b.setAttribute('aria-pressed', String(st[b.getAttribute('data-k')] === b.getAttribute('data-v'))); });
+    var S = SEASONS[st.season];
+    $('odds').textContent = '캡슐에 든 것 — 늘: ' + S.name + ' 재료 하나(' + S.items.map(function (i) { return i[1]; }).join('·') + ' 중 같은 확률로 3분의 1씩) + 우리 개 한마디 · '
+      + '가끔: 날짜 새긴 기념 메달(20번에 1번, 5%). 같은 재료가 겹치면 쌓여서 ' + NEED + '개면 리스를 만들어요.';
+    var inv = $('inv'); inv.innerHTML = '';
+    S.items.forEach(function (it) {
+      var n = bag[it[0]] || 0, d = document.createElement('div'); d.className = 'slot';
+      var c = document.createElement('canvas'); drawArt(c, it[0], 4); d.appendChild(c);
+      d.insertAdjacentHTML('beforeend', '<div><b>' + it[1] + '</b> ' + Math.min(n, NEED) + '/' + NEED + '</div><div class="bar"><i style="width:' + Math.min(100, n / NEED * 100) + '%"></i></div>');
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (n >= NEED ? ' main' : ''); b.textContent = '리스 만들기'; b.disabled = n < NEED;
+      b.addEventListener('click', function () { bag[it[0]] -= NEED; made.push({ key: it[0], name: it[1] + ' 리스', date: today() }); paint(); renderRoom(); });
+      d.appendChild(b); inv.appendChild(d);
+    });
+  }
+  function today() { var d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일'; }
+  function renderRoom() {
+    var r = $('room'); r.innerHTML = '';
+    if (!made.length) { r.innerHTML = '<span class="empty">재료 다섯 개로 만들면 여기 놓여요 — 실제 앱에선 [아지트] 방에</span>'; return; }
+    made.forEach(function (m) {
+      var d = document.createElement('div'); d.className = 'made'; var c = document.createElement('canvas');
+      if (m.key === 'medal') drawArt(c, 'medal', 6); else drawWreath(c, m.key);
+      d.appendChild(c); d.insertAdjacentHTML('beforeend', '<div><b>' + m.name + '</b><br>' + m.date + '</div>'); r.appendChild(d);
+    });
+  }
+
+  // ── 캡슐 ──
+  var cap = $('cap');
+  function setCap(cls) { cap.setAttribute('class', cls); }
+  $('walk').addEventListener('click', function () {
+    var S = SEASONS[st.season], it = S.items[Math.floor(Math.random() * S.items.length)];
+    var lines = [SAY.tod[st.tod], SAY.min[st.min], S.say];
+    var say = lines[Math.floor(Math.random() * lines.length)];
+    var medal = forceMedal || Math.random() < MEDAL_P; forceMedal = false;
+    pending = { key: it[0], name: it[1], say: say, medal: medal };
+    $('result').className = 'result'; cap.style.display = ''; setCap('idle'); phase = 'closed';
+    $('hint').textContent = '톡 — 캡슐을 돌려요';
+    $('walk').disabled = true;
+  });
+  cap.addEventListener('click', function () {
+    if (phase === 'closed') {
+      phase = 'twisted'; setCap('twist'); $('hint').textContent = '한 번 더 톡 — 열어요!';
+      try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* 무시 */ }
+    } else if (phase === 'twisted') {
+      phase = 'open'; setCap('open'); $('hint').textContent = '';
+      var bu = $('burst'); bu.className = 'burst'; void bu.offsetWidth; bu.className = 'burst go';
+      try { if (navigator.vibrate) navigator.vibrate([20, 40, 30]); } catch (e) { /* 무시 */ }
+      setTimeout(reveal, 420);
+    }
+  });
+  function reveal() {
+    var p = pending; if (!p) return;
+    cap.style.display = 'none';
+    var dup = (bag[p.key] || 0) > 0;
+    bag[p.key] = (bag[p.key] || 0) + 1;
+    drawArt($('resIcon'), p.key, 6);
+    $('resName').textContent = p.name;
+    $('resCnt').textContent = (dup ? '또 나왔다 → 재료로 쌓였어요 · ' : '') + Math.min(bag[p.key], NEED) + '/' + NEED + (bag[p.key] >= NEED ? ' — 리스를 만들 수 있어요!' : '');
+    $('resSay').textContent = '“' + p.say + '”';
+    $('resMedal').textContent = p.medal ? '✦ 기념 메달 — ' + today() + ' · ' + st.min + '분 산책 (선반에 놓였어요)' : '';
+    if (p.medal) made.push({ key: 'medal', name: '기념 메달', date: today() + ' · ' + st.min + '분' });
+    $('result').className = 'result show';
+    $('hint').textContent = '내일 산책하면 또 하나';
+    pending = null; $('walk').disabled = false;
+    paint(); renderRoom();
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.chip[data-k]'); if (!b) return;
+    st[b.getAttribute('data-k')] = b.getAttribute('data-v'); paint();
+  });
+  $('medalTry').addEventListener('click', function () { forceMedal = true; $('medalTry').textContent = '다음 캡슐에 기념 메달이 들어 있어요'; });
+
+  // ── 캡슐 쪽지(55×55mm = 660×660픽셀, 1mm = 12픽셀) ──
+  var DOGS = [['pom', '포메', '꼬리 프로펠러 운 · 대길'], ['poodle', '푸들', '곱슬곱슬 행운 · 길'], ['maltese', '말티즈', '하얀 털 반짝 운 · 대길'],
+    ['knit', '파란 니트', '오늘은 옷 자랑 운 · 길'], ['chihuahua', '치와와', '작지만 큰 용기 운 · 대길'], ['dachs', '닥스훈트', '긴 허리 쭉 기지개 운 · 길'],
+    ['jindo', '진돗개', '든든한 동네 순찰 운 · 대길'], ['shiba', '시바', '웃는 얼굴 전염 운 · 대길'], ['secret', '시크릿 · 왈슨 강아지', '오늘 산책은 전설이 된다 · 초대길']];
+  var imgs = {};
+  function load(key, src) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { imgs[key] = im; ok(); }; im.onerror = function () { ok(); }; im.src = src; }); }
+  function qrOn(g, text, x, y, size) {
+    if (!window.qrcode) return;
+    var q = qrcode(0, 'M'); q.addData(text); q.make();
+    var n = q.getModuleCount(), cell = size / (n + 2);
+    g.fillStyle = '#ffffff'; g.fillRect(x, y, size, size); g.fillStyle = '#2a2026';
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect(Math.round(x + (c + 1) * cell), Math.round(y + (r + 1) * cell), Math.ceil(cell), Math.ceil(cell));
+  }
+  function noteCanvas(d) {
+    var W = 660, c = document.createElement('canvas'); c.width = W; c.height = W;
+    var g = c.getContext('2d'), secret = d[0] === 'secret', gold = '#d4a017', pink = '#ff5c9d', ink = '#2a2026';
+    g.fillStyle = secret ? '#fff6dc' : '#fff7f2'; g.fillRect(0, 0, W, W);
+    g.fillStyle = secret ? gold : pink; g.fillRect(0, 0, W, 96);
+    g.fillStyle = '#ffffff'; g.font = '900 40px Pretendard, sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.fillText(secret ? '✦ 시크릿 산책 운' : '오늘의 산책 운', 34, 50);
+    g.font = '700 24px Pretendard, sans-serif'; g.textAlign = 'right'; g.fillText('캡슐 쪽지', W - 34, 52);
+    var im = secret ? imgs.logo : imgs[d[0]];
+    g.fillStyle = secret ? '#ffe9a8' : '#ffe3ee'; g.beginPath(); g.arc(W / 2, 250, 125, 0, Math.PI * 2); g.fill();
+    if (im) {
+      var h = 230, w = im.naturalWidth * h / im.naturalHeight; if (w > 250) { w = 250; h = im.naturalHeight * w / im.naturalWidth; }
+      g.imageSmoothingEnabled = !(im.naturalHeight < h && !secret) ? true : false;
+      g.drawImage(im, W / 2 - w / 2, 365 - h, w, h);
+    }
+    g.textAlign = 'center'; g.fillStyle = ink;
+    g.font = '900 38px Pretendard, sans-serif'; g.fillText(d[1], W / 2, 410);
+    g.font = '800 30px Pretendard, sans-serif'; g.fillStyle = secret ? '#9a6a00' : '#d23c7c'; g.fillText(d[2], W / 2, 458);
+    g.strokeStyle = '#e8d8cf'; g.lineWidth = 2; g.beginPath(); g.moveTo(34, 500); g.lineTo(W - 34, 500); g.stroke();
+    g.textAlign = 'left'; g.fillStyle = ink;
+    g.font = '900 52px Pretendard, sans-serif'; g.fillText(BRAND.name, 34, 548);
+    g.font = '700 23px Pretendard, sans-serif'; g.fillText(BRAND.tagline, 34, 600);
+    qrOn(g, SITE, W - 34 - 112, 512, 112);
+    g.font = '700 15px Pretendard, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#7a6a70'; g.fillText('찍으면 왈슨', W - 34 - 56, 636);
+    if (secret) { g.strokeStyle = gold; g.lineWidth = 14; g.strokeRect(7, 7, W - 14, W - 14); }
+    return c;
+  }
+  var bigs = [];
+  function renderNotes() {
+    var box = $('notes'); box.innerHTML = ''; bigs = [];
+    DOGS.forEach(function (d) {
+      var big = noteCanvas(d), view = document.createElement('canvas'); view.setAttribute('aria-label', '캡슐 쪽지 — ' + d[1]);
+      box.appendChild(view); bigs.push(big);
+      if (window.WalsonView) WalsonView.show(view, big); else { view.width = big.width; view.height = big.height; view.getContext('2d').drawImage(big, 0, 0); }
+    });
+  }
+  $('save').addEventListener('click', function () {   // 3×3 한 장(자르는 선 포함) — 이 휴대폰에만 저장
+    var W = 660, gap = 24, S = W * 3 + gap * 4, c = document.createElement('canvas'); c.width = S; c.height = S;
+    var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, S, S);
+    bigs.forEach(function (b, k) { g.drawImage(b, gap + (k % 3) * (W + gap), gap + Math.floor(k / 3) * (W + gap)); });
+    g.strokeStyle = '#bbbbbb'; g.setLineDash([8, 8]); g.lineWidth = 1;
+    for (var i = 0; i <= 3; i++) { var p = gap / 2 + i * (W + gap); g.beginPath(); g.moveTo(p, 0); g.lineTo(p, S); g.stroke(); g.beginPath(); g.moveTo(0, p); g.lineTo(S, p); g.stroke(); }
+    c.toBlob(function (blob) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'walson-capsule-notes.png'; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000); }, 'image/png');
+  });
+
+  paint(); renderRoom();
+  var jobs = [load('logo', 'icons/walson-logo.webp?v=1')];
+  DOGS.forEach(function (d) { if (d[0] !== 'secret') jobs.push(load(d[0], 'icons/dot-dogs/' + d[0] + '.webp?v=1')); });
+  var fontReady = document.fonts ? Promise.all(['900 40px Pretendard', '800 30px Pretendard', '700 23px Pretendard'].map(function (f) { return document.fonts.load(f); })).catch(function () {}) : Promise.resolve();
+  Promise.all(jobs.concat([fontReady])).then(renderNotes);
+
+  window.__capsule = { st: st, bag: bag, made: made, phase: function () { return phase; } };   // 시험용
+})();
+</script>
+</body>
+</html>
