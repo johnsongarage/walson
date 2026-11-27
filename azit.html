@@ -447,7 +447,7 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=15"></script>
 <script src="dex-card.js?v=6"></script>
-<script src="azit-room.js?v=22"></script>
+<script src="azit-room.js?v=23"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
@@ -1236,7 +1236,7 @@
       if (!it.move) return;
       var s = pic(it.spr), p = posOf(o, it); if (!s) return;
       var q = P(p.i, p.j), x = Math.round(q.x - s.width / 2), y = Math.round(q.y - s.height / 2);
-      wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, foot: { x: q.x, y: q.y }, img: s, decal: true });
+      wallHits.push({ id: it.id, x: x, y: y, w: s.width, h: s.height, foot: { x: q.x, y: q.y }, img: s, decal: true, walkTap: !!it.tapWalk });
     });
     itemsOf(o, 'wall').forEach(function (it) {
       var p = posOf(o, it), s = wallSprite(o, it, p.wall); if (!s) return;
@@ -2509,6 +2509,7 @@
       }
       return;
     }
+    if (hold && hold.s.walkTap) endHold();   // 러그·매트(11/28) — 꾹 전에 뗌 = 바닥 톡(아래에서 강아지가 걸어감)
     if (hold) { var hs = hold.s; endHold(); downAt = null; tapOn(hs); return; }   // 꾹 누르기 전에 뗌 = 톡(안내 → 한 번 더 = 놀러 가기)
     if (drag) {
       if (drag.moved) {
