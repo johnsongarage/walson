@@ -320,6 +320,7 @@
   .firstcard[hidden], .firstcard [hidden] { display: none; }
   .fc-title { margin: 0 0 4px; font-size: 18px; font-weight: 900; color: var(--accent); word-break: keep-all; }
   .fc-line { margin: 0 0 10px; font-size: 13px; line-height: 1.55; color: var(--ink-soft); word-break: keep-all; }
+  .fc-line.fc-sky { color: var(--ink); font-weight: 700; }   /* 첫 만남 — 창가 별자리 한 줄(11/27) */
   .fc-lab { display: block; margin: 8px 0 4px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); }
   #fc-input { width: 100%; font: inherit; font-size: 16px; padding: 9px 10px; border: 2px solid var(--ink); background: var(--bg); color: var(--ink); }
   .fc-breeds { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -383,6 +384,7 @@
       <div id="fc-walk" hidden>
         <p class="fc-title" id="fc-walk-title">산책 가자!</p>
         <p class="fc-line">첫 산책을 다녀오면 영수증이 나오고, 이 방에 첫 흔적이 생겨요. 시간만 재도 돼요 — 위치는 나갈 때 따로 물어요.</p>
+        <p class="fc-line fc-sky">✦ 창밖엔 첫 별이 떠요. 산책 1번 = 별 1개, 한 달이면 우리 개 얼굴 별자리가 돼요.</p>
         <a class="pbtn main fc-go" id="fc-out" href="go.html">산책 나가기</a>
         <button type="button" class="fc-skip" id="fc-skip2">방 먼저 둘러볼게요</button>
       </div>
@@ -448,7 +450,7 @@
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=2"></script>
+<script src="walk-stars.js?v=3"></script>
 <script>
 (function () {
   'use strict';
