@@ -517,7 +517,7 @@
   hdReady.then(function () { if (cur && cur.me) tray(); if (cur && cur.show) showList(); });   // 소품 칸 작은 그림도 원본으로
   function hd(n) { return hdPics[n] || null; }
   // 방 그림 — 벽지마다 큰 원본(받는 데 조금 걸림)과 1x 미리보기(작아서 먼저 옴 — 흐리게 먼저 보인다). 고른 벽지만 받는다
-  var roomPics = {}, roomLoading = {}, ROOM_V = { room_lilac: 2, room_pink: 2, room_night: 2 };   // 11/27 받은 벽지 원본 셋으로 다시 — 예전 그림이 캐시에 남지 않게
+  var roomPics = {}, roomLoading = {}, ROOM_V = { room: 2, room_lilac: 3, room_pink: 3, room_night: 3 };   // 11/27 받은 벽지 원본 셋으로 다시 · 같은 날 가운데 창살 없는 창(_dev/azit-window-nobar.py) — 예전 그림이 캐시에 남지 않게
   function roomPic(name) {
     if (roomPics[name]) return roomPics[name];
     if (!roomLoading[name]) {
@@ -528,7 +528,7 @@
     return null;
   }
   var winNight = null;
-  loadImg(HDI + 'window_night.webp?v=' + HD_V).then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
+  loadImg(HDI + 'window_night.webp?v=2')   // 11/27 창살 자리까지 밤하늘로 덮는 판(별이 창살에 안 가림).then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
   var flipCache = {};
   function oriented(it, side) {
