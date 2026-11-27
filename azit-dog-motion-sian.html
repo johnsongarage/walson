@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아지트 강아지 움직임 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 아지트 강아지 걷는 움직임 시안(2026-11-27 가르시아 "아지트에서 뛰어다니는 강아지 모션이 문제야. 지금 콩콩 거리는거 너무 어색한데
+     이거 단계별로 어찌 고도화할지 계획" → Claude 계획 1단계 "그림 한 장 그대로, 움직이는 공식만 바꾸기" → "시안부터 만들기").
+     지금 앱: 강아지 8마리 그림이 모두 앉은 정면 한 장이라 걸을 때 앉은 채 미끄러지고, 걸음 통통은 1점을 초당 6번 계단(0↔1)으로 바꾼다
+     (azit.html step·drawDog). 여기선 그림은 그대로 두고 움직임만 바꾼 세 안 — A 둥근 걸음 · B 뒤뚱 걸음 · C 말랑 걸음 — 을
+     같은 길에서 지금과 나란히 보고, 아래 방에서 직접 걸려 본다.
+     방·바닥 자리·강아지 크기·그림자·머리 장식 자리는 앱과 같은 값(방 한 점 = CSS 1픽셀, 강아지 키 44점).
+     주소로만 여는 시안 — 실제 [아지트]는 그대로. 아무것도 저장·전송하지 않는다. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--ink, #2a2026);
+    background: var(--bg, #fffdfd); padding: 14px 12px calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; color: var(--accent, #ff5c9d); }
+  h2.sec { font-size: 16px; margin: 22px 0 8px; }
+  .lead { font-size: 13px; line-height: 1.55; color: var(--ink-soft, #6f6168); margin: 0 0 12px; word-break: keep-all; }
+  .box { position: relative; border: 2px solid var(--line, #2a2026); box-shadow: 3px 3px 0 var(--line, #2a2026); background: var(--panel, #fff); line-height: 0; }
+  .cap { font-size: 12px; line-height: 1.4; color: var(--ink-soft, #6f6168); margin: 12px 0 5px; word-break: keep-all; }
+  .cap:first-child { margin-top: 0; }
+  .cap b { font-size: 13px; color: var(--ink, #2a2026); margin-right: 6px; }
+  canvas { display: block; width: 100%; }
+  #room { touch-action: manipulation; cursor: pointer; }
+  .tag { position: absolute; left: 6px; top: 6px; font-size: 12px; line-height: 1; font-weight: 800; padding: 5px 7px;
+    background: rgba(42, 32, 38, 0.82); color: #fff; pointer-events: none; }
+  .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1.4; color: var(--ink-soft, #6f6168); }
+  .loading[hidden] { display: none; }
+  .hint { font-size: 12px; color: var(--ink-soft, #6f6168); margin: 8px 0 12px; word-break: keep-all; }
+  .ctrl { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 16px; }
+  .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .row > span { font-size: 12px; color: var(--ink-soft, #6f6168); min-width: 64px; }
+  .chip { font: inherit; font-size: 12.5px; color: var(--ink, #2a2026); background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    padding: 5px 9px; cursor: pointer; box-shadow: 2px 2px 0 var(--line, #2a2026); }
+  .chip[aria-pressed="true"] { background: var(--accent, #ff5c9d); color: var(--hl-ink, #fff); }
+  .chip:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--line, #2a2026); }
+  .note { font-size: 13px; line-height: 1.65; word-break: keep-all; background: var(--panel, #fff); border: 2px solid var(--line, #2a2026);
+    box-shadow: 3px 3px 0 var(--line, #2a2026); padding: 10px 12px; margin-bottom: 14px; }
+  .note h2 { font-size: 15px; margin: 0 0 4px; }
+  .note ul { margin: 0; padding-left: 18px; }
+  .note li + li { margin-top: 3px; }
+  .note .soft { color: var(--ink-soft, #6f6168); font-size: 12px; margin: 6px 0 0; }
+</style>
+<link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>강아지 걷는 움직임 시안</h1>
+  <p class="lead">같은 강아지가 같은 길을 네 줄에서 동시에 걸어요. 맨 위가 지금 앱이에요.
+    그림은 그대로 두고 움직이는 공식만 바꿨어요. <b>느리게</b>로 보면 차이가 잘 보여요.</p>
+
+  <div id="lanes">
+    <p class="cap"><b>지금</b>앱 그대로</p>
+    <div class="box"><canvas data-v="now" aria-label="지금 앱 움직임"></canvas></div>
+    <p class="cap"><b>A 둥근 걸음</b>곡선 · 박자 = 간 거리 · 견종별</p>
+    <div class="box"><canvas data-v="a" aria-label="A 둥근 걸음"></canvas></div>
+    <p class="cap"><b>B 뒤뚱 걸음</b>A + 좌우 기울기 · 천천히 출발·멈춤</p>
+    <div class="box"><canvas data-v="b" aria-label="B 뒤뚱 걸음"></canvas></div>
+    <p class="cap"><b>C 말랑 걸음</b>B + 납작·길쭉 · 종이 뒤집기 · 갸웃·두리번</p>
+    <div class="box"><canvas data-v="c" aria-label="C 말랑 걸음"></canvas></div>
+  </div>
+
+  <div class="ctrl">
+    <div class="row" id="dogrow"><span>강아지</span></div>
+    <div class="row" id="accrow"><span>머리 장식</span></div>
+    <div class="row"><span>빠르기</span>
+      <button type="button" class="chip" data-k="speed" data-v="1">보통</button>
+      <button type="button" class="chip" data-k="speed" data-v="0.5">느리게 ½</button>
+      <button type="button" class="chip" data-k="speed" data-v="0.25">아주 느리게 ¼</button></div>
+  </div>
+
+  <h2 class="sec">방에서 걸어 보기</h2>
+  <div class="box" id="stage">
+    <canvas id="room" aria-label="아지트 방 — 바닥을 누르면 강아지가 걸어가요"></canvas>
+    <div class="tag" id="badge">C 말랑 걸음</div>
+    <div class="loading" id="loading">그림을 읽는 중이에요</div>
+  </div>
+  <p class="hint">바닥 톡 걸어가기 · 가만히 두면 앱처럼 혼자 돌아다녀요</p>
+  <div class="ctrl">
+    <div class="row"><span>움직임</span>
+      <button type="button" class="chip" data-k="room" data-v="now">지금</button>
+      <button type="button" class="chip" data-k="room" data-v="a">A</button>
+      <button type="button" class="chip" data-k="room" data-v="b">B</button>
+      <button type="button" class="chip" data-k="room" data-v="c">C</button></div>
+    <div class="row"><span>해 보기</span>
+      <button type="button" class="chip" id="run">멀리 뛰어가기</button></div>
+  </div>
+
+  <div class="note">
+    <h2>네 줄에 들어간 것</h2>
+    <ul>
+      <li><b>지금</b> — 앱 그대로. 앉은 그림 한 장이 미끄러지며 1점을 초당 6번 올렸다 내려요(중간 없이 두 칸). 뛰어도 박자는 같고,
+        쉴 땐 4초마다 1점 딸꾹질, 방향은 한순간에 뒤집어요.</li>
+      <li><b>A 둥근 걸음</b> — 오르내림을 둥근 곡선으로(화면 픽셀 단위라 계단이 없어요) · 걸음 박자를 간 거리에 맞춤(뛰면 박자도 빨라져 덜 미끄러져요) ·
+        견종별 걸음(작은 개는 종종, 진돗개·시바는 느긋, 닥스훈트는 낮게) · 뜰수록 그림자가 작고 옅게 · 쉴 땐 가만히</li>
+      <li><b>B 뒤뚱 걸음</b> — A에 더해 발이 닿을 때마다 좌우로 기울기(뒤뚱) · 천천히 출발하고 도착 전에 줄이기 · 뛸 땐 가는 쪽으로 기울기</li>
+      <li><b>C 말랑 걸음</b> — B에 더해 내려앉을 때 살짝 납작·뜰 때 살짝 길쭉 · 방향 바꿀 땐 종이 뒤집듯 · 멈출 때 툭 · 쉴 때 가끔 갸웃·두리번</li>
+    </ul>
+    <p class="soft">마음에 드는 안을 골라 주세요. 섞어도 돼요(예: B에 종이 뒤집기만 더하기).</p>
+  </div>
+  <div class="note">
+    <h2>앱에 넣을 때</h2>
+    <ul>
+      <li>머리 장식은 이 시안처럼 강아지와 한 묶음으로 같이 기울고 찌그러져요. 입에 문 공·말풍선도 같이 따라가게 해요.</li>
+      <li>워킹패스 사진 강아지·친구 방 손님 강아지도 같은 움직임이 돼요(그림을 안 바꾸니까).</li>
+      <li>방석에 폴짝·개모차 타기·소품과 놀기(통통 세 번·냠냠 떨림)는 이번엔 그대로 — 2단계에서 같은 움직임으로 다시 만들어요.</li>
+      <li>휴대폰에서 '동작 줄이기'를 켠 사람은 미끄러지기만 해요.</li>
+    </ul>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ── 방 자리 — 앱(azit.html)과 같은 값, 방 점 단위 ──
+  var HS = 4.5, RW = 1930 / HS, RH = 1536 / HS, DOG_VIS = 44;
+  var CX = 979 / HS, CY = 736 / HS, SR = 0.398, SL = 0.4325;
+  var XC = 236, VW_MIN = 340, OY = 30, VH = 300;   // 보는 칸(앱 fit과 같음)
+  function P(i, j) { return { x: CX + 2 * (i - j), y: CY + 2 * (SR * i + SL * j) }; }
+  function unP(x, y) { var a = (x - CX) / 2, b = (y - CY) / 2, j = (b - SR * a) / (SR + SL); return { i: a + j, j: j }; }
+  function onFloor(q) { return q.i >= 0 && q.j >= 0 && q.i <= 101 && q.j <= 95; }
+  function clampFloor(q) {   // 앱과 같음 — 좁은 휴대폰에서도 보이는 바닥 안에
+    var i = Math.max(3, Math.min(99, q.i)), j = Math.max(3, Math.min(92, q.j));
+    if (i - j < -70) { var t = (-70 - (i - j)) / 2; i += t; j -= t; }
+    if (i - j > 89) { var t2 = (i - j - 89) / 2; i -= t2; j += t2; }
+    return { i: i, j: j };
+  }
+  var WALK = 15, RUN = 26;   // 1초에 가는 바닥 칸(앱과 같음 — 소품으로 놀러 갈 땐 뛰어서 26칸)
+  // 나란히 보기 띠 — 바닥 앞쪽 가로줄(방 점 y)을 따라 걷고, 그 줄 위 70점만 잘라 보인다
+  var LANE_Y = 257, LANE_TOP = 195, LANE_H = 70;
+
+  var DOGS = [['pom', '포메'], ['poodle', '푸들'], ['maltese', '말티즈'], ['knit', '파란 니트'], ['chihuahua', '치와와'],
+    ['dachs', '닥스훈트'], ['jindo', '진돗개'], ['shiba', '시바']];
+  var ACCS = [['', '없음'], ['ribbon', '리본'], ['cap', '모자'], ['crown', '왕관']];
+  var ACC_HD_SCALE = { cap: 0.68 };   // 앱과 같음(새 모자는 둥근 정면이라 예전 폭이면 머리를 덮어서)
+
+  // ── 견종별 걸음(A·B·C) — [걷기, 뛰기] ──
+  // stride: 한 걸음에 가는 바닥 칸(작을수록 종종) · bob: 걸음 가운데 뜨는 높이(방 점) · tilt: 뒤뚱 기울기(도)
+  // 걷기 15칸/초면 작은 개 한 걸음 4.2칸 = 초당 3.6걸음(지금 앱 통통은 초당 3번)
+  var GAIT = {
+    small: { stride: [4.2, 5.8], bob: [1.8, 3.0], tilt: [4, 4.5] },        // 포메·푸들·말티즈·니트·치와와 — 종종
+    long: { stride: [3.4, 4.6], bob: [1.0, 1.8], tilt: [5.5, 5.5] },       // 닥스훈트 — 짧은 다리로 낮게 뒤뚱
+    big: { stride: [5.8, 7.6], bob: [1.4, 2.5], tilt: [2.6, 3] }           // 진돗개·시바 — 느긋하게
+  };
+  var BREED_GAIT = { pom: 'small', poodle: 'small', maltese: 'small', knit: 'small', chihuahua: 'small', dachs: 'long', jindo: 'big', shiba: 'big' };
+
+  // ── 세 안(+ 지금) ──
+  // round: 둥근 오르내림·걸음 박자 = 간 거리·견종별·그림자 · waddle: 뒤뚱·뛸 때 기울기 · ease: 천천히 출발·멈춤
+  // squash: 납작·길쭉 · paper: 종이 뒤집기 · settle: 멈출 때 툭 · idle: 쉴 때 갸웃·두리번
+  var VARIANTS = {
+    now: { name: '지금' },
+    a: { name: 'A 둥근 걸음', round: true },
+    b: { name: 'B 뒤뚱 걸음', round: true, waddle: true, ease: true },
+    c: { name: 'C 말랑 걸음', round: true, waddle: true, ease: true, squash: true, paper: true, settle: true, idle: true }
+  };
+  var TURN = 0.16;   // 종이 뒤집기 걸리는 초
+  var IDLE_LEN = { tilt: 1.25, look: 1.05 + TURN + 0.08 };   // 갸웃 · 두리번(돌아봤다가 되돌아오기까지)
+
+  function lerp(a, b, k) { return a + (b - a) * k; }
+  function ease(k) { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }
+  function rad(d) { return d * Math.PI / 180; }
+
+  var st = { dog: 'pom', acc: 'ribbon', speed: '1', room: 'c' };
+
+  // ── 그림 ──
+  var img = {}, heads = {};
+  function load(key, src) {
+    return new Promise(function (ok) {
+      var im = new Image();
+      im.onload = function () { img[key] = im; ok(); };
+      im.onerror = function () { ok(); };   // 못 읽은 그림은 빼고 그린다
+      im.src = src;
+    });
+  }
+  function loadAll() {
+    var jobs = [load('room', 'icons/azit-hd/room.webp?v=1')];
+    DOGS.forEach(function (d) { jobs.push(load('px:' + d[0], 'icons/dot-dogs/px/' + d[0] + '.png?v=1')); });
+    ACCS.forEach(function (a) {
+      if (!a[0]) return;
+      jobs.push(load('acc:' + a[0], 'icons/azit-room/acc_' + a[0] + '.png?v=5'), load('acchd:' + a[0], 'icons/azit-hd/acc_' + a[0] + '.webp?v=1'));
+    });
+    return Promise.all(jobs).then(function () { DOGS.forEach(function (d) { if (img['px:' + d[0]]) heads[d[0]] = headOf(img['px:' + d[0]]); }); });
+  }
+  // 머리 꼭대기 자리(앱 headOf와 같음) — 맨 위 띠에서 가장 넓게 이어진 덩어리 = 머리, 그 윗선의 가운데값
+  function headOf(src) {
+    try {
+      var w0 = src.naturalWidth || src.width, h0 = src.naturalHeight || src.height;
+      if (!w0 || !h0) return null;
+      var c = canvasOf(w0, h0), g = c.getContext('2d'); g.drawImage(src, 0, 0);
+      var px = g.getImageData(0, 0, w0, h0).data, top = [], ymin = h0, x, y;
+      for (x = 0; x < w0; x++) {
+        top[x] = h0;
+        for (y = 0; y < h0; y++) if (px[(y * w0 + x) * 4 + 3] > 128) { top[x] = y; break; }
+        if (top[x] < ymin) ymin = top[x];
+      }
+      if (ymin >= h0) return null;
+      var band = ymin + Math.max(2, Math.round(h0 * 0.22)), best = null, s = -1;
+      for (x = 0; x <= w0; x++) {
+        var on = x < w0 && top[x] <= band;
+        if (on && s < 0) s = x;
+        if (!on && s >= 0) { if (!best || x - 1 - s > best[1] - best[0]) best = [s, x - 1]; s = -1; }
+      }
+      var ys = top.slice(best[0], best[1] + 1).sort(function (a, b) { return a - b; });
+      return { hx: (best[0] + best[1] + 1) / 2 / w0, hy: ys[Math.floor(ys.length / 2)] / h0 };
+    } catch (e) { return null; }
+  }
+  function canvasOf(w, h) { var c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; }
+  function smallCopy(src, w, h) {   // 곱게 줄이기 — 앱과 같음(한 번에 많이 줄이면 거칠어서 반씩)
+    var sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+    while (sw / 2 >= w * 1.5) {
+      var t = canvasOf(Math.round(sw / 2), Math.round(sh / 2)), tg = t.getContext('2d');
+      tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(src, 0, 0, t.width, t.height);
+      src = t; sw = t.width; sh = t.height;
+    }
+    var c = canvasOf(w, h), g = c.getContext('2d');
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, c.width, c.height);
+    return c;
+  }
+  var dogCache = {}, accCache = {}, roomBmp = null;
+  // 강아지(앱 dogBitmap과 같음): 키 44점 = 화면 픽셀 44·Z개. 점 그림보다 크면 점째 키우고, 작으면 곱게 줄인다.
+  // hi = 두 배 크기(기울이거나 찌그러뜨려 그릴 때 — 큰 그림에서 줄여 그려야 덜 뭉개진다)
+  function dogBitmap(id, hi) {
+    var key = id + '@' + Z + (hi ? 'h' : '');
+    if (dogCache[key]) return dogCache[key];
+    var im = img['px:' + id]; if (!im) return null;
+    var hh = Math.round(DOG_VIS * Z * (hi ? 2 : 1)), wd = Math.round(im.naturalWidth * hh / im.naturalHeight), c;
+    if (hh >= im.naturalHeight) { c = canvasOf(wd, hh); var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hh); }
+    else c = smallCopy(im, wd, hh);
+    return (dogCache[key] = c);
+  }
+  function accBitmap(id) {   // 머리 장식(앱 accHD와 같음) — 가로는 점 그림 폭, 세로는 원본 비율. 원본이 없으면 점 그림
+    var key = id + '@' + Z;
+    if (accCache[key]) return accCache[key];
+    var a = img['acc:' + id], h = img['acchd:' + id]; if (!a) return null;
+    if (!h) return (accCache[key] = { w: a.naturalWidth, h: a.naturalHeight, b: a });
+    var w = Math.max(1, Math.round(a.naturalWidth * (ACC_HD_SCALE[id] || 1))), hh = Math.max(1, Math.round(w * h.naturalHeight / h.naturalWidth));
+    return (accCache[key] = { w: w, h: hh, b: smallCopy(h, Math.round(w * Z), Math.round(hh * Z)) });
+  }
+  function roomBitmap() {   // 방 원본을 화면 배율로 한 번 줄여 둔 것
+    if (!roomBmp && img.room) roomBmp = smallCopy(img.room, Math.round(RW * Z), Math.round(RH * Z));
+    return roomBmp;
+  }
+  // 발밑 그림자(앱 shadowOn과 같음 — 납작하고 부드러운 타원, g는 방 점 단위)
+  function shadowOn(g, x, y, w, alpha) {
+    w = Math.max(6, Math.min(44, w));
+    var h = w / 3;
+    g.save(); g.translate(x, y - h / 2); g.scale(1, h / w);
+    var gr = g.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+    gr.addColorStop(0, 'rgba(70, 25, 10, ' + (alpha * 1.25) + ')'); gr.addColorStop(0.7, 'rgba(70, 25, 10, ' + alpha + ')'); gr.addColorStop(1, 'rgba(70, 25, 10, 0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, w / 2, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+
+  // ── 움직임 ──
+  // 강아지 하나의 움직임 상태 — 자리(i·j 바닥 칸)·가려는 곳(ti·tj)은 앱과 같고, 새 안을 위해 몇 가지를 더 둔다:
+  // v 지금 속도(칸/초, 천천히 출발·멈춤) · ph 걸음 위상(정수 = 발 닿음, 간 거리 ÷ 보폭) · amp 걸음 세기(0 멈춤 ~ 1)
+  // run 뛰는 정도(0~1) · face 보는 쪽(1 그대로 · -1 뒤집음) · flipFrom·flipT0 종이 뒤집기 · stopT0 멈춘 때(툭) · idle 쉴 때 동작
+  function mover(i, j, auto) {
+    return { i: i, j: j, ti: i, tj: j, fast: false, v: 0, ph: 0, amp: 0, run: 0, face: 1, flipFrom: 1, flipT0: -9,
+      moving: false, stopT0: -9, still: 0, idle: null, idleNext: 2 + Math.random() * 2, auto: auto, phase: 0, rest: 4 };
+  }
+  function flipNow(m, t) {   // 그림 가로 배수(1 그대로 · -1 뒤집음 · 종이 뒤집기 중이면 그 사이)
+    var k = (t - m.flipT0) / TURN;
+    if (k < 0 || k >= 1) return m.face;
+    return lerp(m.flipFrom, m.face, ease(k));
+  }
+  function turn(m, f, t, V) {
+    if (f === m.face) return;
+    if (V.paper) { m.flipFrom = flipNow(m, t); m.flipT0 = t; } else m.flipT0 = -9;   // 지금·A·B는 한순간에
+    m.face = f;
+  }
+  function startIdle(m, kind, t, V) {
+    if (m.moving || !V.idle) return;
+    m.idle = { kind: kind, t0: t, side: m.face, from: m.face, back: false };
+    if (kind === 'look') turn(m, -m.face, t, V);   // 두리번 — 뒤를 돌아봤다가(종이 뒤집기) 되돌아온다
+  }
+  function stepMover(m, V, dt, t) {
+    var g = GAIT[BREED_GAIT[st.dog]];
+    var di = m.ti - m.i, dj = m.tj - m.j, dist = Math.sqrt(di * di + dj * dj);
+    var vmax = m.fast ? RUN : WALK;
+    if (dist > 0.2) {
+      var v = vmax;   // 지금·A: 바로 최고 속도(앱과 같음)
+      if (V.ease) {   // B·C: 0.1초쯤에 거의 다 빨라지고, 도착 0.16초 전쯤부터 줄인다(최저 32%)
+        var want = vmax * Math.max(0.32, Math.min(1, dist / (vmax * 0.16)));
+        m.v += (want - m.v) * (1 - Math.exp(-dt / 0.07));
+        v = m.v;
+      }
+      var sp = Math.min(dist, v * dt);
+      m.i += di / dist * sp; m.j += dj / dist * sp;
+      if (Math.abs(di - dj) > 0.3) turn(m, (di - dj) < 0 ? -1 : 1, t, V);   // 화면 왼쪽으로 가면 뒤집기(앱과 같음)
+      m.ph += sp / lerp(g.stride[0], g.stride[1], m.run);   // 걸음 박자 = 간 거리 ÷ 보폭(뛰면 박자도 빨라진다)
+      if (!m.moving) { m.moving = true; m.idle = null; }
+      m.still = 0;
+    } else {
+      m.v = 0;
+      if (m.moving) { m.moving = false; m.stopT0 = t; m.fast = false; }
+      m.still += dt;
+    }
+    m.run += ((m.moving && m.fast ? 1 : 0) - m.run) * (1 - Math.exp(-dt / 0.12));
+    if (m.run < 0.002) m.run = 0;
+    var ampWant = !m.moving ? 0 : V.ease ? Math.min(1, m.v / WALK) : 1;
+    m.amp += (ampWant - m.amp) * (1 - Math.exp(-dt / 0.06));   // 멈추면 걸음 가운데 떠 있던 것도 0.1초쯤에 내려앉는다
+    if (m.amp < 0.003) m.amp = 0;
+    // 쉴 때 동작(C) — 걷기 시작하면 그만
+    if (m.idle) {
+      var a = t - m.idle.t0;
+      if (m.moving) m.idle = null;
+      else if (m.idle.kind === 'look' && !m.idle.back && a > 1.05) { m.idle.back = true; turn(m, m.idle.from, t, V); }
+      else if (a > IDLE_LEN[m.idle.kind]) { m.idle = null; m.still = 0; m.idleNext = 2.5 + Math.random() * 3; }
+    } else if (m.auto && V.idle && !m.moving && m.still > m.idleNext) startIdle(m, Math.random() < 0.5 ? 'tilt' : 'look', t, V);
+  }
+  // 지금 이 순간의 모양 — lift 뜬 높이(방 점) · rot 기울기(라디안, 발 가운데 축) · sx·sy 가로·세로 배수(발 기준) · fx 뒤집기 배수
+  function poseOf(m, V, t) {
+    var p = { lift: 0, rot: 0, sx: 1, sy: 1, fx: flipNow(m, t) };
+    if (!V.round) {   // 지금 앱 그대로(azit.html step·drawDog)
+      if (m.moving) p.lift = Math.floor(t * 6) % 2;                 // 걸으면 한 칸씩 통통
+      else p.lift = ((t + m.phase) % 4.2) < 0.2 ? 1 : 0;           // 쉴 땐 4초쯤마다 한 번
+      return p;
+    }
+    var g = GAIT[BREED_GAIT[st.dog]], run = m.run, u = m.ph - Math.floor(m.ph);
+    p.lift = m.amp * lerp(g.bob[0], g.bob[1], run) * Math.sin(Math.PI * u);   // 둥근 호 — 발 닿을 때 0, 걸음 가운데 가장 높이
+    if (V.waddle) {
+      p.rot = m.amp * rad(lerp(g.tilt[0], g.tilt[1], run)) * Math.cos(Math.PI * m.ph);   // 뒤뚱 — 발 닿을 때 한쪽으로 가장 많이, 두 걸음에 한 번 왕복
+      p.rot += m.amp * run * rad(2.5) * m.face;                                          // 뛸 땐 가는 쪽으로(뒤뚱과 합쳐 7도 안쪽)
+    }
+    if (V.squash) {   // 닿을 때 납작 · 뜰 때 길쭉(부피는 비슷하게)
+      var s = m.amp * lerp(0.035, 0.055, run) * Math.cos(2 * Math.PI * u);
+      p.sy = 1 - s; p.sx = 1 + s * 0.7;
+    }
+    if (V.settle) {   // 멈출 때 툭 — 한 번 납작했다가 살짝 튕겨 돌아온다
+      var k = t - m.stopT0;
+      if (k >= 0 && k < 0.45) { var e = 0.07 * Math.exp(-k * 7) * Math.cos(k * 16); p.sy *= 1 - e; p.sx *= 1 + e * 0.7; }
+    }
+    if (V.paper) {   // 종이 뒤집기 동안 살짝 뜬다
+      var kf = (t - m.flipT0) / TURN;
+      if (kf >= 0 && kf < 1) p.lift += 1.2 * Math.sin(Math.PI * kf);
+    }
+    if (m.idle && m.idle.kind === 'tilt') {   // 갸웃 — 0.16초에 기울어 잠깐 멈췄다가 돌아온다
+      var a = t - m.idle.t0, env = a < 0.16 ? ease(a / 0.16) : a < 0.95 ? 1 : a < 1.2 ? 1 - ease((a - 0.95) / 0.25) : 0;
+      p.rot += env * rad(6) * m.idle.side; p.sy *= 1 + 0.02 * env; p.sx *= 1 - 0.012 * env;
+    }
+    return p;
+  }
+
+  // ── 강아지 그리기(g는 방 점 단위, (px, py) = 발 자리) ──
+  function drawDog(g, m, V, t, px, py) {
+    var b = dogBitmap(st.dog); if (!b) return;
+    var w = b.width / Z, h = b.height / Z, p = poseOf(m, V, t);
+    var hd = heads[st.dog] || { hx: 0.5, hy: 0 }, acc = st.acc ? accBitmap(st.acc) : null;
+    var sk = V.round ? Math.max(0.6, 1 - p.lift / 14) : 1;   // 새 안: 뜰수록 그림자 작고 옅게
+    shadowOn(g, px, py + 1, w * 0.62 * sk, 0.22 * (V.round ? Math.max(0.55, 1 - p.lift / 10) : 1));
+    var plain = Math.abs(p.rot) < 1e-4 && Math.abs(p.sx - 1) < 1e-4 && Math.abs(p.sy - 1) < 1e-4 && Math.abs(Math.abs(p.fx) - 1) < 1e-4;
+    if (plain) {   // 기울기·찌그러짐 없음 — 앱처럼 화면 픽셀에 딱 맞게(점이 번지지 않게)
+      var x = Math.round((px - w / 2) * Z) / Z;
+      var top = V.round ? Math.round((py - h + 1 - p.lift) * Z) / Z : Math.round((py - h + 1) * Z) / Z - p.lift;   // 지금 앱은 1점 단위로 뜬다
+      g.save(); g.imageSmoothingEnabled = false;
+      if (p.fx < 0) { g.translate(x * 2 + w, 0); g.scale(-1, 1); }
+      g.drawImage(b, x, top, w, h);
+      g.restore();
+      if (acc) {   // 머리 꼭대기에(앱 headPoint) — 걸어서 그림이 뒤집히면 가로도 뒤집는다
+        var hx = x + (p.fx < 0 ? 1 - hd.hx : hd.hx) * w, hy = top + hd.hy * h;
+        g.imageSmoothingEnabled = true;
+        g.drawImage(acc.b, Math.round(hx - acc.w / 2), Math.round(hy) + 4 - acc.h, acc.w, acc.h);
+      }
+      return;
+    }
+    // 기울기·찌그러짐·종이 뒤집기 — 발 가운데를 축으로 강아지와 머리 장식을 한 묶음으로
+    var hb = dogBitmap(st.dog, true) || b;
+    g.save();
+    g.translate(px, py + 1 - p.lift);
+    g.rotate(p.rot);
+    g.scale(p.sx, p.sy);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.save(); g.scale(p.fx, 1); g.drawImage(hb, -w / 2, -h, w, h); g.restore();
+    if (acc) {   // 장식은 앱처럼 뒤집지 않고 자리만 따라간다(종이 뒤집기 동안엔 폭도 같이 접힘)
+      var ax = (hd.hx - 0.5) * w * p.fx, ay = -h + hd.hy * h, aw = acc.w * Math.max(0.02, Math.abs(p.fx));
+      g.drawImage(acc.b, ax - aw / 2, ay + 4 - acc.h, aw, acc.h);
+    }
+    g.restore();
+  }
+
+  // ── 보는 칸(앱 fit과 같음) — 방 한 점 = CSS 1픽셀이 기본, 칸이 넓으면 방 전체(429점)까지 보이고 그다음엔 키운다 ──
+  var K = 1, Z = 2, VW = 345, OX = 64;
+  var cvRoom = $('room'), gRoom = cvRoom.getContext('2d');
+  var lanes = Array.prototype.map.call(document.querySelectorAll('#lanes canvas'), function (c) {
+    return { c: c, g: c.getContext('2d'), v: c.getAttribute('data-v'), m: null };
+  });
+  function fit() {
+    var avail = $('stage').clientWidth, dpr = window.devicePixelRatio || 1;
+    if (avail <= 0) return;
+    var vw = Math.min(RW, Math.max(VW_MIN, avail)), z = avail / vw * dpr;
+    if (z !== Z) { dogCache = {}; accCache = {}; roomBmp = null; }
+    VW = vw; K = avail / vw; Z = z;
+    OX = Math.round(Math.max(0, Math.min(RW - VW, XC - VW / 2)));
+    cvRoom.width = Math.round(VW * Z); cvRoom.height = Math.round(VH * Z);
+    cvRoom.style.width = (VW * K) + 'px'; cvRoom.style.height = (VH * K) + 'px';
+    lanes.forEach(function (L) {
+      L.c.width = Math.round(VW * Z); L.c.height = Math.round(LANE_H * Z);
+      L.c.style.width = (VW * K) + 'px'; L.c.style.height = (LANE_H * K) + 'px';
+    });
+  }
+
+  // ── 나란히 보기 — 네 줄이 같은 때에 같은 곳으로(20초 한 바퀴). 갸웃·두리번은 C 줄만 ──
+  var LANE_LOOP = 20, laneT = 0;
+  var SCRIPT = [
+    { t: 0.8, x: 340 },               // 오른쪽 끝까지 걷기
+    { t: 7.6, idle: 'tilt' },         // 갸웃
+    { t: 9.0, x: 130, fast: true },   // 뛰어서 돌아오기
+    { t: 12.3, idle: 'look' },        // 두리번
+    { t: 13.8, x: 200 },              // 짧게 걷고 서기
+    { t: 16.6, x: 100 }               // 처음 자리로
+  ];
+  function laneStart() {
+    var q = unP(100, LANE_Y);
+    lanes.forEach(function (L) { L.m = mover(q.i, q.j, false); });
+    laneT = 0;
+  }
+  function crossed(t0, t1, et) { return t1 < LANE_LOOP ? (t0 < et && et <= t1) : (t0 < et || et <= t1 - LANE_LOOP); }
+  function laneStep(dt) {
+    var t0 = laneT, t1 = laneT + dt;
+    SCRIPT.forEach(function (e) {
+      if (!crossed(t0, t1, e.t)) return;
+      lanes.forEach(function (L) {
+        var V = VARIANTS[L.v];
+        if (e.x != null) { var q = unP(e.x, LANE_Y); L.m.ti = q.i; L.m.tj = q.j; L.m.fast = !!e.fast; }
+        else if (e.idle) startIdle(L.m, e.idle, vt, V);
+      });
+    });
+    laneT = t1 % LANE_LOOP;
+    lanes.forEach(function (L) { stepMover(L.m, VARIANTS[L.v], dt, vt); });
+  }
+  function drawLanes() {
+    var rb = roomBitmap(); if (!rb) return;
+    var tx = Math.round(-OX * Z), ty = Math.round(-LANE_TOP * Z);
+    lanes.forEach(function (L) {
+      var g = L.g;
+      g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+      g.drawImage(rb, tx, ty);
+      g.setTransform(Z, 0, 0, Z, tx, ty);
+      var q = P(L.m.i, L.m.j);
+      drawDog(g, L.m, VARIANTS[L.v], vt, q.x, q.y);
+    });
+  }
+
+  // ── 방에서 걸어 보기 — 앱처럼 바닥 톡 = 걸어가기, 가만히 두면 6~12초마다 빈 바닥 몇 곳 중 하나로 ──
+  var SPOTS = [[30, 30], [50, 40], [58, 54], [44, 66], [78, 42], [26, 46], [70, 30], [86, 44]];   // 앱과 같음
+  var roomDog = mover(46, 38, true);
+  function wander(m) {
+    var s = SPOTS[Math.floor(Math.random() * SPOTS.length)], c = clampFloor({ i: s[0] + Math.random() * 6 - 3, j: s[1] + Math.random() * 6 - 3 });
+    m.ti = c.i; m.tj = c.j;
+  }
+  function roomStep(dt) {
+    var m = roomDog;
+    stepMover(m, VARIANTS[st.room], dt, vt);
+    if (!m.moving && !m.idle) { m.rest -= dt; if (m.rest <= 0) { m.rest = 6 + Math.random() * 6; wander(m); } }
+  }
+  function drawRoom() {
+    var rb = roomBitmap(); if (!rb) return;
+    var g = gRoom, tx = Math.round(-OX * Z), ty = Math.round(-OY * Z);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+    g.drawImage(rb, tx, ty);
+    g.setTransform(Z, 0, 0, Z, tx, ty);
+    var q = P(roomDog.i, roomDog.j);
+    drawDog(g, roomDog, VARIANTS[st.room], vt, q.x, q.y);
+  }
+  cvRoom.addEventListener('click', function (e) {
+    var r = cvRoom.getBoundingClientRect(), q = unP(OX + (e.clientX - r.left) / K, OY + (e.clientY - r.top) / K);
+    if (!onFloor(q)) return;   // 바닥 밖(벽)을 누르면 그대로
+    var c = clampFloor(q);
+    roomDog.ti = c.i; roomDog.tj = c.j; roomDog.fast = false; roomDog.rest = 9 + Math.random() * 4;   // 누른 곳에선 한동안 쉰다(앱과 같음)
+  });
+  $('run').addEventListener('click', function () {   // 소품으로 놀러 갈 때처럼 뛰어서 — 지금 자리에서 가장 먼 곳으로
+    var m = roomDog, best = SPOTS[0], bd = -1;
+    SPOTS.forEach(function (s) { var d = (s[0] - m.i) * (s[0] - m.i) + (s[1] - m.j) * (s[1] - m.j); if (d > bd) { bd = d; best = s; } });
+    var c = clampFloor({ i: best[0], j: best[1] });
+    m.ti = c.i; m.tj = c.j; m.fast = true; m.rest = 8 + Math.random() * 4;
+  });
+
+  // ── 시계 — 느리게 보기는 시계만 늦춘다(움직임 공식은 그대로) ──
+  var vt = 0, lastMs = 0, ready = false;
+  function frame(ms) {
+    var dt = lastMs ? Math.min(0.05, (ms - lastMs) / 1000) : 0; lastMs = ms;
+    dt *= Number(st.speed) || 1; vt += dt;
+    if (ready) { laneStep(dt); roomStep(dt); drawLanes(); drawRoom(); }
+    requestAnimationFrame(frame);
+  }
+
+  // ── 고르기 ──
+  $('dogrow').insertAdjacentHTML('beforeend', DOGS.map(function (d) {
+    return '<button type="button" class="chip" data-k="dog" data-v="' + d[0] + '">' + d[1] + '</button>';
+  }).join(''));
+  $('accrow').insertAdjacentHTML('beforeend', ACCS.map(function (a) {
+    return '<button type="button" class="chip" data-k="acc" data-v="' + a[0] + '">' + a[1] + '</button>';
+  }).join(''));
+  function paint() {
+    Array.prototype.forEach.call(document.querySelectorAll('.chip[data-k]'), function (b) {
+      b.setAttribute('aria-pressed', String(st[b.getAttribute('data-k')] === b.getAttribute('data-v')));
+    });
+    $('badge').textContent = VARIANTS[st.room].name;
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.chip[data-k]'); if (!b) return;
+    var k = b.getAttribute('data-k'), v = b.getAttribute('data-v');
+    if (st[k] === v) return;
+    st[k] = v; paint();
+    if (k === 'room') roomDog.flipT0 = -9;   // 안을 바꾸면 하던 종이 뒤집기는 끝난 셈
+  });
+  paint();
+
+  var rt = 0;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(fit, 120); });
+  fit();
+  laneStart();
+  loadAll().then(function () {
+    ready = true; $('loading').hidden = true;
+    fit();
+  });
+  requestAnimationFrame(frame);
+
+  // 시험용 — 지금 모양·자리
+  window.__motion = {
+    st: st, room: roomDog,
+    lanes: function () { return lanes.map(function (L) { var q = P(L.m.i, L.m.j); return { v: L.v, x: q.x, y: q.y, moving: L.m.moving, face: L.m.face, pose: poseOf(L.m, VARIANTS[L.v], vt) }; }); },
+    pose: function () { return poseOf(roomDog, VARIANTS[st.room], vt); },
+    view: function () { return { K: K, Z: Z, VW: VW, OX: OX, vt: vt, laneT: laneT }; },
+    advance: function (sec) {   // 화면이 숨어 있어도(그리기 신호가 안 와도) 시계를 sec초 넘기고 한 번 그린다
+      for (var n = Math.round(sec * 60); n > 0; n--) { vt += 1 / 60; laneStep(1 / 60); roomStep(1 / 60); }
+      drawLanes(); drawRoom();
+      return { vt: vt, laneT: laneT };
+    }
+  };
+})();
+</script>
+</body>
+</html>
