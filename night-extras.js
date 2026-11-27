@@ -9,7 +9,9 @@
 (function () {
   'use strict';
   var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var ART = { rocket: '', alien: '', others: '', memory: '' };   // 받은 그림 주소(비어 있으면 코드 그림)
+  var ART = { rocket: 'icons/night/rocket.webp?v=1', alien: '', others: '', memory: '' };   // 받은 그림 주소(비어 있으면 코드 그림)
+  // 받은 로켓(11/27 가르시아 "추가하고 배포" — _dev/night-rocket.py): 그림 비율과 유리 돔 자리(돔 속은 반투명 — 우리 개를 로켓 뒤에 그리면 돔 안에 탄 것처럼)·불꽃 자리
+  var ROCKET = { aspect: 1.3908, dome: { cx: 0.5317, top: 0.0216, base: 0.4452, w: 0.3612 }, flame: { x: 0.1009, y: 0.6818, r: 0.0799 } };
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 저장 못 해도 그대로 */ } }
   function track(door, act) { try { if (window.WalsonTrack) WalsonTrack.send('sky_door', { door: door, act: act }); } catch (e) { /* 통계는 없어도 그대로 */ } }
@@ -70,6 +72,21 @@
     g.fillStyle = dg; g.beginPath(); g.arc(cx, dyb, r, Math.PI, 0); g.closePath(); g.fill();
     g.strokeStyle = 'rgba(220,236,255,.9)'; g.lineWidth = 1.8 * u; g.beginPath(); g.arc(cx, dyb, r, Math.PI, 0); g.stroke();
     g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 2.2 * u; g.beginPath(); g.arc(cx, dyb, r * 0.78, Math.PI * 1.18, Math.PI * 1.42); g.stroke();
+  }
+  // 받은 로켓 그림: 불꽃 둘레 깜빡이는 빛 → 우리 개(돔 자리, 아랫몸은 몸통에 가림) → 로켓(돔 속 반투명이라 개가 비쳐 보임)
+  function drawRocketArt(g, W, H, dog, rocket, now) {
+    g.clearRect(0, 0, W, H);
+    var f = ROCKET.flame, fx = f.x * W, fy = f.y * H, fr = f.r * W * (1.6 + 0.35 * Math.sin(now / 60) + 0.2 * Math.sin(now / 23));
+    var fg = g.createRadialGradient(fx, fy, 0, fx, fy, fr); fg.addColorStop(0, 'rgba(255,190,90,.75)'); fg.addColorStop(1, 'rgba(255,120,60,0)');
+    g.fillStyle = fg; g.beginPath(); g.arc(fx, fy, fr, 0, 7); g.fill();
+    var d = ROCKET.dome;
+    if (dog) {
+      var dh = (d.base - d.top) * H * 0.95, dw = dog.naturalWidth * dh / dog.naturalHeight;
+      if (dw > d.w * W * 0.9) { dw = d.w * W * 0.9; dh = dog.naturalHeight * dw / dog.naturalWidth; }
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      g.drawImage(dog, d.cx * W - dw / 2, d.base * H + H * 0.06 - dh, dw, dh);
+    }
+    g.drawImage(rocket, 0, 0, W, H);
   }
   function drawAlien(g, W, H, wave) {
     g.clearRect(0, 0, W, H);
@@ -148,7 +165,11 @@
     speak(SAY[0]);
     pat.addEventListener('click', function (e) { e.stopPropagation(); nextLine(); });
     loadImg(o.dogSrc).then(function (im) { dogImg = im; });
-    loadImg(ART.rocket).then(function (im) { rocketImg = im; });
+    loadImg(ART.rocket).then(function (im) {
+      rocketImg = im; if (!im) return;
+      pw = 112; ph = Math.round(pw / ROCKET.aspect);   // 받은 로켓 비율로 칸을 다시
+      pc.width = Math.round(pw * dpr); pc.height = Math.round(ph * dpr); pc.style.width = pw + 'px'; pc.style.height = ph + 'px';
+    });
     loadImg(ART.alien).then(function (im) { alienImg = im; });
     var lastX = 0, faceL = false;
     // ── 외계 생명체 — 하늘을 열 때 세 번에 한 번쯤 ──
@@ -195,7 +216,7 @@
       var tilt = REDUCE ? 0 : Math.cos(t * 0.32) * 0.18 * (faceL ? -1 : 1);
       pat.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) rotate(' + tilt.toFixed(3) + 'rad) scaleX(' + (faceL ? -1 : 1) + ')';
       var g = pc.getContext('2d');
-      if (rocketImg) { g.clearRect(0, 0, pc.width, pc.height); g.drawImage(rocketImg, 0, 0, pc.width, pc.height); }
+      if (rocketImg) drawRocketArt(g, pc.width, pc.height, dogImg, rocketImg, now);
       else drawRocket(g, pc.width, pc.height, dogImg, 0.5 + 0.5 * Math.sin(now / 70));
       // 말풍선 — 로켓 위, 칸 밖으로 안 나가게
       var sw = say.offsetWidth || 120, sx = Math.max(6, Math.min(bw - sw - 6, x + pw / 2 - 24)), sy = Math.max(6, y - 30);
