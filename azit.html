@@ -463,13 +463,13 @@
   hdReady.then(function () { if (cur && cur.me) tray(); if (cur && cur.show) showList(); });   // 소품 칸 작은 그림도 원본으로
   function hd(n) { return hdPics[n] || null; }
   // 방 그림 — 벽지마다 큰 원본(받는 데 조금 걸림)과 1x 미리보기(작아서 먼저 옴 — 흐리게 먼저 보인다). 고른 벽지만 받는다
-  var roomPics = {}, roomLoading = {};
+  var roomPics = {}, roomLoading = {}, ROOM_V = { room_lilac: 2, room_pink: 2, room_night: 2 };   // 11/27 받은 벽지 원본 셋으로 다시 — 예전 그림이 캐시에 남지 않게
   function roomPic(name) {
     if (roomPics[name]) return roomPics[name];
     if (!roomLoading[name]) {
       roomLoading[name] = true;
-      loadImg(HDI + name + '-1x.webp?v=' + HD_V).then(function (im) { if (im && !roomPics[name]) { roomPics[name] = im; roomPics[name].small = true; roomCache = {}; staticDirty = true; kick(); } });
-      loadImg(HDI + name + '.webp?v=' + HD_V).then(function (im) { if (im) { roomPics[name] = im; roomCache = {}; staticDirty = true; kick(); } });
+      loadImg(HDI + name + '-1x.webp?v=' + (ROOM_V[name] || HD_V)).then(function (im) { if (im && !roomPics[name]) { roomPics[name] = im; roomPics[name].small = true; roomCache = {}; staticDirty = true; kick(); } });
+      loadImg(HDI + name + '.webp?v=' + (ROOM_V[name] || HD_V)).then(function (im) { if (im) { roomPics[name] = im; roomCache = {}; staticDirty = true; kick(); } });
     }
     return null;
   }

@@ -3,8 +3,8 @@
 # 가르시아 "고해상도 시안을 적용해줘" → "실제 [아지트]에 적용"(hq DECISIONS 11/26). 시안(azit-hd-sian.html)과 같은 방 그림·소품 원본을
 # 앱 주소(icons/azit-hd)로 옮기고, 원본이 없는 것은 크림 방에서 만든다:
 #   1) 방: 받은 크림 방(sian-ref/azit-hd/room.webp, 원본 x 400부터 1930×1536 — 방 한 점 = 4.5픽셀) → room.webp(크림 발바닥 = jelly)
-#   2) 벽지 셋(라일락·밤 블랙 핑크·분홍): 원본이 없어 크림 방의 벽(벽지·판벽·벽 윗면)만 색을 바꾼다 — 창·커튼·선반 나무·문은 그대로.
-#      밤은 바닥도 보랏빛 어두운 나무로(예전 점 방 room_night과 같은 결, _dev/azit-extra.py room_night). 원본을 받으면 바꾼다
+#   2) 벽지 셋(라일락·밤 블랙 핑크·분홍): 11/27 받은 평평한 견본(sian-ref/azit-hd/paper)을 크림 방 왼쪽 벽에 기울기대로 입히고(paper_room),
+#      다른 벽·판벽은 견본 바탕색으로 — 창·커튼·선반 나무·문은 그대로. 밤은 바닥도 보랏빛 어두운 나무로. 견본이 없으면 예전처럼 색만 바꿈(theme_room)
 #   3) 방마다 1x 미리보기(방 한 점 = 1픽셀) — 큰 그림을 받는 동안 흐리게 먼저 보인다
 #   4) 밤 창: 창유리(하늘·구름·나무)만 밤하늘로 바꾼 덧그림 window_night.webp(+ 자리 WIN_BOX, 방 한 점 단위)
 #   5) 소품 원본 33개: sian-ref/azit-hd/items 그대로 복사(받은 시트 18 + 11/25 기본 방 12 + 트로피·가랜드 + 켜진 조명)
@@ -108,6 +108,70 @@ def theme_room(img, name):
     return out
 
 
+# ── 벽지 원본(11/27 가르시아가 받은 평평한 견본 셋 — sian-ref/azit-hd/paper, 받은 그대로 보관) ──
+# 견본은 500픽셀마다 반복(자기 상관으로 잰 값) — 오른쪽 아래 Gemini 표시를 피해 가운데 한 칸(500~1000)을 무늬 한 장으로 쓴다.
+# 크림 방 왼쪽 벽 벽지 칸(paper_mask)에 세로 줄째 벽 기울기만큼 내려 입히고(발바닥은 서 있는 그대로), 크림 방의 밝고 어두움(모서리·위쪽 그늘)은 곱해서 남긴다.
+# 벽지 칸 밖의 벽(오른쪽 벽·판벽·벽 윗면)은 견본 바탕색 × 크림 방의 밝기 비율 — 판벽 선·그림자가 그대로 보인다. 밤은 바닥도 어둡게(예전과 같음).
+PAPER_DIR = os.path.join(HD_SRC, "paper")
+PAPER_PERIOD, PAPER_SCALE = 500, 0.2      # 견본 무늬 한 장 · 방에 입힐 크기(발바닥 폭 약 110 → 22픽셀, 크림 벽지 발바닥과 같게)
+
+
+def paper_mask(img, wall):
+    """크림 방 왼쪽 벽의 벽지 칸 — 밝은 크림·옅은 발바닥 색의 가장 큰 덩어리를 세로 줄마다 위·아래 끝까지 채움(판벽·윗면 띠·문은 빠짐)"""
+    H, W = wall.shape
+    ys, xs = np.mgrid[0:H, 0:W]
+    px = img * 255
+    paperish = (px.min(-1) > 150) & (px[..., 0] - px[..., 2] < 75) & (px[..., 0] > 215)
+    door = poly_mask(H, W, DOOR)
+    cand = wall & (xs < CXP - 3) & paperish & ~door
+    lab, n = ndimage.label(ndimage.binary_opening(cand, iterations=2))
+    sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+    big = lab == 1 + int(np.argmax(sz))
+    out = np.zeros_like(big)
+    for x in range(W):
+        c = np.nonzero(big[:, x])[0]
+        if len(c) > 20:
+            out[c.min():c.max() + 1, x] = True
+    return out & wall & ~door
+
+
+def paper_room(img, name):
+    src = os.path.join(PAPER_DIR, "paper_" + name + ".webp")
+    if not os.path.exists(src):
+        return None
+    sw = Image.open(src).convert("RGB")
+    a0 = PAPER_PERIOD
+    tile_px = round(PAPER_PERIOD * PAPER_SCALE)
+    tile = np.asarray(sw.crop((a0, a0, a0 + PAPER_PERIOD, a0 + PAPER_PERIOD)).resize((tile_px, tile_px), Image.LANCZOS)).astype(float) / 255
+    bgc = np.median(np.asarray(sw).reshape(-1, 3), 0) / 255           # 견본 바탕색
+    wall, floor = regions(img)
+    paper = paper_mask(img, wall)
+    _, L, _ = hls(img)
+    out = img.copy()
+    # 벽지 칸: 세로 줄 u = 모서리에서 왼쪽으로 떨어진 거리, 줄 v = 벽 바닥 줄과 나란히(왼쪽으로 갈수록 내려감)
+    ys, xs = np.nonzero(paper)
+    u = (CXP - xs).astype(float)
+    v = ys - SL * u
+    shade_src = np.where(paper, L, 0)
+    num = ndimage.gaussian_filter(shade_src, 14); den = ndimage.gaussian_filter(paper.astype(float), 14)
+    smooth = num / np.maximum(den, 1e-6)
+    ref = np.median(smooth[paper])
+    shade = np.clip(smooth[ys, xs] / ref, 0.82, 1.06)
+    for ch in range(3):
+        val = ndimage.map_coordinates(tile[..., ch], [v % tile_px, u % tile_px], order=1, mode="grid-wrap")
+        out[ys, xs, ch] = np.clip(val * shade, 0, 1)
+    # 그 밖의 벽: 바탕색 × 밝기 비율(크림 벽 바탕 밝기 기준)
+    rest = wall & ~paper
+    lref = np.median(L[paper])
+    ratio = np.clip(L[rest] / lref, 0.25, 1.12)[:, None]
+    out[rest] = np.clip(bgc[None, :] * ratio + (ratio - 1).clip(0) * 0.6, 0, 1)
+    if name == "night":
+        h, Lf_all, Sx = hls(img)
+        Lf, Sf = Lf_all[floor], Sx[floor]
+        out[floor] = rgb_of(np.full_like(Lf, 282), 0.07 + Lf * 0.27, np.clip(0.14 + Sf * 0.08, 0, 1))
+    return out
+
+
 def night_window(img):
     """창유리(하늘·구름·나무·풀)만 밤으로 — 밤하늘 남색 + 어두운 숲 + 달·별. 유리 밖은 투명"""
     x0, y0, x1, y1 = GLASS_BOX
@@ -163,7 +227,9 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     img = np.asarray(Image.open(os.path.join(HD_SRC, "room.webp")).convert("RGB")).astype(float) / 255
     for name in ("jelly", "lilac", "night", "pink"):
-        arr = img if name == "jelly" else theme_room(img, name)
+        arr = img if name == "jelly" else paper_room(img, name)
+        if arr is None:   # 벽지 원본이 없으면 예전처럼 크림 방 색만 바꿈
+            arr = theme_room(img, name)
         fn = "room" if name == "jelly" else "room_" + name
         im = save_webp(arr, os.path.join(OUT, fn + ".webp"))
         one = im.resize((round(im.width / S), round(im.height / S)), Image.LANCZOS)
