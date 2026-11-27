@@ -357,8 +357,10 @@
       '<div class="wst-sky"><canvas aria-label="이번 달 별자리 하늘"></canvas><span class="wst-tag">분홍 별 · 우리가 만난 날 ' + esc(fmtDay(met)) + '</span></div>' +
       (n ? '' : '<p class="wst-empty">분홍 별은 우리가 만난 날 별이에요. 5분 넘게 산책하고 오면 창밖에 첫 별이 떠요.</p>') +
       '<p class="wst-rule">5분 넘게 걸은 산책 1번 = 별 1개(하루 2개까지) · 별 크기는 걸은 시간, 색은 아침·낮·저녁·밤 · 별을 누르면 그날 산책</p>' +
-      '<a class="wst-3d" href="sky.html">✦ 하늘을 3D로 둘러보기 · 친구에게 보내기 ›</a>' +
-      '<div class="wst-btns"><button type="button" data-a="save">저장</button><button type="button" data-a="share" class="main">공유</button><button type="button" data-a="close">닫기</button></div></div>';
+      // 별이 아직 없으면 공유는 숨긴다 — 처음 온 사람에게 "보내기"부터 보이지 않게(11/27). 3D는 앞으로 생길 얼굴 윤곽이 보여서 둔다
+      '<a class="wst-3d" href="sky.html">✦ 하늘을 3D로 둘러보기 ›</a>' +
+      '<div class="wst-btns">' + (n ? '<button type="button" data-a="save">저장</button><button type="button" data-a="share" class="main">공유</button>' : '') +
+      '<button type="button" data-a="close">닫기</button></div></div>';
     document.body.appendChild(back);
     var box = back.querySelector('.wst-sky'), cv = box.querySelector('canvas');
     var dpr = Math.min(3, window.devicePixelRatio || 1), cw = box.clientWidth || 340, chh = Math.round(cw * 0.95);
