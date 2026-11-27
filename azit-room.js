@@ -20,7 +20,7 @@
     { id: 'maltese',   breed: '말티즈',   fur: '#e8e6df', sizes: 's' },
     { id: 'knit',      breed: '파란 니트', fur: '',        sizes: '' },    // 니트를 입은 그림이라 대신 보여 주기엔 안 씀(고르기만)
     { id: 'chihuahua', breed: '치와와',   fur: '#d6a874', sizes: 's' },
-    { id: 'dachs',     breed: '닥스훈트', fur: '#3a3a40', sizes: 'sm' },   // 11/27 검정·흰 얼룩으로 다시 칠함(_dev/dachs-piebald.py) — 털색 맞추기도 짙은 색 쪽
+    { id: 'dachs',     breed: '닥스훈트', fur: '#3a3a40', sizes: 'sm' },   // 11/27 블랙 앤 탄 대플로 다시 칠함(_dev/dachs-piebald.py) — 털색 맞추기도 짙은 색 쪽
     { id: 'jindo',     breed: '진돗개',   fur: '#f0e6d6', sizes: 'ml' },
     { id: 'shiba',     breed: '시바',     fur: '#e2a464', sizes: 'ml' }
   ];
@@ -507,7 +507,7 @@
     guessDog: guessDog, dogFromBreed: dogFromBreed, myDog: myDog,
     loadState: loadState, saveState: saveState, unlockedItems: unlockedItems, placedItems: placedItems, accOn: accOn,
     snapshot: snapshot, mySnapshot: mySnapshot, parseRoom: parseRoom, todayKey: todayKey,
-    dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=3'; },
-    dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=3'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
+    dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=4'; },
+    dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=4'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
   };
 })();
