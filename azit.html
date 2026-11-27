@@ -514,7 +514,7 @@
   function loadImg(src) { return new Promise(function (res) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = src; }); }
   var picNames = ['lamp_stand_on', 'stroller_win', 'paw', 'acc_ribbon', 'acc_cap', 'acc_crown']
     .concat(AZ.ITEMS.map(function (it) { return it.spr; }))
-    .concat(AZ.ITEMS.filter(function (it) { return it.both; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
+    .concat(AZ.ITEMS.filter(function (it) { return it.both || it.turn; }).map(function (it) { return it.spr + '_L'; }))   // 글자 있는 벽 그림의 왼쪽 벽용
     .filter(function (n, k, a) { return a.indexOf(n) === k; });
   // 11/24 글씨를 한글 도트 글꼴로 다시 쓴 글자 소품(_dev/azit-letter.py) — 예전 그림이 브라우저 캐시에 남지 않게 주소를 v2로(왼쪽 벽용 _L도)
   var LETTER_V2 = ['sign_snack', 'board_refuse', 'sign_meetup', 'bubble_visited', 'bubble_interior', 'bubble_poop', 'bubble_chihuahua',
@@ -540,6 +540,7 @@
     'plant_cherry_blossom', 'plant_cactus', 'plant_daisy', 'balloons', 'nosework_mat', 'trophy_poop', 'parasol_set', 'cone_barricade', 'cart_bungeoppang',
     'bubble_visited', 'bubble_visited_L', 'bubble_interior', 'bubble_interior_L', 'panel_guestbook', 'panel_guestbook_L', 'stamp_regular', 'stamp_regular_L',
     'bubble_poop', 'bubble_poop_L', 'bubble_chihuahua', 'bubble_chihuahua_L', 'scroll_dogslife', 'scroll_dogslife_L', 'board_refuse', 'sign_snack',
+    'board_refuse_L', 'sign_snack_L',   // 11/27 팻말 왼쪽 벽 쪽(글씨를 다시 써 넣은 원본 — 거울 글씨 X)
     'acc_ribbon', 'acc_cap', 'acc_crown'];
   var hdPics = {}, HD_V = 1;
   var hdReady = Promise.all(HD_NAMES.map(function (n) { return loadImg(HDI + n + '.webp?v=' + HD_V).then(function (im) { if (im) { hdPics[n] = im; bmpCache = {}; fillCache = {}; staticDirty = true; kick(); } }); }));
@@ -658,7 +659,18 @@
     var g = c.getContext('2d');
     if (flip) { g.translate(W2, 0); g.scale(-1, 1); }
     g.drawImage(smallCopy(im, dw, dh), Math.round((W2 - dw) / 2), H2 - dh);
+    if (/^(bubble_|panel_guestbook|stamp_regular|scroll_dogslife|board_refuse|sign_snack)/.test(n)) sharpen(c, 0.35);   // 글씨 판 — 줄이며 무른 글씨 가장자리를 살짝 세운다(11/27)
     return (bmpCache[key] = c);
+  }
+  function sharpen(c, a) {   // 3×3 선명하게(가운데 1+4a, 상하좌우 -a) — 알파는 그대로
+    try {
+      var g = c.getContext('2d'), w = c.width, h = c.height, id = g.getImageData(0, 0, w, h), s = id.data, o = new Uint8ClampedArray(s);
+      for (var y = 1; y < h - 1; y++) for (var x = 1; x < w - 1; x++) {
+        var i = (y * w + x) * 4; if (s[i + 3] < 200) continue;
+        for (var k = 0; k < 3; k++) o[i + k] = s[i + k] * (1 + 4 * a) - a * (s[i + k - 4] + s[i + k + 4] + s[i + k - w * 4] + s[i + k + w * 4]);
+      }
+      id.data.set(o); g.putImageData(id, 0, 0);
+    } catch (e) { /* 그림을 못 읽으면 그대로 */ }
   }
   // 머리 장식 원본(11/26, icons/azit-hd acc_*) — 가로는 점 그림 폭 그대로, 세로는 원본 비율대로(새 그림이 예전 점 그림보다 위로 높다)
   var ACC_HD_SCALE = { cap: 0.68 };   // 11/26 가르시아 "모자 사이즈 너무 커" — 새 모자는 둥근 정면이라 예전 납작한 모자 폭(19점)이면 세로까지 20점이 돼 머리를 덮었다
@@ -670,10 +682,22 @@
   function hdFlip(it, side) { return !!(it.face && side && it.face !== side); }   // 벽 소품을 그려진 방향과 다른 벽에 걸면 뒤집는다
   function hdName(it) { return it && hd(it.spr) ? it.spr : null; }
   // 소품 그리기(g는 방 점 단위) — 원본이 있으면 화면 픽셀 그림을 곱게, 없으면 점 그림을 점째 키워서. s = 점 그림(크기·누르는 자리 기준)
-  function putItem(g, s, x, y, n, flip) {
-    var b = n ? hdBitmap(n, s.width, s.height, flip) : null;
-    if (b) { g.imageSmoothingEnabled = true; g.drawImage(b, x, y, s.width, s.height); return; }
-    g.imageSmoothingEnabled = false; g.drawImage(s, x, y, s.width, s.height);
+  // w·h를 주면 그 크기로(팻말 1.5배 등 — 비틀거나 늘려 그리지 않고 그 크기 그림을 따로 줄여 둔다)
+  function putItem(g, s, x, y, n, flip, w, h) {
+    w = w || s.width; h = h || s.height;
+    var b = n ? hdBitmap(n, w, h, flip) : null;
+    if (b) {
+      // 11/27 가르시아 "방 팻말 글씨가 흐려(소품 보기 창처럼 또렷하게)": 화면 픽셀 크기로 곱게 줄여 둔 그림(b)을 방 점 단위로 다시 그리면
+      // 화면 배율이 소수(휴대폰 2.75배 등)이거나 자리가 픽셀 사이에 걸릴 때 한 번 더 줄이며 번졌다 → 화면 픽셀 칸에 맞춰 1:1로 찍는다
+      var m = g.getTransform ? g.getTransform() : null;
+      if (m && !m.b && !m.c && Math.abs(m.a - Z) < 1e-6 && Math.abs(m.d - Z) < 1e-6) {
+        g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+        g.drawImage(b, Math.round(m.a * x + m.e), Math.round(m.d * y + m.f));
+        g.restore(); return;
+      }
+      g.imageSmoothingEnabled = true; g.drawImage(b, x, y, w, h); return;
+    }
+    g.imageSmoothingEnabled = false; g.drawImage(s, x, y, w, h);
   }
   // 사진 액자·단짝 액자(고해상도) — 속 칸(점 그림의 알파 1 칸, 세로줄마다 위·아래)에 사진·도트 강아지를 화면 픽셀로 비스듬히 끼우고,
   // 그 위에 속 칸이 투명한 원본 액자를 덮는다. 원본 액자를 아직 못 받았으면 null(점 그림 액자로)
@@ -1295,7 +1319,7 @@
     itemsOf(o, 'floor').forEach(function (it) {
       if (fj && it.id === fj.id) return;   // 던진 공은 아래에서 따로(날아가는 중·바닥·입에)
       var p = posOf(o, it), q = P(p.i, p.j), ro = rollOf(it.id), lit = it.id === 'lamp' && lampLit() && pic('lamp_stand_on');   // 개모차는 탄 강아지가 "출발!" 하는 동안 살짝 굴러간다
-      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: lit || pic(it.spr), hdn: lit ? 'lamp_stand_on' : it.spr, turn: it.turn ? turnOf(o, it.id) : '', sign: !!it.turn });
+      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: lit || pic(sprOf(o, it)), hdn: lit ? 'lamp_stand_on' : sprOf(o, it), sign: !!it.turn });
     });
     var fp = fj && fj.phase !== 'carry' ? (fj.phase === 'move' ? tossPos(fj, tnow - fj.t0) : { x: fj.Ls.x, y: fj.Ls.y, hgt: 0, rot: fj.rot }) : null;
     if (fp && fp.hgt <= 0.5) things.push({ ball: true, z: fp.y, x: fp.x, y: fp.y, spr: fj.spr, rot: fp.rot, shadow: fj.phase === 'move' });   // 바닥(구르는 중·멈춘 것)
@@ -1333,14 +1357,11 @@
         return;
       }
       if (!t.spr) return;
-      if (t.sign) {   // 팻말(11/27) — 크게(SIGN_SCALE), 돌렸으면 가로로 조금 줄이고 바닥 기울기만큼 비스듬히(뒤집지 않아 글씨가 그대로)
-        var tf = TURN[t.turn] || { a: 1, sh: 0 }, k = SIGN_SCALE;
-        var tw0 = t.spr.width, th0 = t.spr.height, fx = Math.round(t.x), fy = Math.round(t.y);
-        ctx.save(); ctx.translate(fx, fy); ctx.transform(k * tf.a, k * tf.sh * tf.a, 0, k, 0, 0);
-        putItem(ctx, t.spr, -Math.round(tw0 / 2), -th0 + 1, hd(t.hdn) ? t.hdn : null, false);
-        ctx.restore();
-        var hw = k * tf.a * tw0 / 2, rise = Math.abs(tf.sh) * hw;
-        sprites.push({ id: t.id, x: fx - hw, y: fy - k * th0 + 1 - rise, w: hw * 2, h: k * th0 + rise * 2, foot: { x: t.x, y: t.y }, img: t.spr, tf: tf, k: k, fx: fx, fy: fy });
+      if (t.sign) {   // 팻말(11/27) — 크게(SIGN_SCALE). 방향은 원본 두 장(sprOf) — 비틀어 그리지 않아 글씨가 또렷하다
+        var k = SIGN_SCALE, sw = Math.round(t.spr.width * k), shh = Math.round(t.spr.height * k);
+        var sx = Math.round(t.x - sw / 2), sy = Math.round(t.y - shh + 1);
+        putItem(ctx, t.spr, sx, sy, hd(t.hdn) ? t.hdn : null, false, sw, shh);
+        sprites.push({ id: t.id, x: sx, y: sy, w: sw, h: shh, foot: { x: t.x, y: t.y }, img: t.spr, k: k });
         return;
       }
       var x = Math.round(t.x - t.spr.width / 2), y = Math.round(t.y - t.spr.height + 1);
@@ -1851,21 +1872,21 @@
     maskCache.set(img, mk);
     return mk;
   }
-  // 팻말 보는 방향(11/27 가르시아 "팻말의 각도를 바꿀 수 있게 해 줘") — '' 정면 · L 왼쪽 보기(오른쪽 벽과 나란히) · R 오른쪽 보기(왼쪽 벽과 나란히)
-  // sh = 바닥 기울기(오른쪽 벽 SR, 왼쪽 벽 SL), a = 가로로 줄이는 정도(비스듬히 보이게)
-  var TURN = { L: { a: 0.86, sh: SR }, R: { a: 0.86, sh: -SL } };
-  function turnOf(o, id) { var t = o.me ? state.turn : o.turn; return (t && t[id]) || ''; }
+  // 팻말 보는 방향(11/27 가르시아 "다녀감 같은 벽에 붙이는 소품처럼 방향 전환 — 좌·정면·우는 잘못, 글씨도 뿌예") — 벽 소품(both)처럼 원본 둘:
+  // '' = 받은 그림 그대로(오른쪽 벽과 나란히) · L = 왼쪽 벽과 나란히(빈 판을 뒤집어 글씨를 다시 써 넣은 원본 이름_L — _dev/azit-remake.py). 예전 저장값 R은 받은 그림으로
+  function turnOf(o, id) { var t = o.me ? state.turn : o.turn; return (t && t[id]) === 'L' ? 'L' : ''; }
+  function sprOf(o, it) { return it.turn && turnOf(o, it.id) === 'L' && pic(it.spr + '_L') ? it.spr + '_L' : it.spr; }
   function setTurn(id, v) {
     if (!state.turn) state.turn = {};
     if (v) state.turn[id] = v; else delete state.turn[id];
-    save(); kick();
+    save(); staticDirty = true; kick();
   }
   // 팻말은 방에서 크게(11/27 가르시아 "키워 줘") — 점 그림 기준 배수. 기둥 아래(발) 자리는 그대로
   var SIGN_SCALE = 1.5;
   function onSprite(s, x, y) {
     var mk = maskOf(s.img); if (!mk) return true;
     var lx = Math.floor(x - s.x), ly = Math.floor(y - s.y);
-    if (s.tf) { var dx0 = (x - s.fx) / s.k; lx = Math.floor(dx0 / s.tf.a + Math.round(mk.w / 2)); ly = Math.floor((y - s.fy) / s.k - s.tf.sh * dx0 + mk.h - 1); }   // 팻말(크기·방향 되돌림)
+    if (s.k) { lx = Math.floor((x - s.x) / s.k); ly = Math.floor((y - s.y) / s.k); }   // 크게 그린 팻말 — 점 그림 크기로 되돌려 잰다
     for (var dy = -2; dy <= 2; dy++) for (var dx = -2; dx <= 2; dx++) {
       var xx = lx + dx, yy = ly + dy;
       if (xx >= 0 && yy >= 0 && xx < mk.w && yy < mk.h && mk.m[yy * mk.w + xx]) return true;
@@ -1933,9 +1954,9 @@
     go.addEventListener('click', function () { hideCard(); goPlay(s); });
     bx.appendChild(go);
     var oldTurn = $('ic-turn'); if (oldTurn) oldTurn.remove();
-    if (view === -1 && it.turn) {   // 팻말 방향(11/27) — [좌측] [정면] [우측] 세 칸, 창은 그대로 두고 방에서 바로 보이게
+    if (view === -1 && it.turn && pic(it.spr + '_L')) {   // 팻말 방향(11/27) — 벽 소품처럼 두 칸(오른쪽 벽 쪽 · 왼쪽 벽 쪽), 왼쪽 벽 쪽 원본이 있을 때만
       var tr = el('div', 'ic-turn'); tr.id = 'ic-turn'; tr.setAttribute('role', 'group'); tr.setAttribute('aria-label', '팻말 보는 방향');
-      [['L', '좌측'], ['', '정면'], ['R', '우측']].forEach(function (o) {
+      [['L', '왼쪽 벽 쪽'], ['', '오른쪽 벽 쪽']].forEach(function (o) {
         var tb = el('button', 'pbtn', o[1]); tb.type = 'button'; tb.setAttribute('data-turn', o[0]);
         tb.setAttribute('aria-pressed', String(turnOf(cur, it.id) === o[0]));
         tb.addEventListener('click', function () {
