@@ -83,7 +83,7 @@
 <script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=5"></script>
 <script src="install.js?v=1"></script>
-<script src="track.js?v=10"></script>
+<script src="track.js?v=11"></script>
 </head>
 <body class="night">
 <main class="wrap">
@@ -102,6 +102,7 @@
   </div>
   <p class="goal" id="goal"></p>
   <div class="miles" id="miles" aria-label="이번 달 이정표"></div>
+  <div class="nx-doors" id="doors" aria-label="다른 행성 — 준비 중"></div>
   <div class="empty" id="empty" hidden></div>
   <details class="fold" id="nums-fold">
     <summary>이번 달 숫자 <small id="nums-sum"></small></summary>
@@ -120,6 +121,7 @@
 <script src="azit-room.js?v=22"></script>
 <script src="save-image.js?v=4"></script>
 <script src="walk-stars.js?v=6"></script>
+<script src="night-extras.js?v=1"></script>
 <script>
 (function () {
   'use strict';
@@ -143,7 +145,8 @@
   $('title').textContent = who + '의 밤하늘';
   S.metDay();
 
-  function frame(now) { raf = 0; if (!sky) return; var moving = sky.draw(cv.getContext('2d'), now); raf = requestAnimationFrame(frame); return moving; }
+  var NX = null;   // 순찰대·외계 생명체·행성 문(4단계 — night-extras.js)
+  function frame(now) { raf = 0; if (!sky) return; sky.draw(cv.getContext('2d'), now); if (NX) NX.tick(now); raf = requestAnimationFrame(frame); }
   function show(i, isFresh) {
     idx = i;
     var ym = months[i], m = S.month(null, ym);
@@ -224,6 +227,8 @@
   var rt = 0;
   window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (Math.abs((box.clientWidth || 0) - cw) > 2) show(idx, false); }, 150); });
   document.addEventListener('visibilitychange', function () { if (document.hidden && raf) { cancelAnimationFrame(raf); raf = 0; } else if (!document.hidden && !raf && sky) raf = requestAnimationFrame(frame); });
+  if (window.WalsonNightExtras) NX = WalsonNightExtras.init({ box: box, who: who, dogSrc: 'icons/dot-dogs/' + S.dogId() + '.webp?v=1', doors: $('doors'), toast: toast,
+    alien: /[?&]alien=1\b/.test(location.search) ? true : undefined });   // ?alien=1이면 외계 생명체가 꼭 나옴(시연용)
   show(0, fresh);
   if (fresh) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* 그대로 */ } if (st && st.m.days) toast('오늘 별이 떴어요 ✦'); }
   window.__night = { show: show, months: months, state: function () { return st; } };   // 시험용
