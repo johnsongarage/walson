@@ -114,7 +114,7 @@
 <script src="store.js?v=2"></script>
 <script src="site-config.js?v=12"></script>
 <script src="canvas-view.js?v=1"></script>
-<script src="azit-room.js?v=15"></script>
+<script src="azit-room.js?v=16"></script>
 <link rel="stylesheet" href="theme-black.css?v=3"><script src="theme.js?v=15"></script>
 </head>
 <body>
@@ -326,7 +326,7 @@
     if (sprites[id]) { if (sprites[id].complete && sprites[id].naturalWidth) cb(); else sprites[id].addEventListener('load', cb); return; }
     var im = new Image(); im.decoding = 'async';
     im.onload = function () { ghosts[id] = null; cb(); };
-    im.src = 'icons/dot-dogs/px/' + id + '.png?v=1';
+    im.src = 'icons/dot-dogs/px/' + id + '.png?v=2';
     sprites[id] = im;
   }
   function ghostOf(id) {
@@ -672,7 +672,7 @@
 
   // 강아지 고르기 · 이름
   $('dogs').innerHTML = DOG_IDS.map(function (id) {
-    return '<button type="button" data-id="' + id + '" aria-pressed="' + (id === S.dog) + '"><img src="icons/dot-dogs/px/' + id + '.png?v=1" alt="">' + BREED[id] + '</button>';
+    return '<button type="button" data-id="' + id + '" aria-pressed="' + (id === S.dog) + '"><img src="icons/dot-dogs/px/' + id + '.png?v=2" alt="">' + BREED[id] + '</button>';
   }).join('');
   $('dogs').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
