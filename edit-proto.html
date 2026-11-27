@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>이미지 편집 시안</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
 <meta name="theme-color" content="#2b231e">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
@@ -393,7 +393,7 @@
   if (window.WalsonSave) $('save').textContent = WalsonSave.isMobile() ? '저장·공유' : '저장';
   $('close').addEventListener('click', function () { if (history.length > 1) history.back(); else location.href = 'walk-history.html'; });
 
-  Promise.all([loadImg('icons/sample-walson.jpg'), loadImg('icons/walson-logo.webp'),
+  Promise.all([loadImg('icons/sample-walson.jpg'), loadImg('icons/walson-logo.webp?v=2'),
     WalkReceipt.ensureFonts(WalkReceipt.textOf(receiptData(), 'story') + NOTES.join('') + '흰검은말풍선띠'), WalsonIdCard.fontsReady()]).then(function (a) {
     IMG.photo = a[0]; IMG.logo = a[1];
     fitViewport();

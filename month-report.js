@@ -197,7 +197,7 @@
         st.photo.zoom = 1; st.photo.x = 0.5; st.photo.y = 0.5;   // 달마다 사진이 달라서 처음대로
       }
     };
-    Promise.all([loadImg('icons/walson-logo.webp'), fontsReady]).then(function (a) {
+    Promise.all([loadImg('icons/walson-logo.webp?v=2'), fontsReady]).then(function (a) {
       var logo = a[0], y = now.getFullYear(), m = now.getMonth(), r = summarize(walks, y, m);
       ensurePhoto(r.photoKey);
       ed = WalsonEditor.open({

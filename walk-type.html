@@ -18,7 +18,7 @@
 <meta property="og:image:alt" content="왈슨 — 화난 치와와 얼굴, 산책 다녀오면 영수증 한 장, 우리 동네 강아지 산책 앱">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
 <meta name="theme-color" content="#fffdfd">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet">
@@ -99,7 +99,7 @@
   </div>
 
   <section class="view intro" id="view-intro">
-    <img src="icons/walson-logo.webp" alt="">
+    <img src="icons/walson-logo.webp?v=2" alt="">
     <h2>우리 개는<br>어떤 산책러일까?</h2>
     <p>질문 6개, 1분이면 끝나요.<br>재미로 보는 테스트예요.</p>
     <button type="button" class="btn-main" id="start-btn">시작하기</button>
@@ -309,7 +309,7 @@
     var fontsReady = (document.fonts && document.fonts.load)
       ? Promise.all([document.fonts.load('96px "Black Han Sans"'), document.fonts.load('800 46px Pretendard')]).catch(function () {})
       : Promise.resolve();
-    Promise.all([loadImg(profile.photo), loadImg('icons/walson-logo.webp'), fontsReady]).then(function (r) {
+    Promise.all([loadImg(profile.photo), loadImg('icons/walson-logo.webp?v=2'), fontsReady]).then(function (r) {
       resultImgs = { type: type, photo: r[0], logo: r[1] };
       resultCanvas = drawResult(type, r[0], r[1]);
       $('result-img').src = resultCanvas.toDataURL('image/png');

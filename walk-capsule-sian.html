@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>산책 캡슐 시안</title>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
   /* 산책 캡슐 시안(2026-11-27 가르시아 "가챠에 대해서 내 앱이나 홍보에 넣을 거 아이디어 — 마케터 말로는 사은품을 주더라도 까 보는 재미를"
@@ -348,7 +348,7 @@
   });
 
   paint(); renderRoom();
-  var jobs = [load('logo', 'icons/walson-logo.webp?v=1')];
+  var jobs = [load('logo', 'icons/walson-logo.webp?v=2')];
   DOGS.forEach(function (d) { if (d[0] !== 'secret') jobs.push(load(d[0], 'icons/dot-dogs/' + d[0] + '.webp?v=1')); });
   var fontReady = document.fonts ? Promise.all(['900 40px Pretendard', '800 30px Pretendard', '700 23px Pretendard'].map(function (f) { return document.fonts.load(f); })).catch(function () {}) : Promise.resolve();
   Promise.all(jobs.concat([fontReady])).then(renderNotes);

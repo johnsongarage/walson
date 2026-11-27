@@ -317,7 +317,7 @@
       g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.32)');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, h);
     } else {
-      ctx.fillStyle = '#f1b732';   // 앱 그림(walson-logo.webp) 바탕과 같은 노랑 — 다르면 그림 둘레에 네모가 비친다
+      ctx.fillStyle = '#f1b732';   // 사진 없을 때 바탕 노랑 — 로고(walson-logo.webp, 11/27 리드줄 문 치와와, 투명 바탕)를 가운데 얹는다
       ctx.fillRect(0, 0, W, h);
       if (logo && logo.width) {
         var vh = visibleH || h, lh = Math.min(vh * 0.7, 760), lw = lh * logo.width / logo.height;

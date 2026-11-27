@@ -41,8 +41,8 @@
 })();
 </script>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=3">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="왈슨">
@@ -272,7 +272,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="splash.css?v=2">
-<link rel="preload" as="image" href="icons/walson-logo.webp">
+<link rel="preload" as="image" href="icons/walson-logo.webp?v=2">
 <script src="store.js?v=1"></script>
 <link rel="stylesheet" href="theme-black.css?v=2"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
@@ -285,7 +285,7 @@
 <body>
 <div id="splash" role="img" aria-label="왈슨, 우리 동네 강아지 산책 앱. 제작 johnsongarage">
   <div class="splash-main">
-    <img src="icons/walson-logo.webp" alt="" width="900" height="732">
+    <img src="icons/walson-logo.webp?v=2" alt="" width="900" height="732">
     <div class="splash-name">왈슨</div>
     <div class="splash-tag">우리 동네 강아지 산책 앱</div>
   </div>
@@ -698,7 +698,7 @@
           return loadImage(url).then(function (im) { URL.revokeObjectURL(url); return im; });
         }).catch(function () { return null; })
       : Promise.resolve(null);
-    Promise.all([walkP, loadImage(profile.photo || null), loadImage('icons/walson-logo.webp'), WalkReceipt.ensureFonts(WalkReceipt.textOf(d))]).then(function (a) {
+    Promise.all([walkP, loadImage(profile.photo || null), loadImage('icons/walson-logo.webp?v=2'), WalkReceipt.ensureFonts(WalkReceipt.textOf(d))]).then(function (a) {
       // 사진 — 고른 것 → 산책 사진 → 프로필 사진 → 앱 그림([기록] pickSource와 같은 차례)
       var s = { walk: a[0], profile: a[1] }, want = c.photo;
       var pick = (want && (want === 'logo' || s[want])) ? want : (s.walk ? 'walk' : s.profile ? 'profile' : 'logo');
