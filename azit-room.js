@@ -73,7 +73,7 @@
     { id: 'ball', spr: 'ball_yellow', shelf: true, i: 52, j: 24, name: '공', need: {} },
     { id: 'flag', spr: 'flag_stand', i: 40, j: 3, name: '앰배서더 깃발', need: { level: 3 } },
     // ── 11/23 모델하우스 2단계 ──
-    { id: 'rug', spr: 'rug_pattern', i: 70, j: 50, decal: true, name: '러그', need: { walks: 3 } },
+    { id: 'rug', spr: 'rug_pattern', i: 70, j: 50, decal: true, move: true, tapWalk: true, name: '러그', need: { walks: 3 } },
     { id: 'photo', spr: 'frame_photo', face: 'L', wall: 'L', u: 26, h: 96, name: '우리 개 사진 액자', need: { pass: 1 } },   // 11/24 아래 선반 위 → 두 선반 사이
     { id: 'basket', spr: 'basket_blue_carrot', i: 40, j: 72, name: '장난감 바구니', need: { walks: 15 } },
     { id: 'house', spr: 'sofa_bed', i: 66, j: 10, name: '강아지 소파', need: { walks: 20 } },   // 11/23 새 방부터 집 대신 소파
@@ -81,7 +81,7 @@
     { id: 'poopbag', spr: 'bag_dispenser', face: 'L', wall: 'L', u: 12, h: 56, name: '응가 봉투 걸이', need: { poop: 10 } },   // 11/23 밤 받은 디스펜서 그림으로. 그림은 왼쪽 벽에 붙는 모양(벽 고리가 왼쪽 위, 몸통이 방 쪽으로 나옴) — face L(11/23 밤 가르시아 "풉백이 반대 방향으로 걸려")
     { id: 'keyhook', spr: 'keyhook_rail', face: 'R', wall: 'L', u: 28, h: 58, name: '키링 걸이', need: { keyring: 1 } },
     { id: 'lamp', spr: 'lamp_stand', i: 6, j: 22, name: '스탠드 조명', need: { steady: 1 } },
-    { id: 'mat', spr: 'picnic_mat', i: 24, j: 72, decal: true, name: '피크닉 매트', need: { park: 1 } },
+    { id: 'mat', spr: 'picnic_mat', i: 24, j: 72, decal: true, move: true, tapWalk: true, name: '피크닉 매트', need: { park: 1 } },
     { id: 'garland', spr: 'garland_R', corner: true, name: '가랜드', need: { steady5: 1 } },   // 11/26 고해상도 방 — 모서리 대신 오른쪽 벽 창 위에 벽 기울기대로(끌지 않음)
     // 단짝 액자(11/23 가르시아 "추천대로" — 교환 수 문턱 보상("단짝 3마리면 가랜드") 대신): 첫 단짝부터 걸리고 최근 단짝 도트 강아지가 들어간다.
     // 숫자를 채우는 보상이 아니라 방이 친구로 채워지는 것(11/23 결정 "방이 채워지는 것 자체가 보상"과 같은 결)
@@ -92,6 +92,7 @@
     // 생기는 조건은 Claude 제안(11/23 밤) — 모두 "한 것"(산책·발도장·가게 QR·응가 치움·꾸준함·오늘의 한 장 + 산책 기록으로 세는
     //   밤 산책 night · 겨울 산책 winter · 40분 넘는 산책 long · 킁킁 지수 4 이상 산책 sniff). 단짝 수는 조건으로 쓰지 않는다(11/23).
     // turn: 보는 방향을 바꿀 수 있는 팻말(11/27 가르시아 "팻말의 각도를 바꿀 수 있게 해 줘") — 정면 · 왼쪽(L) · 오른쪽(R). 뒤집지 않고 바닥 기울기대로 비스듬히(글씨가 거울처럼 되지 않게)
+    // tapWalk: 큰 깔개(러그·피크닉 매트, 11/28 가르시아 "러그 위치 이동 — 꾹 눌러 옮기기") — 톡은 바닥처럼 강아지가 걸어가고(방 가운데를 넓게 덮어서), 꾹(0.6초) 눌러야 들려서 옮긴다
     // move: 바닥에 깔지만 끌어서 옮길 수 있는 깔개(11/24 가르시아 "배변패드 위치 변경되게") — 작아서 걷기·화면 밀기를 덜 가린다(러그·매트는 그대로)
     { id: 'pee_pad', spr: 'pee_pad', i: 98, j: 24, decal: true, move: true, name: '배변판', need: {}, stash: true },
     { id: 'bubble_visited', spr: 'bubble_visited', face: 'R', both: true, wall: 'L', u: 18, h: 124, name: '다녀감 말풍선', need: { walks: 2 }, stash: true },

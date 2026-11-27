@@ -261,14 +261,13 @@
   //   베타 동안 받은 소품은 끝나도 그대로 남는다(azit-room.js keptItems).
   var WALK_REWARDS = {
     live:  { dayCap: 2, special: true, stars: true },
-    after: { dayCap: 1, special: false, stars: true },
-    starsPerDay: 2,
+    after: { dayCap: 1, special: false, stars: false },   // 11/27 가르시아 "켜고 걸은 사람에게 이 정도 메리트는" — 별은 잰 산책만(이미 뜬 별은 walk-stars.js AFTER_KEEP로 남김)
+    starsPerDay: 1,   // 별은 걸은 날마다 하나(같은 날 또 걸으면 그 별이 밝아짐 — walk-stars.js), 보름이면 별자리
     needScale: 1,
     beta: {
       on: false, until: '', label: '베타 기간',
       live:  { dayCap: 3 },
       after: { dayCap: 2, special: true },
-      starsPerDay: 3,
       needScale: 0.5
     }
   };
