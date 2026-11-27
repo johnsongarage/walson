@@ -15,8 +15,6 @@ window.PETWALK_SPOTS = [
   {"id":"osm-vet-3","cat":"vet","name":"래플즈동물병원","lat":37.60969,"lng":127.13675,"note":"진료 시간은 확인 전이에요. 가기 전에 전화로 확인하세요.","source":"osm"},
   {"id":"field-1794704265889","cat":"park","name":"계단숲산책로 동쪽","lat":37.6128,"lng":127.15608,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"field-1794704231850","cat":"park","name":"계단숲산책로 서쪽","lat":37.61127,"lng":127.15381,"source":"field","verifiedAt":"2026-11-15"},
-  {"id":"field-1794704450497","cat":"spot","name":"현대프리미엄아울렛","lat":37.61636,"lng":127.15352,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"강아지 동반가능"},
-  {"id":"field-1794704545993","cat":"spot","name":"현대프리미어캠퍼스","lat":37.61274,"lng":127.15246,"source":"field","verifiedAt":"2026-11-15","tags":["실내OK","대형견OK"],"note":"매장별 동반 입장 가능 여부 확인필요"},
   {"id":"field-1794732698033","cat":"toilet","name":"공중화장실","lat":37.62016,"lng":127.16043,"source":"field","verifiedAt":"2026-11-15"},
   {"id":"osm-park-2","cat":"park","name":"다산선형공원","lat":37.62481,"lng":127.15438,"source":"field","verifiedAt":"2026-11-17"},
   {"id":"field-1794903841997","cat":"park","name":"도농체육공원","lat":37.60753,"lng":127.14902,"source":"field","verifiedAt":"2026-11-17"},
@@ -35,17 +33,17 @@ window.PETWALK_STAMP_PLACES = [
 ];
 // 지도 묶음·우선순위 — { id, label, layers: [{ key, zoom: far|mid|near, off }] }. 위에 있을수록 먼저·위에 보인다. infra-pins.js가 읽는다.
 window.PETWALK_MAP_GROUPS = [
-  {"id":"go","label":"갈 곳","layers":[{"key":"spot","zoom":"far"},{"key":"stamp","zoom":"far"},{"key":"park","zoom":"far"}]},
+  {"id":"go","label":"갈 곳","layers":[{"key":"spot","zoom":"far"},{"key":"guard","zoom":"far"},{"key":"cheer","zoom":"mid"},{"key":"stamp","zoom":"far"},{"key":"park","zoom":"far"}]},
   {"id":"dog","label":"우리 개","layers":[{"key":"mine","zoom":"far"}]},
   {"id":"safe","label":"안전","layers":[{"key":"caution","zoom":"far"},{"key":"vet","zoom":"mid","off":true}]},
   {"id":"handy","label":"편의","layers":[{"key":"bag","zoom":"mid"},{"key":"water","zoom":"mid"},{"key":"toilet","zoom":"mid","off":true}]},
   {"id":"deco","label":"꾸밈","layers":[{"key":"deco","zoom":"mid"}]}
 ];
-// 예시 수호견 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.
+// 예시 지킴이 — 사장님께 보여 드리는 예시 화면(town.html?guardian_demo=1)에만 나온다. 공개 지도·다른 화면은 읽지 않는다.
 window.PETWALK_DEMO_GUARDIANS = [
   {"id":"demo-home","cat":"spot","name":"○○ 카페","lat":37.6196,"lng":127.1583,"source":"demo","demo":true,"pet":{"indoor":"no","terrace":true,"water":true,"kind":"food"},"photo":"spots/photos/demo-home-p-91926a2fbe.jpg","guardian":{"name":"보리","kind":"home","style":"photo","signal":"green","line":"가게엔 안 나가도 사장님 휴대폰 배경은 늘 저예요","photo":"demo/guardian-home-ai.jpg"}},
   {"id":"demo-work","cat":"spot","name":"○○ 펫샵","lat":37.6206,"lng":127.1626,"source":"demo","demo":true,"pet":{"indoor":"ok","large":"all","water":true,"kind":"pet"},"photo":"spots/photos/demo-work-p-4748349e5e.jpg","guardian":{"name":"콩이","kind":"work","style":"photo","signal":"red","line":"미용실 문 앞은 제 구역이에요 · 눈으로만 인사해 주세요","photo":"demo/guardian-work-ai.jpg"}},
   {"id":"field-1794901995144","cat":"spot","name":"왈슨커피","lat":37.61278,"lng":127.1517,"source":"demo","demo":true,"pet":{"indoor":"carrier","large":"small","terrace":true,"water":true,"kind":"food","rules":true},"tags":["주차가능"],"guardian":{"name":"케리","kind":"home","style":"photo","signal":"yellow","line":"간식주면 바로 배 뒤집어요","photo":"spots/photos/field-1794901995144-g-ef7e06e367.jpg"}}
 ];
-// 수호견 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).
-window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 지킴이","homeLine":"사장님 댁 반려견· 가게엔 출근 안 하는 재택 명예 지킴이","workBadge":"출근 지킴이","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","showSignal":true,"showSignalLabel":false,"showLine":true,"showKindLine":true,"showPetChips":true,"showTownExtra":false};
+// 지킴이 팝업 문구·보이는 줄 — infra-pins.js가 읽는다(없는 칸은 기본값).
+window.PETWALK_GUARDIAN_TEXT = {"homeBadge":"재택 명예 지킴이","homeLine":"사장님 댁 반려견· 가게엔 출근 안 하는 재택 명예 지킴이","workBadge":"출근 지킴이","workLine":"가게에서 손님을 맞는 사장님네 강아지예요","showSignal":true,"showLine":true,"showKindLine":true,"showPetChips":true,"showWalk":true,"showQr":false};
