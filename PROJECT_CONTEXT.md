@@ -4265,3 +4265,4 @@ Black Han Sans 굵게 뭉개짐 0곳. 실제 폰은 아직.
   `azit.html`: RIDE_FACE(얼굴 자리) 다섯, 골든·코카 느긋한 걸음, 첫 만남 견종 칩에 비숑·골든 리트리버. `walk-stars.js`: 별자리 다섯(`_dev/constellation-points.py` HEAD·FACE·CUT) + 공유 링크 DOG_IDS 뒤에.
 - 확인(390폭): 견종 글자 → 새 강아지, 방에 앉은 모습·머리 리본(`sian-ref/dot-dogs-new/rooms-check.png`), 첫 만남 칩, 하늘, 화면 오류 없음. azit-room.js v23 · walk-stars.js v5.
 - 코카·골든은 점 격자가 다른 강아지의 절반 간격으로 읽혔다(121×158점) — 방에서는 같은 키로 그려서 보기엔 같음.
+- **배포**: 11/27 가르시아 "반영해 주고 배포해 줘" — main `901e3f9`(같은 날 밤하늘·별 규칙과 합침, azit-room.js v24 · walk-stars.js v7 — 밤하늘 로켓에도 새 강아지가 탐).
