@@ -1,6 +1,7 @@
 # 새 도트 강아지 — 제미나이 프롬프트 (2026-11-27)
 
-기존 8마리(icons/dot-dogs)와 같은 느낌으로. 제미나이에 **reference-8.png(기존 8마리 모음)를 함께 첨부**하고,
+기존 8마리(icons/dot-dogs)와 같은 느낌으로. 제미나이에 **정면 강아지 한 장(ref-jindo.png 또는 ref-shiba.png — 체형 비슷한 쪽)을 첨부**하고
+(11/27 8마리 모음을 붙였더니 비스듬한 옆모습·굵은 점으로 나옴 — "three-quarter"를 옆으로 읽음),
 아래 [공통]을 먼저 붙인 뒤 [견종] 한 줄을 끝에 넣는다. 한 번에 한 마리.
 
 받은 그림은 `_dev/dot-dog-cutout.py`(바탕 지우기) → `_dev/dot-dog-native.py`(점 격자 되돌리기)로 icons/dot-dogs에 넣고,
@@ -8,9 +9,9 @@ azit-room.js `DOGS`(맨 뒤에 — 순서는 방 모습 번호라 바꾸지 않�
 
 ## [공통]
 Pixel art of a single dog, in exactly the same style as the attached reference sheet of 8 pixel-art dogs.
-- Full body, sitting, facing the viewer at a slight three-quarter angle (head and chest toward the camera), like the reference dogs.
-- Crisp square pixels, no blur, no anti-aliasing, no gradients outside the pixel shading. About 90–130 pixels tall on the pixel grid, then upscaled with nearest-neighbor so each pixel is a clean square.
-- One-pixel dark brown outline (#2b1d16) around the whole dog. Soft 3–4 step pixel shading on the fur, warm light from the top left.
+- FRONT VIEW. The dog sits facing the viewer straight on, perfectly symmetrical like the attached reference: face, chest and both front legs pointing straight at the camera, front paws side by side, both eyes and both ears fully visible and level. The body is NOT turned sideways. The tail curls up beside the hip, visible from the front.
+- Crisp square pixels, no blur, no anti-aliasing. Same pixel resolution and detail as the reference: small pixels, about 120–180 pixels tall, then upscaled with nearest-neighbor.
+- Dark brown (#2b1d16) outline — not pure black, not chunky. Soft 4–5 step fur shading, warm light from the top left.
 - Big round dark eyes with one small white highlight pixel each, small shiny nose, gentle friendly expression, mouth closed or a small happy open mouth.
 - Realistic breed proportions but slightly cute (head a little bigger), exactly like the reference — not chibi, not cartoon-flat.
 - No clothes, no collar, no accessories, no text, no shadow on the ground, no props.
@@ -43,3 +44,6 @@ Pixel art of a single dog, in exactly the same style as the attached reference s
 ## 털이 진한 강아지(검정·진한 갈색)
 끝에 한 줄 더: "The fur is dark, so draw the eye area with a slightly lighter ring and a clear white highlight so the eyes stay visible."
 (닥스훈트 11/27 — 눈이 털에 묻혀 보였던 것)
+
+## 옆으로 나왔을 때 고쳐 달라기(같은 대화에 이어서)
+Redraw this same dog in a straight FRONT VIEW exactly like the attached reference dog: sitting, facing the camera, symmetrical, both front legs side by side, tail curled beside the hip. Keep the coat colors and face. Use smaller pixels and softer fur shading like the reference, dark brown outline instead of black. Plain #CFE3CF background, no sparkle or watermark.
