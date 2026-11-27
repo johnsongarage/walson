@@ -58,10 +58,11 @@
 
   // 키링 나눔(2026-11-15, keyring.html). 조건·수량·받는 날은 가르시아가 정한다(hq 남은 일) — 정하기 전에는
   // open: false로 두어 앱 어디에도 약속하지 않는다(카드 탭의 "키링 받기" 링크도 숨김). 운영자는 keyring.html?preview=1로 미리 본다.
-  // minWalks는 제안값: 길 기록 산책(5분·200m 이상) 5회. 키링은 돈 드는 보상이라 길 기록 산책 수(gpsWalks)로 센다.
+  // minWalks는 제안값. 키링은 돈 드는 보상이라 실시간 산책 수(liveWalks — [시작]·[끝]을 눌러 잰 5분 이상, 길 기록·시간만 재기)로 센다.
+  // 11/27 가르시아: 거리 200m 조건은 뺌(웹앱은 화면이 꺼지면 길이 끊김) — 키링은 어차피 현장에서 강아지를 보고 준다.
   // mode(11/15 가르시아 임시 결정 "탐방형 3곳"):
   //   'stamps' = 발도장 장소 minStamps곳 / 'walks' = 산책 minWalks번 / 'either' = 둘 중 하나 / 'both' = 둘 다
-  // 발도장·산책 횟수 모두 길 기록 산책(5분·200m 이상)만 센다 — 시간만 잰 산책은 안 들어감.
+  // 발도장은 길 기록 산책(5분·200m 이상)만, 산책 횟수는 실시간 산책(5분 이상 — 시간만 재기 포함, 다녀왔어요 빼고)만 센다(11/27).
   var KEYRING = {
     open: false,
     mode: 'walks',   // 11/24 전국판 — 발도장 장소가 없어서 'stamps' → 'walks'(11/23 결정 조건은 "산책한 날 5칸 + 결산 영수증 1번", 키링 화면을 열 때 다시)
@@ -87,10 +88,13 @@
   //   - 주민증 성장(승급·특기·특이 사항)은 어떻게 기록했든 5분 이상 산책이면 센다 — 시간만 재기·다녀왔어요 포함.
   //     돈이 안 드는 짤이라 위치를 조작해 채워도 남에게 손해가 없다. 예전에 세던 산책(길 기록 5분·200m)은 그대로 센다.
   //   - 발도장·미션은 위치가 있어야 하니 그대로 길 기록 산책만(eligible).
-  //   - 돈 드는 보상(키링)은 현장에서 강아지를 보고 준다 — 키링 화면의 산책 횟수 조건은 길 기록 산책만(gpsWalks).
+  //   - 돈 드는 보상(키링)은 현장에서 강아지를 보고 준다 — 키링 화면의 산책 횟수 조건은 실시간 산책만(liveWalks, 11/27 — 예전엔 길 기록만 gpsWalks).
   function countsForCard(w) {
     return !!w && (w.rewardEligible !== false || w.durationMin >= RECORD_MIN_MINUTES);
   }
+  // 실시간 산책(11/27 가르시아): [시작]·[끝]을 눌러 잰 산책 — 길 기록·시간만 재기. 다녀와서 몇 분만 적은 것은 아님.
+  // 웹앱은 화면이 꺼지면 길이 끊겨 거리가 짧게 나오니, 키링 조건은 거리(200m) 없이 시간(5분)만 본다.
+  function isLive(w) { return !!w && w.logged !== 'after' && (Number(w.durationMin) || 0) >= RECORD_MIN_MINUTES; }
   function computeProgress(walks) {
     var eligible = (walks || []).filter(function (w) { return w && w.rewardEligible !== false; });
     var records = (walks || []).filter(countsForCard);
@@ -106,8 +110,8 @@
     // rankDates: 그 등급이 된 날 = 그 횟수째 센 산책을 한 날(새내기는 없음 — 주민증 발급일을 쓴다)
     var rankDates = RANKS.map(function (r) { var w = r.minWalks ? records[r.minWalks - 1] : null; return w ? (w.date || '') : null; });
     // firstDate: 처음 센 산책 날(주민증 뒷면 "전입" — 주민증 발급일과 둘 중 이른 날)
-    // walks: 주민증 성장에 센 산책 수 · gpsWalks: 그중 길 기록 산책(5분·200m) 수 — 키링 조건용
-    return { walks: records.length, gpsWalks: eligible.length, km: km, visited: visited, visitedAt: visitedAt, rankDates: rankDates, firstDate: records.reduce(function (m, w) { return w.date && (!m || w.date < m) ? w.date : m; }, null) };
+    // walks: 주민증 성장에 센 산책 수 · gpsWalks: 그중 길 기록 산책(5분·200m) 수 · liveWalks: 실시간 산책(5분) 수 — 키링 조건용(11/27)
+    return { walks: records.length, gpsWalks: eligible.length, liveWalks: (walks || []).filter(isLive).length, km: km, visited: visited, visitedAt: visitedAt, rankDates: rankDates, firstDate: records.reduce(function (m, w) { return w.date && (!m || w.date < m) ? w.date : m; }, null) };
   }
 
   function tierFor(walks) {

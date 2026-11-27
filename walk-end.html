@@ -245,8 +245,8 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=12"></script>
-<script src="walk-stars.js?v=1"></script>
+<script src="reward-rules.js?v=13"></script>
+<script src="walk-stars.js?v=2"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=5"></script>
 <script src="mock-server.js?v=2"></script>
@@ -412,6 +412,8 @@
         if (!loggedAfter) tn.push('위치를 쓰면 걸은 길도 남아요');
         if (tn.length) note(tn.join(' · '), 'got-hint');
       }
+      // 11/27 — 다녀와서 적은 산책은 아지트 소품에 하루 1번까지만, 특별 소품(밤·긴·킁킁·사진·응가)은 안 센다. 혼내지 않고 더 받는 길만 알려 준다
+      if (loggedAfter && counted) note('다음엔 [산책 시작]으로 재면 밤·긴 산책 같은 특별 소품도 받아요', 'got-hint');
       showGot();
       return;
     }

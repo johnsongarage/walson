@@ -169,6 +169,8 @@
     var RR = window.RewardRules, r = RR && RR.RANKS && RR.RANKS[level];
     return r ? r.minWalks : [0, 5, 15, 30][level] || 0;
   }
+  // 실시간 산책 = [시작]·[끝]을 눌러 잰 산책(길 기록·시간만 재기). 다녀와서 몇 분만 적은 것(logged: 'after')은 아님
+  function isLive(w) { return !!w && w.logged !== 'after'; }
   function progress() {
     var RR = window.RewardRules, walks = WalsonStore.walks(), p = null, st = null;
     try { p = RR ? RR.computeProgress(walks) : null; } catch (e) { p = null; }
@@ -179,24 +181,31 @@
     var night = 0, winter = 0, long = 0, sniff = 0;                // 11/23 밤 새 소품 조건 — 5분 넘는 산책만 센다(산책 횟수와 같은 결)
     // 소품 조건의 산책 셈은 하루 2번까지(11/24 가르시아 — 하루에 여러 번 짧게 나가 빨리 모으지 않게, 사람마다 속도를 비슷하게).
     // 등급(산책 입문자~핑크 앰배서더)은 워킹패스와 같게 RewardRules 셈 그대로
-    var perDay = {}, itemWalks = 0, DAY_CAP = 2;
-    walks.slice().sort(function (a, b) { return String((a && a.startedAt) || '').localeCompare(String((b && b.startedAt) || '')); }).forEach(function (w) {
+    // 11/27 가르시아 "12번 그렇게 해" — 실시간 산책(길 기록·시간만 재기: [시작]과 [끝]을 눌러 잰 것)과 다녀와서 적은 산책을 나눈다.
+    //   다녀왔어요는 하루 1번까지만 세고(하루 2번 중 한 자리), 특별 소품(밤·긴·킁킁·사진·응가)은 실시간 산책만. 겨울은 날짜뿐이라 모두.
+    //   거리는 웹앱에서 화면이 꺼지면 끊겨 믿기 어려워서 소품 조건에 쓰지 않는다(시간만).
+    var perDay = {}, perDayAfter = {}, itemWalks = 0, DAY_CAP = 2, AFTER_CAP = 1;
+    // 같은 날이면 잰 산책을 먼저 센다 — 다녀왔어요는 시작 시각이 없어 맨 앞에 서서 잰 밤 산책 자리를 뺏었다
+    walks.slice().sort(function (a, b) { return (isLive(b) ? 1 : 0) - (isLive(a) ? 1 : 0) || String((a && a.startedAt) || '').localeCompare(String((b && b.startedAt) || '')); }).forEach(function (w) {
       if (!w || (Number(w.durationMin) || 0) < 5) return;
       var d = w.date || String(w.startedAt || '').slice(0, 10);
+      if (!isLive(w)) { if ((perDayAfter[d] || 0) >= AFTER_CAP) { w.__cnt = 0; return; } }
       perDay[d] = (perDay[d] || 0) + 1;
-      if (perDay[d] <= DAY_CAP) { itemWalks++; w.__cnt = 1; } else w.__cnt = 0;
+      if (perDay[d] <= DAY_CAP) { itemWalks++; w.__cnt = 1; if (!isLive(w)) perDayAfter[d] = (perDayAfter[d] || 0) + 1; } else w.__cnt = 0;
     });
     walks.forEach(function (w) {
       if (!w) return;
-      if (w.photoKey) photos++;                                   // 오늘의 한 장을 남긴 산책
-      var pp = Number(w.poop); if (pp === 1 || pp === 2) poop += pp;   // "응가 치웠나요" — 1번·2번 이상(2로 셈)
+      var live = isLive(w);
+      if (w.photoKey && live) photos++;                           // 오늘의 한 장을 남긴 산책
+      var pp = Number(w.poop); if (live && (pp === 1 || pp === 2)) poop += pp;   // "응가 치웠나요" — 1번·2번 이상(2로 셈)
       var mins = Number(w.durationMin) || 0;
       var cnt = w.__cnt; delete w.__cnt;
       if (mins < 5 || !cnt) return;                               // 하루 3번째부터는 밤·겨울·긴·킁킁 산책에도 안 셈
+      var mo = /^\d{4}-(\d{2})/.exec(w.date || ''), m = mo ? Number(mo[1]) : 0;
+      if (m === 12 || m === 1 || m === 2) winter++;               // 겨울(12~2월) 산책 — 다녀왔어요도
+      if (!live) return;                                          // 밤·긴·킁킁은 실시간 산책만
       var at = w.startedAt ? new Date(w.startedAt) : null, hr = at && !isNaN(at) ? at.getHours() : -1;
       if (hr >= 20 || (hr >= 0 && hr < 5)) night++;                // 밤 산책(저녁 8시~새벽 5시에 나감)
-      var mo = /^\d{4}-(\d{2})/.exec(w.date || ''), m = mo ? Number(mo[1]) : 0;
-      if (m === 12 || m === 1 || m === 2) winter++;               // 겨울(12~2월) 산책
       if (mins >= 40) long++;                                     // 40분 넘게 걸은 산책
       if (Number(w.sniff) >= 4) sniff++;                          // 킁킁 지수 4 이상(실컷 맡음)
     });
@@ -259,6 +268,8 @@
     else if (need.long) how = '40분 넘게 걷는 산책을 ' + need.long + '번 하면 생겨요';
     else if (need.sniff) how = '킁킁 지수 4 이상인 산책을 ' + need.sniff + '번 하면 생겨요';
     else how = '처음부터 있어요';
+    // 특별 소품은 [시작]을 눌러 잰 산책만(11/27) — 다녀와서 적은 산책은 안 셈
+    if (need.night || need.long || need.sniff || need.photos || need.poop) how += ' · [시작]을 눌러 잰 산책만';
     var once = need.shop === 1 || need.pass || need.keyring || need.park || need.pals;   // 한 번 하면 되는 것은 "아직 없어요"
     return { how: how, mine: met(need, p) ? '나도 있어요' : (once ? '나는 아직 없어요' : '나는 ' + needText(need, p)) };
   }
@@ -474,7 +485,48 @@
     if (st && st.dog) return st.dog;
     return p.size ? guessDog(p.size, null) : 'pom';
   }
-  function unlockedItems(p) { return ITEMS.filter(function (it) { return met(it.need, p); }).map(function (it) { return it.id; }); }
+  // 이미 받은 소품은 그대로(11/27) — 소품은 산책 기록으로 매번 다시 세서, 셈 규칙을 바꾸면(다녀왔어요 하루 1번·특별 소품은 실시간만)
+  // 예전 규칙으로 받은 소품이 사라질 수 있다. 바꾸기 전 규칙으로 한 번 세어 둔 목록(KEPT_KEY)은 계속 가진 것으로 친다.
+  // 샘플을 켠 동안은 세지 않는다(샘플 산책 소품이 진짜 방에 남지 않게) — 끄고 처음 열 때 센다.
+  var KEPT_KEY = 'petwalk_azit_kept_v1', keptCache = null;
+  function legacyProgress() {
+    var p = progress(), walks = WalsonStore.walks(), perDay = {}, n = 0, photos = 0, poop = 0, night = 0, winter = 0, long = 0, sniff = 0;
+    walks.slice().sort(function (a, b) { return String((a && a.startedAt) || '').localeCompare(String((b && b.startedAt) || '')); }).forEach(function (w) {
+      if (!w) return;
+      if (w.photoKey) photos++;
+      var pp = Number(w.poop); if (pp === 1 || pp === 2) poop += pp;
+      var mins = Number(w.durationMin) || 0; if (mins < 5) return;
+      var d = w.date || String(w.startedAt || '').slice(0, 10);
+      perDay[d] = (perDay[d] || 0) + 1; if (perDay[d] > 2) return;
+      n++;
+      var at = w.startedAt ? new Date(w.startedAt) : null, hr = at && !isNaN(at) ? at.getHours() : -1;
+      if (hr >= 20 || (hr >= 0 && hr < 5)) night++;
+      var mo = /^\d{4}-(\d{2})/.exec(w.date || ''), m = mo ? Number(mo[1]) : 0;
+      if (m === 12 || m === 1 || m === 2) winter++;
+      if (mins >= 40) long++;
+      if (Number(w.sniff) >= 4) sniff++;
+    });
+    var o = {}; for (var k in p) o[k] = p[k];
+    o.walks = Math.min(p.rankWalks, n); o.photos = photos; o.poop = poop; o.night = night; o.winter = winter; o.long = long; o.sniff = sniff;
+    return o;
+  }
+  function keptItems() {
+    if (keptCache) return keptCache;
+    var saved = null;
+    try { saved = WalsonStore.getJSON ? WalsonStore.getJSON(KEPT_KEY) : JSON.parse(localStorage.getItem(KEPT_KEY) || 'null'); } catch (e) { saved = null; }
+    if (Array.isArray(saved)) return (keptCache = saved);
+    if (WalsonStore.sampleOn && WalsonStore.sampleOn()) return [];
+    var lp = null; try { lp = legacyProgress(); } catch (e) { lp = null; }
+    if (!lp) return [];
+    var ids = ITEMS.filter(function (it) { return met(it.need, lp); }).map(function (it) { return it.id; });
+    try { if (WalsonStore.setJSON) WalsonStore.setJSON(KEPT_KEY, ids); else localStorage.setItem(KEPT_KEY, JSON.stringify(ids)); } catch (e) {}
+    return (keptCache = ids);
+  }
+  function hasItem(it, p) { return !!it && (met(it.need, p) || keptItems().indexOf(it.id) >= 0); }
+  function unlockedItems(p) {
+    var kept = keptItems();
+    return ITEMS.filter(function (it) { return met(it.need, p) || kept.indexOf(it.id) >= 0; }).map(function (it) { return it.id; });
+  }
   function placedItems(st, p) { return unlockedItems(p).filter(function (id) { return st.hidden.indexOf(id) < 0; }); }
   function accOn(st, p) { var a = byId(ACCS, st.acc); return a && met(a.need, p) ? a.id : ''; }
 
@@ -513,7 +565,7 @@
     byId: byId, progress: progress, met: met, needText: needText, howText: howText, rankName: rankName,
     SHOWROOMS: SHOWROOMS, sampleState: sampleState, copyRoom: copyRoom, undoCopy: undoCopy,
     guessDog: guessDog, dogFromBreed: dogFromBreed, myDog: myDog,
-    loadState: loadState, saveState: saveState, unlockedItems: unlockedItems, placedItems: placedItems, accOn: accOn,
+    loadState: loadState, saveState: saveState, unlockedItems: unlockedItems, hasItem: hasItem, isLive: isLive, placedItems: placedItems, accOn: accOn,
     snapshot: snapshot, mySnapshot: mySnapshot, parseRoom: parseRoom, todayKey: todayKey,
     dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=5'; },
     dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=5'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py

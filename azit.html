@@ -190,6 +190,10 @@
   .itemcard .ic-info { padding-right: 34px; }   /* X 자리 */
   .itemcard .ic-btns { display: flex; gap: 8px; margin-top: 10px; }
   .itemcard .ic-btns .pbtn { flex: 1; padding: 9px 6px; }
+  /* 팻말 방향 세 칸(11/27 가르시아 "좌측 정면 우측 이렇게 세 개로 보이게") — 고른 칸은 강조색 */
+  .itemcard .ic-turn { display: flex; gap: 6px; margin-top: 10px; }
+  .itemcard .ic-turn .pbtn { flex: 1; padding: 9px 4px; }
+  .itemcard .ic-turn .pbtn[aria-pressed="true"] { background: var(--hl); color: var(--hl-ink); }
   .bubble.react { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }   /* 소품과 놀 때 한마디(11/24) — 기분 말풍선과 구별 */
   .closed { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); color: var(--ink); border: 2px dashed var(--line);
     padding: 6px 8px; font-size: 12px; line-height: 1.45; z-index: 2; word-break: keep-all; text-align: center; }
@@ -437,14 +441,14 @@
 </main>
 
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=12"></script>
+<script src="reward-rules.js?v=13"></script>
 <script src="dex-card.js?v=6"></script>
-<script src="azit-room.js?v=20"></script>
+<script src="azit-room.js?v=21"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=1"></script>
+<script src="walk-stars.js?v=2"></script>
 <script>
 (function () {
   'use strict';
@@ -549,7 +553,8 @@
     return null;
   }
   var winNight = null;
-  loadImg(HDI + 'window_night.webp?v=2')   // 11/27 창살 자리까지 밤하늘로 덮는 판(별이 창살에 안 가림).then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
+  // 11/27 창살 자리까지 밤하늘로 덮는 판(별이 창살에 안 가림)
+  loadImg(HDI + 'window_night.webp?v=2').then(function (im) { winNight = im; roomCache = {}; staticDirty = true; kick(); });
   // 벽 소품은 그려진 벽 방향(face)과 다른 벽에 걸면 좌우로 뒤집는다
   var flipCache = {};
   function oriented(it, side) {
@@ -1286,7 +1291,7 @@
     itemsOf(o, 'floor').forEach(function (it) {
       if (fj && it.id === fj.id) return;   // 던진 공은 아래에서 따로(날아가는 중·바닥·입에)
       var p = posOf(o, it), q = P(p.i, p.j), ro = rollOf(it.id), lit = it.id === 'lamp' && lampLit() && pic('lamp_stand_on');   // 개모차는 탄 강아지가 "출발!" 하는 동안 살짝 굴러간다
-      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: lit || pic(it.spr), hdn: lit ? 'lamp_stand_on' : it.spr, turn: it.turn ? turnOf(o, it.id) : '' });
+      things.push({ id: it.id, z: q.y, x: q.x + ro.x, y: q.y + ro.y, spr: lit || pic(it.spr), hdn: lit ? 'lamp_stand_on' : it.spr, turn: it.turn ? turnOf(o, it.id) : '', sign: !!it.turn });
     });
     var fp = fj && fj.phase !== 'carry' ? (fj.phase === 'move' ? tossPos(fj, tnow - fj.t0) : { x: fj.Ls.x, y: fj.Ls.y, hgt: 0, rot: fj.rot }) : null;
     if (fp && fp.hgt <= 0.5) things.push({ ball: true, z: fp.y, x: fp.x, y: fp.y, spr: fj.spr, rot: fp.rot, shadow: fj.phase === 'move' });   // 바닥(구르는 중·멈춘 것)
@@ -1324,14 +1329,14 @@
         return;
       }
       if (!t.spr) return;
-      var tf = TURN[t.turn];
-      if (tf) {   // 돌린 팻말(11/27) — 가로로 조금 줄이고 바닥 기울기만큼 비스듬히(뒤집지 않아 글씨가 그대로)
+      if (t.sign) {   // 팻말(11/27) — 크게(SIGN_SCALE), 돌렸으면 가로로 조금 줄이고 바닥 기울기만큼 비스듬히(뒤집지 않아 글씨가 그대로)
+        var tf = TURN[t.turn] || { a: 1, sh: 0 }, k = SIGN_SCALE;
         var tw0 = t.spr.width, th0 = t.spr.height, fx = Math.round(t.x), fy = Math.round(t.y);
-        ctx.save(); ctx.translate(fx, fy); ctx.transform(tf.a, tf.sh * tf.a, 0, 1, 0, 0);
+        ctx.save(); ctx.translate(fx, fy); ctx.transform(k * tf.a, k * tf.sh * tf.a, 0, k, 0, 0);
         putItem(ctx, t.spr, -Math.round(tw0 / 2), -th0 + 1, hd(t.hdn) ? t.hdn : null, false);
         ctx.restore();
-        var hw = tf.a * tw0 / 2, rise = Math.abs(tf.sh) * hw;
-        sprites.push({ id: t.id, x: fx - hw, y: fy - th0 + 1 - rise, w: hw * 2, h: th0 + rise * 2, foot: { x: t.x, y: t.y }, img: t.spr, tf: tf, fx: fx, fy: fy });
+        var hw = k * tf.a * tw0 / 2, rise = Math.abs(tf.sh) * hw;
+        sprites.push({ id: t.id, x: fx - hw, y: fy - k * th0 + 1 - rise, w: hw * 2, h: k * th0 + rise * 2, foot: { x: t.x, y: t.y }, img: t.spr, tf: tf, k: k, fx: fx, fy: fy });
         return;
       }
       var x = Math.round(t.x - t.spr.width / 2), y = Math.round(t.y - t.spr.height + 1);
@@ -1482,14 +1487,14 @@
     // 소품이 50개라(11/23 밤) 생긴 것만 먼저 보이고, 아직 안 생긴 것은 한 줄로 접어 둔다(누르면 펼침 — 어떻게 생기는지)
     var t = $('tray'), t2 = $('tray-locked'), got = 0, left = 0; t.innerHTML = ''; t2.innerHTML = '';
     AZ.ITEMS.forEach(function (it) {
-      var ok = AZ.met(it.need, prog), on = ok && state.hidden.indexOf(it.id) < 0;
+      var ok = AZ.hasItem(it, prog), on = ok && state.hidden.indexOf(it.id) < 0;
       if (ok) got++; else left++;
       var b = el('button', 'slot'); b.type = 'button';
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
       if (!ok) b.disabled = true;
       b.appendChild(slotCanvas(it.spr, !ok));
       b.appendChild(document.createTextNode(it.name));
-      b.appendChild(el('span', 'why', AZ.needText(it.need, prog)));
+      b.appendChild(el('span', 'why', AZ.met(it.need, prog) || !ok ? AZ.needText(it.need, prog) : '받아 둔 소품'));
       b.addEventListener('click', function () {
         var i = state.hidden.indexOf(it.id);
         if (i >= 0) state.hidden.splice(i, 1); else state.hidden.push(it.id);
@@ -1536,7 +1541,8 @@
     var things = o.items.map(function (id) { return AZ.byId(AZ.ITEMS, id); }).filter(Boolean);
     var acc = AZ.byId(AZ.ACCS, o.acc); if (acc) things.push(acc);
     things.forEach(function (it) {
-      var h = AZ.howText(it.need, prog), have = AZ.met(it.need, prog);
+      var h = AZ.howText(it.need, prog), have = AZ.hasItem(it, prog);
+      if (have) h.mine = '나도 있어요';   // 예전 규칙으로 받아 둔 소품(11/27)
       var li = el('li'), row = el('div', 'gb-row show-row' + (have ? ' have' : ''));
       var c = slotCanvas(it.spr || it.id, false, 18); c.className = 'spr'; row.appendChild(c);
       var t = el('span', 'what'); t.appendChild(el('b', '', it.name)); t.appendChild(document.createTextNode(' · ' + h.how)); row.appendChild(t);
@@ -1619,7 +1625,7 @@
       b.addEventListener('click', function () { goTo(-2 - k); });
       rooms.appendChild(b);
     });
-    var have = o.items.filter(function (id) { var it = AZ.byId(AZ.ITEMS, id); return it && AZ.met(it.need, prog); }).length;
+    var have = o.items.filter(function (id) { var it = AZ.byId(AZ.ITEMS, id); return it && AZ.hasItem(it, prog); }).length;
     $('copy-note').textContent = '내 방을 이 방 벽지와 자리 그대로 — 지금 가진 소품 ' + have + '개(' + o.items.length + '개 중)가 옮겨지고, ' +
       '이 방에 없는 내 소품은 넣어 둬요([내 소품]에서 다시 꺼낼 수 있어요). 아직 없는 소품은 생기면 이 자리에 놓여요. 놓은 뒤 [되돌리기]로 돌아갈 수 있어요.';
   }
@@ -1768,6 +1774,7 @@
   }
   // 창가 별자리(2026-11-27) — 내 방에서만 한 줄. 처음 온 날도 "우리가 만난 날 별"이 떠 있다(④). ?sky=new면 산책 끝에서 온 것 — 큰 하늘을 열고 새 별이 날아와 앉는다(②)
   var skyFresh = /[?&]sky=new\b/.test(location.search), skyOpened = false;
+  var skyMine = /[?&]sky=mine\b/.test(location.search);   // 받은 3D 하늘(sky.html)의 [우리 개 하늘 만들기]로 왔음 — 내 하늘(만난 날 별)을 바로 연다(11/27)
   function skyRow(me) {
     var row = $('skyrow');
     if (!window.WalsonStars || !me || cur.show) { row.hidden = true; return; }
@@ -1779,10 +1786,11 @@
     $('sky-n').textContent = n + ' / ' + S.GOAL;
     row.classList.toggle('new', skyFresh);
     S.thumb($('skythumb'));
-    if (skyFresh && !skyOpened) { skyOpened = true; setTimeout(function () { openSky(true); }, 250); }
+    if ((skyFresh || skyMine) && !skyOpened) { skyOpened = true; setTimeout(function () { openSky(skyFresh); }, 250); }
   }
   function openSky(fresh) {
     WalsonStars.open({ fresh: fresh, room: canvas, onClose: function () {
+      if (skyMine) { skyMine = false; try { history.replaceState(null, '', location.pathname); } catch (e) { /* 그대로 */ } }
       if (skyFresh) { skyFresh = false; $('skyrow').classList.remove('new'); try { history.replaceState(null, '', location.pathname); } catch (e) { /* 주소 정리 못 해도 그대로 */ } }
     } });
   }
@@ -1842,19 +1850,18 @@
   // 팻말 보는 방향(11/27 가르시아 "팻말의 각도를 바꿀 수 있게 해 줘") — '' 정면 · L 왼쪽 보기(오른쪽 벽과 나란히) · R 오른쪽 보기(왼쪽 벽과 나란히)
   // sh = 바닥 기울기(오른쪽 벽 SR, 왼쪽 벽 SL), a = 가로로 줄이는 정도(비스듬히 보이게)
   var TURN = { L: { a: 0.86, sh: SR }, R: { a: 0.86, sh: -SL } };
-  var TURN_NAME = { '': '정면', L: '왼쪽', R: '오른쪽' };
   function turnOf(o, id) { var t = o.me ? state.turn : o.turn; return (t && t[id]) || ''; }
-  function nextTurn(id) {
+  function setTurn(id, v) {
     if (!state.turn) state.turn = {};
-    var now = state.turn[id] || '', nx = now === '' ? 'L' : now === 'L' ? 'R' : '';
-    if (nx) state.turn[id] = nx; else delete state.turn[id];
+    if (v) state.turn[id] = v; else delete state.turn[id];
     save(); kick();
-    return nx;
   }
+  // 팻말은 방에서 크게(11/27 가르시아 "키워 줘") — 점 그림 기준 배수. 기둥 아래(발) 자리는 그대로
+  var SIGN_SCALE = 1.5;
   function onSprite(s, x, y) {
     var mk = maskOf(s.img); if (!mk) return true;
     var lx = Math.floor(x - s.x), ly = Math.floor(y - s.y);
-    if (s.tf) { var dx0 = x - s.fx; lx = Math.floor(dx0 / s.tf.a + Math.round(mk.w / 2)); ly = Math.floor(y - s.fy - s.tf.sh * dx0 + mk.h - 1); }   // 돌린 팻말
+    if (s.tf) { var dx0 = (x - s.fx) / s.k; lx = Math.floor(dx0 / s.tf.a + Math.round(mk.w / 2)); ly = Math.floor((y - s.fy) / s.k - s.tf.sh * dx0 + mk.h - 1); }   // 팻말(크기·방향 되돌림)
     for (var dy = -2; dy <= 2; dy++) for (var dx = -2; dx <= 2; dx++) {
       var xx = lx + dx, yy = ly + dy;
       if (xx >= 0 && yy >= 0 && xx < mk.w && yy < mk.h && mk.m[yy * mk.w + xx]) return true;
@@ -1921,11 +1928,19 @@
     var go = el('button', 'pbtn' + (canThrow(s.id) ? '' : ' main'), '우리 개 보내기'); go.type = 'button';
     go.addEventListener('click', function () { hideCard(); goPlay(s); });
     bx.appendChild(go);
-    if (view === -1 && it.turn) {   // 팻말 방향 바꾸기(11/27) — 누를 때마다 정면 → 왼쪽 → 오른쪽, 창은 그대로 두고 방에서 바로 보이게
-      var tb = el('button', 'pbtn', '방향: ' + TURN_NAME[turnOf(cur, it.id)] + ' ▸'); tb.type = 'button';
-      tb.setAttribute('aria-label', '팻말 보는 방향 바꾸기');
-      tb.addEventListener('click', function () { tb.textContent = '방향: ' + TURN_NAME[nextTurn(it.id)] + ' ▸'; });
-      bx.appendChild(tb);
+    var oldTurn = $('ic-turn'); if (oldTurn) oldTurn.remove();
+    if (view === -1 && it.turn) {   // 팻말 방향(11/27) — [좌측] [정면] [우측] 세 칸, 창은 그대로 두고 방에서 바로 보이게
+      var tr = el('div', 'ic-turn'); tr.id = 'ic-turn'; tr.setAttribute('role', 'group'); tr.setAttribute('aria-label', '팻말 보는 방향');
+      [['L', '좌측'], ['', '정면'], ['R', '우측']].forEach(function (o) {
+        var tb = el('button', 'pbtn', o[1]); tb.type = 'button'; tb.setAttribute('data-turn', o[0]);
+        tb.setAttribute('aria-pressed', String(turnOf(cur, it.id) === o[0]));
+        tb.addEventListener('click', function () {
+          setTurn(it.id, o[0]);
+          Array.prototype.forEach.call(tr.children, function (b) { b.setAttribute('aria-pressed', String(b === tb)); });
+        });
+        tr.appendChild(tb);
+      });
+      bx.parentNode.insertBefore(tr, bx);
     }
     if (canMove(s)) {   // 11/26 가르시아 "아이템창에 이동하기 버튼 추가해 줘" — 꾹 누르기를 몰라도 옮길 수 있게
       var mv = el('button', 'pbtn', '이동하기'); mv.type = 'button';
