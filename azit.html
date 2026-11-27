@@ -447,12 +447,12 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=14"></script>
 <script src="dex-card.js?v=6"></script>
-<script src="azit-room.js?v=22"></script>
+<script src="azit-room.js?v=23"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=4"></script>
+<script src="walk-stars.js?v=5"></script>
 <script>
 (function () {
   'use strict';
@@ -853,7 +853,7 @@
     long: { stride: [3.4, 4.6], bob: [1.0, 1.8], tilt: [5.5, 5.5] },    // 닥스훈트 — 짧은 다리로 낮게 뒤뚱
     big: { stride: [5.8, 7.6], bob: [1.4, 2.5], tilt: [2.6, 3] }        // 진돗개·시바 — 느긋하게
   };
-  var BREED_GAIT = { dachs: 'long', jindo: 'big', shiba: 'big' };
+  var BREED_GAIT = { dachs: 'long', jindo: 'big', shiba: 'big', golden: 'big', cocker: 'big' };
   var IDLE_LEN = { tilt: 1.25 };   // 갸웃 길이
   var RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   function lerp(a, b, k) { return a + (b - a) * k; }
@@ -2062,7 +2062,8 @@
   // 도트 강아지 얼굴 자리 — [얼굴 가운데 x, 정수리 y, 턱 y](그림 폭·키에 대한 비율, 눈으로 잰 값). 파란 니트는 거꾸로 누운 자세라
   // 얼굴이 아래쪽. 워킹패스 사진 강아지는 머리 자리(headOf)에서 정수리를 재고 턱은 키의 32% 아래로 어림
   var RIDE_FACE = { chihuahua: [0.52, 0.14, 0.38], dachs: [0.5, 0.05, 0.55], jindo: [0.5, 0.09, 0.29], maltese: [0.56, 0.06, 0.46],
-    pom: [0.44, 0.04, 0.42], poodle: [0.52, 0.04, 0.55], shiba: [0.47, 0.12, 0.43], knit: [0.43, 0.52, 0.82] };
+    pom: [0.44, 0.04, 0.42], poodle: [0.52, 0.04, 0.55], shiba: [0.47, 0.12, 0.43], knit: [0.43, 0.52, 0.82],
+    spitz: [0.39, 0.11, 0.5], cocker: [0.62, 0.01, 0.35], chihuahua_long: [0.41, 0.11, 0.49], bichon: [0.49, 0.02, 0.57], golden: [0.62, 0.01, 0.34] };   // 11/27 새 견종 — 별자리 눈·코 자리로 잰 값
   function seatOf(it) {
     var st = SEATS[it.spr], rd = RIDES[it.spr], im = pic(it.spr), p = posOf(cur, it);
     if ((!st && !rd) || !im || it.decal || p.wall || p.shelf != null) return null;
@@ -2736,7 +2737,7 @@
   (function firstMeet() {
     var m = /[?&]first=(\d)/.exec(location.search); if (!m) return;
     var card = $('firstcard'), named = !!(profile && profile.name);
-    var BREEDS = [['포메', 'pom'], ['푸들', 'poodle'], ['말티즈', 'maltese'], ['치와와', 'chihuahua'], ['닥스훈트', 'dachs'], ['진돗개', 'jindo'], ['시바', 'shiba'], ['그 밖·잘 몰라요', '']];
+    var BREEDS = [['포메', 'pom'], ['푸들', 'poodle'], ['말티즈', 'maltese'], ['치와와', 'chihuahua'], ['닥스훈트', 'dachs'], ['진돗개', 'jindo'], ['시바', 'shiba'], ['비숑', 'bichon'], ['골든 리트리버', 'golden'], ['그 밖·잘 몰라요', '']];
     var pick = null;
     card.hidden = false;
     function close() { card.hidden = true; history.replaceState(null, '', location.pathname); }

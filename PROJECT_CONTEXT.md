@@ -4181,3 +4181,15 @@ Black Han Sans 굵게 뭉개짐 0곳. 실제 폰은 아직.
 - 베타는 **꺼 둠**(on: false). 시험으로 켰을 때 값(제안): 잰 산책 하루 3번 · 다녀왔어요 하루 2번 + 특별 소품 · 별 하루 3개 · 조건 절반 → 같은 가짜 기록 9개로 소품 17 → 34개.
 - 확인: 평소 값 셈은 바꾸기 전과 같음, 베타 켠 셈·표·띠, 화면 오류 없음. azit-room.js v22 · reward-rules.js v14 · walk-stars.js v4.
 - **배포**: 11/27 가르시아 "배포" — main `136400e`(베타는 꺼 둔 채). 정할 것은 hq 남은 일 "산책 보상 — 정할 것".
+
+## 새 도트 강아지 다섯 — 스피츠·코카스파니엘·장모 치와와·비숑·골든 리트리버 (2026-11-27)
+
+- 가르시아 "말티즈 외에 견종별로 뭐가 더 있어야 할까" → 1·2순위 목록 → 제미나이 프롬프트(`sian-ref/dot-dogs-new/PROMPTS.md`, 정면·참고 그림 한 장 —
+  처음 8마리 모음을 붙였더니 비스듬한 옆모습이 나옴) → 받은 다섯 장 "반영해 주고 배포".
+- `_dev/dot-dog-green.py`(새): 초록 바탕 → 가장자리 색과 가까운 칸을 바탕으로, 가장 큰 덩어리만 강아지(반짝이·AI 표시 지움, 원본은 `sian-ref/dot-dogs-new/src`) →
+  `dot-dog-cutout.py` → `dot-dog-native.py`. (외곽선을 벽으로 채우던 첫 방식은 끊긴 틈으로 흰 털까지 지워서 버림)
+- `azit-room.js` `DOGS` 뒤에 spitz·cocker·chihuahua_long·bichon·golden(방 모습 번호라 뒤에만), `BREED_RULES`: 비숑 → bichon(예전엔 말티즈),
+  스피츠·사모예드 → spitz, 코카·스패니얼 → cocker, 골든·리트리버·래브라도 → golden, 장모·롱코트 치와와 → chihuahua_long.
+  `azit.html`: RIDE_FACE(얼굴 자리) 다섯, 골든·코카 느긋한 걸음, 첫 만남 견종 칩에 비숑·골든 리트리버. `walk-stars.js`: 별자리 다섯(`_dev/constellation-points.py` HEAD·FACE·CUT) + 공유 링크 DOG_IDS 뒤에.
+- 확인(390폭): 견종 글자 → 새 강아지, 방에 앉은 모습·머리 리본(`sian-ref/dot-dogs-new/rooms-check.png`), 첫 만남 칩, 하늘, 화면 오류 없음. azit-room.js v23 · walk-stars.js v5.
+- 코카·골든은 점 격자가 다른 강아지의 절반 간격으로 읽혔다(121×158점) — 방에서는 같은 키로 그려서 보기엔 같음.

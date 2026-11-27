@@ -22,12 +22,21 @@
     { id: 'chihuahua', breed: '치와와',   fur: '#d6a874', sizes: 's' },
     { id: 'dachs',     breed: '닥스훈트', fur: '#3a3a40', sizes: 'sm' },   // 11/27 블랙 앤 탄으로 다시 칠함(_dev/dachs-piebald.py) — 털색 맞추기도 짙은 색 쪽
     { id: 'jindo',     breed: '진돗개',   fur: '#f0e6d6', sizes: 'ml' },
-    { id: 'shiba',     breed: '시바',     fur: '#e2a464', sizes: 'ml' }
+    { id: 'shiba',     breed: '시바',     fur: '#e2a464', sizes: 'ml' },
+    // 11/27 새 견종(제미나이 초록 바탕 → _dev/dot-dog-green.py, 원본 sian-ref/dot-dogs-new/src) — 순서는 방 모습 번호라 뒤에만 더한다
+    { id: 'spitz',          breed: '스피츠',       fur: '#f2efe8', sizes: 'sm' },
+    { id: 'cocker',         breed: '코카스파니엘', fur: '#d9a868', sizes: 'm' },
+    { id: 'chihuahua_long', breed: '장모 치와와',  fur: '#ecd3a8', sizes: 's' },
+    { id: 'bichon',         breed: '비숑',         fur: '#f3f0ea', sizes: 's' },
+    { id: 'golden',         breed: '골든 리트리버', fur: '#e2b45c', sizes: 'l' }
   ];
   // 프로필 견종 글자 → 도트 강아지(처음 한 번 — 아지트에서 언제든 바꿀 수 있다). 위에서부터 먼저 맞는 것
   var BREED_RULES = [
     [/말티푸|maltipoo/i, 'poodle'], [/포메|pomeranian/i, 'pom'], [/푸들|poodle/i, 'poodle'],
-    [/말티|maltese|비숑|bichon/i, 'maltese'], [/치와와|chihuahua/i, 'chihuahua'], [/닥스|dachs/i, 'dachs'],
+    [/비숑|bichon/i, 'bichon'], [/스피츠|spitz|사모예드|samoyed/i, 'spitz'], [/코카|cocker|스패?니엘|spaniel/i, 'cocker'],
+    [/골든|golden|리트리버|retriever|래브라도|labrador/i, 'golden'],
+    [/(장모|롱코트|long).*(치와와|chihuahua)|(치와와|chihuahua).*(장모|롱코트|long)/i, 'chihuahua_long'],
+    [/말티|maltese/i, 'maltese'], [/치와와|chihuahua/i, 'chihuahua'], [/닥스|dachs/i, 'dachs'],
     [/진돗|진도|jindo/i, 'jindo'], [/시바|shiba/i, 'shiba']
   ];
   var THEMES = ['jelly', 'lilac', 'night', 'pink'];      // 벽지(그림 색은 azit.html). 방 모습에는 첫 글자 j·l·n·p — pink = 옛 분홍 방(11/24 기본이 크림으로 바뀌며 네 번째로 남김)
