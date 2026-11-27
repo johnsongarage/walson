@@ -365,9 +365,9 @@
 </main>
 
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=12"></script>
+<script src="reward-rules.js?v=13"></script>
 <script src="dex-card.js?v=6"></script>
-<script src="azit-room.js?v=19"></script>
+<script src="azit-room.js?v=20"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script>
@@ -1369,14 +1369,14 @@
     // 소품이 50개라(11/23 밤) 생긴 것만 먼저 보이고, 아직 안 생긴 것은 한 줄로 접어 둔다(누르면 펼침 — 어떻게 생기는지)
     var t = $('tray'), t2 = $('tray-locked'), got = 0, left = 0; t.innerHTML = ''; t2.innerHTML = '';
     AZ.ITEMS.forEach(function (it) {
-      var ok = AZ.met(it.need, prog), on = ok && state.hidden.indexOf(it.id) < 0;
+      var ok = AZ.hasItem(it, prog), on = ok && state.hidden.indexOf(it.id) < 0;
       if (ok) got++; else left++;
       var b = el('button', 'slot'); b.type = 'button';
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
       if (!ok) b.disabled = true;
       b.appendChild(slotCanvas(it.spr, !ok));
       b.appendChild(document.createTextNode(it.name));
-      b.appendChild(el('span', 'why', AZ.needText(it.need, prog)));
+      b.appendChild(el('span', 'why', AZ.met(it.need, prog) || !ok ? AZ.needText(it.need, prog) : '받아 둔 소품'));
       b.addEventListener('click', function () {
         var i = state.hidden.indexOf(it.id);
         if (i >= 0) state.hidden.splice(i, 1); else state.hidden.push(it.id);
@@ -1423,7 +1423,8 @@
     var things = o.items.map(function (id) { return AZ.byId(AZ.ITEMS, id); }).filter(Boolean);
     var acc = AZ.byId(AZ.ACCS, o.acc); if (acc) things.push(acc);
     things.forEach(function (it) {
-      var h = AZ.howText(it.need, prog), have = AZ.met(it.need, prog);
+      var h = AZ.howText(it.need, prog), have = AZ.hasItem(it, prog);
+      if (have) h.mine = '나도 있어요';   // 예전 규칙으로 받아 둔 소품(11/27)
       var li = el('li'), row = el('div', 'gb-row show-row' + (have ? ' have' : ''));
       var c = slotCanvas(it.spr || it.id, false, 18); c.className = 'spr'; row.appendChild(c);
       var t = el('span', 'what'); t.appendChild(el('b', '', it.name)); t.appendChild(document.createTextNode(' · ' + h.how)); row.appendChild(t);
@@ -1506,7 +1507,7 @@
       b.addEventListener('click', function () { goTo(-2 - k); });
       rooms.appendChild(b);
     });
-    var have = o.items.filter(function (id) { var it = AZ.byId(AZ.ITEMS, id); return it && AZ.met(it.need, prog); }).length;
+    var have = o.items.filter(function (id) { var it = AZ.byId(AZ.ITEMS, id); return it && AZ.hasItem(it, prog); }).length;
     $('copy-note').textContent = '내 방을 이 방 벽지와 자리 그대로 — 지금 가진 소품 ' + have + '개(' + o.items.length + '개 중)가 옮겨지고, ' +
       '이 방에 없는 내 소품은 넣어 둬요([내 소품]에서 다시 꺼낼 수 있어요). 아직 없는 소품은 생기면 이 자리에 놓여요. 놓은 뒤 [되돌리기]로 돌아갈 수 있어요.';
   }
