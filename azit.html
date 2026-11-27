@@ -383,7 +383,7 @@
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=1"></script>
+<script src="walk-stars.js?v=2"></script>
 <script>
 (function () {
   'use strict';
@@ -1700,6 +1700,7 @@
   }
   // 창가 별자리(2026-11-27) — 내 방에서만 한 줄. 처음 온 날도 "우리가 만난 날 별"이 떠 있다(④). ?sky=new면 산책 끝에서 온 것 — 큰 하늘을 열고 새 별이 날아와 앉는다(②)
   var skyFresh = /[?&]sky=new\b/.test(location.search), skyOpened = false;
+  var skyMine = /[?&]sky=mine\b/.test(location.search);   // 받은 3D 하늘(sky.html)의 [우리 개 하늘 만들기]로 왔음 — 내 하늘(만난 날 별)을 바로 연다(11/27)
   function skyRow(me) {
     var row = $('skyrow');
     if (!window.WalsonStars || !me || cur.show) { row.hidden = true; return; }
@@ -1711,10 +1712,11 @@
     $('sky-n').textContent = n + ' / ' + S.GOAL;
     row.classList.toggle('new', skyFresh);
     S.thumb($('skythumb'));
-    if (skyFresh && !skyOpened) { skyOpened = true; setTimeout(function () { openSky(true); }, 250); }
+    if ((skyFresh || skyMine) && !skyOpened) { skyOpened = true; setTimeout(function () { openSky(skyFresh); }, 250); }
   }
   function openSky(fresh) {
     WalsonStars.open({ fresh: fresh, room: canvas, onClose: function () {
+      if (skyMine) { skyMine = false; try { history.replaceState(null, '', location.pathname); } catch (e) { /* 그대로 */ } }
       if (skyFresh) { skyFresh = false; $('skyrow').classList.remove('new'); try { history.replaceState(null, '', location.pathname); } catch (e) { /* 주소 정리 못 해도 그대로 */ } }
     } });
   }

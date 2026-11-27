@@ -9,6 +9,10 @@
 //   WalsonStars.lastWalkStar(walks?) → 마지막 산책이 이번 달 별이 됐는지 { got, index, month, reason }
 //   WalsonStars.thumb(canvas)        → 작은 창가 하늘(아지트 줄)
 //   WalsonStars.open({ fresh, room }) → 큰 하늘 판(저장·공유). fresh면 마지막 별이 날아와 앉는다. room = 아지트 방 캔버스(공유 그림에 같이)
+//   WalsonStars.sky(opts?)           → 1년 하늘 { dog, name, months:[{back, ym, stars:[{min,h}], over}] } — 이 기기 기록(3D 하늘 sky.html)
+//   WalsonStars.encode(sky, { name, color }) / decode(text) → 공유 링크 글자(2026-11-27 "3D 하늘 공유" 1단계).
+//     링크에 싣는 것: 도트 강아지 · (고르면) 이름 · 달마다 별의 크기 4단계와 시간대 4가지(고르면 모두 흰 별) · 별가루 수.
+//     싣지 않는 것: 날짜·시각·걸은 분·위치. 주소 # 뒤에 있어서 서버로 가지 않는다.
 (function () {
   'use strict';
   var GOAL = 15, PER_DAY = 2, MIN = 5, MET_KEY = 'walson_sky_met';
@@ -68,6 +72,54 @@
     });
     return { ym: ym, stars: stars, over: over, full: stars.length >= GOAL, dayCapped: capped };
   }
+  // ── 1년 하늘 + 공유 링크 글자 ──
+  var DOG_IDS = ['pom', 'poodle', 'maltese', 'chihuahua', 'dachs', 'jindo', 'shiba', 'knit'];   // 링크에 번호로 실린다 — 순서 바꾸지 말 것(새 것은 뒤에)
+  var SIZE_MIN = [10, 22, 37, 60], TOD_H = [8, 13, 18, 21];   // 크기 4단계·시간대 4가지 → 그리기용 분·시
+  function sizeIdx(min) { return min < 15 ? 0 : min < 30 ? 1 : min < 45 ? 2 : 3; }
+  function todIdx(h) { var t = todOf(h); return TOD.indexOf(t); }
+  function ymBack(ym, back) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 - back; while (m < 0) { m += 12; y--; } return y + '-' + pad2(m + 1); }
+  // 이 기기 1년 하늘 — 이번 달(별 0개여도)과 지난 11달 중 별이 있는 달
+  function sky() {
+    var walks = allWalks(), now = ymOf(new Date()), out = [];
+    for (var b = 0; b < 12; b++) {
+      var ym = ymBack(now, b), m = month(walks, ym);
+      if (b && !m.stars.length) continue;
+      out.push({ back: b, ym: ym, stars: m.stars.map(function (s) { return { min: s.min, h: s.h }; }), over: m.over.length });
+    }
+    return { dog: dogId(), name: dogName(), months: out, mine: true };
+  }
+  // 1.{강아지 번호}.{YYYYMM}.{이름}.{달들} — 달 = {몇 달 전 36진수 1자}{별마다 16진수 1자(크기×4 + 시간대)}[~별가루 36진수]
+  function encode(s, o) {
+    o = o || {};
+    var nm = o.name && s.name ? encodeURIComponent(s.name).replace(/\./g, '%2E') : '';
+    var segs = s.months.map(function (m) {
+      var t = m.back.toString(36) + m.stars.slice(0, GOAL).map(function (x) { return (sizeIdx(x.min) * 4 + (o.color === false ? 1 : todIdx(x.h))).toString(16); }).join('');
+      return t + (m.over ? '~' + Math.min(35, m.over).toString(36) : '');
+    });
+    return ['1', Math.max(0, DOG_IDS.indexOf(s.dog)), s.months.length ? s.months[0].ym.replace('-', '') : ymOf(new Date()).replace('-', ''), nm, segs.join('_')].join('.');
+  }
+  function decode(text) {
+    var p = String(text || '').replace(/^#/, '').split('.');
+    if (p.length !== 5 || p[0] !== '1' || !/^[0-7]$/.test(p[1]) || !/^\d{6}$/.test(p[2]) || p[4].length > 260) return null;
+    var y = +p[2].slice(0, 4), mo = +p[2].slice(4, 6);
+    if (y < 2025 || y > 2100 || mo < 1 || mo > 12) return null;
+    var name = '';
+    try { name = decodeURIComponent(p[3]).replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 8); } catch (e) { name = ''; }
+    var ym = y + '-' + pad2(mo), months = [], seen = {};
+    var segs = p[4] ? p[4].split('_') : [];
+    for (var i = 0; i < segs.length && i < 12; i++) {
+      var m = /^([0-9b])([0-9a-f]{0,15})(?:~([0-9a-z]))?$/.exec(segs[i]);
+      if (!m) return null;
+      var back = parseInt(m[1], 36);
+      if (seen[back]) continue; seen[back] = 1;
+      months.push({ back: back, ym: ymBack(ym, back), over: m[3] ? parseInt(m[3], 36) : 0,
+        stars: m[2].split('').filter(Boolean).map(function (c) { var v = parseInt(c, 16); return { min: SIZE_MIN[v >> 2], h: TOD_H[v & 3] }; }) });
+    }
+    months.sort(function (a, b) { return a.back - b.back; });
+    return { dog: DOG_IDS[+p[1]], name: name, months: months, mine: false };
+  }
+  function shareUrl(code) { return appUrl() + '/sky.html?from=sky#' + code; }
+
   // 마지막 산책이 별이 됐나(산책 끝 화면) — 기록이 저장된 뒤 부른다
   function lastWalkStar(walks) {
     walks = walks || allWalks();
@@ -287,6 +339,7 @@
     '.wst-pop{position:absolute;max-width:200px;font-size:12px;line-height:1.4;color:#fff;background:rgba(20,16,50,.86);border:1px solid rgba(255,255,255,.18);padding:6px 9px;border-radius:10px;pointer-events:none}' +
     '.wst-empty{margin:10px 0 0;font-size:13px;line-height:1.5;color:var(--ink,#222);background:var(--hl,#fff0f6);padding:10px 12px;border-radius:12px}' +
     '.wst-rule{margin:10px 0 0;font-size:12px;color:var(--ink-soft,#666);line-height:1.5}' +
+    '.wst-3d{display:block;margin-top:12px;padding:12px 14px;border-radius:12px;background:#17123f;color:#ffd1e6;font-weight:900;font-size:15px;text-decoration:none;text-align:center}' +
     '.wst-btns{display:flex;gap:8px;margin-top:12px}.wst-btns button{flex:1;min-height:46px;border-radius:12px;border:1px solid var(--line,#ddd);background:var(--bg,#fafafa);color:var(--ink,#222);font:inherit;font-size:15px;font-weight:800}' +
     '.wst-btns button.main{background:var(--accent,#e0457b);border-color:var(--accent,#e0457b);color:#fff}';
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -304,6 +357,7 @@
       '<div class="wst-sky"><canvas aria-label="이번 달 별자리 하늘"></canvas><span class="wst-tag">분홍 별 · 우리가 만난 날 ' + esc(fmtDay(met)) + '</span></div>' +
       (n ? '' : '<p class="wst-empty">분홍 별은 우리가 만난 날 별이에요. 5분 넘게 산책하고 오면 창밖에 첫 별이 떠요.</p>') +
       '<p class="wst-rule">5분 넘게 걸은 산책 1번 = 별 1개(하루 2개까지) · 별 크기는 걸은 시간, 색은 아침·낮·저녁·밤 · 별을 누르면 그날 산책</p>' +
+      '<a class="wst-3d" href="sky.html">✦ 하늘을 3D로 둘러보기 · 친구에게 보내기 ›</a>' +
       '<div class="wst-btns"><button type="button" data-a="save">저장</button><button type="button" data-a="share" class="main">공유</button><button type="button" data-a="close">닫기</button></div></div>';
     document.body.appendChild(back);
     var box = back.querySelector('.wst-sky'), cv = box.querySelector('canvas');
@@ -393,5 +447,8 @@
   }
 
   window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, MIN: MIN, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
-    starName: starName, countText: countText, thumb: thumb, open: open, card: card, todOf: todOf };
+    starName: starName, countText: countText, thumb: thumb, open: open, card: card, todOf: todOf,
+    // 3D 하늘(sky.html)이 같이 쓰는 것
+    sky: sky, encode: encode, decode: decode, shareUrl: shareUrl, shapePoints: shapePoints, shapeEdges: shapeEdges, starSize: starSize,
+    rng: rng, SkyCanvas: Sky, MET_C: MET_C, brand: brand, appUrl: appUrl };
 })();
