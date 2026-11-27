@@ -507,7 +507,7 @@
     guessDog: guessDog, dogFromBreed: dogFromBreed, myDog: myDog,
     loadState: loadState, saveState: saveState, unlockedItems: unlockedItems, placedItems: placedItems, accOn: accOn,
     snapshot: snapshot, mySnapshot: mySnapshot, parseRoom: parseRoom, todayKey: todayKey,
-    dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=2'; },
-    dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=2'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
+    dogSrc: function (id) { return 'icons/dot-dogs/' + id + '.webp?v=3'; },
+    dogPxSrc: function (id) { return 'icons/dot-dogs/px/' + id + '.png?v=3'; }   // 원래 점 격자 그대로(점 하나 = 한 픽셀) — _dev/dot-dog-native.py
   };
 })();
