@@ -80,9 +80,26 @@
   .pbtn:active { transform: translate(2px, 2px); box-shadow: none; }
   .pbtn[hidden] { display: none; }
 
+  /* 방 고르기 칸(11/28 — 머리 오른쪽, 예전 톱니 자리) */
+  .roomsel { flex: none; position: relative; display: block; }
+  .roomsel select { font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--panel); border: 3px solid var(--line); box-shadow: 2px 2px 0 var(--line);
+    padding: 7px 26px 7px 10px; max-width: 160px; appearance: none; -webkit-appearance: none; border-radius: 0; cursor: pointer; text-overflow: ellipsis; }
+  .roomsel::after { content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 12px; color: var(--ink-soft); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* 아래 판(11/28) — 방은 위에, 그 아래는 판 안에서 스크롤. 손잡이로 끌어 올리면 방을 덮는다(top만 바뀜) */
+  .shell.sheeted { position: relative; overflow: hidden; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; flex-direction: column; background: var(--panel);
+    border-top: 3px solid var(--line); transition: top .26s ease; }
+  .sheet.dragging { transition: none; }
+  .sheet-grip { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; padding: 7px 0 5px; border: 0; background: var(--panel);
+    color: var(--ink-soft); font: inherit; font-size: 11.5px; font-weight: 700; cursor: grab; touch-action: none; }
+  .sheet-grip i { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--ink-soft); opacity: .55; }
+  .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+
   /* 만난 친구 줄 */
   .friends { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px; margin: -4px -2px 0; }
   .friends::-webkit-scrollbar { display: none; }
+  .friends[hidden], .fr-hint[hidden] { display: none; }
   .fr { flex: none; width: 60px; font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line);
     padding: 4px 2px 3px; text-align: center; cursor: pointer; line-height: 1.2; position: relative; }
   .fr .pic, .dogpick .pic { height: 38px; display: flex; align-items: flex-end; justify-content: center; }
@@ -96,7 +113,7 @@
   /* 왈슨 모델하우스 칸 — 친구 칸과 헷갈리지 않게 바탕색 + "예시" */
   .fr.show { width: 72px; background: var(--accent-tint); }
   .fr.show .tg { color: var(--accent); }
-  .fr-hint { font-size: 12px; color: var(--ink-soft); margin: -6px 0 0; line-height: 1.5; word-break: keep-all; }
+  .fr-hint { font-size: 12px; color: var(--ink-soft); margin: 0; line-height: 1.5; word-break: keep-all; }
 
   /* 방 */
   /* 방 칸은 홈 틀 안쪽 끝까지(양옆 여백 없이) — 방 한 점을 화면 점 2·3개로 딱 맞게 그리려고(11/23 새 방) */
@@ -337,7 +354,6 @@
 <script src="store.js?v=2"></script>
 <link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
 <script src="site-config.js?v=11"></script>
-<script src="quick-set.js?v=6"></script>
 <script src="inapp.js?v=5"></script>
 <script src="install.js?v=1"></script>
 <script src="track.js?v=11"></script>
@@ -347,16 +363,15 @@
   <div class="shell">
     <!-- 화면 순서(2026-11-23 밤 가르시아 "구성이 맞는지 점검 · 오늘 기분 고르는 게 먼저 나오는 게 맞는지"):
          제목 → 친구 줄 → 방(내 방이면 왼쪽 위 모서리 칸에서 오늘 기분 — 11/24) → 킁킁 방명록 → 내 카드·QR 찍기 → 방 꾸미기(접기).
-         개방명록(만난 친구·방명록·QR)이 축이라 위로, 꾸미기(강아지·소품·장식·벽지)는 한 줄로 접는다. 산책 횟수는 제목 아래 줄로 -->
+         개방명록(만난 친구·방명록·QR)이 축이라 위로, 꾸미기(강아지·소품·장식·벽지)는 한 줄로 접는다. 산책 횟수는 제목 아래 줄로
+         11/28 가르시아: 제목 · [보는 방 고르기 칸](예전 친구 칸 줄·톱니 자리) → 방(늘 위) → 아래 판(끌어 올리면 방을 덮음): 별자리 줄 · 킁킁 방명록 · 방 꾸미기 · 내 카드·QR · 친구 방 켜기 -->
     <div class="head">
       <div class="head-txt"><div class="title" id="title" role="heading" aria-level="1"></div><div class="sub"><span id="sub"></span><span class="count" id="count"></span></div></div>
       <button type="button" class="pbtn" id="visit" hidden>마실 가기 ▶</button>
-      <button type="button" class="gear" id="set-btn" aria-label="설정 — 화면 색·아지트 안내·개인정보" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-      </button>
+      <!-- 방 고르기(11/28 가르시아 "위에 내 방·모델하우스를 톱니 쪽에 콤보로, 톱니는 여기선 제거") — 내 방 · 모델하우스 · 만난 친구 -->
+      <label class="roomsel"><span class="sr">보는 방</span><select id="roomsel" aria-label="보는 방 고르기"></select></label>
     </div>
-    <div class="friends px" id="friends" role="group" aria-label="내 아지트와 만난 친구"></div>
-    <p class="fr-hint" id="fr-hint" hidden></p>
+    <div class="friends px" id="friends" role="group" aria-label="내 아지트와 만난 친구" hidden></div>
 
     <div class="fullback" id="fullback" hidden></div>
     <div class="stage" id="stage">
@@ -371,6 +386,12 @@
       <div class="closed" id="closed" hidden></div>
       <button type="button" class="fullbtn" id="fullbtn" aria-pressed="false" aria-label="전체 화면으로 보기" title="전체 화면"><svg viewBox="0 0 16 16" aria-hidden="true"><path id="fullico" d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
     </div>
+    <!-- 아래 판(11/28 가르시아 "아지트는 항상 위에 있고 그 밑에서부터 스크롤, 버튼으로 누르고 끌어올리면 아지트를 가리는 화면") —
+         방은 위에 그대로, 그 아래 것들은 이 판 안에서 스크롤. 손잡이를 누르거나 끌어 올리면 판이 방을 덮고, 내리면 다시 방 아래로 -->
+    <div class="sheet" id="sheet">
+      <button type="button" class="sheet-grip" id="sheet-grip" aria-expanded="false" aria-controls="sheet-body"><i aria-hidden="true"></i><span id="sheet-grip-t">끌어 올려 크게 보기</span></button>
+      <div class="sheet-body" id="sheet-body">
+    <p class="fr-hint" id="fr-hint" hidden></p>
     <!-- 처음 온 사람 첫 만남(11/27 — index.html이 ?first=1로 보냄): ① 우리 개 이름·견종 → ② 방에 등장 + "산책 가자!" → [산책 나가기] -->
     <div class="firstcard" id="firstcard" hidden>
       <div id="fc-name" hidden>
@@ -420,11 +441,6 @@
       <p class="gb-empty" id="gb-empty" hidden></p>
     </details>
 
-    <div class="acts" id="acts"></div>
-
-    <!-- 친구 방·방명록 켜기·끄기(서버, 11/25 가르시아 "서버랑 같이 오픈에 열자") -->
-    <div class="box fc" id="fc-box" hidden></div>
-
     <!-- 방 꾸미기(접기 — 연 상태는 이 휴대폰에 기억, 새 소품이 생기면 저절로 펼친다) -->
     <details class="box px deco" id="mine-box">
       <summary class="deco-sum"><span>방 꾸미기</span><small id="deco-note">강아지 · 소품 · 장식 · 벽지</small></summary>
@@ -440,6 +456,14 @@
       <div class="box-title"><span>벽지</span></div>
       <div class="walls" id="walls"></div>
     </details>
+
+    <div class="acts" id="acts"></div>
+
+    <!-- 친구 방·방명록 켜기·끄기(서버, 11/25 가르시아 "서버랑 같이 오픈에 열자") -->
+    <div class="box fc" id="fc-box" hidden></div>
+
+      </div>
+    </div>
     <!-- 11/27 가르시아 "화면엔 안 보이게, 설정으로 옮겨" — "아지트는 이 휴대폰에만 있어요 …" 안내는 톱니 판(AZIT_NOTE)과 개인정보 안내(privacy.html #azit)로 -->
   </div>
 </main>
@@ -1436,7 +1460,19 @@
     else if (!open) hint.textContent = '단짝과 그 자리에서 서로 화면 QR을 찍으면 그 친구 방 모습이 와서 마실 갈 수 있어요.';
     else hint.textContent = '';
     hint.hidden = !hint.textContent;
-    $('visit').hidden = !open;
+    $('visit').hidden = true;   // 11/28 — 마실은 머리 오른쪽 방 고르기 칸에서
+    // 방 고르기 칸(11/28 가르시아 "내 방·모델하우스를 톱니 쪽에 콤보로") — 위 친구 칸 줄 대신
+    var sel = $('roomsel');
+    if (sel) {
+      sel.innerHTML = '';
+      sel.appendChild(new Option('내 방', '-1'));
+      sel.appendChild(new Option('모델하우스 · 예시', '-2'));
+      friends.forEach(function (e, n) {
+        var m = friendModel(e);
+        sel.appendChild(new Option(m.name + '네 방 · ' + (m.open ? '마실' : e.pal ? '단짝' : '발자국'), String(n)));
+      });
+      sel.value = String(view <= -2 ? -2 : view);
+    }
   }
   function nextOpen() {   // 마실 가기 ▶ — 방이 열린 친구만 차례대로, 끝나면 내 방(모델하우스에서 누르면 첫 친구부터)
     for (var n = view < 0 ? 0 : view + 1; n < friends.length; n++) if (!friends[n].blocked && AZ.parseRoom(friends[n].room)) return n;
@@ -2640,6 +2676,52 @@
     if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   $('visit').addEventListener('click', function () { goTo(nextOpen()); });
+  $('roomsel').addEventListener('change', function () { goTo(Number($('roomsel').value)); });
+
+  // ── 아래 판(11/28 가르시아 "아지트는 항상 위에, 그 밑은 스크롤, 버튼으로 누르고 끌어올리면 아지트를 가리는 화면") ──
+  // 틀(.shell)을 화면 높이(탭 위까지)에 맞추고, 방 아래 것들을 판(#sheet)에 넣어 판 안에서만 스크롤. 판 위치(top)는 방 바로 아래 ↔ 맨 위(방을 덮음)
+  var shellEl = document.querySelector('.shell'), sheetEl = $('sheet'), gripEl = $('sheet-grip'), sheetUp = false, sheetTop0 = 0;
+  shellEl.classList.add('sheeted');
+  function tabBarH() { var t = document.querySelector('.tabbar-wrap') || document.querySelector('.tabbar'); return t ? t.getBoundingClientRect().height : 58; }
+  function setSheet(up) {
+    sheetUp = !!up;
+    sheetEl.style.top = (sheetUp ? 0 : sheetTop0) + 'px';
+    gripEl.setAttribute('aria-expanded', String(sheetUp));
+    $('sheet-grip-t').textContent = sheetUp ? '내려서 방 보기' : '끌어 올려 크게 보기';
+  }
+  function layoutSheet() {
+    if ($('stage').classList.contains('full')) return;
+    var top = shellEl.getBoundingClientRect().top + window.scrollY;
+    var h = Math.max(360, Math.floor(window.innerHeight - top - tabBarH() - 16));
+    shellEl.style.height = h + 'px';
+    sheetTop0 = $('stage').offsetTop + $('stage').offsetHeight + 2;
+    setSheet(sheetUp);
+  }
+  (function () {   // 손잡이 — 톡 = 올리기/내리기, 끌면 손가락을 따라가다 반 넘으면 그쪽으로
+    var drag = null;
+    gripEl.addEventListener('pointerdown', function (e) {
+      drag = { y: e.clientY, top: sheetUp ? 0 : sheetTop0, moved: false };
+      try { gripEl.setPointerCapture(e.pointerId); } catch (er) { /* 무시 */ }
+    });
+    gripEl.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dy = e.clientY - drag.y; if (Math.abs(dy) > 4) drag.moved = true;
+      if (!drag.moved) return;
+      sheetEl.classList.add('dragging');
+      sheetEl.style.top = Math.max(0, Math.min(sheetTop0, drag.top + dy)) + 'px';
+    });
+    function end() {
+      if (!drag) return;
+      sheetEl.classList.remove('dragging');
+      if (drag.moved) setSheet(parseFloat(sheetEl.style.top) < sheetTop0 / 2); else setSheet(!sheetUp);
+      drag = null;
+    }
+    gripEl.addEventListener('pointerup', end); gripEl.addEventListener('pointercancel', end);
+  })();
+  window.addEventListener('resize', function () { setTimeout(layoutSheet, 60); });
+  if (window.ResizeObserver) { var ro = new ResizeObserver(function () { layoutSheet(); }); ro.observe($('stage')); ro.observe(document.querySelector('.head')); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutSheet);
+  layoutSheet();
 
   // ── 방 꾸미기(접기) — 연 상태는 이 휴대폰에 기억(11/23 밤) ──
   var DECO_KEY = 'walson_fold_azit-deco';
@@ -2771,16 +2853,7 @@
     setTimeout(function () { try { sayFor(host, '산책 가자!', 6); } catch (e) { /* 그림을 아직 못 읽었으면 말풍선은 건너뜀 */ } }, 900);
   })();
 
-  // ── 톱니 → 설정 판(11/27 가르시아 "화면엔 안 보이게, 설정으로 옮겨") — 다른 탭과 같은 앱 링크 + 접힌 아지트 안내 둘 ──
-  var AZIT_NOTE = '아지트는 이 휴대폰에만 있어요. 내 카드(화면 QR)를 그 자리에서 찍은 단짝 휴대폰에는 방 모습 — 도트 강아지·벽지·놓은 소품·머리 장식·산책 등급만 가요. ' +
-    '놓은 자리·산책 횟수·장소는 가지 않아요. 워킹패스 사진으로 만든 우리 개는 이 휴대폰에서만 보이고, 단짝 휴대폰엔 닮은 도트 강아지로 가요. ' +
-    '[친구 방·방명록]을 켜면 같은 방 모습이 서버(Supabase, 서울)를 거쳐 서로 카드를 넣은 친구에게 가요 — 끄면 서버에서 지워요.';
-  var FC_NOTE = '서버(Supabase, 서울)로 가는 것: 강아지 번호 · 카드(이름·크기·성향·털색) · 방 모습(도트 강아지·벽지·놓은 소품·머리 장식·산책 등급) · ' +
-    '도감에 넣은 강아지 번호 · 다녀가며 고른 한마디와 날짜. 가지 않는 것: 위치 · 산책 길 · 사진 · 견주 이름 · 연락처. 서로 넣은 친구에게만 보이고, 끄면 서버에서 지워요.';
-  if (window.WalsonQuickSet && $('set-btn')) WalsonQuickSet.attach($('set-btn'), { side: 'below', app: true, notes: [
-    { title: '아지트는 어디에 있나요', text: AZIT_NOTE, href: 'privacy.html#azit' },
-    { title: '친구 방·방명록 — 서버로 가는 것', text: FC_NOTE, href: 'privacy.html#friends' }
-  ] });
+  // 톱니 설정 판은 11/28 가르시아 "톱니는 여기선 제거"로 뺐다 — 아지트 안내 둘은 개인정보 안내(privacy.html #azit·#friends)에
 
   // 시험용 — 지금 보는 방·그리는 배율
   window.__azit = { goTo: goTo, state: function () { return { view: view, open: cur && cur.open, dog: cur && cur.dog, theme: cur && cur.theme, items: cur && cur.items.slice(), R: Z, Z: Z, K: K, OX: OX, OY: OY, VW: VW, VH: VH, friends: friends.length, me: state.dog, photo: usingPhoto(), fetch: fetchJob ? fetchJob.phase + ':' + fetchJob.mood + ':' + fetchJob.n : null,
