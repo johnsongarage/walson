@@ -107,6 +107,25 @@
   .stage::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px;
     background: radial-gradient(circle at 8px -2px, var(--panel) 7px, transparent 7.5px) 0 0 / 16px 8px repeat-x; }   /* 위 구름 띠 */
   .roomwrap { position: relative; line-height: 0; }
+  /* 전체 화면(11/27 가르시아 "PC로 봤을 때 아지트 전체 화면 볼 수 있게 해 줘") — 마우스 쓰는 화면에만 방 오른쪽 아래 버튼.
+     누르면 방 칸만 화면 가득(방 전체 폭이 다 들어가게 키워 가운데에 — 자리는 fit()이 정함) + 브라우저 전체 화면도(Esc로 나옴).
+     방 이름표·기분 칸·말풍선은 방 모서리 그대로, 소품 보기 창·알림은 방 위에 뜬다 */
+  .fullbtn { display: none; position: absolute; right: 8px; bottom: 8px; z-index: 3; width: 34px; height: 34px; padding: 0; align-items: center; justify-content: center;
+    background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line); cursor: pointer; }
+  .fullbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .fullbtn:active { transform: translate(2px, 2px); box-shadow: none; }
+  .fullbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .fullbtn { display: flex; }
+    .closed { right: 50px; }   /* 버튼 자리 */
+  }
+  .fullback { position: fixed; inset: 0; z-index: 1049; background-color: var(--accent-tint);
+    background-image: radial-gradient(rgba(var(--shadow-rgb), .07) 1px, transparent 1.5px); background-size: 12px 12px; }
+  .fullback[hidden] { display: none; }
+  .stage.full { position: fixed; z-index: 1050; margin: 0; padding: 0; border: 3px solid var(--line); box-shadow: 5px 5px 0 var(--line); }
+  .stage.full::before { display: none; }
+  .stage.full .fullbtn { display: flex; }
+  body.azit-full { overflow: hidden; }
   /* 휴대폰에서 방 위를 위아래로 밀면 화면이 내려간다(pan-y, 11/23 가르시아 "고쳐줘" — 시안은 none이라 방 위에선 안 내려갔음).
      내 방 소품 위를 누를 때만 아래 스크립트(touchstart)가 막아서 끌기가 된다 */
   #room { display: block; touch-action: pan-y; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* 꾹 누를 때 저장·복사 메뉴가 안 뜨게 */
@@ -338,6 +357,7 @@
     <div class="friends px" id="friends" role="group" aria-label="내 아지트와 만난 친구"></div>
     <p class="fr-hint" id="fr-hint" hidden></p>
 
+    <div class="fullback" id="fullback" hidden></div>
     <div class="stage" id="stage">
       <div class="sign px" id="sign"></div>
       <div class="moodchip px" id="moodchip" hidden><span id="moodtxt">오늘 기분은?</span><span class="caret" aria-hidden="true"></span><select id="mood" aria-label="오늘 기분 고르기"></select></div>
@@ -348,6 +368,7 @@
         <div class="bubble px react" id="react" aria-hidden="true" hidden></div>
       </div>
       <div class="closed" id="closed" hidden></div>
+      <button type="button" class="fullbtn" id="fullbtn" aria-pressed="false" aria-label="전체 화면으로 보기" title="전체 화면"><svg viewBox="0 0 16 16" aria-hidden="true"><path id="fullico" d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
     </div>
     <!-- 처음 온 사람 첫 만남(11/27 — index.html이 ?first=1로 보냄): ① 우리 개 이름·견종 → ② 방에 등장 + "산책 가자!" → [산책 나가기] -->
     <div class="firstcard" id="firstcard" hidden>
@@ -1107,12 +1128,21 @@
   // (문 쪽 왼쪽 끝·오른쪽 벽 끝), 칸이 VW_MIN보다 좁으면 방을 조금 줄인다. 위는 선반 위 트로피까지(OY), 아래는 바닥 앞 끝까지(VH).
   // K = 방 한 점의 CSS 크기, Z = 방 한 점의 화면 픽셀 수(정수가 아닐 수 있음 — 원본 그림은 곱게, 점 그림은 점째)
   var K = 1, Z = 3, VW = 345, VH = 300, OX = 64, OY = 30, XC = 236, VW_MIN = 340;   // 390폭 휴대폰 방 칸 ≈ 345 CSS 픽셀 → 1점 = 1픽셀(Z 정수)
+  var full = false;   // 전체 화면(PC — 아래 setFull)
   function fit() {
-    var avail = $('stage').clientWidth, dpr = window.devicePixelRatio || 1;
-    if (avail <= 0) return;
-    var vw = Math.min(RW, Math.max(VW_MIN, avail)), z = avail / vw * dpr;
+    var avail = $('stage').clientWidth, dpr = window.devicePixelRatio || 1, vw, k, z;
+    if (full) {
+      // 전체 화면: 방 전체 폭(429점) × 보통 높이(300점)가 화면에 다 들어가게 키워 가운데에. 화면 점은 방 한 점에 6개까지만(큰 모니터에서 그리기가 무거워지지 않게 — 넘으면 조금 키워 보임)
+      var fw = window.innerWidth, fh = window.innerHeight, edge = 3;
+      vw = RW; k = Math.max(0.5, Math.min((fw - 40) / RW, (fh - 40) / 300)); z = Math.min(k * dpr, 6);
+      var st = $('stage').style;
+      st.left = Math.max(0, Math.round((fw - RW * k) / 2 - edge)) + 'px'; st.top = Math.max(0, Math.round((fh - 300 * k) / 2 - edge)) + 'px';
+    } else {
+      if (avail <= 0) return;
+      vw = Math.min(RW, Math.max(VW_MIN, avail)); k = avail / vw; z = k * dpr;
+    }
     if (z !== Z) { dogCache = {}; bmpCache = {}; roomCache = {}; fillCache = {}; rideCache = {}; rideMasks = {}; ballSmall = {}; }
-    VW = vw; K = avail / vw; Z = z;
+    VW = vw; K = k; Z = z;
     OX = Math.round(Math.max(0, Math.min(RW - VW, XC - VW / 2))); OY = 30; VH = 300;
     canvas.width = Math.round(VW * Z); canvas.height = Math.round(VH * Z);
     canvas.style.width = (VW * K) + 'px'; canvas.style.height = (VH * K) + 'px';
@@ -2644,6 +2674,34 @@
   save();
 
   window.addEventListener('resize', function () { fit(); measureBubble(); staticDirty = true; kick(); });
+  // 전체 화면 켜고 끄기(11/27) — 방 칸을 화면 가득 + 브라우저 전체 화면(안 되는 브라우저는 화면 안에서만). Esc·버튼으로 나온다
+  function setFull(on) {
+    if (full === on) return;
+    full = on;
+    var stg = $('stage'), b = $('fullbtn');
+    stg.classList.toggle('full', on); $('fullback').hidden = !on; document.body.classList.toggle('azit-full', on);
+    if (!on) { stg.style.left = ''; stg.style.top = ''; }
+    b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? '전체 화면 끝내기' : '전체 화면으로 보기'); b.title = on ? '전체 화면 끝내기 (Esc)' : '전체 화면';
+    $('fullico').setAttribute('d', on ? 'M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5' : 'M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10');
+    fit(); measureBubble(); staticDirty = true; kick();
+    if (signParts && signParts.length) setSign(signParts);
+  }
+  $('fullbtn').addEventListener('click', function () {
+    if (!full) {
+      setFull(true);
+      var de = document.documentElement;
+      try { if (de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen().catch(function () { /* 화면 안에서만 */ }); } catch (e) { /* 화면 안에서만 */ }
+    } else {
+      try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (e) { /* 그대로 */ }
+      setFull(false);
+    }
+  });
+  document.addEventListener('fullscreenchange', function () { if (!document.fullscreenElement && full) setFull(false); });   // 브라우저 Esc
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !full) return;
+    try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (er) { /* 그대로 */ }
+    setFull(false);
+  });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureBubble(); kick(); if (signParts && signParts.length) setSign(signParts); });   // 도트 글꼴이 늦게 오면 폭이 바뀐다
   fit(); refreshModel();
   if (!fromHash()) ui();
