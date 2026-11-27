@@ -185,7 +185,7 @@
         box.appendChild(links);
         addNotes();
         var foot = el('p', 'qs-foot');
-        foot.innerHTML = '<a href="about.html">왈슨 소개</a> · <a href="privacy.html">개인정보 안내</a>';
+        foot.innerHTML = '<a href="about.html">왈슨 소개</a> · <a href="rewards.html">보상 받는 법</a> · <a href="privacy.html">개인정보 안내</a>';   // 보상 받는 법 11/27
         box.appendChild(foot);
         // 시연용(접어 둠) — 공원에서 보여 주거나 시험할 때만 쓰는 것
         var demo = el('details', 'qs-demo'), sum = el('summary', '', '시연용');

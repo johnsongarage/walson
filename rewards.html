@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>보상 받는 법</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 보상 받는 법(2026-11-27 가르시아 "표로 정리해서 기록 — 보기 편하게, 유저들도 볼 수 있어야 해").
+     잰 산책(길 기록·시간만 재기)과 다녀와서 적은 산책이 무엇을 받는지 한 표로. 규칙을 바꾸면 이 표도 같이 고친다 —
+     셈: 등급·꾸준함 reward-rules.js, 소품 azit-room.js progress, 별 walk-stars.js. 키링은 KEYRING.open이 false인 동안 약속하지 않으려고 적지 않는다. */
+  :root {
+    --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
+    --ink: #4a3f35; --ink-soft: #6b5d4e; --accent: #b8563a;
+    --shadow-rgb: 74, 63, 53;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; font-family: 'Pretendard', -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  body { padding: 16px 16px 40px; }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .topbar a {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 12px; text-decoration: none;
+    background: var(--panel); border: 1px solid var(--panel-border); color: var(--ink);
+    box-shadow: 0 2px 8px rgba(var(--shadow-rgb), 0.1);
+  }
+  .topbar h1 { font-weight: 900; font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .lead { font-size: 15px; line-height: 1.65; margin: 0 0 14px; }
+  .kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .kind { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px; padding: 12px; }
+  .kind b { display: block; font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+  .kind span { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); }
+  .kind.live { border-color: var(--accent); }
+  .table { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; overflow: hidden; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 11px 10px; text-align: left; vertical-align: top; font-size: 13.5px; line-height: 1.5; border-bottom: 1px solid var(--panel-border); }
+  tr:last-child td { border-bottom: 0; }
+  thead th { font-size: 12.5px; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+  thead th.live { color: var(--accent); }
+  td:first-child { font-weight: 700; width: 38%; }
+  td small { display: block; font-weight: 500; font-size: 12px; color: var(--ink-soft); }
+  .y, .n, .h { font-weight: 800; }
+  .y { color: var(--accent); }
+  .n { color: var(--ink-soft); }
+  section { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+  h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; }
+  ul { margin: 0; padding-left: 18px; }
+  li { font-size: 14px; line-height: 1.65; margin-bottom: 4px; }
+  .date { font-size: 12px; color: var(--ink-soft); margin-top: 16px; }
+  @media (max-width: 359px) { th, td { padding: 10px 7px; font-size: 12.5px; } }
+</style>
+<script src="store.js?v=1"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
+<script src="site-config.js?v=11"></script>
+<script src="inapp.js?v=5"></script>
+<script src="track.js?v=8"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a href="azit.html" title="돌아가기" onclick="if (history.length > 1) { history.back(); return false; }">←</a>
+    <h1>보상 받는 법</h1>
+  </div>
+  <p class="lead">산책은 5분 넘게 걸으면 세요. <b>[산책 시작]을 눌러 잰 산책</b>은 다녀와서 적은 산책보다 조금 더 받아요.</p>
+
+  <div class="kinds">
+    <div class="kind live"><b>잰 산책</b><span>[산책 시작]과 [끝]을 눌러 잰 산책 — 위치를 켜고 길을 기록해도, 시간만 재도 같아요</span></div>
+    <div class="kind"><b>다녀와서 적은 산책</b><span>[오늘]에서 "다녀왔어요"로 몇 분 걸었는지만 적은 산책</span></div>
+  </div>
+
+  <div class="table">
+    <table>
+      <thead><tr><th>받는 것</th><th class="live">잰 산책</th><th>다녀와서 적은</th></tr></thead>
+      <tbody>
+        <tr><td>산책 등급<small>워킹패스 — 5·15·30번</small></td><td><span class="y">○</span></td><td><span class="y">○</span></td></tr>
+        <tr><td>꾸준함 도장<small>한 주에 3·5·7일</small></td><td><span class="y">○</span></td><td><span class="y">○</span></td></tr>
+        <tr><td>아지트 소품<small>산책 횟수로 생기는 것</small></td><td><span class="y">○</span><small>하루 2번까지</small></td><td><span class="h">△</span><small>하루 1번까지</small></td></tr>
+        <tr><td>특별 소품<small>밤 산책 · 40분 넘는 긴 산책 · 킁킁 · 오늘의 한 장 · 응가</small></td><td><span class="y">○</span></td><td><span class="n">✕</span></td></tr>
+        <tr><td>겨울 소품<small>12~2월에 한 산책</small></td><td><span class="y">○</span></td><td><span class="y">○</span><small>하루 1번까지</small></td></tr>
+        <tr><td>창가 별자리 별<small>[아지트] 창 · 하늘</small></td><td><span class="y">○</span><small>하루 2개까지</small></td><td><span class="y">○</span><small>하루 2개까지</small></td></tr>
+        <tr><td>걸은 길·거리</td><td><span class="y">○</span><small>위치를 켰을 때만</small></td><td><span class="n">✕</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section>
+    <h2>왜 이렇게 나눴나요</h2>
+    <ul>
+      <li>깜빡하고 못 잰 날도 빠지지 않게, 다녀와서 적은 산책도 등급·도장·기본 소품은 받아요.</li>
+      <li>그 자리에서 잰 산책은 정말 나갔다는 표시라서, 특별 소품은 잰 산책으로만 생겨요.</li>
+      <li>거리는 조건에 쓰지 않아요. 휴대폰을 주머니에 넣거나 화면이 꺼지면 위치가 끊겨서 실제보다 짧게 나올 수 있거든요. 시간만 봐요.</li>
+      <li>하루에 셀 수 있는 수를 정해 둔 건, 짧게 여러 번 나가서 빨리 모으기보다 매일 꾸준히 모으게 하려고예요.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>이미 받은 소품은요</h2>
+    <ul>
+      <li>규칙이 바뀌기 전에 받은 소품은 그대로 있어요.</li>
+      <li>어떤 소품이 아직 없는지, 얼마나 남았는지는 [아지트] → 내 소품 → "아직 안 생긴 소품"에서 볼 수 있어요.</li>
+    </ul>
+  </section>
+
+  <p class="date">11월 27일 기준</p>
+</div>
+</body>
+</html>
