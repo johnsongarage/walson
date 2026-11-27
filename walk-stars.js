@@ -1,6 +1,10 @@
 // 산책 별자리(2026-11-27 가르시아 "5번과 4번 2번 진행해" — 첫 경험 기획안 ②·④·⑤). 시안: constellation-sian.html.
-// 규칙(시안 그대로): 산책 1번 = 별 1개(5분 넘게 걸은 산책만, 하루 2개까지). 한 달 별 15개로 우리 개 머리 모양 —
-//   윤곽 12 → 코 → 왼눈 → 오른눈(마지막 둘이 눈이라 다 채우면 "눈을 떠요"). 크기 = 걸은 분, 색 = 시간대(아침·낮·저녁·밤). 16번째부터는 별가루.
+// 규칙(11/27 가르시아 "켜고 걸은 사람에게 이 정도 메리트는 있어야지" · "한 달 기준은 보름 이상으로" · "한 달 내내 걸은 가치도 인정"):
+//   [산책 시작]을 누르고 5분 넘게 걸은 날 = 별 1개(다녀와서 적은 산책은 별 없음 — 11/27까지 이미 뜬 별은 남김 AFTER_KEEP).
+//   같은 날 또 걸으면 새 별 대신 그 별이 밝아진다(걸은 분을 더함). 보름(15일)이면 우리 개 머리 모양 별자리 완성 —
+//   윤곽 12 → 코 → 왼눈 → 오른눈(마지막 둘이 눈이라 다 채우면 "눈을 떠요"). 16일째부터는 별가루, 25일이면 은하수, 하루도 안 빠지면 보름달
+//   (달은 걸은 날만큼 차오른다). 크기 = 그날 걸은 분, 색 = 시간대(아침·낮·저녁·밤).
+//   별을 누르면 그날의 "산책 별" 카드(dayCard — 11/27 "별을 누르면 영수증인데 이런 형태여야겠다, 영수증 너무 숫자야").
 // "우리가 만난 날 별"(④ 처음 온 날도 하늘이 비어 있지 않게): 이 기기에서 별자리를 처음 본 날 하나 — 산책 별 수에 세지 않는다.
 // 쓰는 곳: [아지트] 창가 줄·큰 하늘(azit.html), 산책 끝 "별 하나 떴어요"(walk-end.html).
 // 저장: 별은 산책 기록(WalsonStore.walks)에서 그때그때 센다 — 따로 저장하는 건 만난 날(localStorage) 하나. 밖으로 보내는 것 없음.
@@ -15,7 +19,7 @@
 //     싣지 않는 것: 날짜·시각·걸은 분·위치. 주소 # 뒤에 있어서 서버로 가지 않는다.
 (function () {
   'use strict';
-  var GOAL = 15, PER_DAY = 2, MIN = 5, MET_KEY = 'walson_sky_met';
+  var GOAL = 15, PER_DAY = 1, MIN = 5, MILKY = 25, AFTER_KEEP = '2026-11-27', MET_KEY = 'walson_sky_met';   // 보름 · 하루 1칸 · 5분 · 은하수 25일
   var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function cfg() { return window.WALSON_CONFIG || {}; }
   function brand() { return cfg().brand || { name: 'WALSON', nameKo: '왈슨', tagline: '당신과 강아지의 유의미한 산책' }; }
@@ -57,27 +61,32 @@
     if (t) { var d = new Date(t); if (!isNaN(d)) return d.getHours() + d.getMinutes() / 60; }
     return 18;   // 시간을 모르는 기록(예전 기록)은 저녁 별
   }
-  // 하루 별 수 — 보상표(reward-rules.js WALK_REWARDS)가 있으면 그 값, 베타면 덮은 값
-  function starsPerDay() { try { var RR = window.RewardRules; if (RR && RR.walkRewards) return RR.walkRewards().starsPerDay; } catch (e) {} return PER_DAY; }
+  // 별을 받나 — reward-rules.js WALK_REWARDS(산책 보상표)의 live.stars · after.stars(베타면 덮은 값)
+  function rewardCfg() { try { var RR = window.RewardRules; return RR && RR.walkRewards ? RR.walkRewards() : null; } catch (e) { return null; } }
+  function starsPerDay() { return PER_DAY; }   // 하루 1칸(예전 화면이 부르는 이름 그대로)
   function countable(w) { return w && typeof w.date === 'string' && (Number(w.durationMin) || 0) >= MIN; }
-  // 그 달 별 — 기록 순서대로, 하루 2개까지. ym 'YYYY-MM'
+  function starWalk(w, cfg) {
+    if (!countable(w)) return false;
+    if (w.logged !== 'after') return !cfg || !!cfg.live.stars;
+    if (!cfg || cfg.after.stars) return true;
+    return w.date <= AFTER_KEEP;   // 다녀와서 적은 산책으로 이미 뜬 별(11/27까지)은 남긴다
+  }
+  function daysIn(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(); }
+  // 그 달 별 — 걸은 날마다 하나, 날짜 순. 같은 날 여러 번이면 한 별에 걸은 분·거리·횟수를 모은다. ym 'YYYY-MM'
+  //   → { stars(보름까지), over(별가루), days, dim(그 달 날 수), full(보름), milky(25일), allDays(하루도 안 빠짐), moon(0~1) }
   function month(walks, ym) {
     walks = walks || allWalks(); ym = ym || ymOf(new Date());
-    var perDay = {}, stars = [], over = [], capped = false;
-    // 하루 별 수·다녀와서 적은 산책도 별을 받나 — reward-rules.js WALK_REWARDS(산책 보상표, 11/27)
-    var RR = window.RewardRules, cfg = null;
-    try { cfg = RR && RR.walkRewards ? RR.walkRewards() : null; } catch (e) { cfg = null; }
-    var cap = starsPerDay();
+    var cfg = rewardCfg(), byDay = {}, keys = [];
     walks.forEach(function (w) {
-      if (!countable(w) || w.date.slice(0, 7) !== ym) return;
-      if (cfg && !(w.logged === 'after' ? cfg.after.stars : cfg.live.stars)) return;
-      var k = w.date;
-      if ((perDay[k] || 0) >= cap) { capped = true; return; }
-      perDay[k] = (perDay[k] || 0) + 1;
-      var s = { date: w.date, min: Math.round(Number(w.durationMin) || 0), h: hourOf(w) };
-      (stars.length < GOAL ? stars : over).push(s);
+      if (!w || typeof w.date !== 'string' || w.date.slice(0, 7) !== ym || !starWalk(w, cfg)) return;
+      var d = byDay[w.date];
+      if (!d) { d = byDay[w.date] = { date: w.date, min: 0, km: 0, n: 0, h: hourOf(w) }; keys.push(w.date); }
+      d.min += Math.round(Number(w.durationMin) || 0); d.km += Number(w.distanceKm) || 0; d.n++;
     });
-    return { ym: ym, stars: stars, over: over, full: stars.length >= GOAL, dayCapped: capped };
+    keys.sort();
+    var all = keys.map(function (k) { return byDay[k]; }), n = all.length, dim = daysIn(ym);
+    return { ym: ym, stars: all.slice(0, GOAL), over: all.slice(GOAL), days: n, dim: dim,
+      full: n >= GOAL, milky: n >= MILKY, allDays: n >= dim, moon: Math.min(1, n / dim), dayCapped: false };
   }
   // ── 1년 하늘 + 공유 링크 글자 ──
   var DOG_IDS = ['pom', 'poodle', 'maltese', 'chihuahua', 'dachs', 'jindo', 'shiba', 'knit'];   // 링크에 번호로 실린다 — 순서 바꾸지 말 것(새 것은 뒤에)
@@ -128,16 +137,20 @@
   function shareUrl(code) { return appUrl() + '/sky.html?from=sky#' + code; }
 
   // 마지막 산책이 별이 됐나(산책 끝 화면) — 기록이 저장된 뒤 부른다
+  //   → { got(새 별), index(그달 몇 번째 — 0부터), date, month, dust(16일째부터) } · got이 아니면 reason: 'brighter'(오늘 별이 더 밝아짐) · 'after'(다녀와서 적은 산책) · 'short'(5분 미만)
   function lastWalkStar(walks) {
     walks = walks || allWalks();
     var w = walks[walks.length - 1];
     if (!w) return { got: false, reason: 'none' };
     var ym = w.date ? w.date.slice(0, 7) : ymOf(new Date());
     var now = month(walks, ym), before = month(walks.slice(0, -1), ym);
-    var total = now.stars.length + now.over.length, prev = before.stars.length + before.over.length;
-    if (total > prev) return { got: true, index: total - 1, month: now, dust: total > GOAL };
+    var all = now.stars.concat(now.over), idx = -1;
+    for (var i = 0; i < all.length; i++) if (all[i].date === w.date) idx = i;
+    if (now.days > before.days && idx >= 0) return { got: true, index: idx, date: w.date, month: now, dust: idx >= GOAL };
+    if (idx >= 0 && starWalk(w, rewardCfg())) return { got: false, reason: 'brighter', index: idx, date: w.date, month: now };
     if (!countable(w)) return { got: false, reason: 'short', month: now };
-    return { got: false, reason: 'day', month: now };
+    if (w.logged === 'after') return { got: false, reason: 'after', month: now };
+    return { got: false, reason: 'none', month: now };
   }
   // 만난 날 — 이 기기의 첫 산책 날(기록이 없으면 처음 별자리를 본 날)
   function metDay() {
@@ -175,7 +188,9 @@
     return e;
   }
   // 바탕(밤하늘 + 은하수 + 작은 별 + 초승달) — 한 번 그려 두고 다시 씀
-  function paintNight(g, w, h, u, seed) {
+  // o = { milky: 25일 은하수, moon: 0(초승달)~1(보름달 — 한 달 하루도 안 빠짐) }
+  function paintNight(g, w, h, u, seed, o) {
+    o = o || {};
     var r = rng(seed), i;
     var grd = g.createLinearGradient(0, 0, 0, h);
     grd.addColorStop(0, 'hsl(238, 62%, 7%)'); grd.addColorStop(0.6, 'hsl(246, 50%, 13%)'); grd.addColorStop(1, 'hsl(262, 46%, 22%)');
@@ -188,20 +203,38 @@
       g.fillStyle = gg; g.beginPath(); g.arc(x, y, rad, 0, 7); g.fill();
     }
     g.restore();
+    if (o.milky) {   // 25일 — 같은 대각선을 따라 은하수가 짙게(빛 덩이 + 촘촘한 잔별)
+      var rm = rng(seed + 11);
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (i = 0; i < 46; i++) {
+        var tm = rm(), mx2 = w * (-0.1 + 1.2 * tm), my2 = h * (0.85 - 0.7 * tm) + (rm() - 0.5) * h * 0.08, rad2 = (0.05 + rm() * 0.1) * Math.max(w, h);
+        var hue2 = 250 + rm() * 70, g2 = g.createRadialGradient(mx2, my2, 0, mx2, my2, rad2);
+        g2.addColorStop(0, 'hsla(' + hue2.toFixed(0) + ', 80%, 82%, ' + (0.07 + rm() * 0.06).toFixed(3) + ')'); g2.addColorStop(1, 'hsla(' + hue2.toFixed(0) + ', 80%, 70%, 0)');
+        g.fillStyle = g2; g.beginPath(); g.arc(mx2, my2, rad2, 0, 7); g.fill();
+      }
+      var nm = (w / u) * (h / u) / 260;
+      for (i = 0; i < nm; i++) {
+        var tq = rm(), qx = w * (-0.1 + 1.2 * tq) + (rm() - 0.5) * w * 0.08, qy = h * (0.85 - 0.7 * tq) + (rm() - 0.5) * h * 0.14;
+        g.fillStyle = 'hsla(' + (215 + rm() * 80).toFixed(0) + ', 90%, 92%, ' + (0.25 + rm() * 0.5).toFixed(3) + ')';
+        g.beginPath(); g.arc(qx, qy, (0.3 + rm() * 0.7) * u, 0, 7); g.fill();
+      }
+      g.restore();
+    }
     var n = (w / u) * (h / u) / 900;
     for (i = 0; i < n; i++) {
       var sx = r() * w, sy = r() * h, s = Math.pow(r(), 3);
       g.fillStyle = 'hsla(' + (205 + r() * 70).toFixed(0) + ', 80%, ' + (86 + r() * 14).toFixed(0) + '%, ' + (0.2 + 0.6 * s).toFixed(3) + ')';
       g.beginPath(); g.arc(sx, sy, (0.35 + s * 1.05) * u, 0, 7); g.fill();
     }
-    var mx = w * 0.87, my = h * 0.1, mr = Math.max(4, Math.min(w, h) * 0.035);
-    var mg = g.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 3.4);
-    mg.addColorStop(0, 'hsla(48, 100%, 86%, 0.22)'); mg.addColorStop(1, 'hsla(48, 100%, 86%, 0)');
-    g.fillStyle = mg; g.beginPath(); g.arc(mx, my, mr * 3.4, 0, 7); g.fill();
+    // 달 — 걸은 날만큼 차오른다(초승달 → 하루도 안 빠지면 보름달, 둘레 빛도 커짐)
+    var ph = clamp01(o.moon || 0), mx = w * 0.87, my = h * 0.1, mr = Math.max(4, Math.min(w, h) * 0.035) * (1 + 0.2 * ph);
+    var mg = g.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * (3.4 + 1.6 * ph));
+    mg.addColorStop(0, 'hsla(48, 100%, 86%, ' + (0.22 + 0.2 * ph).toFixed(3) + ')'); mg.addColorStop(1, 'hsla(48, 100%, 86%, 0)');
+    g.fillStyle = mg; g.beginPath(); g.arc(mx, my, mr * (3.4 + 1.6 * ph), 0, 7); g.fill();
     var mc = document.createElement('canvas'); mc.width = mc.height = Math.ceil(mr * 2 + 4);
     var m = mc.getContext('2d'), c0 = mc.width / 2;
     m.fillStyle = 'hsl(48, 100%, 90%)'; m.beginPath(); m.arc(c0, c0, mr, 0, 7); m.fill();
-    m.globalCompositeOperation = 'destination-out'; m.beginPath(); m.arc(c0 + mr * 0.45, c0 - mr * 0.25, mr * 0.88, 0, 7); m.fill();
+    if (ph < 1) { m.globalCompositeOperation = 'destination-out'; m.beginPath(); m.arc(c0 + mr * (0.45 + 1.8 * ph), c0 - mr * 0.25 * (1 - ph), mr * 0.88, 0, 7); m.fill(); }
     g.drawImage(mc, mx - c0, my - c0);
   }
   function drawStar(g, x, y, r, c, a, flare) {
@@ -227,7 +260,7 @@
   // st = { dog, stars, over, fresh(마지막 별 애니메이션 시작 ms) }
   function Sky(w, h, u, st, box) {
     var bg = document.createElement('canvas'); bg.width = w; bg.height = h;
-    paintNight(bg.getContext('2d'), w, h, u, 7);
+    paintNight(bg.getContext('2d'), w, h, u, 7, { milky: st.milky, moon: st.moon });
     var pts = shapePoints(st.dog), x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     pts.forEach(function (p) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); });
     var bx = box || { x: w * 0.16, y: h * 0.17, w: w * 0.68, h: h * 0.7 };   // 별자리 놓을 칸(공유 그림은 오른쪽에)
@@ -318,12 +351,13 @@
   }
   function stateNow(fresh) {
     var m = month();
-    return { dog: dogId(), stars: m.stars, over: m.over, fresh: fresh && !REDUCE && (m.stars.length + m.over.length) ? performance.now() + 350 : 0, m: m };
+    return { dog: dogId(), stars: m.stars, over: m.over, milky: m.milky, moon: m.moon, fresh: fresh && !REDUCE && (m.stars.length + m.over.length) ? performance.now() + 350 : 0, m: m };
   }
   function countText(m) {
-    var n = m.stars.length;
-    return '별 ' + n + ' / ' + GOAL + (m.over.length ? ' · 별가루 ' + m.over.length : '');
+    var n = m.stars.length, days = m.days != null ? m.days : n + m.over.length;
+    return '별 ' + n + ' / ' + GOAL + (days > GOAL ? ' · ' + days + '일' : '');
   }
+  function milestone(m) { return m.allDays ? '보름달이 떴어요' : m.milky ? '은하수가 흘러요' : m.full ? '눈을 떴어요' : ''; }
   function monthLabel(ym) { return Number(ym.slice(5, 7)) + '월'; }
 
   // ── 아지트 창가 작은 하늘 ──
@@ -352,6 +386,158 @@
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fmtDay(k) { return Number(k.slice(5, 7)) + '월 ' + Number(k.slice(8, 10)) + '일'; }
 
+  // 이번 달 어디까지 왔나 — 보름 → 25일 은하수 → 하루도 안 빠지면 보름달
+  function goalText(m) {
+    var who = dogName() || '우리 개';
+    if (m.allDays) return '한 달 내내 함께 걸었어요. 하늘에 보름달이 떴어요.';
+    if (m.milky) return m.days + '일 걸어 은하수가 흘러요. 하루도 안 빠지면 보름달이 떠요.';
+    if (m.full) return '보름을 채워 ' + who + ' 별자리가 눈을 떴어요. 25일이면 은하수가 흘러요.';
+    return '[산책 시작]을 누르고 걸은 날마다 별이 하나씩 떠서 보름이면 ' + who + ' 얼굴이 돼요. ' + (GOAL - m.days) + '일 남았어요.';
+  }
+
+  // ── 그날의 산책 별 카드(1번 — 11/27 가르시아가 보낸 "오늘의 산책 별" 그림 모양) — 1080×1350, 저장·공유도 이 그림 ──
+  // 큰 별(색 = 시간대, 반짝이·둘레 빛 = 걸은 분) · 날짜 · 걸은 시간 · 거리(시간만 잰 날은 시간대) · 그날 산책 횟수 · 우리 개 한마디 · 홍보 두 줄
+  var CARD_STAR = [   // 시간대(TOD 순서)별 별 색 — 밝은 곳 · 몸 · 가장자리 · 테두리
+    ['#fff6c4', '#ffd24a', '#f2a93b', '#e0822f'], ['#ffffff', '#ffe58a', '#f5c64a', '#e2a13a'],
+    ['#ffe6f1', '#ff9cc6', '#f06ea6', '#d24a85'], ['#eef6ff', '#a7cdff', '#6aa6f0', '#477fd2']
+  ];
+  var THANKS = ['오늘도 함께 걸어 줘서 고마워.', '같이 걸어서 좋았어. 내일도 가자!', '오늘 냄새 최고였어. 킁킁.', '너랑 걷는 시간이 제일 좋아.', '발바닥이 신났어. 또 나가자!'];
+  function dayStar(date) {
+    var m = month(null, date.slice(0, 7)), all = m.stars.concat(m.over);
+    for (var i = 0; i < all.length; i++) if (all[i].date === date) return { s: all[i], index: i, m: m };
+    return null;
+  }
+  function starPath(g, cx, cy, R, r, rot) {
+    g.beginPath();
+    for (var i = 0; i < 10; i++) { var a = rot + i * Math.PI / 5, rr = i % 2 ? r : R; g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+    g.closePath();
+  }
+  function sparkle(g, x, y, R, col) {   // 네 갈래 반짝이
+    g.fillStyle = col; g.beginPath();
+    g.moveTo(x, y - R); g.quadraticCurveTo(x + R * 0.16, y - R * 0.16, x + R, y); g.quadraticCurveTo(x + R * 0.16, y + R * 0.16, x, y + R);
+    g.quadraticCurveTo(x - R * 0.16, y + R * 0.16, x - R, y); g.quadraticCurveTo(x - R * 0.16, y - R * 0.16, x, y - R); g.fill();
+  }
+  function rrect(g, x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
+  function dayCard(date) {
+    var hit = dayStar(date); if (!hit) return null;
+    var st = hit.s, W = 1080, H = 1350, b = brand(), today = dateKey(new Date());
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var g = c.getContext('2d'), font = 'Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    var tod = todOf(st.h), col = CARD_STAR[TOD.indexOf(tod)] || CARD_STAR[0], tier = sizeIdx(st.min), r = rng(parseInt(date.replace(/-/g, ''), 10) || 7);
+    g.fillStyle = '#111a33'; g.fillRect(0, 0, W, H);
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = '#ffd38a'; g.font = '900 52px ' + font;
+    g.fillText(date === today ? '오늘의 산책 별' : fmtDay(date) + '의 산책 별', W / 2, 100);
+    // 하늘 칸 — 가운데 보랏빛 + 빛살 + 잔별
+    var sx = 48, sy = 140, sw = W - 96, sh = 700, cx = W / 2, cy = sy + sh / 2;
+    g.save(); rrect(g, sx, sy, sw, sh, 40); g.clip();
+    var bgd = g.createLinearGradient(0, sy, 0, sy + sh); bgd.addColorStop(0, '#0a0b26'); bgd.addColorStop(1, '#151240'); g.fillStyle = bgd; g.fillRect(sx, sy, sw, sh);
+    var glow = g.createRadialGradient(cx, cy, 0, cx, cy, sh * 0.62); glow.addColorStop(0, 'rgba(98, 84, 200, ' + (0.55 + 0.1 * tier) + ')'); glow.addColorStop(1, 'rgba(60, 50, 150, 0)');
+    g.fillStyle = glow; g.fillRect(sx, sy, sw, sh);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (var k = 0; k < 18; k++) {   // 빛살
+      var a0 = k * Math.PI / 9 + 0.1, a1 = a0 + Math.PI / 30 + r() * 0.04, L = sh * 0.95;
+      g.fillStyle = 'rgba(140, 125, 255, ' + (0.05 + 0.02 * tier).toFixed(3) + ')';
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a0) * L, cy + Math.sin(a0) * L); g.lineTo(cx + Math.cos(a1) * L, cy + Math.sin(a1) * L); g.closePath(); g.fill();
+    }
+    g.restore();
+    for (k = 0; k < 170; k++) {   // 잔별
+      var px = sx + r() * sw, py = sy + r() * sh, ps = Math.pow(r(), 3);
+      if (Math.hypot(px - cx, py - cy) < 240) continue;
+      g.fillStyle = 'rgba(255,255,255,' + (0.35 + 0.6 * ps).toFixed(3) + ')'; g.beginPath(); g.arc(px, py, 1.4 + ps * 3.2, 0, 7); g.fill();
+    }
+    // 큰 별 — 둘레 빛 → 테두리 → 몸(둥근 끝) → 윗면 빛
+    var R = 168 + tier * 12, ri = R * 0.5, rot = -Math.PI / 2;
+    var halo = g.createRadialGradient(cx, cy, R * 0.3, cx, cy, R * (1.9 + 0.2 * tier)); halo.addColorStop(0, col[1] + 'aa'); halo.addColorStop(1, col[1] + '00');
+    g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * (1.9 + 0.2 * tier), 0, 7); g.fill();
+    g.lineJoin = 'round';
+    starPath(g, cx, cy + 6, R, ri, rot); g.strokeStyle = col[3]; g.lineWidth = 34; g.stroke();
+    var body = g.createRadialGradient(cx - R * 0.25, cy - R * 0.35, R * 0.05, cx, cy, R * 1.05);
+    body.addColorStop(0, col[0]); body.addColorStop(0.45, col[1]); body.addColorStop(1, col[2]);
+    starPath(g, cx, cy, R, ri, rot); g.strokeStyle = col[1]; g.lineWidth = 22; g.stroke(); g.fillStyle = body; g.fill();
+    g.save(); starPath(g, cx, cy, R * 0.62, ri * 0.62, rot); g.clip();
+    var shine = g.createLinearGradient(cx, cy - R * 0.7, cx, cy + R * 0.2); shine.addColorStop(0, 'rgba(255,255,255,0.55)'); shine.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = shine; g.fillRect(cx - R, cy - R, R * 2, R * 1.2); g.restore();
+    // 반짝이 — 오래 걸을수록 많이
+    var spots = [[-1.25, -0.85, 0.42], [1.05, -0.95, 0.28], [1.42, 0.35, 0.36], [-1.4, 0.45, 0.24], [-0.2, 1.3, 0.24], [0.55, 1.25, 0.18]];
+    for (k = 0; k < 2 + tier && k < spots.length; k++) sparkle(g, cx + spots[k][0] * R, cy + spots[k][1] * R, spots[k][2] * R, 'rgba(255, 246, 214, 0.95)');
+    g.restore();
+    // 하늘 칸 왼쪽 위 — 이달 몇 번째 별
+    var mm = hit.m, nth = hit.index + 1;
+    var tag = monthLabel(date.slice(0, 7)) + ' · ' + nth + '일째 별' + (mm.allDays && nth === mm.dim ? ' · 보름달' : nth === MILKY ? ' · 은하수' : nth === GOAL ? ' · 눈 뜬 별' : '');
+    g.font = '800 30px ' + font; var tw = g.measureText(tag).width + 40;
+    g.fillStyle = 'rgba(255,255,255,0.14)'; rrect(g, sx + 26, sy + 24, tw, 52, 26); g.fill();
+    g.fillStyle = '#ffffff'; g.textAlign = 'left'; g.fillText(tag, sx + 46, sy + 61); g.textAlign = 'center';
+    // 날짜 · 숫자 셋 · 한마디
+    var d = date.split('-');
+    g.fillStyle = '#ffd38a'; g.font = '900 64px ' + font; g.fillText(d[0] + '년 ' + Number(d[1]) + '월 ' + Number(d[2]) + '일', W / 2, 940);
+    var hm = st.min >= 60 ? Math.floor(st.min / 60) + '시간' + (st.min % 60 ? ' ' + st.min % 60 + '분' : '') : st.min + '분';
+    var cols = [[hm, '산책 시간'], st.km >= 0.05 ? [(Math.round(st.km * 10) / 10) + 'km', '산책 거리'] : [tod.name, '산책 시간대'], [st.n + '회', '산책 횟수']];
+    cols.forEach(function (cc, i) {
+      var x = W / 2 + (i - 1) * 330;
+      g.fillStyle = '#ffd38a'; g.font = '900 52px ' + font; g.fillText(cc[0], x, 1040);
+      g.fillStyle = '#c3cbe2'; g.font = '700 32px ' + font; g.fillText(cc[1], x, 1092);
+    });
+    var who = dogName(), line = THANKS[Math.floor(r() * THANKS.length)];
+    g.fillStyle = '#eef1fb'; g.font = '700 38px ' + font; g.fillText((who ? who + ': ' : '') + line, W / 2, 1176);
+    // 홍보 두 줄(밖에 나가는 그림 — site-config.js brand)
+    g.fillStyle = '#ff8fbf'; g.font = '900 40px ' + font; g.fillText(b.name, W / 2, 1262);
+    g.fillStyle = '#9aa6c4'; g.font = '700 28px ' + font; g.fillText(b.tagline, W / 2, 1306);
+    g.textAlign = 'left';
+    return c;
+  }
+  // 큰 그림을 화면 크기로 곱게(반씩 줄여 — canvas-view.js와 같은 셈, 이 파일만 읽는 화면에서도)
+  function fitTo(big, w, h) {
+    var cur = big;
+    while (cur.width / 2 >= w && cur.height / 2 >= h) {
+      var t = document.createElement('canvas'); t.width = Math.round(cur.width / 2); t.height = Math.round(cur.height / 2);
+      var tg = t.getContext('2d'); tg.imageSmoothingQuality = 'high'; tg.drawImage(cur, 0, 0, t.width, t.height); cur = t;
+    }
+    var v = document.createElement('canvas'); v.width = w; v.height = h;
+    var vg = v.getContext('2d'); vg.imageSmoothingQuality = 'high'; vg.drawImage(cur, 0, 0, w, h);
+    return v;
+  }
+  var CARD_CSS = '.wsc-back{position:fixed;inset:0;z-index:1160;background:rgba(6,6,22,.92);display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}' +
+    '.wsc-box{position:relative;width:100%;max-width:400px}.wsc-view{border-radius:18px;overflow:hidden;line-height:0;background:#111a33}.wsc-view canvas{display:block;width:100%;height:auto}' +
+    '.wsc-x{position:absolute;right:8px;top:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}' +
+    '.wsc-btns{display:flex;gap:8px;margin-top:10px}.wsc-btns button,.wsc-btns a{flex:1;min-height:46px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:0;background:#2b3358;color:#fff;font:inherit;font-size:15px;font-weight:800;text-decoration:none;white-space:nowrap;cursor:pointer}' +
+    '.wsc-btns .main{background:#ff5c9d}';
+  // openDay('YYYY-MM-DD', { skyLink: 아지트 창가로 가는 주소 }) — 그날 별이 없으면 null
+  function openDay(date, opts) {
+    opts = opts || {};
+    if (!dayStar(date)) return null;
+    if (!document.getElementById('wsc-css')) { var stl = document.createElement('style'); stl.id = 'wsc-css'; stl.textContent = CARD_CSS; document.head.appendChild(stl); }
+    var back = document.createElement('div'); back.className = 'wsc-back';
+    back.innerHTML = '<div class="wsc-box" role="dialog" aria-modal="true" aria-label="' + esc(fmtDay(date)) + '의 산책 별"><div class="wsc-view"></div>' +
+      '<button type="button" class="wsc-x" data-a="close" aria-label="닫기">✕</button>' +
+      '<div class="wsc-btns"><button type="button" data-a="save">저장</button><button type="button" data-a="share" class="main">공유</button>' +
+      (opts.skyLink ? '<a href="' + esc(opts.skyLink) + '">하늘에서 보기</a>' : '') + '</div></div>';
+    document.body.appendChild(back);
+    var view = back.querySelector('.wsc-view'), big = null;
+    function paint() {
+      big = dayCard(date); if (!big) return;
+      var cw = view.clientWidth || 360, dpr = Math.min(3, window.devicePixelRatio || 1), vw = Math.round(cw * dpr), vh = Math.round(vw * big.height / big.width);
+      var v = fitTo(big, vw, vh); v.setAttribute('role', 'img'); v.setAttribute('aria-label', fmtDay(date) + ' 산책 별 — ' + dayStar(date).s.min + '분');
+      view.textContent = ''; view.appendChild(v);
+    }
+    paint();
+    if (document.fonts && document.fonts.load) document.fonts.load('900 52px Pretendard').then(function () { if (back.parentNode) paint(); }, function () {});
+    function close() { back.remove(); document.removeEventListener('keydown', onKey, true); }
+    function onKey(e) { if (e.key === 'Escape') { e.stopPropagation(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    back.addEventListener('click', function (e) {
+      if (e.target === back) { close(); return; }
+      var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
+      if (a === 'close') close();
+      else if ((a === 'save' || a === 'share') && big && window.WalsonSave) {
+        var file = 'walson-star-' + date + '.png';
+        if (a === 'save') WalsonSave.save(big, file);
+        else WalsonSave.share(big, file, (dogName() || '우리 개') + '와 ' + fmtDay(date) + ' 산책 별 ✦\n' + brand().name + ' — ' + brand().tagline + '\n' + appUrl());
+      }
+    });
+    return { close: close };
+  }
+
   function open(opts) {
     opts = opts || {};
     if (!document.getElementById('wst-css')) { var stl = document.createElement('style'); stl.id = 'wst-css'; stl.textContent = CSS; document.head.appendChild(stl); }
@@ -359,11 +545,10 @@
     var back = document.createElement('div'); back.className = 'wst-back';
     back.innerHTML = '<div class="wst-sheet" role="dialog" aria-modal="true" aria-label="창가 별자리">' +
       '<p class="wst-h"><b>' + esc(monthLabel(m.ym)) + ' 하늘 · ' + esc(nm) + '</b><span>' + esc(countText(m)) + '</span></p>' +
-      '<p class="wst-sub">' + (m.full ? '이번 달 별자리가 눈을 떴어요. 더 걸으면 둘레에 별가루가 생겨요.'
-        : '산책할 때마다 별이 하나씩 떠서 ' + esc(dogName() || '우리 개') + ' 얼굴이 돼요. ' + (GOAL - m.stars.length) + '개 남았어요.') + '</p>' +
+      '<p class="wst-sub">' + esc(goalText(m)) + '</p>' +
       '<div class="wst-sky"><canvas aria-label="이번 달 별자리 하늘"></canvas><span class="wst-tag">분홍 별 · 우리가 만난 날 ' + esc(fmtDay(met)) + '</span></div>' +
       (n ? '' : '<p class="wst-empty">분홍 별은 우리가 만난 날 별이에요. 5분 넘게 산책하고 오면 창밖에 첫 별이 떠요.</p>') +
-      '<p class="wst-rule">5분 넘게 걸은 산책 1번 = 별 1개(하루 ' + starsPerDay() + '개까지) · 별 크기는 걸은 시간, 색은 아침·낮·저녁·밤 · 별을 누르면 그날 산책</p>' +
+      '<p class="wst-rule">[산책 시작]을 누르고 5분 넘게 걸은 날 = 별 1개(같은 날 또 걸으면 그 별이 밝아져요) · 보름(15일)이면 별자리 완성 · 25일이면 은하수 · 하루도 안 빠지면 보름달 · 별을 누르면 그날의 산책 별</p>' +
       // 별이 아직 없으면 공유는 숨긴다 — 처음 온 사람에게 "보내기"부터 보이지 않게(11/27). 3D는 앞으로 생길 얼굴 윤곽이 보여서 둔다
       '<a class="wst-3d" href="sky.html">✦ 하늘을 3D로 둘러보기 ›</a>' +
       '<div class="wst-btns">' + (n ? '<button type="button" data-a="save">저장</button><button type="button" data-a="share" class="main">공유</button>' : '') +
@@ -386,12 +571,8 @@
       for (var i = 0; i < all.length; i++) { var p = sky.pos(i), d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = i; } }
       if (popEl) { popEl.remove(); popEl = null; }
       if (best < -1) return;
-      var html, at;
-      if (best === -1) { html = '<b>우리가 만난 날 별</b><br>' + fmtDay(met) + ' — 왈슨에서 처음 만난 날'; at = sky.met; }
-      else {
-        var s = all[best]; at = sky.pos(best);
-        html = '<b>' + fmtDay(s.date) + ' · ' + todOf(s.h).name + '</b><br>' + s.min + '분 산책 · ' + (best + 1) + '번째 별' + (best >= GOAL ? '(별가루)' : best === GOAL - 1 ? '(눈 뜬 별)' : '');
-      }
+      if (best >= 0) { openDay(all[best].date); return; }   // 11/27 별을 누르면 그날의 산책 별 카드
+      var html = '<b>우리가 만난 날 별</b><br>' + fmtDay(met) + ' — 왈슨에서 처음 만난 날', at = sky.met;
       popEl = document.createElement('div'); popEl.className = 'wst-pop'; popEl.innerHTML = html; box.appendChild(popEl);
       var left = at.x / dpr - 90, top = at.y / dpr + 14;
       popEl.style.left = Math.max(6, Math.min(cw - 206, left)) + 'px';
@@ -425,7 +606,7 @@
     // 방이 있으면: 하늘(위 590) → 방(가로 꽉) → 홍보 두 줄·주소. 없으면 하늘을 크게. 별자리는 오른쪽, 제목은 왼쪽 아래(겹치지 않게)
     var skyH = room ? 590 : 1010;
     var box = room ? { x: W * 0.42, y: skyH * 0.2, w: W * 0.46, h: skyH * 0.72 } : null;
-    var sky = new Sky(W, skyH, 2.6, { dog: st.dog, stars: st.stars, over: st.over, fresh: 0 }, box);
+    var sky = new Sky(W, skyH, 2.6, { dog: st.dog, stars: st.stars, over: st.over, milky: st.milky, moon: st.moon, fresh: 0 }, box);
     sky.draw(g, 1200);
     g.setTransform(1, 0, 0, 1, 0, 0);
     var font = 'Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
@@ -435,7 +616,7 @@
     g.fillText(monthLabel(m.ym) + ' 하늘', 56, skyH - 150);
     g.font = '900 48px ' + font; g.fillText(starName(), 56, skyH - 88);
     g.fillStyle = 'rgba(255,209,230,.95)'; g.font = '800 32px ' + font;
-    g.fillText(countText(m) + (m.full ? ' · 눈을 떴어요' : ''), 56, skyH - 38);
+    g.fillText(countText(m) + (milestone(m) ? ' · ' + milestone(m) : ''), 56, skyH - 38);
     // 아래 판
     g.fillStyle = '#fff6fa'; g.fillRect(0, skyH, W, H - skyH);
     if (room) {
@@ -455,8 +636,9 @@
     return c;
   }
 
-  window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, perDay: starsPerDay, MIN: MIN, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
-    starName: starName, countText: countText, thumb: thumb, open: open, card: card, todOf: todOf,
+  window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, perDay: starsPerDay, MIN: MIN, MILKY: MILKY, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
+    starName: starName, countText: countText, goalText: goalText, thumb: thumb, open: open, card: card, todOf: todOf,
+    dayCard: dayCard, openDay: openDay,
     // 3D 하늘(sky.html)이 같이 쓰는 것
     sky: sky, encode: encode, decode: decode, shareUrl: shareUrl, shapePoints: shapePoints, shapeEdges: shapeEdges, starSize: starSize,
     rng: rng, SkyCanvas: Sky, MET_C: MET_C, brand: brand, appUrl: appUrl };

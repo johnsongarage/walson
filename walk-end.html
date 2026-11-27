@@ -245,8 +245,8 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=14"></script>
-<script src="walk-stars.js?v=4"></script>
+<script src="reward-rules.js?v=15"></script>
+<script src="walk-stars.js?v=5"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=5"></script>
 <script src="mock-server.js?v=2"></script>
@@ -365,16 +365,24 @@
       var S = WalsonStars, r = S.lastWalkStar(walks);
       if (!r.month) return;
       var n = r.month.stars.length, d;
+      // 11/27 날 기준 — 걸은 날마다 별 하나, 보름이면 눈을 뜨고 25일 은하수, 하루도 안 빠지면 보름달. 다녀와서 적은 산책은 별이 없다
+      var M = r.month, title;
       if (r.got) {
-        d = row(STAR, false, r.dust ? '별가루 하나 떴어요' : n >= S.GOAL && r.index === S.GOAL - 1 ? '별자리가 눈을 떴어요!' : '별 하나 떴어요',
-          S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
+        title = M.allDays && r.index === M.dim - 1 ? '한 달 내내 걸었어요 — 보름달이 떴어요!' : r.index === (S.MILKY || 25) - 1 ? '25일째 — 은하수가 흘러요!'
+          : r.index === S.GOAL - 1 ? '보름을 채웠어요 — 별자리가 눈을 떴어요!' : r.dust ? '별 하나 더 떴어요' : '별 하나 떴어요';
+        d = row(STAR, false, title, S.starName() + ' ' + Math.min(n, S.GOAL) + '/' + S.GOAL + (M.days > S.GOAL ? ' · ' + M.days + '일' : '') + ' · ');
         chip(r.dust ? '별가루' : '별 하나', true);
-      } else if (r.reason === 'day') {
-        d = row(STAR, true, '오늘 별은 다 떴어요', '하루 ' + (S.perDay ? S.perDay() : S.PER_DAY) + '개까지 · ' + S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
+      } else if (r.reason === 'brighter') {
+        d = row(STAR, true, '오늘 별이 더 밝아졌어요', '같은 날 또 걸으면 그 별이 밝아져요 · ' + S.starName() + ' ' + Math.min(n, S.GOAL) + '/' + S.GOAL + ' · ');
+      } else if (r.reason === 'after') {
+        row(STAR, true, '다녀와서 적은 산책은 별이 안 떠요', '다음엔 [산책 시작]을 누르고 걸으면 그날 별이 떠요');
+        return;
       } else return;   // 5분 미만 — 아래 안내 줄에 이미 나온다
       d.classList.add('is-star');
+      // 오늘의 산책 별 카드(11/27 1번) — 카드에서 [하늘에서 보기]로 아지트 창가
       var a = document.createElement('a');
-      a.href = 'azit.html' + (r.got ? '?sky=new' : ''); a.textContent = '아지트 창가에서 보기 ›';
+      a.href = 'azit.html' + (r.got ? '?sky=new' : ''); a.textContent = '오늘의 산책 별 ›';
+      if (S.openDay && r.date) a.addEventListener('click', function (e) { if (S.openDay(r.date, { skyLink: a.getAttribute('href') })) e.preventDefault(); });
       d.querySelector('small').appendChild(a);
     }
     var before = R.computeProgress(walks.slice(0, -1)), now = R.computeProgress(walks);
