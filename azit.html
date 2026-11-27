@@ -718,39 +718,118 @@
     var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, w, h);
     return c;
   }
-  function dogBitmap(id) {
-    var key = id + '@' + Z;
+  function dogBitmap(id, x2) {   // x2 = 두 배 크기(기울이거나 찌그러뜨려 그릴 때 — 큰 그림에서 줄여 그려야 덜 뭉개진다)
+    var key = id + '@' + Z + (x2 ? 'x2' : '');
     if (key in dogCache) return dogCache[key];
     var s = dogSrc[id];
     if (!s) return null;
     var im = s.im, vis = DOG_VIS;
     // 워킹패스 사진 도트가 옆으로 길면(누운 사진) 너무 넓어지지 않게 — 폭을 키의 1.4배까지로
     if (id === PHOTO_ID && im.naturalWidth > im.naturalHeight * 1.4) vis = DOG_VIS * 1.4 * im.naturalHeight / im.naturalWidth;
-    var hh = Math.round(vis * Z), wd = Math.round(im.naturalWidth * hh / im.naturalHeight), c;
+    var hh = Math.round(vis * Z * (x2 ? 2 : 1)), wd = Math.round(im.naturalWidth * hh / im.naturalHeight), c;
     if (s.px && hh >= im.naturalHeight) {
       c = document.createElement('canvas'); c.width = wd; c.height = hh;
       var g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, wd, hh);
     } else c = smallCopy(im, wd, hh);
     return (dogCache[key] = c);
   }
-  // 바닥 (px, py)에 발을 딛고 서 있는 강아지 — 걸으면 한 칸씩 통통, 쉴 땐 가끔 한 번. 발밑에 그림자(점으로)
+  // ── 걷는 움직임(11/27 가르시아 "콩콩 거리는 거 너무 어색해" → 시안 azit-dog-motion-sian.html → "C로 넣고 배포") ──
+  // C 말랑 걸음: 오르내림은 둥근 곡선(화면 픽셀 단위) · 걸음 박자 = 간 바닥 거리 ÷ 보폭(뛰면 박자도 빨라짐) · 견종별 걸음 ·
+  // 발 닿을 때 좌우로 뒤뚱 · 닿을 때 살짝 납작·뜰 때 살짝 길쭉 · 천천히 출발·도착 전 줄이기 · 뛸 땐 가는 쪽으로 기울기 ·
+  // 방향 바꿀 땐 종이 뒤집듯 · 멈출 때 툭 · 쉴 때 가끔 갸웃·두리번 · 뜰수록 그림자 작게. 그림은 그대로(사진 강아지·손님 강아지도 같은 움직임).
+  // 놀기(통통·냠냠)·방석 폴짝·물기·개모차는 예전 움직임 그대로(d.hop이 있거나 방석에 앉은 동안) — 2단계에서 같은 결로.
+  // 휴대폰 '동작 줄이기'를 켜면 미끄러지기만.
+  // 견종별 — stride 한 걸음에 가는 바닥 칸 · bob 걸음 가운데 뜨는 높이(방 점) · tilt 뒤뚱 기울기(도) — [걷기, 뛰기]
+  var GAIT = {
+    small: { stride: [4.2, 5.8], bob: [1.8, 3.0], tilt: [4, 4.5] },     // 포메·푸들·말티즈·니트·치와와·사진 강아지 — 종종
+    long: { stride: [3.4, 4.6], bob: [1.0, 1.8], tilt: [5.5, 5.5] },    // 닥스훈트 — 짧은 다리로 낮게 뒤뚱
+    big: { stride: [5.8, 7.6], bob: [1.4, 2.5], tilt: [2.6, 3] }        // 진돗개·시바 — 느긋하게
+  };
+  var BREED_GAIT = { dachs: 'long', jindo: 'big', shiba: 'big' };
+  var TURN = 0.16, IDLE_LEN = { tilt: 1.25, look: 1.29 };   // 종이 뒤집기 초 · 갸웃·두리번 길이
+  var RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function lerp(a, b, k) { return a + (b - a) * k; }
+  function ease(k) { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }
+  function gaitOf(d) { return GAIT[BREED_GAIT[d.gid] || 'small']; }
+  function flipNow(d, t) {   // 그림 가로 배수(1 그대로 · -1 뒤집음 · 종이 뒤집기 중이면 그 사이)
+    var cur = d.flip ? -1 : 1, k = (t - (d.flipT0 || -9)) / TURN;
+    return RM || k < 0 || k >= 1 ? cur : lerp(d.flipFrom, cur, ease(k));
+  }
+  function setFlip(d, f, t) { if (!!d.flip === f) return; d.flipFrom = flipNow(d, t); d.flipT0 = t; d.flip = f; }
+  function poseOf(d, t) {   // lift 뜬 높이(방 점) · rot 기울기(발 가운데 축) · sx·sy 가로·세로 배수 · fx 뒤집기 배수
+    var p = { lift: 0, rot: 0, sx: 1, sy: 1, fx: flipNow(d, t) };
+    if (RM) return p;
+    var g = gaitOf(d), amp = d.amp || 0, run = d.run || 0, ph = d.ph || 0, u = ph - Math.floor(ph), face = d.flip ? -1 : 1;
+    p.lift = amp * lerp(g.bob[0], g.bob[1], run) * Math.sin(Math.PI * u);                       // 둥근 호 — 발 닿을 때 0
+    p.rot = amp * lerp(g.tilt[0], g.tilt[1], run) * Math.PI / 180 * Math.cos(Math.PI * ph);   // 뒤뚱 — 발 닿을 때 한쪽으로 가장 많이
+    p.rot += amp * run * 2.5 * Math.PI / 180 * face;                                            // 뛸 땐 가는 쪽으로
+    var s = amp * lerp(0.035, 0.055, run) * Math.cos(2 * Math.PI * u);                         // 닿을 때 납작 · 뜰 때 길쭉
+    p.sy = 1 - s; p.sx = 1 + s * 0.7;
+    var k = t - (d.stopT0 || -9);
+    if (k >= 0 && k < 0.45) { var e = 0.07 * Math.exp(-k * 7) * Math.cos(k * 16); p.sy *= 1 - e; p.sx *= 1 + e * 0.7; }   // 멈출 때 툭
+    var kf = (t - (d.flipT0 || -9)) / TURN;
+    if (kf >= 0 && kf < 1) p.lift += 1.2 * Math.sin(Math.PI * kf);                             // 종이 뒤집기 동안 살짝 뜬다
+    if (d.idle && d.idle.kind === 'tilt') {                                                     // 갸웃
+      var a = t - d.idle.t0, env = a < 0.16 ? ease(a / 0.16) : a < 0.95 ? 1 : a < 1.2 ? 1 - ease((a - 0.95) / 0.25) : 0;
+      p.rot += env * 6 * Math.PI / 180 * d.idle.side; p.sy *= 1 + 0.02 * env; p.sx *= 1 - 0.012 * env;
+    }
+    return p;
+  }
+  function idleStep(d, t, dt) {   // 쉴 때 가끔 갸웃·두리번(내 방·친구 방 모두)
+    d.still = (d.still || 0) + dt;
+    if (d.idle) {
+      var a = t - d.idle.t0;
+      if (d.idle.kind === 'look' && !d.idle.back && a > 1.05) { d.idle.back = true; setFlip(d, d.idle.from, t); }
+      else if (a > IDLE_LEN[d.idle.kind]) { d.idle = null; d.still = 0; d.idleNext = 2.5 + Math.random() * 3.5; }
+    } else if (d.still > (d.idleNext || 3)) {
+      var kind = Math.random() < 0.5 ? 'tilt' : 'look';
+      d.idle = { kind: kind, t0: t, side: d.flip ? -1 : 1, from: !!d.flip, back: false };
+      if (kind === 'look') setFlip(d, !d.flip, t);   // 뒤를 돌아봤다가 되돌아온다
+    }
+  }
+  function motionBusy(d) {   // 걷기 끝·툭·뒤집기·갸웃 동안은 매 화면 그린다
+    var t = nowSec();
+    return !RM && ((d.amp || 0) > 0 || !!d.idle || t - (d.stopT0 || -9) < 0.5 || t - (d.flipT0 || -9) < TURN);
+  }
+
+  // 바닥 (px, py)에 발을 딛고 서 있는 강아지 — 발밑에 그림자. 걷는 모양은 poseOf(위)
+  // 기울이거나 찌그러뜨릴 땐 ctx를 발 가운데 축으로 돌려 둔 채 돌려준다 — 머리 장식·입에 문 공도 같은 묶음으로 그린 뒤 render가 되돌린다(d.tf)
   function drawDog(d, dogId, px, py) {
-    d.headX = null;
+    d.headX = null; d.gid = dogId;
     var b = dogBitmap(dogId);
     if (!b) { d.box = null; return py - DOG_VIS; }
-    var hop = d.hop != null ? d.hop : (d.frame === 1 || d.frame === 3) ? 1 : 0;   // d.hop = 소품과 노는 동안(actStep)
     var w = b.width / Z, h = b.height / Z;
     var sink = d.sink || 0;   // 방석에 앉은 만큼 내려앉음(11/24) — 앉는 점 아래로 내려간 다리는 방석 앞에 가려진다
-    var x = Math.round((px - w / 2) * Z) / Z, top = Math.round((py - h + 1 + sink) * Z) / Z - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
-    if (!d.seat) shadowOn(ctx, px, py + 1, w * 0.62, 0.22);   // 방석 위에선 바닥 그림자 X
+    if (d.hop != null || (d.seat && sink > 0) || RM) {   // 놀기·폴짝·물기·방석 — 예전 그대로(d.hop = 소품과 노는 동안 actStep)
+      var hop = d.hop != null ? d.hop : 0;
+      var x = Math.round((px - w / 2) * Z) / Z, top = Math.round((py - h + 1 + sink) * Z) / Z - hop;   // 화면 픽셀에 딱 맞게(번지거나 일렁이지 않게)
+      if (!d.seat) shadowOn(ctx, px, py + 1, w * 0.62, 0.22);   // 방석 위에선 바닥 그림자 X
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      if (sink > 0 && d.seat) { ctx.beginPath(); ctx.rect(x - 4, top - 12, w + 8, d.seat.clipY - (top - 12)); ctx.clip(); }
+      if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(b, x, top, w, h);
+      ctx.restore();
+      d.box = { x: x, w: w, h: h };   // 머리 장식 자리(headPoint)가 쓴다
+      return top;
+    }
+    var p = poseOf(d, nowSec()), vis = p.fx < 0;   // 보이는 방향(종이 뒤집기 중엔 반 넘어갈 때 바뀜)
+    if (!d.seat) shadowOn(ctx, px, py + 1, w * 0.62 * Math.max(0.6, 1 - p.lift / 14), 0.22 * Math.max(0.55, 1 - p.lift / 10));   // 뜰수록 작고 옅게
+    var plain = Math.abs(p.rot) < 1e-4 && Math.abs(p.sx - 1) < 1e-4 && Math.abs(p.sy - 1) < 1e-4 && Math.abs(Math.abs(p.fx) - 1) < 1e-4;
+    var x2 = Math.round((px - w / 2) * Z) / Z, top2 = Math.round((py - h + 1 - p.lift) * Z) / Z, img = b;
+    if (!plain) {
+      var fy = py + 1 - p.lift;
+      ctx.save(); d.tf = { flip: d.flip }; d.flip = vis;   // render가 머리 장식·문 공까지 그린 뒤 되돌린다
+      ctx.translate(px, fy); ctx.rotate(p.rot); ctx.scale(p.sx * Math.max(0.02, Math.abs(p.fx)), p.sy); ctx.translate(-px, -fy);
+      x2 = px - w / 2; top2 = fy - h; img = dogBitmap(dogId, true) || b;
+    }
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    if (sink > 0 && d.seat) { ctx.beginPath(); ctx.rect(x - 4, top - 12, w + 8, d.seat.clipY - (top - 12)); ctx.clip(); }
-    if (d.flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
-    ctx.drawImage(b, x, top, w, h);
+    ctx.imageSmoothingEnabled = !plain; if (!plain) ctx.imageSmoothingQuality = 'high';
+    if (vis) { ctx.translate(x2 * 2 + w, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(img, x2, top2, w, h);
     ctx.restore();
-    d.box = { x: x, w: w, h: h };   // 머리 장식 자리(headPoint)가 쓴다
-    return top;
+    d.box = { x: x2, w: w, h: h };
+    return top2;
   }
 
   // ── 내 기록 · 만난 친구 ──
@@ -1144,6 +1223,7 @@
           }
         }
         if (fj && fj.phase === 'carry' && t.dog === fj.dog && rt == null) drawCarried(t.dog, t.dogId, top);   // 문 공
+        if (t.dog.tf) { ctx.restore(); t.dog.flip = t.dog.tf.flip; t.dog.tf = null; }   // 걷는 기울기·찌그러짐 묶음 끝(drawDog)
         if (t.dog === reactDog) placeReact(bx, top + 2);
         else if (t.dog === host) placeBubble(bx, top + 2);
         return;
@@ -2290,18 +2370,32 @@
       if (d.seat && !d.mode && !onSeatRect(d)) d.seat = null;   // 방석 둘레를 벗어나면 앞뒤 순서 원래대로
       var di = d.ti - d.i, dj = d.tj - d.j, dist = Math.sqrt(di * di + dj * dj);
       if (dist > 0.2) {
-        var sp = Math.min(dist, (d.fast ? 26 : 15) * dt);   // 1초에 바닥 15칸(소품으로 놀러 갈 땐 26칸 — 뛰어서)
+        // 1초에 바닥 15칸(소품으로 놀러 갈 땐 26칸 — 뛰어서). 11/27부터 0.1초쯤에 다 빨라지고 도착 0.16초 전쯤부터 줄인다(최저 32%)
+        var vmax = d.fast ? 26 : 15, want = vmax * Math.max(0.32, Math.min(1, dist / (vmax * 0.16)));
+        d.v = (d.v || 0) + (want - (d.v || 0)) * (1 - Math.exp(-dt / 0.07));
+        var sp = Math.min(dist, (RM ? vmax : d.v) * dt);
         d.i += di / dist * sp; d.j += dj / dist * sp;
-        if (Math.abs(di - dj) > 0.3) d.flip = (di - dj) < 0;   // 화면 왼쪽으로 가면 뒤집기
-        d.frame = Math.floor(now * 6) % 2;
+        if (Math.abs(di - dj) > 0.3) setFlip(d, (di - dj) < 0, now);   // 화면 왼쪽으로 가면 뒤집기(종이 뒤집듯)
+        var g = gaitOf(d);
+        d.ph = (d.ph || 0) + sp / lerp(g.stride[0], g.stride[1], d.run || 0);   // 걸음 박자 = 간 거리 ÷ 보폭
+        d.run = (d.run || 0) + ((d.fast ? 1 : 0) - (d.run || 0)) * (1 - Math.exp(-dt / 0.12));
+        d.amp = (d.amp || 0) + (Math.min(1, d.v / 15) - (d.amp || 0)) * (1 - Math.exp(-dt / 0.06));
+        d.moving = true; d.still = 0; d.idle = null;
+        d.frame = 0;
       } else {
+        if (d.moving) { d.moving = false; d.stopT0 = now; }   // 멈출 때 툭(poseOf)
+        d.v = 0;
+        d.amp = (d.amp || 0) * Math.exp(-(dt || 0) / 0.06); if (d.amp < 0.003) d.amp = 0;   // 걸음 가운데 떠 있던 것도 내려앉는다
+        d.run = (d.run || 0) * Math.exp(-(dt || 0) / 0.12); if (d.run < 0.002) d.run = 0;
         d.fast = false;
         if (d.act && !d.act.on) {
           if (d.act.seat && d.mode !== 'sit') { d.mode = 'hop'; d.modeT0 = now; d.hopK = 0; d.hopFrom = { i: d.i, j: d.j }; d.seat = d.act.seat; return; }   // 방석 앞에 왔으면 폴짝(hopK = 지난번 값이 남지 않게)
           startAct(d, now);
         }
         if (d.act && actStep(d, now)) return;   // 소품과 노는 중 — 쉬는 통통·혼자 돌아다니기는 잠깐 쉼
-        d.frame = d.mode === 'sit' ? 0 : ((now + d.phase) % 4.2) < 0.2 ? 3 : 0;   // 쉴 땐 4초쯤마다 한 번 통통(앉아 있을 땐 가만히)
+        d.frame = 0;   // 11/27부터 쉴 때 4초마다 통통(딸꾹질) 대신 가끔 갸웃·두리번
+        if (!d.mode && !d.seat && !RM && !(fetchJob && fetchJob.dog === d) && !(drag && d === host)) idleStep(d, now, dt || 0.15);
+        else if (d.idle) { d.idle = null; d.still = 0; }
         if (d === host && view === -1 && !drag && !fetchJob) { d.rest -= dt || 0.15; if (d.rest <= 0) { d.rest = 6 + Math.random() * 6; wander(d); } }
       }
     });
@@ -2310,7 +2404,7 @@
   }
   function schedule() {
     if (raf || idle || document.hidden) return;
-    if (moving(host) || (view !== -1 && moving(guest)) || drag || fetchJob || host.act || guest.act || host.mode === 'hop' || guest.mode === 'hop' || host.mode === 'stand' || guest.mode === 'stand' || host.mode === 'hopout' || guest.mode === 'hopout' || (host.mode === 'sit' && host.sink < SINK) || (guest.mode === 'sit' && guest.sink < SINK)) raf = requestAnimationFrame(step);
+    if (moving(host) || (view !== -1 && moving(guest)) || motionBusy(host) || (view !== -1 && motionBusy(guest)) || drag || fetchJob || host.act || guest.act || host.mode === 'hop' || guest.mode === 'hop' || host.mode === 'stand' || guest.mode === 'stand' || host.mode === 'hopout' || guest.mode === 'hopout' || (host.mode === 'sit' && host.sink < SINK) || (guest.mode === 'sit' && guest.sink < SINK)) raf = requestAnimationFrame(step);
     else idle = setTimeout(function () { idle = 0; last = 0; raf = requestAnimationFrame(step); }, 150);
   }
   function kick() { if (idle) { clearTimeout(idle); idle = 0; } if (!raf && !document.hidden) raf = requestAnimationFrame(step); }
