@@ -1,15 +1,17 @@
 // [밤하늘] 4단계(2026-11-27 가르시아 "3D 우주 탐험·외계 생명체·다른 강아지 별·기억의 별도 만들 거야 — 외계 생명체는 이미지 하나로 두고 가끔 출몰,
 // 순찰대는 로켓 탄 우주복 입은 강아지를 계속 비행시켜서 하늘에서 우주인을 탐색한다고 떠들게, 다른 강아지 별 보러 가기·기억의 별 메뉴는
 // 누르면 다른 행성이 줌인 — 아직 미완성인 형태로 남겨 두는 거지"). night.html이 부른다. 전역 window.WalsonNightExtras.
-//   순찰대: 우리 개 도트(icons/dot-dogs)가 유리 돔 로켓을 타고 하늘을 8자로 계속 날며 말풍선으로 떠든다. 누르면 다음 말.
-//   외계 생명체: 하늘을 열 때 세 번에 한 번쯤, 몇 초 뒤 가장자리에서 빼꼼 나왔다 들어간다. 누르면 휙 도망 — 순찰대가 "놓쳤다".
+//   순찰대: 우리 개 도트(icons/dot-dogs)가 유리 돔 로켓을 타고 별자리 위쪽 하늘 끝을 타원을 그리며 계속 돈다(11/27 가르시아 "3D에서 별자리 윗부분
+//     가장자리를 순찰하는 강아지야, 하늘 끝부분의 타원 곡선을 그리면서" — 3D 하늘 sky.html은 별자리들 위 높이를 한 바퀴, 2D 밤하늘은 위쪽 타원 — 뒤쪽은 작고 흐리게).
+//     말풍선으로 떠든다. 누르면 다음 말.
+//   외계 생명체: UFO 유리 돔 안에(11/27 "외계인도 UFO 안에 있어야 해"). 하늘을 열 때 세 번에 한 번쯤, 몇 초 뒤 가장자리에서 빼꼼 — 누르면 휙 도망, 순찰대가 "놓쳤다".
 //   행성 문 둘: [다른 강아지 별 보러 가기] · [기억의 별] — 누르면 행성이 다가오며(줌인) "준비 중" 화면. 다른 강아지 별은 가짜로 채우지 않는다.
 //     기억의 별은 조용한 말투(농담·순찰대·외계인 없음). [기다릴게요]는 track.js 익명 통계에 sky_door(door·act)로만 센다 — 위치·이름 없음.
 //   그림은 받기 전까지 코드로 그린 임시 그림(ART에 주소를 넣으면 그 그림으로 — 흰 바탕 없는 png/webp).
 (function () {
   'use strict';
   var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var ART = { rocket: 'icons/night/rocket.webp?v=1', alien: '', others: '', memory: '' };   // 받은 그림 주소(비어 있으면 코드 그림)
+  var ART = { rocket: 'icons/night/rocket.webp?v=1', ufo: '', others: '', memory: '' };   // 받은 그림 주소(비어 있으면 코드 그림) — ufo = 외계인이 탄 UFO 한 장
   // 받은 로켓(11/27 가르시아 "추가하고 배포" — _dev/night-rocket.py): 그림 비율과 유리 돔 자리(돔 속은 반투명 — 우리 개를 로켓 뒤에 그리면 돔 안에 탄 것처럼)·불꽃 자리
   var ROCKET = { aspect: 1.3908, dome: { cx: 0.5317, top: 0.0216, base: 0.4452, w: 0.3612 }, flame: { x: 0.1009, y: 0.6818, r: 0.0799 } };
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -22,7 +24,7 @@
     '.nx-say{position:absolute;left:0;top:0;z-index:4;max-width:180px;font-size:12px;font-weight:800;line-height:1.35;color:#1b1d33;background:#fff;padding:6px 9px;border-radius:12px;' +
     'box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;transition:opacity .25s}' +
     '.nx-say::after{content:"";position:absolute;left:18px;bottom:-6px;border:6px solid transparent;border-top-color:#fff;border-bottom:0}' +
-    '.nx-alien{position:absolute;z-index:3;width:64px;height:64px;cursor:pointer;transition:transform .7s cubic-bezier(.2,.9,.3,1.2),opacity .4s;-webkit-tap-highlight-color:transparent}' +
+    '.nx-alien{position:absolute;z-index:3;width:84px;height:60px;cursor:pointer;transition:transform .7s cubic-bezier(.2,.9,.3,1.2),opacity .4s;-webkit-tap-highlight-color:transparent}' +
     '.nx-alien canvas{display:block;width:100%;height:100%}' +
     '.nx-doors{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}' +
     '.nx-door{display:flex;align-items:center;gap:8px;min-height:52px;padding:8px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);' +
@@ -88,23 +90,45 @@
     }
     g.drawImage(rocket, 0, 0, W, H);
   }
-  function drawAlien(g, W, H, wave) {
+  // UFO — 유리 돔 안에 외계 생명체(초록 · 큰 눈 하나 · 노란 끝 더듬이 · 손 흔들기), 접시 둘레 불빛이 깜빡. 받은 그림(art)이 있으면 그 그림
+  function drawUfo(g, W, H, t, art) {
     g.clearRect(0, 0, W, H);
-    var u = W / 64, cx = 32 * u;
-    g.strokeStyle = '#7fe08a'; g.lineWidth = 2 * u; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(cx - 8 * u, 18 * u); g.lineTo(cx - 13 * u, 7 * u); g.stroke(); g.beginPath(); g.moveTo(cx + 8 * u, 18 * u); g.lineTo(cx + 13 * u, 7 * u); g.stroke();
-    g.fillStyle = '#ffe36e'; g.beginPath(); g.arc(cx - 13 * u, 6 * u, 3 * u, 0, 7); g.fill(); g.beginPath(); g.arc(cx + 13 * u, 6 * u, 3 * u, 0, 7); g.fill();
-    var bg = g.createRadialGradient(cx - 6 * u, 26 * u, 2 * u, cx, 36 * u, 26 * u); bg.addColorStop(0, '#b8ffb8'); bg.addColorStop(1, '#3fbf63');
-    g.fillStyle = bg; g.beginPath(); g.ellipse(cx, 38 * u, 17 * u, 21 * u, 0, 0, 7); g.fill();
-    g.strokeStyle = '#1f7a3a'; g.lineWidth = 1.6 * u; g.stroke();
-    g.fillStyle = '#fff'; g.beginPath(); g.ellipse(cx, 32 * u, 9 * u, 8 * u, 0, 0, 7); g.fill();
-    g.fillStyle = '#1b1d33'; g.beginPath(); g.arc(cx + 1.5 * u, 33 * u, 4.2 * u, 0, 7); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(cx + 3 * u, 31.5 * u, 1.4 * u, 0, 7); g.fill();
-    g.strokeStyle = '#1f7a3a'; g.lineWidth = 1.6 * u; g.beginPath(); g.arc(cx, 44 * u, 4 * u, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
-    g.strokeStyle = '#3fbf63'; g.lineWidth = 3.2 * u;   // 손 흔들기
-    var a = -0.9 + 0.5 * Math.sin(wave);
-    g.beginPath(); g.moveTo(cx + 15 * u, 40 * u); g.lineTo(cx + 15 * u + Math.cos(a) * 10 * u, 40 * u + Math.sin(a) * 10 * u); g.stroke();
-    g.beginPath(); g.moveTo(cx - 15 * u, 42 * u); g.lineTo(cx - 22 * u, 48 * u); g.stroke();
+    if (art) { g.drawImage(art, 0, 0, W, H); return; }
+    var u = W / 100, cx = 50 * u;
+    // 돔 속 외계인(돔 유리보다 먼저)
+    var wave = t / 180;
+    g.lineCap = 'round';
+    g.strokeStyle = '#7fe08a'; g.lineWidth = 1.6 * u;
+    g.beginPath(); g.moveTo(cx - 5 * u, 22 * u); g.lineTo(cx - 8 * u, 15 * u); g.stroke(); g.beginPath(); g.moveTo(cx + 5 * u, 22 * u); g.lineTo(cx + 8 * u, 15 * u); g.stroke();
+    g.fillStyle = '#ffe36e'; g.beginPath(); g.arc(cx - 8 * u, 14.5 * u, 2 * u, 0, 7); g.fill(); g.beginPath(); g.arc(cx + 8 * u, 14.5 * u, 2 * u, 0, 7); g.fill();
+    var ab = g.createRadialGradient(cx - 3 * u, 25 * u, 1 * u, cx, 30 * u, 13 * u); ab.addColorStop(0, '#b8ffb8'); ab.addColorStop(1, '#3fbf63');
+    g.fillStyle = ab; g.beginPath(); g.ellipse(cx, 31 * u, 10 * u, 11 * u, 0, 0, 7); g.fill();
+    g.strokeStyle = '#1f7a3a'; g.lineWidth = 1.2 * u; g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.ellipse(cx, 28 * u, 5.2 * u, 4.6 * u, 0, 0, 7); g.fill();
+    g.fillStyle = '#1b1d33'; g.beginPath(); g.arc(cx + 1 * u, 28.5 * u, 2.5 * u, 0, 7); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(cx + 1.9 * u, 27.6 * u, 0.9 * u, 0, 7); g.fill();
+    g.strokeStyle = '#1f7a3a'; g.lineWidth = 1.1 * u; g.beginPath(); g.arc(cx, 33 * u, 2.6 * u, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+    var a = -1.1 + 0.55 * Math.sin(wave); g.strokeStyle = '#3fbf63'; g.lineWidth = 2.2 * u;
+    g.beginPath(); g.moveTo(cx + 8.5 * u, 32 * u); g.lineTo(cx + 8.5 * u + Math.cos(a) * 7 * u, 32 * u + Math.sin(a) * 7 * u); g.stroke();
+    // 유리 돔
+    var dg = g.createRadialGradient(cx - 6 * u, 18 * u, 1 * u, cx, 28 * u, 19 * u); dg.addColorStop(0, 'rgba(255,255,255,.5)'); dg.addColorStop(1, 'rgba(160,220,255,.18)');
+    g.fillStyle = dg; g.beginPath(); g.arc(cx, 36 * u, 18 * u, Math.PI, 0); g.closePath(); g.fill();
+    g.strokeStyle = '#1e2350'; g.lineWidth = 1.6 * u; g.beginPath(); g.arc(cx, 36 * u, 18 * u, Math.PI, 0); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1.8 * u; g.beginPath(); g.arc(cx, 36 * u, 14 * u, Math.PI * 1.2, Math.PI * 1.45); g.stroke();
+    // 접시
+    var sg = g.createLinearGradient(0, 34 * u, 0, 56 * u); sg.addColorStop(0, '#f3f0ff'); sg.addColorStop(0.55, '#c3bcf0'); sg.addColorStop(1, '#8a80cf');
+    g.fillStyle = sg; g.beginPath(); g.ellipse(cx, 45 * u, 45 * u, 11.5 * u, 0, 0, 7); g.fill();
+    g.strokeStyle = '#1e2350'; g.lineWidth = 1.6 * u; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(cx - 6 * u, 40.5 * u, 26 * u, 3.6 * u, 0, 0, 7); g.fill();
+    g.fillStyle = '#7c72c4'; g.beginPath(); g.ellipse(cx, 55 * u, 15 * u, 5 * u, 0, 0, Math.PI); g.fill();
+    g.strokeStyle = '#1e2350'; g.lineWidth = 1.4 * u; g.beginPath(); g.ellipse(cx, 55 * u, 15 * u, 5 * u, 0, 0, Math.PI); g.stroke();
+    // 둘레 불빛(차례로 깜빡)
+    var cols = ['#ffe36e', '#ff8fbf', '#8fe7ff'];
+    for (var k = 0; k < 7; k++) {
+      var ang = Math.PI * (0.12 + 0.76 * k / 6), lx = cx - Math.cos(ang) * 37 * u, ly = 45 * u + Math.sin(ang) * 8.5 * u, on = (Math.floor(t / 220) + k) % 3 === 0;
+      if (on) { var lg = g.createRadialGradient(lx, ly, 0, lx, ly, 5 * u); lg.addColorStop(0, cols[k % 3]); lg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = lg; g.beginPath(); g.arc(lx, ly, 5 * u, 0, 7); g.fill(); }
+      g.fillStyle = on ? '#fff' : cols[k % 3]; g.beginPath(); g.arc(lx, ly, 1.9 * u, 0, 7); g.fill();
+    }
   }
   function drawPlanet(g, W, kind, t) {
     var r = W * 0.36, cx = W / 2, cy = W / 2;
@@ -170,14 +194,14 @@
       pw = 112; ph = Math.round(pw / ROCKET.aspect);   // 받은 로켓 비율로 칸을 다시
       pc.width = Math.round(pw * dpr); pc.height = Math.round(ph * dpr); pc.style.width = pw + 'px'; pc.style.height = ph + 'px';
     });
-    loadImg(ART.alien).then(function (im) { alienImg = im; });
+    loadImg(ART.ufo).then(function (im) { alienImg = im; });
     var lastX = 0, faceL = false;
     // ── 외계 생명체 — 하늘을 열 때 세 번에 한 번쯤 ──
     var al = null, alT = 0, alOut = false, seen = +(lsGet('walson_alien_seen') || 0);
     function showAlien() {
       if (!alive || al) return;
-      al = document.createElement('div'); al.className = 'nx-alien'; al.setAttribute('role', 'button'); al.setAttribute('aria-label', '외계 생명체 — 누르면 도망가요');
-      var ac = document.createElement('canvas'); ac.width = Math.round(64 * dpr); ac.height = Math.round(64 * dpr); al.appendChild(ac);
+      al = document.createElement('div'); al.className = 'nx-alien'; al.setAttribute('role', 'button'); al.setAttribute('aria-label', 'UFO를 탄 외계 생명체 — 누르면 도망가요');
+      var ac = document.createElement('canvas'); ac.width = Math.round(84 * dpr); ac.height = Math.round(60 * dpr); al.appendChild(ac);
       var right = Math.random() < 0.5, bw = box.clientWidth, bh = box.clientHeight;
       al.style.top = Math.round(bh * (0.35 + Math.random() * 0.4)) + 'px';
       al.style[right ? 'right' : 'left'] = '-8px';
@@ -199,7 +223,7 @@
         var a1 = al; al = null; setTimeout(function () { a1.remove(); }, 800);
         if (performance.now() < sayHold) speak('방금 그거 봤어? 다음엔 꼭 잡을게', 3600);
       }, 3500);
-      al._draw = function (now) { if (ac.isConnected) { var g = ac.getContext('2d'); if (alienImg) { g.clearRect(0, 0, ac.width, ac.height); g.drawImage(alienImg, 0, 0, ac.width, ac.height); } else drawAlien(g, ac.width, ac.height, now / 180); } };
+      al._draw = function (now) { if (ac.isConnected) drawUfo(ac.getContext('2d'), ac.width, ac.height, now, alienImg); };
       alDraw = al._draw;
     }
     var alDraw = null;
@@ -209,17 +233,24 @@
       if (!alive) return;
       var bw = box.clientWidth, bh = box.clientHeight;
       if (!bw || !bh) return;
-      var t = now / 1000, x, y;
-      if (REDUCE) { x = bw * 0.62; y = bh * 0.2; }
-      else { x = bw / 2 + (bw / 2 - pw / 2 - 10) * Math.sin(t * 0.16) - pw / 2; y = bh * 0.42 + bh * 0.26 * Math.sin(t * 0.32) - ph / 2; }
+      var t = now / 1000, x, y, sc = 1, tilt = 0;
+      // 별자리 위쪽 하늘 끝을 타원으로 한 바퀴(약 26초) — 위쪽 반은 멀리(작고 흐리게), 아래쪽 반은 가까이
+      if (REDUCE) { x = bw * 0.62 - pw / 2; y = bh * 0.12 - ph / 2; }
+      else {
+        var th = t * 0.24, rx = bw / 2 - pw * 0.5, ry = bh * 0.085, depth = (Math.sin(th) + 1) / 2;
+        sc = 0.7 + 0.3 * depth;
+        x = bw / 2 + rx * Math.cos(th) - pw / 2; y = bh * 0.2 + ry * Math.sin(th) - ph / 2;
+        tilt = Math.atan2(ry * Math.cos(th), -rx * Math.sin(th));   // 길 기울기
+        if (Math.abs(tilt) > Math.PI / 2) tilt -= Math.sign(tilt) * Math.PI;
+        tilt *= 0.6; pat.style.opacity = (0.78 + 0.22 * depth).toFixed(2);
+      }
       var vx = x - lastX; lastX = x; if (Math.abs(vx) > 0.05) faceL = vx < 0;
-      var tilt = REDUCE ? 0 : Math.cos(t * 0.32) * 0.18 * (faceL ? -1 : 1);
-      pat.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) rotate(' + tilt.toFixed(3) + 'rad) scaleX(' + (faceL ? -1 : 1) + ')';
+      pat.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) rotate(' + tilt.toFixed(3) + 'rad) scale(' + ((faceL ? -1 : 1) * sc).toFixed(3) + ',' + sc.toFixed(3) + ')';
       var g = pc.getContext('2d');
       if (rocketImg) drawRocketArt(g, pc.width, pc.height, dogImg, rocketImg, now);
       else drawRocket(g, pc.width, pc.height, dogImg, 0.5 + 0.5 * Math.sin(now / 70));
       // 말풍선 — 로켓 위, 칸 밖으로 안 나가게
-      var sw = say.offsetWidth || 120, sx = Math.max(6, Math.min(bw - sw - 6, x + pw / 2 - 24)), sy = Math.max(6, y - 30);
+      var sw = say.offsetWidth || 120, sx = Math.max(6, Math.min(bw - sw - 6, x + pw / 2 - 24)), sy = Math.max(4, y + ph * (1 - sc) / 2 - 30);
       say.style.transform = 'translate(' + sx.toFixed(1) + 'px,' + sy.toFixed(1) + 'px)';
       if (now > sayHold) { if (now - sayHold < 2600) say.style.opacity = '0'; else nextLine(); }
       if (alDraw) alDraw(now);
@@ -285,5 +316,6 @@
       destroy: function () { alive = false; pat.remove(); say.remove(); if (al) al.remove(); }
     };
   }
-  window.WalsonNightExtras = { init: init, ART: ART };
+  // 3D 하늘(sky.html)이 같이 쓰는 것 — 순찰대 로켓·UFO 그리기, 말
+  window.WalsonNightExtras = { init: init, ART: ART, ROCKET: ROCKET, SAY: SAY, loadImg: loadImg, drawRocketArt: drawRocketArt, drawRocket: drawRocket, drawUfo: drawUfo };
 })();

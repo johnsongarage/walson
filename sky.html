@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>산책 별자리 하늘 · 왈슨</title>
-<meta name="description" content="강아지와 산책 1번 = 별 1개. 한 달이면 우리 개 얼굴 별자리가 돼요. 손가락으로 하늘을 둘러보세요.">
+<meta name="description" content="강아지와 걸은 날마다 별 1개. 보름이면 우리 개 얼굴 별자리가 돼요. 손가락으로 하늘을 둘러보세요.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="왈슨">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="강아지랑 걸어서 만든 별자리 하늘">
-<meta property="og:description" content="산책 1번 = 별 1개. 한 달이면 우리 개 얼굴이 돼요 — 손가락으로 둘러보세요.">
+<meta property="og:description" content="걸은 날마다 별 1개. 보름이면 우리 개 얼굴이 돼요 — 손가락으로 둘러보세요.">
 <meta property="og:image" content="https://johnsongarage.co.kr/walson/og/walson-og.png?v=5">
 <meta property="og:image:width" content="1600">
 <meta property="og:image:height" content="800">
@@ -66,10 +66,15 @@
     padding: 10px 14px; border-radius: 12px; background: #fff; color: #222; font-size: 13px; font-weight: 700; text-align: center; z-index: 5; }
   .toast[hidden] { display: none; }
   [hidden] { display: none !important; }
+  /* 순찰대 말풍선(11/27) — 3D 로켓 위를 따라다님 */
+  .say3d { position: fixed; left: 0; top: 0; z-index: 4; max-width: 220px; font-size: 12px; font-weight: 800; line-height: 1.35; color: #1b1d33; background: #fff;
+    padding: 6px 9px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.35); pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity .25s; }
+  .say3d::after { content: ''; position: absolute; left: 18px; bottom: -6px; border: 6px solid transparent; border-top-color: #fff; border-bottom: 0; }
 </style>
 </head>
 <body>
 <div class="box" id="box"><canvas id="c3d" aria-label="산책 별자리 밤하늘 — 손가락으로 끌어 둘러보기"></canvas><canvas id="c2d" hidden aria-label="이번 달 산책 별자리"></canvas></div>
+<div class="say3d" id="say3d" aria-live="polite"></div>
 <header class="top">
   <a class="back" id="back" href="azit.html" aria-label="아지트로">‹</a>
   <div><p class="t1" id="t1">산책 별자리 하늘</p><p class="t2" id="t2"></p></div>
@@ -88,7 +93,7 @@
   </div>
   <div id="theirs" hidden>
     <a class="main" id="make" href="azit.html?sky=mine">우리 개 하늘 만들기 ›</a>
-    <p class="note">설치·가입 없이 바로 — 산책 1번 = 별 1개, 한 달이면 우리 개 얼굴이 돼요.</p>
+    <p class="note">설치·가입 없이 바로 — 걸은 날마다 별 1개, 보름이면 우리 개 얼굴이 돼요.</p>
     <p class="brand"><b id="br1">WALSON</b><span id="br2">당신과 강아지의 유의미한 산책</span></p>
   </div>
 </div></footer>
@@ -101,6 +106,7 @@
 <script src="reward-rules.js?v=15"></script>
 <script src="azit-room.js?v=22"></script>
 <script src="walk-stars.js?v=6"></script>
+<script src="night-extras.js?v=2"></script>
 <script>
 // 데이터·글자(3D 모듈보다 먼저) — 결과는 window.SKY에
 (function () {
@@ -127,7 +133,7 @@
   var n = Math.min(cur.stars.length, S.GOAL);
   if (shared) {
     $('t1').textContent = nm ? nm + '네 산책 하늘' : '어느 강아지의 산책 하늘';
-    $('t2').textContent = mo + ' ' + data.starName + ' 별 ' + n + '/' + S.GOAL + ' · 산책 1번 = 별 1개';
+    $('t2').textContent = mo + ' ' + data.starName + ' 별 ' + n + '/' + S.GOAL + ' · 걸은 날마다 별 1개';
     $('theirs').hidden = false; $('back').hidden = true;
     document.title = (nm ? nm + '네' : '강아지') + ' 산책 별자리 하늘 · 왈슨';
   } else {
@@ -409,6 +415,90 @@ function start(renderer) {
     scene.add(pointsOf([{ p: dirOf(THREE.MathUtils.degToRad(13), THREE.MathUtils.degToRad(40)).multiplyScalar(RADIUS), size: 13, col: mc, bright: 1, phase: 1 }]));
   }
 
+  // 순찰대(11/27 가르시아 "3D에서 별자리 윗부분 가장자리를 순찰하는 강아지야, 하늘 끝부분의 타원 곡선을 그리면서") — 이 하늘의 강아지(D.dog 도트)가
+  // 받은 로켓을 타고 별자리들 위 높이(약 50°, 조금씩 오르내림)를 46초에 한 바퀴. 하늘 한가운데서 올려다보면 화면 위쪽에 타원 곡선으로 지나간다.
+  // 가는 쪽으로 그림을 뒤집고 길 기울기만큼 기울임. 말풍선으로 떠들고(night-extras.js SAY), 누르면 다음 말.
+  // UFO(외계 생명체가 돔 안에, 11/27 "외계인도 UFO 안에 있어야 해") — 25~50초에 한 번쯤 보는 쪽 하늘에 4.5초 지나감, 누르면 휙 도망.
+  const NX = window.WalsonNightExtras, deg = THREE.MathUtils.degToRad;
+  const who = D.name || (D.mine && S.dogName ? S.dogName() : '') || '멍멍이';
+  const patrol = { sprite: null, tex: null, texL: null, aspect: NX ? NX.ROCKET.aspect : 1.4, R: 150, el: deg(50), W: 22 };
+  const sayEl = $('say3d');
+  let sayI = 0, sayHold = performance.now() + 5200, faceL = false, seenN = 0;
+  try { seenN = +(localStorage.getItem('walson_alien_seen') || 0); } catch (e) { seenN = 0; }
+  function speak(text, hold) { sayEl.textContent = text.replace('{who}', who); sayHold = performance.now() + (hold || 5200); }
+  function nextSay() { if (!NX) return; sayI = (sayI + 1) % NX.SAY.length; speak(NX.SAY[sayI]); }
+  if (NX) {
+    speak(NX.SAY[0]);
+    Promise.all([NX.loadImg(NX.ART.rocket), NX.loadImg('icons/dot-dogs/' + D.dog + '.webp?v=1')]).then(([rocket, dog]) => {
+      const w = 384, h = Math.round(w / patrol.aspect);
+      const mk = (flip) => {
+        const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+        if (flip) { g.translate(w, 0); g.scale(-1, 1); }
+        if (rocket) NX.drawRocketArt(g, w, h, dog, rocket, 0); else NX.drawRocket(g, w, h, dog, 0.6);
+        return new THREE.CanvasTexture(c);
+      };
+      patrol.tex = mk(false); patrol.texL = mk(true);
+      patrol.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: patrol.tex, transparent: true, depthWrite: false }));
+      patrol.sprite.scale.set(patrol.W, patrol.W / patrol.aspect, 1);
+      scene.add(patrol.sprite);
+    });
+  }
+  const ufo = { sprite: null, canvas: null, tex: null, img: null, t0: 0, nextAt: performance.now() + 9000 + Math.random() * 14000, az0: 0, dir: 1, el: 0, flee: 0, R: 165 };
+  if (NX && !REDUCE) {
+    NX.loadImg(NX.ART.ufo).then((im) => { ufo.img = im; });
+    ufo.canvas = document.createElement('canvas'); ufo.canvas.width = 256; ufo.canvas.height = 180;
+    ufo.tex = new THREE.CanvasTexture(ufo.canvas);
+    ufo.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: ufo.tex, transparent: true, depthWrite: false }));
+    ufo.sprite.scale.set(20, 14, 1); ufo.sprite.visible = false; scene.add(ufo.sprite);
+  }
+  const camAz = () => { const d = camera.position.clone().negate(); return Math.atan2(d.x, -d.z); };
+  function screenOf(p) {
+    const v = p.clone().project(camera), rc = canvas.getBoundingClientRect();
+    return { on: v.z < 1 && Math.abs(v.x) < 1.15 && Math.abs(v.y) < 1.15, x: (v.x * 0.5 + 0.5) * rc.width + rc.left, y: (-v.y * 0.5 + 0.5) * rc.height + rc.top, v };
+  }
+  function pxPerUnit(dist) { const rc = canvas.getBoundingClientRect(); return rc.height / (2 * Math.tan(deg(camera.fov / 2)) * dist); }
+  function updatePatrol(t) {
+    if (!patrol.sprite) return;
+    const posAt = (T) => dirOf(REDUCE ? 0.25 : -T * (Math.PI * 2 / 46), patrol.el + (REDUCE ? 0 : deg(4) * Math.sin(T * 0.9))).multiplyScalar(patrol.R);
+    const T = t / 1000;
+    patrol.sprite.position.copy(posAt(T));
+    const a = screenOf(patrol.sprite.position), b = screenOf(posAt(T + 0.15));   // 조금 뒤 자리 — 화면에서 가는 쪽
+    const dx = b.x - a.x, dy = b.y - a.y;
+    if (Math.abs(dx) > 0.01) { const l = dx < 0; if (l !== faceL) { faceL = l; patrol.sprite.material.map = l ? patrol.texL : patrol.tex; patrol.sprite.material.needsUpdate = true; } }
+    let ang = Math.atan2(-dy, dx); if (faceL) ang = ang > 0 ? ang - Math.PI : ang + Math.PI;
+    patrol.sprite.material.rotation = Math.max(-0.45, Math.min(0.45, ang * 0.7));
+    // 말풍선 — 로켓이 화면에 있을 때만, 로켓 위
+    if (t > sayHold + 2600) nextSay();
+    const showing = a.on && t < sayHold;
+    sayEl.style.opacity = showing ? '1' : '0';
+    if (a.on) {
+      const ph = patrol.sprite.scale.y * pxPerUnit(patrol.R), sw = sayEl.offsetWidth || 120;
+      sayEl.style.transform = 'translate(' + Math.max(8, Math.min(innerWidth - sw - 8, a.x - 24)).toFixed(1) + 'px,' + Math.max(8, a.y - ph / 2 - 36).toFixed(1) + 'px)';
+    }
+  }
+  function updateUfo(t) {
+    if (!ufo.sprite) return;
+    if (!ufo.sprite.visible) {
+      if (t < ufo.nextAt) return;
+      ufo.az0 = camAz() + (Math.random() - 0.5) * 0.7; ufo.dir = Math.random() < 0.5 ? -1 : 1; ufo.el = deg(38 + Math.random() * 8);
+      ufo.t0 = t; ufo.flee = 0; ufo.sprite.visible = true; ufo.sprite.material.opacity = 1;
+      seenN++; try { localStorage.setItem('walson_alien_seen', String(seenN)); } catch (e) { /* 이 휴대폰에만 */ }
+      speak('앗, 저기! 우주인?!', 3200);
+    }
+    const p = (t - ufo.t0) / 4500;
+    let az = ufo.az0 + ufo.dir * 0.5 * p, el = ufo.el + deg(2.5) * Math.sin((t - ufo.t0) / 300), R = ufo.R, sc = 1;
+    if (ufo.flee) { const f = Math.min(1, (t - ufo.flee) / 650); el += deg(25) * f * f; sc = 1 - 0.8 * f; ufo.sprite.material.opacity = 1 - f; if (f >= 1) { ufo.sprite.visible = false; ufo.nextAt = t + 25000 + Math.random() * 25000; return; } }
+    else if (p >= 1) { ufo.sprite.visible = false; ufo.nextAt = t + 25000 + Math.random() * 25000; if (t < sayHold) speak('방금 그거 봤어? 다음엔 꼭 잡을게', 3600); return; }
+    ufo.sprite.position.copy(dirOf(az, el).multiplyScalar(R)); ufo.sprite.scale.set(20 * sc, 14 * sc, 1);
+    if (Math.floor(t / 50) !== ufo.lastDraw) { ufo.lastDraw = Math.floor(t / 50); NX.drawUfo(ufo.canvas.getContext('2d'), 256, 180, t, ufo.img); ufo.tex.needsUpdate = true; }
+  }
+  function hitSprite(sp, x, y, extra) {
+    if (!sp || !sp.visible) return false;
+    const a = screenOf(sp.position); if (!a.on) return false;
+    const r = sp.scale.x * pxPerUnit(sp.position.length()) / 2 + (extra || 10);
+    return Math.hypot(a.x - x, a.y - y) < r;
+  }
+
   // 별똥별
   const shootGeo = new THREE.BufferGeometry(); shootGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
   shootGeo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array([0, 0, 0, 1, 1, 1]), 3));
@@ -445,6 +535,8 @@ function start(renderer) {
   canvas.addEventListener('pointerup', (e) => {
     if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; return; }
     downAt = null;
+    if (hitSprite(ufo.sprite, e.clientX, e.clientY, 14) && !ufo.flee) { ufo.flee = performance.now(); speak('앗, 놓쳤다! 우주인 목격 ' + seenN + '번째…', 4200); return; }
+    if (hitSprite(patrol.sprite, e.clientX, e.clientY, 8)) { nextSay(); return; }
     const rc = canvas.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top;
     let best = null, bd = Math.min(rc.width, rc.height) * 0.24;
     const v = new THREE.Vector3();
@@ -479,13 +571,13 @@ function start(renderer) {
       const ls = g.userData.lines; if (!ls) return;
       ls.material.opacity = g === hlGroup && t < hlUntil ? Math.min(1, ls.userData.base + 0.45 * Math.sin(Math.PI * (hlUntil - t) / 1600)) : ls.userData.base;
     });
-    controls.update(); updateShoot(t);
+    controls.update(); updateShoot(t); updatePatrol(t); updateUfo(t);
     renderer.render(scene, camera);
     raf = requestAnimationFrame(loop);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !raf) raf = requestAnimationFrame(loop); });
   raf = requestAnimationFrame(loop);
-  window.__sky3d = { scene, camera, controls, groups };
+  window.__sky3d = { scene, camera, controls, groups, patrol, ufo, ufoNow: () => { ufo.nextAt = 0; } };
 }
 </script>
 </body>
