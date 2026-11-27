@@ -58,6 +58,8 @@
   .got-row .ic.is-soft { background: var(--accent-tint); color: var(--accent-ink); }
   /* 2026-11-18 가르시아 "텍스트가 너무 많아, 요약해" — 줄마다 굵은 말 하나 + 작은 숫자, 안내는 회색 한 줄로 */
   .got-row small { font-size: 13px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+  .got-row small a { color: var(--accent); font-weight: 800; text-decoration: none; white-space: nowrap; }   /* 별 하나 → 아지트 창가(11/27) */
+  .got-row.is-star small { white-space: normal; }
   .got-next { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); font-size: 14px; font-weight: 700; word-break: keep-all; }
   .got-next svg { flex: none; color: var(--accent); }
   .got-note { margin: 0; font-size: 14px; line-height: 1.6; word-break: keep-all; }
@@ -244,6 +246,7 @@
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=13"></script>
+<script src="walk-stars.js?v=2"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=5"></script>
 <script src="mock-server.js?v=2"></script>
@@ -343,6 +346,7 @@
     // 오늘 목표·영수증 — 어떻게 걸었든(시간만 재기·다녀왔어요 포함) 매번 뜨는 두 줄
     // (2026-11-16 가르시아 "그렇게 진행해줘" — 보상 체감 재검토 제안 1·2. hq notes/petwalk-reward-feel.md)
     function goalAndReceipt() {
+      starRow();
       if (R.dayGoal) {
         // 크기별 목표(소 30·중 60·대 90분, 크기를 모르면 중형) — 모자라도 혼내지 않는다
         var g = R.dayGoal(walks, walk.date), gb = R.dayGoal(walks.slice(0, -1), walk.date);
@@ -353,6 +357,25 @@
       }
       // 영수증 — "충분했나" 답에 따라 상환 문구가 바뀐다(아래 paintReceiptLine)
       receiptSmall = row(RECEIPT, true, '영수증 No.' + ('000' + walks.length).slice(-4), ' ').querySelector('small');
+    }
+    // 창가 별자리(2026-11-27 첫 경험 ② — walk-stars.js) — 산책 저장 바로 뒤 "별 하나 떴어요" → [아지트] 창가에서 새 별이 날아와 앉는 걸 본다
+    var STAR = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2.8l2.6 6 6.5.6-4.9 4.3 1.5 6.4L12 16.7 6.3 20.1l1.5-6.4L2.9 9.4l6.5-.6z" fill="currentColor"/></svg>';
+    function starRow() {
+      if (!window.WalsonStars) return;
+      var S = WalsonStars, r = S.lastWalkStar(walks);
+      if (!r.month) return;
+      var n = r.month.stars.length, d;
+      if (r.got) {
+        d = row(STAR, false, r.dust ? '별가루 하나 떴어요' : n >= S.GOAL && r.index === S.GOAL - 1 ? '별자리가 눈을 떴어요!' : '별 하나 떴어요',
+          S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
+        chip(r.dust ? '별가루' : '별 하나', true);
+      } else if (r.reason === 'day') {
+        d = row(STAR, true, '오늘 별은 다 떴어요', '하루 ' + S.PER_DAY + '개까지 · ' + S.starName() + ' ' + n + '/' + S.GOAL + ' · ');
+      } else return;   // 5분 미만 — 아래 안내 줄에 이미 나온다
+      d.classList.add('is-star');
+      var a = document.createElement('a');
+      a.href = 'azit.html' + (r.got ? '?sky=new' : ''); a.textContent = '아지트 창가에서 보기 ›';
+      d.querySelector('small').appendChild(a);
     }
     var before = R.computeProgress(walks.slice(0, -1)), now = R.computeProgress(walks);
     var counted = now.walks > before.walks;   // 이번 산책이 워킹패스 성장 횟수에 들어갔는지(5분 이상)

@@ -27,7 +27,7 @@
      hq notes/petwalk-tab-reorg.md): [워킹패스] = 우리 강아지가 누구인지 + 모은 것.
        카드·꾸미기 → 등급 한 줄(다음 등급까지 n회) + 산책 유형 → 만난 친구(도감·QR 교환 — 개방명록, 키링 받기) →
        접어 둔 칸: 칭호(특기·특이 사항) · 발도장 모음판 · 실물로 뽑기·키링 파일.
-     누적 숫자(km 등)·꾸준함 도장판은 [기록] '통계·통찰'로, "다음 목표" 한 줄은 뺐다(등급 막대·칭호 칸·발도장 판·[동네] 미션이 같은 걸 보여 줌). */
+     누적 숫자(km 등)·꾸준함 도장판은 [기록] '산책 기록'로, "다음 목표" 한 줄은 뺐다(등급 막대·칭호 칸·발도장 판·[동네] 미션이 같은 걸 보여 줌). */
   :root {
     /* index.html/walk-history.html/profile.html과 동일한 색 토큰 */
     --bg: #f7ede2; --panel: #fffaf3; --panel-border: #e6d6c1;
@@ -366,7 +366,7 @@
     <p class="color-note" id="dot-note" hidden></p>
   </div>
 
-  <!-- 등급 한 줄(11/23 탭 정리 — 누적 산책 횟수·km 칸과 꾸준함 도장판은 [기록] '통계·통찰'로) + 산책 유형(누구인지) -->
+  <!-- 등급 한 줄(11/23 탭 정리 — 누적 산책 횟수·km 칸과 꾸준함 도장판은 [기록] '산책 기록'로) + 산책 유형(누구인지) -->
   <div class="panel" id="rank-panel">
     <div class="next-label"><span id="rank-label"></span><small id="rank-left"></small></div>
     <div class="bar"><i id="rank-bar"></i></div>
@@ -867,7 +867,7 @@
     document.querySelector('.style-toggle').hidden = true;   // 그림 파일(pass-pixel.js·pass-trace.js)을 못 받았으면 기본 카드만
   }
 
-  // ── 등급 한 줄 · 발도장 모음판(11/23 탭 정리 — 누적 km·횟수 칸은 [기록] '통계·통찰' 모두 합쳐로) ──
+  // ── 등급 한 줄 · 발도장 모음판(11/23 탭 정리 — 누적 km·횟수 칸은 [기록] '산책 기록' 모두 합쳐로) ──
   function renderSummary() {
     var p = progress;
     $('rank-label').textContent = next ? rank.name + ' → ' + next.name : '핑크 앰배서더예요';
@@ -1121,7 +1121,7 @@
     // 실물로 뽑기·인쇄용 파일은 11/27부터 숨김(가르시아 정리) — 다시 열 땐 아래 줄을 살린다
     // $('save-panel').hidden = false;
   }
-  // 꾸준함 도장판(최근 8주)은 11/23 [기록] '통계·통찰'로 옮겼다 — 카드 뒷면의 도장 수(steadyInfo.total)는 그대로
+  // 꾸준함 도장판(최근 8주)은 11/23 [기록] '산책 기록'로 옮겼다 — 카드 뒷면의 도장 수(steadyInfo.total)는 그대로
   renderSummary();
   renderTraits();
   // 사진·글꼴을 받은 뒤 다시 그린다 — 3D 키링은 이것(loaded)을 기다렸다가 그린다(받기 전 그림으로 한 번 더 만들지 않게)

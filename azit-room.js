@@ -82,11 +82,12 @@
     // both: 글자가 있는 벽 그림 — 왼쪽 벽에선 뒤집지 않고 왼쪽 벽용 그림(spr + '_L')을 쓴다(글씨가 거울처럼 되지 않게).
     // 생기는 조건은 Claude 제안(11/23 밤) — 모두 "한 것"(산책·발도장·가게 QR·응가 치움·꾸준함·오늘의 한 장 + 산책 기록으로 세는
     //   밤 산책 night · 겨울 산책 winter · 40분 넘는 산책 long · 킁킁 지수 4 이상 산책 sniff). 단짝 수는 조건으로 쓰지 않는다(11/23).
+    // turn: 보는 방향을 바꿀 수 있는 팻말(11/27 가르시아 "팻말의 각도를 바꿀 수 있게 해 줘") — 정면 · 왼쪽(L) · 오른쪽(R). 뒤집지 않고 바닥 기울기대로 비스듬히(글씨가 거울처럼 되지 않게)
     // move: 바닥에 깔지만 끌어서 옮길 수 있는 깔개(11/24 가르시아 "배변패드 위치 변경되게") — 작아서 걷기·화면 밀기를 덜 가린다(러그·매트는 그대로)
     { id: 'pee_pad', spr: 'pee_pad', i: 98, j: 24, decal: true, move: true, name: '배변판', need: {}, stash: true },
     { id: 'bubble_visited', spr: 'bubble_visited', face: 'R', both: true, wall: 'L', u: 18, h: 124, name: '다녀감 말풍선', need: { walks: 2 }, stash: true },
-    { id: 'sign_snack', spr: 'sign_snack', i: 14, j: 60, name: '간식 내놔라 팻말', need: { walks: 4 }, stash: true },
-    { id: 'board_refuse', spr: 'board_refuse', i: 30, j: 84, name: '안가 안걸어 대자보', need: { walks: 6 }, stash: true },
+    { id: 'sign_snack', spr: 'sign_snack', i: 14, j: 60, turn: true, name: '간식 내놔라 팻말', need: { walks: 4 }, stash: true },
+    { id: 'board_refuse', spr: 'board_refuse', i: 30, j: 84, turn: true, name: '안가 안걸어 대자보', need: { walks: 6 }, stash: true },
     { id: 'toy_chicken', spr: 'toy_chicken', shelf: true, i: 64, j: 66, name: '삑삑이 닭 인형', need: { walks: 8 }, stash: true },
     { id: 'food_box', spr: 'food_box', i: 5, j: 36, name: '사료통', need: { walks: 12 }, stash: true },
     { id: 'grooming_basket', spr: 'grooming_basket', shelf: true, i: 18, j: 76, name: '미용 바구니', need: { walks: 22 }, stash: true },
@@ -97,7 +98,7 @@
     { id: 'balloons', spr: 'balloons', i: 90, j: 30, name: '헬륨 풍선 다발', need: { walks: 50 }, stash: true },
     { id: 'cafe_cup', spr: 'cafe_cup', shelf: true, sh: 2, i: 80, j: 14, name: '동네 카페 컵', need: { shop: 2 }, stash: true },
     { id: 'stamp_regular', spr: 'stamp_regular', face: 'R', both: true, wall: 'R', u: 37, h: 44, name: '단골 인증 스탬프', need: { shop: 3 }, stash: true },
-    { id: 'sign_meetup', spr: 'sign_meetup', i: 94, j: 40, name: '산책길 조우 팻말', need: { stamps: 5 }, stash: true },
+    { id: 'sign_meetup', spr: 'sign_meetup', i: 94, j: 40, turn: true, name: '산책길 조우 팻말', need: { stamps: 5 }, stash: true },
     { id: 'cone_barricade', spr: 'cone_barricade', i: 86, j: 64, name: '라바콘 바리케이드', need: { stamps: 8 }, stash: true },
     { id: 'parasol_set', spr: 'parasol_set', i: 76, j: 82, name: '편의점 파라솔', need: { stamps: 10 }, stash: true },
     { id: 'bubble_poop', spr: 'bubble_poop', face: 'R', both: true, wall: 'L', u: 24, h: 116, name: '오늘도 똥줍 말풍선', need: { poop: 5 }, stash: true },
@@ -407,6 +408,11 @@
     });
     return pos;
   }
+  function cleanTurn(raw) {   // 팻말 방향 { id: 'L' | 'R' } — 정면은 적지 않는다
+    var t = {};
+    if (raw && typeof raw === 'object') Object.keys(raw).forEach(function (id) { var it = byId(ITEMS, id); if (it && it.turn && (raw[id] === 'L' || raw[id] === 'R')) t[id] = raw[id]; });
+    return t;
+  }
   function cleanHidden(raw) { return Array.isArray(raw) ? raw.filter(function (id) { return !!byId(ITEMS, id); }) : []; }
   function cleanAcc(a) { return (a === '' || byId(ACCS, a)) ? a : 'ribbon'; }
   // 워킹패스 사진 도트 — 작은 PNG(점 그림이라 몇 KB)만 받는다. 모양이 이상하면 없는 것으로
@@ -428,6 +434,7 @@
       acc: cleanAcc(s.acc),
       hidden: cleanHidden(s.hidden),
       pos: newPos ? cleanPos(s.pos) : {},
+      turn: cleanTurn(s.turn),   // 팻말 보는 방향(11/27)
       seen: Array.isArray(s.seen) ? s.seen.filter(function (id) { return !!byId(ITEMS, id) || !!byId(ACCS, id); }) : null,   // null = 아지트를 처음 연다
       mood: (s.moodDay === todayKey() && MOODS.indexOf(s.mood) >= 0) ? s.mood : '',   // 오늘 기분은 그날만
       moodDay: s.moodDay === todayKey() ? s.moodDay : '',
@@ -441,6 +448,7 @@
   function saveState(st) {
     var o = { dog: st.dog, dogAuto: !!st.dogAuto, theme: st.theme, acc: st.acc, hidden: st.hidden, pos: st.pos, posV: POS_V, seen: st.seen || [], mood: st.mood, moodDay: st.moodDay };
     if (st.lampOn) o.lampOn = true;
+    if (st.turn && Object.keys(st.turn).length) o.turn = st.turn;
     if (st.sample) { o.sample = true; o.sampleV = st.sampleV; }
     if (st.undo) o.undo = st.undo;
     if (st.photoDog) { o.photoDog = st.photoDog; if (st.dogPhoto) o.dogPhoto = true; }
