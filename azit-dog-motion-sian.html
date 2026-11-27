@@ -52,8 +52,8 @@
 <body>
 <div class="wrap">
   <h1>강아지 걷는 움직임 시안</h1>
-  <p class="lead">같은 강아지가 같은 길을 네 줄에서 동시에 걸어요. 맨 위가 지금 앱이에요.
-    그림은 그대로 두고 움직이는 공식만 바꿨어요. <b>느리게</b>로 보면 차이가 잘 보여요.</p>
+  <p class="lead">같은 강아지가 같은 길을 다섯 줄에서 동시에 걸어요. 맨 위가 지금 앱이에요.
+    A·B·C는 그림은 그대로 두고 움직이는 공식만, D는 제미나이로 만든 걷는 그림이에요. <b>느리게</b>로 보면 차이가 잘 보여요.</p>
 
   <div id="lanes">
     <p class="cap"><b>지금</b>앱 그대로</p>
@@ -64,6 +64,8 @@
     <div class="box"><canvas data-v="b" aria-label="B 뒤뚱 걸음"></canvas></div>
     <p class="cap"><b>C 말랑 걸음</b>B + 납작·길쭉 · 종이 뒤집기 · 갸웃·두리번</p>
     <div class="box"><canvas data-v="c" aria-label="C 말랑 걸음"></canvas></div>
+    <p class="cap"><b>D 걷는 그림</b>제미나이 GIF 30장면 · 다리가 진짜 움직여요(지금은 푸들만)</p>
+    <div class="box"><canvas data-v="d" aria-label="D 걷는 그림"></canvas></div>
   </div>
 
   <div class="ctrl">
@@ -78,7 +80,7 @@
   <h2 class="sec">방에서 걸어 보기</h2>
   <div class="box" id="stage">
     <canvas id="room" aria-label="아지트 방 — 바닥을 누르면 강아지가 걸어가요"></canvas>
-    <div class="tag" id="badge">C 말랑 걸음</div>
+    <div class="tag" id="badge">D 걷는 그림</div>
     <div class="loading" id="loading">그림을 읽는 중이에요</div>
   </div>
   <p class="hint">바닥 톡 걸어가기 · 가만히 두면 앱처럼 혼자 돌아다녀요</p>
@@ -87,7 +89,8 @@
       <button type="button" class="chip" data-k="room" data-v="now">지금</button>
       <button type="button" class="chip" data-k="room" data-v="a">A</button>
       <button type="button" class="chip" data-k="room" data-v="b">B</button>
-      <button type="button" class="chip" data-k="room" data-v="c">C</button></div>
+      <button type="button" class="chip" data-k="room" data-v="c">C</button>
+      <button type="button" class="chip" data-k="room" data-v="d">D</button></div>
     <div class="row"><span>해 보기</span>
       <button type="button" class="chip" id="run">멀리 뛰어가기</button></div>
   </div>
@@ -101,6 +104,8 @@
         견종별 걸음(작은 개는 종종, 진돗개·시바는 느긋, 닥스훈트는 낮게) · 뜰수록 그림자가 작고 옅게 · 쉴 땐 가만히</li>
       <li><b>B 뒤뚱 걸음</b> — A에 더해 발이 닿을 때마다 좌우로 기울기(뒤뚱) · 천천히 출발하고 도착 전에 줄이기 · 뛸 땐 가는 쪽으로 기울기</li>
       <li><b>C 말랑 걸음</b> — B에 더해 내려앉을 때 살짝 납작·뜰 때 살짝 길쭉 · 방향 바꿀 땐 종이 뒤집듯 · 멈출 때 툭 · 쉴 때 가끔 갸웃·두리번</li>
+      <li><b>D 걷는 그림</b>(11/27 제미나이 GIF) — 걸을 땐 서서 걷는 옆모습 30장면을 간 거리만큼 넘겨요(다리가 진짜 움직여요, 빨리 가면 빨리 넘김).
+        멈추면 잠깐 선 모습 → 앉은 그림으로 툭. 방향 바꾸기·갸웃·두리번은 C와 같아요. 지금은 푸들만 있고, 다른 강아지는 C처럼 움직여요.</li>
     </ul>
     <p class="soft">마음에 드는 안을 골라 주세요. 섞어도 돼요(예: B에 종이 뒤집기만 더하기).</p>
   </div>
@@ -158,8 +163,18 @@
     now: { name: '지금' },
     a: { name: 'A 둥근 걸음', round: true },
     b: { name: 'B 뒤뚱 걸음', round: true, waddle: true, ease: true },
-    c: { name: 'C 말랑 걸음', round: true, waddle: true, ease: true, squash: true, paper: true, settle: true, idle: true }
+    c: { name: 'C 말랑 걸음', round: true, waddle: true, ease: true, squash: true, paper: true, settle: true, idle: true },
+    // D: 걷는 그림(GIF 장면)이 있는 강아지는 걸을 때 그 장면을 넘긴다 — 없는 강아지는 C와 같음
+    d: { name: 'D 걷는 그림', round: true, waddle: true, ease: true, squash: true, paper: true, settle: true, idle: true, frames: true }
   };
+  // 걷는 그림표(_dev/dog-walk-gif.py — 제미나이 GIF를 배경 지우고 오른쪽 보게 한 줄로). n 장면 · w·h 장면 크기(픽셀)
+  // stand 서 있는 장면 · stride 장면 한 바퀴(n장)에 가는 바닥 칸 · tall 화면 키(방 점, 앉은 그림 44점보다 조금 낮게)
+  // 푸들 GIF는 30장면에 3.4걸음 — 한 걸음 바닥 8칸이면 발이 덜 미끄러진다
+  var WALKS = {
+    poodle: { n: 30, w: 158, h: 132, stand: 14, stride: 8 * 3.4, tall: 40 }
+  };
+  var STAND_HOLD = 1.2;   // 멈춘 뒤 서 있는 모습으로 있는 초(그다음 앉은 그림으로)
+  function walkOf(V) { return V.frames && WALKS[st.dog] && img['walk:' + st.dog] ? WALKS[st.dog] : null; }
   var TURN = 0.16;   // 종이 뒤집기 걸리는 초
   var IDLE_LEN = { tilt: 1.25, look: 1.05 + TURN + 0.08 };   // 갸웃 · 두리번(돌아봤다가 되돌아오기까지)
 
@@ -167,7 +182,7 @@
   function ease(k) { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }
   function rad(d) { return d * Math.PI / 180; }
 
-  var st = { dog: 'pom', acc: 'ribbon', speed: '1', room: 'c' };
+  var st = { dog: 'poodle', acc: 'ribbon', speed: '1', room: 'd' };
 
   // ── 그림 ──
   var img = {}, heads = {};
@@ -182,11 +197,28 @@
   function loadAll() {
     var jobs = [load('room', 'icons/azit-hd/room.webp?v=1')];
     DOGS.forEach(function (d) { jobs.push(load('px:' + d[0], 'icons/dot-dogs/px/' + d[0] + '.png?v=1')); });
+    Object.keys(WALKS).forEach(function (id) { jobs.push(load('walk:' + id, 'icons/dot-dogs/walk/' + id + '.webp?v=1')); });
     ACCS.forEach(function (a) {
       if (!a[0]) return;
       jobs.push(load('acc:' + a[0], 'icons/azit-room/acc_' + a[0] + '.png?v=5'), load('acchd:' + a[0], 'icons/azit-hd/acc_' + a[0] + '.webp?v=1'));
     });
-    return Promise.all(jobs).then(function () { DOGS.forEach(function (d) { if (img['px:' + d[0]]) heads[d[0]] = headOf(img['px:' + d[0]]); }); });
+    return Promise.all(jobs).then(function () {
+      DOGS.forEach(function (d) { if (img['px:' + d[0]]) heads[d[0]] = headOf(img['px:' + d[0]]); });
+      Object.keys(WALKS).forEach(function (id) {   // 걷는 장면마다 머리 자리(머리가 까딱여서 장면마다 잰다)
+        var W = WALKS[id], sh = img['walk:' + id]; if (!sh) return;
+        W.heads = [];
+        for (var k = 0; k < W.n; k++) { var c = canvasOf(W.w, W.h); c.getContext('2d').drawImage(sh, k * W.w, 0, W.w, W.h, 0, 0, W.w, W.h); W.heads.push(headOf(c)); }
+      });
+    });
+  }
+  var walkCache = {};
+  function walkBitmap(id, k) {   // 걷는 장면 하나를 화면 픽셀 크기로(곱게 줄여 둔 것)
+    var key = id + '|' + k + '@' + Z;
+    if (walkCache[key]) return walkCache[key];
+    var W = WALKS[id], sh = img['walk:' + id]; if (!sh) return null;
+    var c = canvasOf(W.w, W.h); c.getContext('2d').drawImage(sh, k * W.w, 0, W.w, W.h, 0, 0, W.w, W.h);
+    var hh = Math.round(W.tall * Z * 2), ww = Math.round(W.w * hh / W.h);   // 두 배로(기울여 그릴 때 덜 뭉개지게)
+    return (walkCache[key] = smallCopy(c, ww, hh));
   }
   // 머리 꼭대기 자리(앱 headOf와 같음) — 맨 위 띠에서 가장 넓게 이어진 덩어리 = 머리, 그 윗선의 가운데값
   function headOf(src) {
@@ -295,6 +327,7 @@
       m.i += di / dist * sp; m.j += dj / dist * sp;
       if (Math.abs(di - dj) > 0.3) turn(m, (di - dj) < 0 ? -1 : 1, t, V);   // 화면 왼쪽으로 가면 뒤집기(앱과 같음)
       m.ph += sp / lerp(g.stride[0], g.stride[1], m.run);   // 걸음 박자 = 간 거리 ÷ 보폭(뛰면 박자도 빨라진다)
+      m.wk = (m.wk || 0) + sp;                              // 걷는 그림(D)용 — 간 바닥 칸 누적
       if (!m.moving) { m.moving = true; m.idle = null; }
       m.still = 0;
     } else {
@@ -324,6 +357,12 @@
       return p;
     }
     var g = GAIT[BREED_GAIT[st.dog]], run = m.run, u = m.ph - Math.floor(m.ph);
+    var wk = walkOf(V);
+    if (wk && (m.moving || t - m.stopT0 < STAND_HOLD)) {   // D 걷는 그림 — 오르내림·뒤뚱·납작은 그림 안에 있으니 뺀다
+      p.walk = m.moving ? Math.floor(((m.wk || 0) / wk.stride) * wk.n) % wk.n : wk.stand;
+      if (V.paper) { var kw = (t - m.flipT0) / TURN; if (kw >= 0 && kw < 1) p.lift += 1.2 * Math.sin(Math.PI * kw); }
+      return p;
+    }
     p.lift = m.amp * lerp(g.bob[0], g.bob[1], run) * Math.sin(Math.PI * u);   // 둥근 호 — 발 닿을 때 0, 걸음 가운데 가장 높이
     if (V.waddle) {
       p.rot = m.amp * rad(lerp(g.tilt[0], g.tilt[1], run)) * Math.cos(Math.PI * m.ph);   // 뒤뚱 — 발 닿을 때 한쪽으로 가장 많이, 두 걸음에 한 번 왕복
@@ -333,8 +372,8 @@
       var s = m.amp * lerp(0.035, 0.055, run) * Math.cos(2 * Math.PI * u);
       p.sy = 1 - s; p.sx = 1 + s * 0.7;
     }
-    if (V.settle) {   // 멈출 때 툭 — 한 번 납작했다가 살짝 튕겨 돌아온다
-      var k = t - m.stopT0;
+    if (V.settle) {   // 멈출 때 툭 — 한 번 납작했다가 살짝 튕겨 돌아온다(D는 서 있다가 앉을 때)
+      var k = t - m.stopT0 - (wk ? STAND_HOLD : 0);
       if (k >= 0 && k < 0.45) { var e = 0.07 * Math.exp(-k * 7) * Math.cos(k * 16); p.sy *= 1 - e; p.sx *= 1 + e * 0.7; }
     }
     if (V.paper) {   // 종이 뒤집기 동안 살짝 뜬다
@@ -350,8 +389,10 @@
 
   // ── 강아지 그리기(g는 방 점 단위, (px, py) = 발 자리) ──
   function drawDog(g, m, V, t, px, py) {
+    var p = poseOf(m, V, t);
+    if (p.walk != null) { drawWalk(g, p, px, py); return; }
     var b = dogBitmap(st.dog); if (!b) return;
-    var w = b.width / Z, h = b.height / Z, p = poseOf(m, V, t);
+    var w = b.width / Z, h = b.height / Z;
     var hd = heads[st.dog] || { hx: 0.5, hy: 0 }, acc = st.acc ? accBitmap(st.acc) : null;
     var sk = V.round ? Math.max(0.6, 1 - p.lift / 14) : 1;   // 새 안: 뜰수록 그림자 작고 옅게
     shadowOn(g, px, py + 1, w * 0.62 * sk, 0.22 * (V.round ? Math.max(0.55, 1 - p.lift / 10) : 1));
@@ -385,6 +426,22 @@
     g.restore();
   }
 
+  // 걷는 그림(D) — 장면 하나를 발 가운데 기준으로. 머리 장식은 그 장면의 머리 자리에
+  function drawWalk(g, p, px, py) {
+    var W = WALKS[st.dog], b = walkBitmap(st.dog, p.walk); if (!b) return;
+    var h = W.tall, w = W.w * h / W.h, acc = st.acc ? accBitmap(st.acc) : null, hd = (W.heads && W.heads[p.walk]) || { hx: 0.75, hy: 0.05 };
+    shadowOn(g, px, py + 1, w * 0.62 * Math.max(0.6, 1 - p.lift / 14), 0.22);
+    g.save();
+    g.translate(px, py + 1 - p.lift);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.save(); g.scale(p.fx, 1); g.drawImage(b, -w / 2, -h, w, h); g.restore();
+    if (acc) {
+      var ax = (hd.hx - 0.5) * w * p.fx, ay = -h + hd.hy * h, aw = acc.w * Math.max(0.02, Math.abs(p.fx));
+      g.drawImage(acc.b, ax - aw / 2, ay + 4 - acc.h, aw, acc.h);
+    }
+    g.restore();
+  }
+
   // ── 보는 칸(앱 fit과 같음) — 방 한 점 = CSS 1픽셀이 기본, 칸이 넓으면 방 전체(429점)까지 보이고 그다음엔 키운다 ──
   var K = 1, Z = 2, VW = 345, OX = 64;
   var cvRoom = $('room'), gRoom = cvRoom.getContext('2d');
@@ -395,7 +452,7 @@
     var avail = $('stage').clientWidth, dpr = window.devicePixelRatio || 1;
     if (avail <= 0) return;
     var vw = Math.min(RW, Math.max(VW_MIN, avail)), z = avail / vw * dpr;
-    if (z !== Z) { dogCache = {}; accCache = {}; roomBmp = null; }
+    if (z !== Z) { dogCache = {}; accCache = {}; walkCache = {}; roomBmp = null; }
     VW = vw; K = avail / vw; Z = z;
     OX = Math.round(Math.max(0, Math.min(RW - VW, XC - VW / 2)));
     cvRoom.width = Math.round(VW * Z); cvRoom.height = Math.round(VH * Z);
