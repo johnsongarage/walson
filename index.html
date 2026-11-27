@@ -36,7 +36,16 @@
     var hide = document.createElement('style');
     hide.textContent = 'body{visibility:hidden!important}';
     document.head.appendChild(hide);
-    location.replace('town.html' + location.search);
+    // 11/27 가르시아 "유입 경로에 따라 첫 화면을 다르게"(탭 순서는 그대로): 처음 온 사람(끝낸 산책이 없음 — 첫 산책을 끝내면 '처음'이 끝남)은
+    // [아지트] 첫 만남(우리 개 이름·견종 → 방에 등장 → "산책 가자!" → [산책 나가기]). 지도가 비어 보이는 전국판에서 첫인상을 '우리 개'로.
+    // 공원·가게 홍보로 들어온 사람(?from=park·partner — 그 장소 정보를 기대함), 한 번이라도 산책한 사람, 산책 중인 사람, 샘플은 예전처럼 [동네].
+    var q = location.search, first = false;
+    try {
+      var ls = window.localStorage, w = JSON.parse(ls.getItem('petwalk_walks') || '[]');
+      first = !(Array.isArray(w) && w.length) && ls.getItem('petwalk_sample_mode') !== '1' && !ls.getItem('petwalk_active_walk') && !ls.getItem('petwalk_active_route');
+    } catch (e2) { first = false; }
+    if (first && !/[?&]from=(park|partner)\b/.test(q)) location.replace('azit.html?first=1' + (q ? '&' + q.slice(1) : ''));
+    else location.replace('town.html' + q);
   } catch (e) { /* 모르면 [오늘] 그대로 */ }
 })();
 </script>
