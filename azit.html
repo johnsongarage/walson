@@ -371,7 +371,7 @@
   #fc-input { width: 100%; font: inherit; font-size: 16px; padding: 9px 10px; border: 2px solid var(--ink); background: var(--bg); color: var(--ink); }
   .fc-breeds { display: flex; flex-wrap: wrap; gap: 6px; }
   .fc-breeds button { font: inherit; font-size: 13px; padding: 6px 10px; border: 2px solid var(--ink); background: var(--panel); color: var(--ink); cursor: pointer; }
-  .fc-breeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink, #fff); }
+  .fc-breeds button[aria-pressed="true"] { background: var(--hl); color: var(--hl-ink); font-weight: 800; }   /* 11/29 — 예전 --accent-ink는 진분홍 글씨라 분홍 바탕에 글씨가 안 보였다 */
   .fc-go { display: block; width: 100%; margin-top: 12px; text-align: center; font-size: 16px; padding: 12px; text-decoration: none; }
   .fc-skip { display: block; margin: 6px auto 0; background: none; border: 0; font: inherit; font-size: 12.5px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; padding: 6px; }
   .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h, 58px) + 18px); transform: translateX(-50%); z-index: 1200; max-width: calc(100vw - 32px);
@@ -3057,7 +3057,14 @@
       var box = $('fc-breeds');
       BREEDS.forEach(function (b) {
         var bt = document.createElement('button'); bt.type = 'button'; bt.textContent = b[0]; bt.setAttribute('aria-pressed', 'false');
-        bt.addEventListener('click', function () { pick = b; Array.prototype.forEach.call(box.children, function (x) { x.setAttribute('aria-pressed', String(x === bt)); }); });
+        bt.addEventListener('click', function () {
+          pick = b; Array.prototype.forEach.call(box.children, function (x) { x.setAttribute('aria-pressed', String(x === bt)); });
+          // 고르자마자 방에 그 견종으로(11/29 가르시아 "견종 고르면 다시 아지트가 바로 보이게") — 판을 내려 방이 보이게, 저장은 [우리 개 만나기]에서
+          state.dog = b[1] || AZ.myDog(state, null); state.dogPhoto = false; refreshModel(); ui();
+          try { setSheet(false); } catch (e) { /* 판이 없으면 그대로 */ }
+          try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); window.scrollTo(0, 0); } catch (e) { /* 그대로 */ }   // 휴대폰 자판을 내려 방이 가려지지 않게
+          setTimeout(function () { try { sayFor(host, b[1] ? '나 닮았어?' : '멍!', 3); } catch (e) { /* 그림을 아직 못 읽었으면 건너뜀 */ } }, 150);
+        });
         box.appendChild(bt);
       });
       $('fc-meet').addEventListener('click', function () {
