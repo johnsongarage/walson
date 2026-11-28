@@ -1,6 +1,6 @@
 // 3×2·3×3 강아지 동작 그림 자르기 (2026-11-28 그림 공장 — 서버 함수 supabase/functions/dog-sheet가 받아 온 그림을 브라우저에서 자른다)
 // 칸(서버 함수 LAYOUTS와 같은 순서): 3x2 = 앉기1 · 걷기A · 걷기B / 자기 · 웃기 · 앉기2
-//                                   3x3 = 앉기1 · 앉기2 · 자기 / 걷기A · 걷기 중간 · 걷기B / 웃기 · 으르렁 · 배뒤집기
+//                                   3x3 = 앉기1 · 갸웃 · 자기 / 걷기A · 걷기 중간 · 똥 자세 / 웃기 · 으르렁 · 배 보이기 (기본, 11/28)
 //                                   pose = 앉기1 · 갸웃 · 자기 / 웃기 · 으르렁 · 배 보이기   walk(2x2) = A · 중간1 / B · 중간2
 // 배경은 초록 단색(#00FF00)으로 받는다. 걷기 A = walk1, B = walk2, 중간 = walkmid.
 // 하는 일:
@@ -14,7 +14,8 @@
 (function () {
   var LAYOUTS = {
     '3x2': { cols: 3, rows: 2, names: ['sit1', 'walk1', 'walk2', 'sleep', 'happy', 'sit2'] },
-    '3x3': { cols: 3, rows: 3, names: ['sit1', 'sit2', 'sleep', 'walk1', 'walkmid', 'walk2', 'happy', 'growl', 'belly'] },
+    '3x3': { cols: 3, rows: 3, names: ['sit1', 'sit2', 'sleep', 'walk1', 'walkmid', 'poop', 'happy', 'growl', 'belly'] },   // 11/28 "3×3 한 장으로" — 걷기 B 자리에 똥 자세
+    '3x3old': { cols: 3, rows: 3, names: ['sit1', 'sit2', 'sleep', 'walk1', 'walkmid', 'walk2', 'happy', 'growl', 'belly'] },   // 라운드 c~f 시험 그림
     // 11/28 한 마리에 두 장: 정지 자세 3x2 + 걷기 2x2(A → 중간1 → B → 중간2)
     'pose': { cols: 3, rows: 2, names: ['sit1', 'sit2', 'sleep', 'happy', 'growl', 'belly'] },
     'walk': { cols: 2, rows: 2, names: ['walk1', 'walkmid', 'walk2', 'walkmid2'] },

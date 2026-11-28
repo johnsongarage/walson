@@ -112,3 +112,27 @@ for k, fn in enumerate([lambda dd: dog(dd, 0, A), lambda dd: dog_mid(dd, 0), lam
     t = tile.copy(); fn(ImageDraw.Draw(t))
     im.paste(t, ((k % 2) * (CW + GAP), (k // 2) * (CH + GAP)))
 save(im, 'walk-guide-2x2.png')
+
+def dog_poop(d, ox):
+    # 똥 자세(11/28 "3×3 한 장으로" — 남는 칸): 등을 둥글게 말고 엉덩이를 바닥 가까이, 뒷다리는 굽혀 몸 밑 앞으로, 앞다리는 곧게.
+    g = 380
+    S = (ox + 370, 215); Hp = (ox + 205, 300)
+    leg(d, [(S[0] - 18, S[1]), (S[0] - 14, g - 90), (S[0] - 8, g - 28), (S[0] - 4, g)], FAR)
+    leg(d, [(Hp[0] + 14, Hp[1]), (Hp[0] + 80, g - 40), (Hp[0] + 30, g - 12), (Hp[0] + 62, g)], FAR)
+    # 몸: 어깨는 높고 엉덩이는 낮게 기운 둥근 몸(테두리만)
+    t = Image.new('RGBA', (360, 200), (0, 0, 0, 0)); td = ImageDraw.Draw(t)
+    td.rounded_rectangle((20, 45, 300, 150), radius=52, outline=LINE + (255,), width=4)
+    t = t.rotate(22, resample=Image.BICUBIC, expand=True)
+    d._image.paste(t, (ox + 140, 92), t)
+    d.ellipse((ox + 375, 80, ox + 485, 190), fill=None, outline=LINE, width=4)
+    d.ellipse((ox + 450, 130, ox + 525, 180), fill=None, outline=LINE, width=4)
+    d.ellipse((ox + 510, 138, ox + 526, 154), fill=LINE)
+    d.ellipse((ox + 450, 112, ox + 464, 126), fill=LINE)
+    d.ellipse((ox + 385, 95, ox + 430, 175), fill=None, outline=LINE, width=3)
+    leg(d, [S, (S[0] + 4, g - 90), (S[0] + 10, g - 28), (S[0] + 14, g)], NEAR)
+    leg(d, [Hp, (Hp[0] + 70, g - 45), (Hp[0] + 18, g - 14), (Hp[0] + 52, g)], NEAR)
+
+# 3×3 한 장용(11/28): 걷기 A · 걷기 중간 · 똥 자세 — 3×3 둘째 줄과 같은 차례
+im = Image.new('RGB', (CW * 3 + 80, CH), (255, 255, 255)); d = ImageDraw.Draw(im)
+dog(d, 0, A); dog_mid(d, CW + 40); dog_poop(d, (CW + 40) * 2)
+save(im, 'pose-guide-3x3.png')

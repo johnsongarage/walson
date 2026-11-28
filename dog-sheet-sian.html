@@ -74,12 +74,12 @@
 (function () {
   var BREEDS = [['maltese', '말티즈', 0.8], ['poodle', '푸들', 0.85], ['pom', '포메', 0.8], ['bichon', '비숑', 0.85],
     ['shihtzu', '시츄', 0.85], ['maltipoo', '말티푸', 0.85], ['jindo', '진돗개', 1.1], ['golden', '골든', 1.15]];
-  var LABEL = { sit1: '앉기1', walk1: '걷기 A', walkmid: '걷기 중간', walk2: '걷기 B', sleep: '자기', happy: '웃기', sit2: '앉기2', growl: '으르렁', belly: '배뒤집기' };
+  var LABEL = { poop: '똥 자세', sit1: '앉기1', walk1: '걷기 A', walkmid: '걷기 중간', walk2: '걷기 B', sleep: '자기', happy: '웃기', sit2: '앉기2', growl: '으르렁', belly: '배뒤집기' };
   var ALL = BREEDS.map(function (b) { return b[0]; });
   var SETS = [
-    { id: 'f', label: '3×3 푸들 · 웹 라운드 f', pre: 'f_3x3_', layout: '3x3', breeds: ['poodle'], ext: '.webp' },
-    { id: 'e', label: '3×3 푸들 · 웹 라운드 e', pre: 'e_3x3_', layout: '3x3', breeds: ['poodle'], ext: '.webp' },
-    { id: 'c33', label: '3×3 · 라운드 c', pre: 'c_3x3_', layout: '3x3', breeds: ALL },
+    { id: 'f', label: '3×3 푸들 · 웹 라운드 f', pre: 'f_3x3_', layout: '3x3old', breeds: ['poodle'], ext: '.webp' },
+    { id: 'e', label: '3×3 푸들 · 웹 라운드 e', pre: 'e_3x3_', layout: '3x3old', breeds: ['poodle'], ext: '.webp' },
+    { id: 'c33', label: '3×3 · 라운드 c', pre: 'c_3x3_', layout: '3x3old', breeds: ALL },
     { id: 'c32', label: '3×2 고친 걷기 · 라운드 c', pre: 'c_3x2_', layout: '3x2', breeds: ['maltese', 'bichon', 'golden'] },
     { id: 'a', label: '3×2 첫 시험 · 라운드 a', pre: 'a_', layout: '3x2', breeds: ALL },
   ];

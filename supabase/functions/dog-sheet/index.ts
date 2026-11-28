@@ -23,7 +23,7 @@
 // 사진은 받아서 구글로 넘기고 바로 버린다 — 어디에도 저장하지 않고, 기록 표엔 번호·날짜·됐는지만.
 //
 // 부르는 법: POST { dog: '번호(영소문자·숫자·_ 24자까지)', kind: 'breed'|'photo', breed?: '견종 이름', image: base64, mime: 'image/png'|'image/jpeg'|'image/webp',
-//                  layout?: '3x2'(기본)|'3x3'|'pose'(정지 자세 3x2)|'walk'(걷기 2x2), look?: { walk: 'smile'|'calm', happy: 'smile'|'growl', tilt: 'left'|'right' } }
+//                  layout?: '3x3'(기본)|'3x2'|'pose'(정지 자세 3x2)|'walk'(걷기 2x2), look?: { walk: 'smile'|'calm', happy: 'smile'|'growl', tilt: 'left'|'right' } }
 // 받는 것:  { ok: true, image: base64, mime, layout, look } 또는 { ok: false, why: 'day'|'dog'|'month'|'bad'|'gemini'|'noimage' }
 
 const MODEL = 'gemini-nano-banana-2.1';
@@ -69,6 +69,7 @@ No grid lines, no text, no numbers, no frames, no ground shadow, no props, no mo
 Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no texture. Never use that green on the dog.
 `;
 const BELLY = 'belly-show half roll: lying on its side on the ground line with the body rolled slightly back so the belly shows, front paws loosely bent up in the air, back legs relaxed, tail on the ground. The head stays UPRIGHT (not upside down), lifted a little and turned to look at the viewer with a happy face - two eyes, nose and mouth clearly readable. Show the belly in a lighter shade of the coat.';
+const POTTY = 'the squatting posture a dog uses to go potty, side view facing right, like the third stick figure: back rounded and hunched, rear end low close to the ground, back legs bent and tucked forward under the body, front legs straight, tail raised, calm focused face looking ahead. Do not draw any poop or anything on the ground.';
 const SIT1 = 'sitting, facing right, with a gentle slight smile (mouth softly curved, closed or only a little open).';
 const SIT2 = (look: Look) => `sitting, ${TILT[look.tilt]}, curious face, looking at the viewer.`;
 const LEGS = `The guide is a stick figure: thick black lines are the near-side legs, thin light gray lines are the far-side legs, small circles are the joints. Put the dog's legs where those lines are.
@@ -95,21 +96,24 @@ Row 2, cell 1: sleeping, lying curled up, eyes closed.
 Row 2, cell 2: ${HAPPY_FACE[look.happy]}
 Row 2, cell 3: ${SIT2(look)}`,
   },
+  // 3x3 한 장(11/28 가르시아 "3×3 한 장으로"): 걷기는 A ↔ 중간 두 장만(Gemini가 뒷다리 바꾼 B를 못 그림), 남는 칸에 똥 자세.
   '3x3': {
     aspect: '1:1', guide: 'pose-guide-3x3.png',
     prompt: (breed: string, look: Look) => COMMON(breed, '3 columns x 3 rows', 'nine') + `Row 1, cell 1: ${SIT1}
 Row 1, cell 2: ${SIT2(look)}
 Row 1, cell 3: sleeping, lying curled up, eyes closed.
-Row 2 - WALKING, three frames of one walk cycle, played A, middle, B, middle.
-The SECOND attached image is only a POSE GUIDE: four stick-figure dogs from left to right = walk frame A, walk middle frame, walk frame B, belly-up pose.
-Row 2, cell 1 = frame A, cell 2 = middle frame, cell 3 = frame B.
-In the middle frame the legs that were forward in A stand straight under the body on the ground, and the other two legs are lifted, bent and passing forward under the body.
-${LEGS}
-Head, face, ears, tail, body, size and position in the cell stay identical in all three walk frames; only the legs change.
+The SECOND attached image is only a POSE GUIDE for row 2: three stick-figure dogs from left to right = walk frame A, walk middle frame, potty squat.
+The guide is a stick figure: thick black lines are the near-side legs, thin light gray lines are the far-side legs, small circles are the joints. Put the dog's legs where those lines are.
+The lines only show positions. Draw real furry legs of this dog over them - never copy the lines, circles, colors or the outline body of the guide, and the guide has no tail on purpose.
+Row 2, cell 1 - WALK FRAME A, legs open: the near front leg reaches forward in front of the chest and the far front leg is back under the belly; the near back leg stretches backward behind the hips and the far back leg is forward under the belly. The front legs cross like an X and the back legs cross like an X.
+Row 2, cell 2 - WALK MIDDLE FRAME, legs gathered: the near front leg and the far back leg stand straight under the body on the ground; the far front leg and the near back leg are lifted, bent and passing forward under the body.
+Frames A and middle alternate as the walk: head, face, ears, tail, body, size and position in the cell stay identical between them; only the legs change.
 ${WALK_FACE[look.walk]}
+All four legs have the dog's own fur color. The far-side legs are only a slightly deeper shade of that same fur color - never gray or black unless the dog's fur really is. For a white or cream dog the far-side legs are a very light cream. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.
+Row 2, cell 3: ${POTTY}
 Row 3, cell 1: ${SMILE}
 Row 3, cell 2: ${GROWL}
-Row 3, cell 3: (do not use the fourth stick figure for this) ${BELLY}`,
+Row 3, cell 3: ${BELLY}`,
   },
   // 11/28 가르시아 "걷기 모션만 2x2로 빼는 게 맞겠네? 나머지는 2x3으로" — 한 마리에 두 장(정지 자세 · 걷기)
   'pose': {
@@ -171,7 +175,7 @@ Deno.serve(async (req) => {
   const breed = String(b?.breed || '').replace(/[^\p{L}\p{N} \-]/gu, '').slice(0, 30);
   const mime = String(b?.mime || '');
   const image = String(b?.image || '');
-  const layout: LayoutName = (['3x3', 'pose', 'walk'] as const).find((k) => k === b?.layout) || '3x2';
+  const layout: LayoutName = (['3x2', 'pose', 'walk'] as const).find((k) => k === b?.layout) || '3x3';
   const L = LAYOUTS[layout];
   const look: Look = {
     walk: b?.look?.walk in WALK_FACE ? b.look.walk : (Math.random() < 0.5 ? 'smile' : 'calm'),

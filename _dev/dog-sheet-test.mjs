@@ -17,7 +17,7 @@ fs.mkdirSync(outDir, { recursive: true });
 
 // 표정은 번갈아 정해 두 가지가 다 나오게(앱에선 서버가 뽑는다)
 const LOOKS = [{ walk: 'smile', happy: 'smile', tilt: 'left' }, { walk: 'calm', happy: 'growl', tilt: 'right' }, { walk: 'calm', happy: 'smile', tilt: 'right' }, { walk: 'smile', happy: 'growl', tilt: 'left' }];
-const layout = ['3x3', 'pose', 'walk'].includes(process.env.LAYOUT) ? process.env.LAYOUT : '3x2';
+const layout = ['3x2', 'pose', 'walk'].includes(process.env.LAYOUT) ? process.env.LAYOUT : '3x3';
 let n = 0;
 for (const b of breeds) {
   const look = LOOKS[n++ % LOOKS.length];
