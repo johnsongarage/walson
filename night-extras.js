@@ -8,9 +8,14 @@
 //   행성 문 둘: [다른 강아지 별 보러 가기] · [기억의 별] — 누르면 행성이 다가오며(줌인) "준비 중" 화면. 다른 강아지 별은 가짜로 채우지 않는다.
 //     기억의 별은 조용한 말투(농담·순찰대·외계인 없음). [기다릴게요]는 track.js 익명 통계에 sky_door(door·act)로만 센다 — 위치·이름 없음.
 //   그림은 받기 전까지 코드로 그린 임시 그림(ART에 주소를 넣으면 그 그림으로 — 흰 바탕 없는 png/webp).
+//   11/28 가르시아 "로케트랑 외계인은 지금 빼줘": 2D 밤하늘의 순찰대·외계 생명체는 ON으로 끔 — 그림·코드는 남겨 두고 화면에서만 뺀다(다시 넣을 땐 true).
+//     2D에서 지금 보이는 건 행성 문 둘뿐. 같은 날 "3D 화면에서 우주인과 로켓 사이즈 10분의 1로 줄이고 대사 제거해줘" —
+//     3D 하늘(sky.html)은 ON3D를 본다: 순찰대·UFO가 원래의 1/10 크기로, 말풍선 없이(UFO는 눌러도 말 없이 도망만).
 (function () {
   'use strict';
   var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var ON = { patrol: false, alien: false };   // 2D 밤하늘 — 11/28 "지금 빼줘" — 순찰대(로켓)·외계 생명체(UFO)
+  var ON3D = { patrol: true, alien: true, size: 0.1, say: false };   // 3D 하늘 — 11/28 "사이즈 10분의 1로 줄이고 대사 제거"
   var ART = { rocket: 'icons/night/rocket.webp?v=1', ufo: '', others: '', memory: '' };   // 받은 그림 주소(비어 있으면 코드 그림) — ufo = 외계인이 탄 UFO 한 장
   // 받은 로켓(11/27 가르시아 "추가하고 배포" — _dev/night-rocket.py): 그림 비율과 유리 돔 자리(돔 속은 반투명 — 우리 개를 로켓 뒤에 그리면 돔 안에 탄 것처럼)·불꽃 자리
   var ROCKET = { aspect: 1.3908, dome: { cx: 0.5317, top: 0.0216, base: 0.4452, w: 0.3612 }, flame: { x: 0.1009, y: 0.6818, r: 0.0799 } };
@@ -182,24 +187,26 @@
     var pw = 92, ph = 69, pat = document.createElement('div'); pat.className = 'nx-patrol'; pat.setAttribute('role', 'button'); pat.setAttribute('aria-label', '순찰대 ' + who + ' — 누르면 한마디');
     var pc = document.createElement('canvas'); pc.width = Math.round(pw * dpr); pc.height = Math.round(ph * dpr); pc.style.width = pw + 'px'; pc.style.height = ph + 'px'; pat.appendChild(pc);
     var say = document.createElement('div'); say.className = 'nx-say'; say.setAttribute('aria-live', 'polite');
-    box.appendChild(pat); box.appendChild(say);
+    if (ON.patrol) { box.appendChild(pat); box.appendChild(say); }
     var si = 0, sayUntil = 0, sayHold = 0;
     function speak(text, hold) { say.textContent = text.replace('{who}', who); say.style.opacity = '1'; sayHold = performance.now() + (hold || 5200); }
     function nextLine() { si = (si + 1) % SAY.length; speak(SAY[si]); }
     speak(SAY[0]);
     pat.addEventListener('click', function (e) { e.stopPropagation(); nextLine(); });
-    loadImg(o.dogSrc).then(function (im) { dogImg = im; });
-    loadImg(ART.rocket).then(function (im) {
-      rocketImg = im; if (!im) return;
-      pw = 112; ph = Math.round(pw / ROCKET.aspect);   // 받은 로켓 비율로 칸을 다시
-      pc.width = Math.round(pw * dpr); pc.height = Math.round(ph * dpr); pc.style.width = pw + 'px'; pc.style.height = ph + 'px';
-    });
-    loadImg(ART.ufo).then(function (im) { alienImg = im; });
+    if (ON.patrol) {
+      loadImg(o.dogSrc).then(function (im) { dogImg = im; });
+      loadImg(ART.rocket).then(function (im) {
+        rocketImg = im; if (!im) return;
+        pw = 112; ph = Math.round(pw / ROCKET.aspect);   // 받은 로켓 비율로 칸을 다시
+        pc.width = Math.round(pw * dpr); pc.height = Math.round(ph * dpr); pc.style.width = pw + 'px'; pc.style.height = ph + 'px';
+      });
+    }
+    if (ON.alien) loadImg(ART.ufo).then(function (im) { alienImg = im; });
     var lastX = 0, faceL = false;
     // ── 외계 생명체 — 하늘을 열 때 세 번에 한 번쯤 ──
     var al = null, alT = 0, alOut = false, seen = +(lsGet('walson_alien_seen') || 0);
     function showAlien() {
-      if (!alive || al) return;
+      if (!ON.alien || !alive || al) return;
       al = document.createElement('div'); al.className = 'nx-alien'; al.setAttribute('role', 'button'); al.setAttribute('aria-label', 'UFO를 탄 외계 생명체 — 누르면 도망가요');
       var ac = document.createElement('canvas'); ac.width = Math.round(84 * dpr); ac.height = Math.round(60 * dpr); al.appendChild(ac);
       var right = Math.random() < 0.5, bw = box.clientWidth, bh = box.clientHeight;
@@ -227,12 +234,13 @@
       alDraw = al._draw;
     }
     var alDraw = null;
-    if (!REDUCE && (o.alien === true || (o.alien !== false && Math.random() < 0.34))) setTimeout(showAlien, 4500 + Math.random() * 6000);
+    if (ON.alien && !REDUCE && (o.alien === true || (o.alien !== false && Math.random() < 0.34))) setTimeout(showAlien, 4500 + Math.random() * 6000);
     // ── 그리기(night.html 한 장 그리기마다) ──
     function tick(now) {
       if (!alive) return;
       var bw = box.clientWidth, bh = box.clientHeight;
       if (!bw || !bh) return;
+      if (!ON.patrol) { if (alDraw) alDraw(now); return; }
       var t = now / 1000, x, y, sc = 1, tilt = 0;
       // 별자리 위쪽 하늘 끝을 타원으로 한 바퀴(약 26초) — 위쪽 반은 멀리(작고 흐리게), 아래쪽 반은 가까이
       if (REDUCE) { x = bw * 0.62 - pw / 2; y = bh * 0.12 - ph / 2; }
@@ -317,5 +325,5 @@
     };
   }
   // 3D 하늘(sky.html)이 같이 쓰는 것 — 순찰대 로켓·UFO 그리기, 말
-  window.WalsonNightExtras = { init: init, ART: ART, ROCKET: ROCKET, SAY: SAY, loadImg: loadImg, drawRocketArt: drawRocketArt, drawRocket: drawRocket, drawUfo: drawUfo };
+  window.WalsonNightExtras = { init: init, ON: ON, ON3D: ON3D, ART: ART, ROCKET: ROCKET, SAY: SAY, loadImg: loadImg, drawRocketArt: drawRocketArt, drawRocket: drawRocket, drawUfo: drawUfo };
 })();

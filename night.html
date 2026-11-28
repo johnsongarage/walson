@@ -122,7 +122,7 @@
 <script src="azit-room.js?v=28"></script>
 <script src="save-image.js?v=4"></script>
 <script src="walk-stars.js?v=10"></script>
-<script src="night-extras.js?v=2"></script>
+<script src="night-extras.js?v=4"></script>
 <script>
 (function () {
   'use strict';
@@ -146,7 +146,7 @@
   $('title').textContent = who + '의 밤하늘';
   S.metDay();
 
-  var NX = null;   // 순찰대·외계 생명체·행성 문(4단계 — night-extras.js)
+  var NX = null;   // 순찰대·외계 생명체·행성 문(4단계 — night-extras.js, 11/28부터 순찰대·외계 생명체는 꺼 둠 — ON)
   function frame(now) { raf = 0; if (!sky) return; sky.draw(cv.getContext('2d'), now); if (NX) NX.tick(now); raf = requestAnimationFrame(frame); }
   function show(i, isFresh) {
     idx = i;

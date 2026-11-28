@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>강아지 동작 그림 자르기 시안(3×2·3×3)</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 3×2 자르기 시안(2026-11-28 가르시아 "자르기 시안 만들어"). 그림 공장(서버 함수 dog-sheet)이 견종 8마리 도트 그림으로
+     받아 온 3×2 그림(sian-ref/dog-sheet/a_*.jpg)을 dog-sheet.js로 잘라, 한 마당에서 같이 걷고 앉고 자게 해 본다.
+     보는 것: 배경이 깨끗이 빠지는지 · 걷기 두 장만 번갈아도 걷는 것처럼 보이는지 · 자세를 바꿀 때 크기·발 위치가 튀지 않는지.
+     주소로만 여는 시안 — 아무것도 저장·전송하지 않는다. */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Pretendard, system-ui, sans-serif; background: #fbf6f1; color: #3a2e2a; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 18px 14px 60px; }
+  h1 { font-size: 20px; font-weight: 900; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #8a7a72; margin: 0 0 14px; line-height: 1.5; }
+  h2 { font-size: 15px; font-weight: 800; margin: 22px 0 8px; }
+  #yard { width: 100%; height: 340px; display: block; border-radius: 14px; background: #f3e9df; touch-action: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
+  button { font: inherit; font-size: 13px; font-weight: 700; border: 1px solid #e2d3c8; background: #fff; color: #3a2e2a;
+    border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  button.on { background: #ff6f9c; border-color: #ff6f9c; color: #fff; }
+  label { font-size: 13px; color: #6d5d56; display: flex; gap: 6px; align-items: center; }
+  .cells { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cell { background-color: #fff; background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%),
+    linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px;
+    border-radius: 10px; padding: 6px; text-align: center; }
+  .cell canvas { width: 100%; height: 150px; display: block; }
+  .cell span { font-size: 12px; color: #6d5d56; }
+  #orig { width: 100%; display: block; border-radius: 10px; }
+  #walk { width: 100%; height: 220px; display: block; border-radius: 14px; background: #f3e9df; }
+  .note { font-size: 12px; color: #8a7a72; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>강아지 동작 그림 자르기 시안 (3×2 · 3×3)</h1>
+  <p class="sub">그림 공장이 견종 8마리 도트 그림으로 받아 온 3×2 그림을 잘라 한 마당에 풀어 놓았어요. 강아지를 누르면 아래에서 그 강아지의 잘린 여섯 칸을 봐요.</p>
+
+  <div class="row" id="sets"></div>
+  <canvas id="yard"></canvas>
+  <div class="row">
+    <button id="b-all" class="on">다 같이 놀기</button>
+    <button data-all="walk1">다 걷기</button>
+    <button data-all="sit1">다 앉기</button>
+    <button data-all="sleep">다 자기</button>
+    <button data-all="happy">다 웃기</button>
+    <button data-all="growl">다 으르렁</button>
+    <button data-all="belly">다 배뒤집기</button>
+    <button data-all="poop">다 똥 자세</button>
+  </div>
+
+  <h2>한 마리 자세히</h2>
+  <div class="row" id="breeds"></div>
+  <div class="row">
+    <label>걸음 바꾸는 거리 <input type="range" id="step" min="4" max="24" value="10"> <b id="step-v">10</b>px</label>
+    <label><input type="checkbox" id="bob" checked> 걸을 때 1점 오르내림</label>
+    <label><input type="checkbox" id="boxes"> 원본에 찾은 칸 표시</label>
+  </div>
+  <canvas id="walk"></canvas>
+  <div class="cells" id="cells"></div>
+  <h2>받아 온 원본</h2>
+  <canvas id="orig"></canvas>
+  <p class="note">
+    자르는 법(dog-sheet.js): ① 그림 가장자리부터 초록을 따라 들어가며 지우고, 번진 초록은 눌러 줌 ② 칸을 3등분하지 않고 강아지 덩어리를 찾아 칸에 나눔
+    ③ 한 장 안에선 같은 비율(가장 큰 키 기준) ④ 기준점은 발바닥 가운데, 걷기 두 장은 코끝을 맞춤.<br>
+    마당 크기: 소형견 0.8 · 진돗개·골든 1.1(한 장 안에서 가장 큰 자세 기준). 그림 한 장 약 50원.<br>라운드 a(3×2 첫 시험): 걷기 두 장이 거의 같고 뒷다리 그대로 → 라운드 c: 회색 마네킹 자세 안내 그림을 같이 보냄(3×2는 A·B, 3×3은 A·중간·B·배뒤집기). 걷기는 A ↔ 중간 두 장만 번갈아(11/28 — Gemini가 뒷다리까지 바꾼 B를 못 그려서, B는 그려 와도 안 씀). 칸 선을 그려 온 그림(라운드 c 포메)은 자르기가 선을 지움 — 검사(빠진 칸·붙은 칸)를 통과 못 하면 앱에서 다시 그린다.
+  </p>
+</div>
+<script src="dog-sheet.js"></script>
+<script>
+(function () {
+  var BREEDS = [['maltese', '말티즈', 0.8], ['poodle', '푸들', 0.85], ['pom', '포메', 0.8], ['bichon', '비숑', 0.85],
+    ['shihtzu', '시츄', 0.85], ['maltipoo', '말티푸', 0.85], ['jindo', '진돗개', 1.1], ['golden', '골든', 1.15]];
+  var LABEL = { poop: '똥 자세', sit1: '앉기1', walk1: '걷기 A', walkmid: '걷기 중간', walk2: '걷기 B', sleep: '자기', happy: '웃기', sit2: '앉기2', growl: '으르렁', belly: '배뒤집기' };
+  var ALL = BREEDS.map(function (b) { return b[0]; });
+  var SETS = [
+    { id: 'g', label: '3×3 한 장(걷기 A·중간·똥) · 웹 푸들', pre: 'g_3x3_', layout: '3x3', breeds: ['poodle'], ext: '.webp' },
+    { id: 'f', label: '3×3 푸들 · 웹 라운드 f', pre: 'f_3x3_', layout: '3x3old', breeds: ['poodle'], ext: '.webp' },
+    { id: 'e', label: '3×3 푸들 · 웹 라운드 e', pre: 'e_3x3_', layout: '3x3old', breeds: ['poodle'], ext: '.webp' },
+    { id: 'c33', label: '3×3 · 라운드 c', pre: 'c_3x3_', layout: '3x3old', breeds: ALL },
+    { id: 'c32', label: '3×2 고친 걷기 · 라운드 c', pre: 'c_3x2_', layout: '3x2', breeds: ['maltese', 'bichon', 'golden'] },
+    { id: 'a', label: '3×2 첫 시험 · 라운드 a', pre: 'a_', layout: '3x2', breeds: ALL },
+  ];
+  var set = SETS[0];
+  var sheets = {}, imgs = {}, pick = 'maltese';
+  function walkSeq(s) { return WalsonSheet.walkSeq(s); }   // A ↔ 중간(11/28 "3번으로")
+  var $ = function (id) { return document.getElementById(id); };
+
+  function fit(c) {
+    var r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+    var g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingQuality = 'high';
+    return { g: g, w: r.width, h: r.height };
+  }
+  // 자세 하나 그리기: 발바닥 기준점이 (x, y), 키 = px
+  function drawPose(g, s, pose, x, y, px, flip) {
+    var p = s.poses[pose] || s.poses.sit1, k = px / s.maxH;
+    g.save(); g.translate(x, y); if (flip) g.scale(-1, 1);
+    g.drawImage(p.c, -p.ax * k, -p.ay * k, p.w * k, p.h * k);
+    g.restore();
+  }
+
+  // ── 마당: 8마리가 걷다 서다
+  var yard = $('yard'), Y, dogs = [], force = null;
+  function newDog(b, i) {
+    return { b: b[0], size: b[2], x: 60 + i * 90, y: 0.45 + Math.random() * 0.5, tx: 0, ty: 0, st: 'idle', pose: 'sit1', t: Math.random() * 2, dist: 0, f: 0, flip: false };
+  }
+  function think(d) {
+    if (Math.random() < 0.6) { d.st = 'walk'; d.tx = 40 + Math.random() * (Y.w - 80); d.ty = 0.4 + Math.random() * 0.55; return; }
+    var r = Math.random();
+    d.st = 'idle';
+    var s9 = sheets[d.b] && sheets[d.b].poses.belly;
+    d.pose = r < 0.35 ? 'sit1' : r < 0.55 ? 'happy' : r < 0.72 ? 'sit2' : r < 0.85 ? 'sleep' : s9 ? (r < 0.92 ? 'growl' : 'belly') : 'sit1';
+    d.t = d.pose === 'sleep' ? 5 + Math.random() * 5 : 1.5 + Math.random() * 3;
+  }
+  function tick(dt) {
+    var step = +$('step').value, bob = $('bob').checked;
+    var top = Y.h * 0.42, span = Y.h * 0.52;
+    var g = Y.g; g.clearRect(0, 0, Y.w, Y.h);
+    g.fillStyle = '#e9dccf'; g.fillRect(0, top - 10, Y.w, Y.h - top + 10);
+    dogs.forEach(function (d) {
+      if (force) { d.st = force === 'walk1' ? 'walk' : 'idle'; if (force !== 'walk1') { d.pose = sheets[d.b] && sheets[d.b].poses[force] ? force : force === 'growl' ? 'happy' : 'sleep'; d.t = 1e9; } else if (!d.tx || Math.abs(d.tx - d.x) < 2) { d.tx = 40 + Math.random() * (Y.w - 80); d.ty = 0.4 + Math.random() * 0.55; } }
+      if (d.st === 'walk') {
+        var dx = d.tx - d.x, dy = (d.ty - d.y) * span, L = Math.hypot(dx, dy), sp = 46 * dt;
+        if (L < sp) { d.x = d.tx; d.y = d.ty; d.st = 'idle'; d.pose = 'sit1'; d.t = 0.4; if (!force) think(d); }
+        else {
+          d.x += dx / L * sp; d.y += dy / L * sp / span; d.dist += sp;
+          if (Math.abs(dx) > 1) d.flip = dx < 0;
+          if (d.dist >= step) { d.dist -= step; d.f++; }
+          var sq = sheets[d.b] ? walkSeq(sheets[d.b]) : ['walk1']; d.pose = sq[d.f % sq.length];
+        }
+      } else if ((d.t -= dt) <= 0 && !force) think(d);
+    });
+    dogs.slice().sort(function (a, b) { return a.y - b.y; }).forEach(function (d) {
+      var s = sheets[d.b]; if (!s) return;
+      var y = top + d.y * span, px = 64 * d.size * (0.85 + d.y * 0.25);
+      g.fillStyle = 'rgba(80,50,40,.12)'; g.beginPath(); g.ellipse(d.x, y, px * 0.38, px * 0.07, 0, 0, 7); g.fill();
+      var lift = bob && d.st === 'walk' && d.pose === 'walkmid' ? 1.5 : bob && d.st === 'walk' && d.f % 2 ? 1 : 0;
+      drawPose(g, s, d.pose, d.x, y - lift, px, d.flip);
+      if (d.b === pick) { g.fillStyle = '#ff6f9c'; g.beginPath(); g.moveTo(d.x - 5, y - px - 10); g.lineTo(d.x + 5, y - px - 10); g.lineTo(d.x, y - px - 3); g.fill(); }
+      d.hit = { x: d.x, y: y, px: px };
+    });
+  }
+  yard.addEventListener('pointerdown', function (e) {
+    var r = yard.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, best = null;
+    dogs.forEach(function (d) { if (d.hit && Math.abs(x - d.hit.x) < d.hit.px * 0.5 && y < d.hit.y + 6 && y > d.hit.y - d.hit.px) best = d; });
+    if (best) { pick = best.b; detail(); }
+  });
+  $('b-all').onclick = function () { force = null; dogs.forEach(function (d) { d.t = Math.random(); d.st = 'idle'; }); mark(this); };
+  document.querySelectorAll('[data-all]').forEach(function (b) { b.onclick = function () { force = b.dataset.all; dogs.forEach(function (d) { d.tx = 0; }); mark(b); }; });
+  function mark(b) { document.querySelectorAll('#b-all,[data-all]').forEach(function (x) { x.classList.toggle('on', x === b); }); }
+
+  // ── 한 마리 자세히
+  var WK, wx = 0, wd = 0, wf = 0;
+  function detail() {
+    var s = sheets[pick]; if (!s) return;
+    document.querySelectorAll('#breeds button').forEach(function (b) { b.classList.toggle('on', b.dataset.b === pick); });
+    $('cells').innerHTML = '';
+    s.names.forEach(function (nm) {
+      var box = document.createElement('div'); box.className = 'cell';
+      var c = document.createElement('canvas'); box.appendChild(c);
+      var sp = document.createElement('span'); box.appendChild(sp);
+      $('cells').appendChild(box);
+      var F = fit(c), p = s.poses[nm];
+      sp.textContent = LABEL[nm] + (p ? ' · ' + p.w + '×' + p.h : ' · 못 찾음');
+      if (!p) return;
+      var k = (F.h - 16) / s.maxH;   // 한 장 같은 비율 — 칸끼리 크기를 비교할 수 있게
+      F.g.strokeStyle = 'rgba(255,111,156,.5)'; F.g.beginPath(); F.g.moveTo(0, F.h - 8); F.g.lineTo(F.w, F.h - 8); F.g.stroke();
+      drawPose(F.g, s, nm, F.w / 2, F.h - 8, F.h - 16, false);
+    });
+    var O = fit($('orig')), im = imgs[pick];
+    $('orig').style.height = ($('orig').getBoundingClientRect().width * im.naturalHeight / im.naturalWidth) + 'px';
+    O = fit($('orig'));
+    O.g.drawImage(im, 0, 0, O.w, O.h);
+    if ($('boxes').checked) {
+      var k2 = O.w / s.W; O.g.strokeStyle = '#ff2d78'; O.g.lineWidth = 2;
+      s.names.forEach(function (nm) { var p = s.poses[nm]; if (p) O.g.strokeRect(p.box.x0 * k2, p.box.y0 * k2, p.w * k2, p.h * k2); });
+    }
+  }
+  function walkTick(dt) {
+    var s = sheets[pick]; if (!s) return;
+    var g = WK.g, step = +$('step').value, sp = 60 * dt, px = WK.h * 0.62, y = WK.h * 0.86;
+    g.clearRect(0, 0, WK.w, WK.h);
+    g.fillStyle = '#e9dccf'; g.fillRect(0, y, WK.w, WK.h - y);
+    wx += sp; wd += sp; if (wd >= step) { wd -= step; wf++; }
+    var sq = walkSeq(s), cur = sq[wf % sq.length];
+    if (wx > WK.w + px) wx = -px;
+    var lift = $('bob').checked ? (cur === 'walkmid' ? 3 : wf % 2 ? 2 : 0) : 0;
+    drawPose(g, s, cur, wx, y - lift, px, false);
+    // 제자리 두 장 비교(겹쳐 보기)
+    g.globalAlpha = 0.5; sq.filter(function (k, i) { return sq.indexOf(k) === i; }).forEach(function (k) { drawPose(g, s, k, WK.w - px * 0.7, y, px * 0.6, false); }); g.globalAlpha = 1;
+    g.fillStyle = '#8a7a72'; g.font = '12px Pretendard'; g.fillText('걷는 두 장 겹쳐 보기', WK.w - px * 1.3, 18);
+  }
+  $('step').oninput = function () { $('step-v').textContent = this.value; };
+  $('boxes').onchange = detail;
+
+  // ── 불러오기(묶음마다)
+  function loadSet(st) {
+    set = st; sheets = {}; imgs = {}; dogs.length = 0;
+    document.querySelectorAll('#sets button').forEach(function (x) { x.classList.toggle('on', x.dataset.id === st.id); });
+    $('breeds').innerHTML = '';
+    if (st.breeds.indexOf(pick) < 0) pick = st.breeds[0];
+    BREEDS.filter(function (b) { return st.breeds.indexOf(b[0]) >= 0; }).forEach(function (b, i) {
+      var btn = document.createElement('button'); btn.textContent = b[1]; btn.dataset.b = b[0];
+      btn.onclick = function () { pick = b[0]; detail(); };
+      $('breeds').appendChild(btn);
+      var im = new Image();
+      im.onload = function () {
+        if (set !== st) return;
+        imgs[b[0]] = im;
+        sheets[b[0]] = WalsonSheet.cut(im, st.layout);
+        if (sheets[b[0]].bad.length) console.warn(b[0], '검사 못 넘음', sheets[b[0]].bad);
+        if (b[0] === pick) detail();
+      };
+      im.src = 'sian-ref/dog-sheet/' + st.pre + b[0] + (st.ext || '.jpg');
+      dogs.push(newDog(b, i));
+    });
+    }
+  SETS.forEach(function (st) {
+    var btn = document.createElement('button'); btn.textContent = st.label; btn.dataset.id = st.id;
+    btn.onclick = function () { loadSet(st); };
+    $('sets').appendChild(btn);
+  });
+  window.__sheets = sheets;
+
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    tick(dt); walkTick(dt);
+    requestAnimationFrame(frame);
+  }
+  function resize() { Y = fit(yard); WK = fit($('walk')); dogs.forEach(function (d, i) { d.x = Math.min(d.x, Y.w - 40); }); if (sheets[pick]) detail(); }
+  window.addEventListener('resize', resize);
+  resize();
+  loadSet(SETS[0]);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
