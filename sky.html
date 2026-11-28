@@ -105,10 +105,10 @@
 <script src="track.js?v=11"></script>
 <script src="device.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=15"></script>
+<script src="reward-rules.js?v=16"></script>
 <script src="showrooms-data.js?v=1"></script>
 <script src="azit-room.js?v=28"></script>
-<script src="walk-stars.js?v=10"></script>
+<script src="walk-stars.js?v=11"></script>
 <script src="night-extras.js?v=4"></script>
 <script>
 // 데이터·글자(3D 모듈보다 먼저) — 결과는 window.SKY에
@@ -133,15 +133,15 @@
   var nm = data.name, cur = data.months[0] || { back: 0, ym: '', stars: [], over: 0 };
   var mo = cur.ym ? Number(cur.ym.slice(5, 7)) + '월' : '이번 달';
   data.starName = nm ? nm + '자리' : shared ? '강아지 별자리' : '우리 개 별자리';
-  var n = Math.min(cur.stars.length, S.GOAL);
+  var n = Math.min(cur.stars.length, S.GOAL), tot = cur.stars.length + (cur.over || 0), doneTxt = n >= S.GOAL ? ' · 별자리 완성' : '';   // 11/28 별 = 산책 한 번마다, 뼈대는 걸은 날 8일
   if (shared) {
     $('t1').textContent = nm ? nm + '네 산책 하늘' : '어느 강아지의 산책 하늘';
-    $('t2').textContent = mo + ' ' + data.starName + ' 별 ' + n + '/' + S.GOAL + ' · 걸은 날마다 별 1개';
+    $('t2').textContent = mo + ' ' + data.starName + ' · 별 ' + tot + '개' + doneTxt + ' · 걸을 때마다 별 1개';
     $('theirs').hidden = false; $('back').hidden = true;
     document.title = (nm ? nm + '네' : '강아지') + ' 산책 별자리 하늘 · 왈슨';
   } else {
     $('t1').textContent = mo + ' 하늘 · ' + data.starName;
-    $('t2').textContent = '별 ' + n + '/' + S.GOAL + (data.months.length > 1 ? ' · 지난 달 별자리는 왼쪽으로' : n ? '' : ' · 분홍 별은 우리가 만난 날');
+    $('t2').textContent = '별 ' + tot + '개' + doneTxt + (data.months.length > 1 ? ' · 지난 달 별자리는 왼쪽으로' : n ? '' : ' · 분홍 별은 우리가 만난 날');
     $('mine').hidden = false;
     if (!nm) { $('o-name').checked = false; $('o-name').disabled = true; $('o-name').parentNode.title = '워킹패스에 이름을 적으면 넣을 수 있어요'; }
   }

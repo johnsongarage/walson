@@ -470,7 +470,7 @@
 </main>
 
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=15"></script>
+<script src="reward-rules.js?v=16"></script>
 <script src="dex-card.js?v=6"></script>
 <script src="showrooms-data.js?v=1"></script>
 <script src="azit-room.js?v=28"></script>
@@ -478,7 +478,7 @@
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=10"></script>
+<script src="walk-stars.js?v=11"></script>
 <script>
 (function () {
   'use strict';
@@ -1911,10 +1911,10 @@
     var S = WalsonStars, m = S.month(), n = m.stars.length;
     row.hidden = false;
     $('sky-t').textContent = '✦ 창가 별자리 · ' + S.starName();
-    // 11/27 날 기준 — 켜고 걸은 날마다 별 하나, 보름이면 얼굴 완성 · 25일 은하수 · 하루도 안 빠지면 보름달
-    $('sky-s').textContent = n ? (S.milestone && S.milestone(m) ? '이번 달 ' + S.milestone(m) + ' · 창문 너머 밤하늘로' : '켜고 걸은 날마다 별 하나 — 보름까지 ' + (S.GOAL - m.days) + '일')
+    // 11/28 — 켜고 걸을 때마다 별 하나, 걸은 날 8일이면 얼굴 완성 · 15일 보름 · 25일 은하수 · 하루도 안 빠지면 보름달
+    $('sky-s').textContent = n ? (S.milestone && S.milestone(m) ? '이번 달 ' + S.milestone(m) + ' · 창문 너머 밤하늘로' : '켜고 걸을 때마다 별 하나 — 별자리 완성까지 ' + ((S.DAYS || 8) - m.days) + '일')
       : '창밖에 우리가 만난 날 별이 떴어요 · [산책 시작]하고 걸으면 첫 별';
-    $('sky-n').textContent = n + ' / ' + S.GOAL;
+    $('sky-n').textContent = m.full ? '별 ' + (m.walks ? m.walks.length : n) + '개' : Math.min(m.days, S.DAYS || 8) + ' / ' + (S.DAYS || 8) + '일';   // 11/28 완성 전엔 걸은 날, 뒤엔 뜬 별 수
     row.classList.toggle('new', skyFresh);
     S.thumb($('skythumb'));
     if ((skyFresh || skyMine) && !skyOpened) { skyOpened = true; setTimeout(function () { openSky(skyFresh); }, 250); }

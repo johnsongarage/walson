@@ -63,7 +63,7 @@
 <script src="site-config.js?v=11"></script>
 <script src="inapp.js?v=5"></script>
 <script src="track.js?v=8"></script>
-<script src="reward-rules.js?v=15"></script>
+<script src="reward-rules.js?v=16"></script>
 </head>
 <body>
 <div class="wrap">
@@ -91,7 +91,7 @@
     <ul>
       <li>깜빡하고 못 잰 날도 빠지지 않게, 다녀와서 적은 산책도 등급·도장·기본 소품은 받아요.</li>
       <li id="why-special">그 자리에서 잰 산책은 정말 나갔다는 표시라서, 특별 소품은 잰 산책으로만 생겨요.</li>
-      <li id="why-stars">밤하늘 별도 [산책 시작]을 누르고 걸은 날에만 떠요. 그날 함께 걸은 시간이 그대로 별이 되거든요. 11월 27일까지 다녀와서 적은 산책으로 뜬 별은 그대로 있어요.</li>
+      <li id="why-stars">밤하늘 별도 [산책 시작]을 누르고 걸을 때만 떠요. 그 산책의 시간이 그대로 별이 되거든요. 하루에 여러 번 걸어도 별자리는 하루치만 차요. 11월 27일까지 다녀와서 적은 산책으로 뜬 별은 그대로 있어요.</li>
       <li>거리는 조건에 쓰지 않아요. 휴대폰을 주머니에 넣거나 화면이 꺼지면 위치가 끊겨서 실제보다 짧게 나올 수 있거든요. 시간만 봐요.</li>
       <li>하루에 셀 수 있는 수를 정해 둔 건, 짧게 여러 번 나가서 빨리 모으기보다 매일 꾸준히 모으게 하려고예요.</li>
     </ul>
@@ -105,7 +105,7 @@
     </ul>
   </section>
 
-  <p class="date">11월 27일 기준</p>
+  <p class="date">11월 28일 기준</p>
 </div>
 <script>
 (function () {
@@ -124,9 +124,9 @@
   html += row('아지트 소품', '산책 횟수로 생기는 것' + scale, cell(true, '하루 ' + lc + '번까지'), cell(ac > 0, '하루 ' + ac + '번까지', !sameCap));
   html += row('특별 소품', '밤 산책 · 40분 넘는 긴 산책 · 킁킁 · 오늘의 한 장 · 응가', cell(c.live.special), cell(c.after.special));
   html += row('겨울 소품', '12~2월에 한 산책', cell(true, '하루 ' + lc + '번까지'), cell(ac > 0, '하루 ' + ac + '번까지'));
-  // 별(11/27): 걸은 날마다 하나 — 같은 날 또 걸으면 그 별이 밝아진다. 보름(15일)이면 별자리, 25일 은하수, 하루도 안 빠지면 보름달
-  html += row('밤하늘 별', '[아지트] 창 · 하늘 — 걸은 날마다 하나', cell(c.live.stars, '하루 1개 · 또 걸으면 더 밝게'), cell(c.after.stars, '하루 1개'));
-  html += row('이달의 별자리', '보름(15일) 완성 · 25일 은하수 · 하루도 안 빠지면 보름달', cell(c.live.stars), cell(c.after.stars));
+  // 별(11/28): [산책 시작]으로 잰 산책 한 번마다 하나. 별자리 뼈대는 걸은 날로 — 8일 완성, 15일 보름, 25일 은하수(하루도 안 빠지면 보름달은 숨은 보너스)
+  html += row('밤하늘 별', '[아지트] 창 · 하늘 — 산책 한 번마다 하나', cell(c.live.stars, '걸을 때마다 1개'), cell(c.after.stars, '걸을 때마다 1개'));
+  html += row('이달의 별자리', '걸은 날 8일 완성 · 15일 보름 · 25일 은하수', cell(c.live.stars, '하루에 여러 번 걸어도 하루치'), cell(c.after.stars));
   html += row('걸은 길·거리', '', cell(true, '위치를 켰을 때만'), cell(false));
   document.getElementById('rows').innerHTML = html;
   // 다녀와서 적은 산책도 특별 소품을 받는 동안(베타 등)은 "잰 산책으로만" 줄을 바꾼다

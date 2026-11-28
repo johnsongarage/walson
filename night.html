@@ -117,11 +117,11 @@
   <p class="note">별은 [산책 시작]을 누르고 5분 넘게 걸은 날마다 하나씩 떠요. 같은 날 또 걸으면 그 별이 밝아져요.
     꾸준함 도장판·응가 달력은 <a href="walk-history.html">숫자 기록</a>에 있어요.</p>
 </main>
-<script src="reward-rules.js?v=15"></script>
+<script src="reward-rules.js?v=16"></script>
 <script src="showrooms-data.js?v=1"></script>
 <script src="azit-room.js?v=28"></script>
 <script src="save-image.js?v=4"></script>
-<script src="walk-stars.js?v=10"></script>
+<script src="walk-stars.js?v=11"></script>
 <script src="night-extras.js?v=4"></script>
 <script>
 (function () {
@@ -151,7 +151,9 @@
   function show(i, isFresh) {
     idx = i;
     var ym = months[i], m = S.month(null, ym);
-    st = { dog: S.dogId(), stars: m.stars, over: m.over, milky: m.milky, moon: m.moon, fresh: isFresh && m.days ? performance.now() + 350 : 0, m: m };
+    var lw = isFresh ? S.lastWalkStar() : null;
+    st = { dog: S.dogId(), stars: m.stars, over: m.over, milky: m.milky, borum: m.borum, moon: m.moon, fresh: isFresh && m.days ? performance.now() + 350 : 0,
+      freshIdx: lw && lw.got && lw.month && lw.month.ym === ym ? lw.index : null, m: m };
     dpr = Math.min(3, window.devicePixelRatio || 1); cw = box.clientWidth || 360;
     var ch = Math.round(cw * 1.05);
     cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); cv.style.height = ch + 'px';
@@ -163,7 +165,8 @@
     $('prev').disabled = i >= months.length - 1; $('next').disabled = i <= 0;
     $('sub').textContent = S.starName() + ' · ' + S.countText(m) + (S.milestone(m) ? ' · ' + S.milestone(m) : '');
     $('goal').textContent = i === 0 ? S.goalText(m) : (S.milestone(m) ? ymText(ym) + ' — ' + S.milestone(m) + '. ' : ymText(ym) + ' — ') + m.days + '일 함께 걸었어요.';
-    var miles = [['보름', Math.min(m.days, S.GOAL) + ' / ' + S.GOAL + '일', m.full], ['은하수', Math.min(m.days, S.MILKY) + ' / ' + S.MILKY + '일', m.milky], ['보름달', m.days + ' / ' + m.dim + '일', m.allDays]];
+    // 11/28 단계: 별자리(8일) → 보름(15일) → 은하수(25일). 보름달(하루도 안 빠짐)은 숨은 보너스라 칸으로 내걸지 않는다(뜨면 위 글에만)
+    var miles = [['별자리', Math.min(m.days, S.DAYS) + ' / ' + S.DAYS + '일', m.full], ['보름', Math.min(m.days, S.BORUM) + ' / ' + S.BORUM + '일', m.borum], ['은하수', Math.min(m.days, S.MILKY) + ' / ' + S.MILKY + '일', m.milky]];
     $('miles').innerHTML = miles.map(function (x) { return '<div class="mile' + (x[2] ? ' on' : '') + '"><b>' + (x[2] ? '✓ ' : '') + x[0] + '</b><small>' + x[1] + '</small></div>'; }).join('');
     // 이번 달 숫자(결산) — 별이 된 날 + 그 달 산책 전부(다녀와서 적은 산책·5분 미만 포함)
     var all = m.stars.concat(m.over), walks = (WalsonStore.walks() || []).filter(function (w) { return w && typeof w.date === 'string' && w.date.slice(0, 7) === ym; });
@@ -172,7 +175,7 @@
     all.forEach(function (s) { if (!best || s.min > best.min) best = s; });
     $('nums-sum').textContent = walks.length ? '산책 ' + walks.length + '번 · ' + hm(totMin) : '아직 없어요';
     $('nums').innerHTML = !walks.length ? '<div class="num wide"><small>이 달엔 산책 기록이 없어요.</small></div>' :
-      '<div class="num"><b>' + m.days + '일</b><small>별이 뜬 날(켜고 걸은 날)</small></div>' +
+      '<div class="num"><b>' + m.days + '일 · 별 ' + m.walks.length + '개</b><small>켜고 걸은 날 · 뜬 별</small></div>' +
       '<div class="num"><b>' + walks.length + '번</b><small>산책' + (after ? ' · 다녀와서 적은 ' + after + '번 포함' : '') + '</small></div>' +
       '<div class="num"><b>' + hm(totMin) + '</b><small>함께 걸은 시간</small></div>' +
       '<div class="num"><b>' + (totKm >= 0.05 ? (Math.round(totKm * 10) / 10) + 'km' : '—') + '</b><small>걸은 거리(길을 잰 산책만)</small></div>' +
@@ -221,7 +224,7 @@
     if (!st || !window.WalsonSave) return;
     var m = st.m, c = S.card({ st: st }), file = 'walson-sky-' + m.ym + '.png';
     if (kind === 'save') WalsonSave.save(c, file);
-    else WalsonSave.share(c, file, who + '와 ' + Number(m.ym.slice(5, 7)) + '월 산책 별자리 ' + Math.min(m.days, S.GOAL) + '/' + S.GOAL + ' ✦\n' + S.brand().name + ' — ' + S.brand().tagline + '\n' + S.appUrl());
+    else WalsonSave.share(c, file, who + '와 ' + Number(m.ym.slice(5, 7)) + '월 산책 별자리 ' + Math.min(m.days, S.DAYS) + '/' + S.DAYS + '일 ✦\n' + S.brand().name + ' — ' + S.brand().tagline + '\n' + S.appUrl());
   }
   $('save').addEventListener('click', function () { shareCard('save'); });
   $('share').addEventListener('click', function () { shareCard('share'); });

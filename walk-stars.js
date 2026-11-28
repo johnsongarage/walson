@@ -19,7 +19,12 @@
 //     싣지 않는 것: 날짜·시각·걸은 분·위치. 주소 # 뒤에 있어서 서버로 가지 않는다.
 (function () {
   'use strict';
-  var GOAL = 15, PER_DAY = 1, MIN = 5, MILKY = 25, AFTER_KEEP = '2026-11-27', MET_KEY = 'walson_sky_met';   // 보름 · 하루 1칸 · 5분 · 은하수 25일
+  // 11/28 가르시아 "진행"(별자리 기획 검토 1·2): 별 = [산책 시작]으로 잰 산책 한 번마다 하나(하루에 몇 번이든 새 별 — 그 산책의 분·시간대 그대로).
+  //   별자리 뼈대(우리 개 얼굴 점 GOAL개 = 윤곽 12 + 코 + 눈 둘)는 걸은 **날**로 켠다 — DAYS일이면 다 켜져 눈을 뜸(하루에 두 점쯤).
+  //   하루에 여러 번 걸어도 뼈대는 그날 몫만 — 몰아서 채울 수 없고, 뼈대가 다 찬 뒤에도 산책하면 별은 늘 뜬다(그날 점 옆 작은 별 · 별가루).
+  //   단계: DAYS(8)일 별자리 완성(눈을 떠요) → BORUM(15)일 보름(별자리가 반짝) → MILKY(25)일 은하수 → 하루도 안 빠지면 보름달(숨은 보너스, 목표로 안 내건다).
+  //   GOAL은 예전 화면이 "점 수"로 쓰는 이름 그대로(15).
+  var GOAL = 15, DAYS = 8, BORUM = 15, PER_DAY = 1, MIN = 5, MILKY = 25, AFTER_KEEP = '2026-11-27', MET_KEY = 'walson_sky_met';
   var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function cfg() { return window.WALSON_CONFIG || {}; }
   function brand() { return cfg().brand || { name: 'WALSON', nameKo: '왈슨', tagline: '당신과 강아지의 유의미한 산책' }; }
@@ -90,21 +95,35 @@
     return w.date <= AFTER_KEEP;   // 다녀와서 적은 산책으로 이미 뜬 별(11/27까지)은 남긴다
   }
   function daysIn(ym) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(); }
-  // 그 달 별 — 걸은 날마다 하나, 날짜 순. 같은 날 여러 번이면 한 별에 걸은 분·거리·횟수를 모은다. ym 'YYYY-MM'
-  //   → { stars(보름까지), over(별가루), days, dim(그 달 날 수), full(보름), milky(25일), allDays(하루도 안 빠짐), moon(0~1) }
+  // 그 달 별(11/28) — ym 'YYYY-MM'
+  //   stars = 켜진 뼈대 점(길이 0~GOAL, 점 j는 dayOf(j)번째 걸은 날의 첫 산책으로 그림) · over = 나머지 산책 별(그날 점 옆 near 또는 별가루)
+  //   walks = 산책 별 전부(한 번에 하나) · days = 걸은 날 수 · full(DAYS일) · borum(15일) · milky(25일) · allDays · moon(0~1)
+  function dayOf(j) { return Math.floor(j * DAYS / GOAL); }   // 뼈대 점 j를 켜는 날(0부터) — 하루 두 점쯤
+  function litOf(days) { var n = 0; for (var j = 0; j < GOAL; j++) if (dayOf(j) < days) n++; return n; }
   function month(walks, ym) {
     walks = walks || allWalks(); ym = ym || ymOf(new Date());
-    var cfg = rewardCfg(), byDay = {}, keys = [];
+    var cfg = rewardCfg(), byDay = {}, keys = [], list = [];
     walks.forEach(function (w) {
       if (!w || typeof w.date !== 'string' || w.date.slice(0, 7) !== ym || !starWalk(w, cfg)) return;
-      var d = byDay[w.date];
-      if (!d) { d = byDay[w.date] = { date: w.date, min: 0, km: 0, n: 0, h: hourOf(w) }; keys.push(w.date); }
-      d.min += Math.round(Number(w.durationMin) || 0); d.km += Number(w.distanceKm) || 0; d.n++;
+      var one = { date: w.date, min: Math.round(Number(w.durationMin) || 0), km: Number(w.distanceKm) || 0, n: 1, h: hourOf(w) };
+      list.push(one);
+      if (!byDay[w.date]) { byDay[w.date] = []; keys.push(w.date); }
+      byDay[w.date].push(one);
     });
     keys.sort();
-    var all = keys.map(function (k) { return byDay[k]; }), n = all.length, dim = daysIn(ym);
-    return { ym: ym, stars: all.slice(0, GOAL), over: all.slice(GOAL), days: n, dim: dim,
-      full: n >= GOAL, milky: n >= MILKY, allDays: n >= dim, moon: Math.min(1, n / dim), dayCapped: false };
+    var n = keys.length, dim = daysIn(ym), lit = litOf(n), stars = [], used = [];
+    for (var j = 0; j < lit; j++) { var first = byDay[keys[dayOf(j)]][0]; stars.push(first); if (used.indexOf(first) < 0) used.push(first); }
+    var over = [];
+    keys.forEach(function (k, di) {
+      var near = -1;
+      for (var q = 0; q < lit; q++) if (dayOf(q) === di) { near = q; break; }
+      byDay[k].forEach(function (one) {
+        if (used.indexOf(one) >= 0) return;
+        over.push(near >= 0 ? { date: one.date, min: one.min, km: one.km, n: 1, h: one.h, near: near } : one);
+      });
+    });
+    return { ym: ym, stars: stars, over: over, walks: list, days: n, dim: dim, lit: lit,
+      full: n >= DAYS, borum: n >= BORUM, milky: n >= MILKY, allDays: n >= dim, moon: Math.min(1, n / dim), dayCapped: false };
   }
   // ── 1년 하늘 + 공유 링크 글자 ──
   var DOG_IDS = ['pom', 'poodle', 'maltese', 'chihuahua', 'dachs', 'jindo', 'shiba', 'knit', 'spitz', 'cocker', 'chihuahua_long', 'bichon', 'golden', 'schnauzer', 'frenchie', 'sheltie', 'bedlington', 'maltipoo', 'greyhound', 'bordercollie', 'beagle', 'corgi', 'yorkie', 'shihtzu', 'minpin'];   // 링크에 번호로 실린다 — 순서 바꾸지 말 것(새 것은 뒤에)
@@ -162,15 +181,16 @@
     if (!w) return { got: false, reason: 'none' };
     var ym = w.date ? w.date.slice(0, 7) : ymOf(new Date());
     var now = month(walks, ym), before = month(walks.slice(0, -1), ym);
-    var all = now.stars.concat(now.over), idx = -1;
-    for (var i = 0; i < all.length; i++) if (all[i].date === w.date) idx = i;
-    if (now.days > before.days && idx >= 0) return { got: true, index: idx, date: w.date, month: now, dust: idx >= GOAL };
-    if (idx >= 0 && starWalk(w, rewardCfg())) return { got: false, reason: 'brighter', index: idx, date: w.date, month: now };
+    if (now.walks.length > before.walks.length) {
+      // 새 별 — 뼈대 점이 새로 켜졌으면 그 점, 아니면 별가루·그날 점 옆(맨 끝)
+      var idx = now.lit > before.lit ? now.lit - 1 : now.stars.length + now.over.length - 1;
+      var ms = milestone(now) !== milestone(before) ? milestone(now) : '';
+      return { got: true, index: idx, date: w.date, month: now, dust: !(now.lit > before.lit), newDay: now.days > before.days, milestone: ms };
+    }
     if (!countable(w)) return { got: false, reason: 'short', month: now };
     if (w.logged === 'after') return { got: false, reason: 'after', month: now };
     return { got: false, reason: 'none', month: now };
   }
-  // 만난 날 — 이 기기의 첫 산책 날(기록이 없으면 처음 별자리를 본 날)
   function metDay() {
     var v = '';
     try { v = localStorage.getItem(MET_KEY) || ''; } catch (e) { v = ''; }
@@ -305,12 +325,24 @@
     var unit = w / 360;   // 별 크기는 하늘 폭 기준(시안과 같은 느낌)
 
     function look(sx) { return { r: (1.5 + 2.4 * starSize(sx.min)) * unit, c: todOf(sx.h).c }; }
-    function pos(i) { return i < GOAL ? P[i] : dust[(i - GOAL) % dust.length]; }
+    // 그날 점 옆 작은 별(11/28 — 같은 날 또 걸은 산책): 점 둘레 작은 고리 위에 하나씩(날마다 같은 자리)
+    function nearPos(it, k) {
+      var c = P[it.near], ang = (k * 2.4 + it.near * 0.9) % (Math.PI * 2), d = (6 + 2.2 * (k % 3)) * unit;
+      return { x: c.x + Math.cos(ang) * d, y: c.y + Math.sin(ang) * d };
+    }
+    var allNow = function () { return st.stars.concat(st.over); };
+    function pos(i) {
+      if (i < st.stars.length && i < GOAL) return P[i];
+      var all = allNow(), it = all[i];
+      if (it && it.near != null && P[it.near]) { var k = 0; for (var q = st.stars.length; q < i; q++) if (all[q].near === it.near) k++; return nearPos(it, k); }
+      var di = 0; for (var q2 = st.stars.length; q2 < i; q2++) if (all[q2].near == null) di++;
+      return dust[di % dust.length];
+    }
 
     this.met = met; this.P = P; this.pos = pos; this.w = w; this.h = h;
     this.draw = function (g, now) {
-      var all = st.stars.concat(st.over), n = all.length, lit = Math.min(n, GOAL), full = n >= GOAL;
-      var fi = st.fresh ? n - 1 : -1, at = st.fresh ? now - st.fresh : 1e9;
+      var all = st.stars.concat(st.over), n = all.length, lit = Math.min(st.stars.length, GOAL), full = lit >= GOAL, borum = !!st.borum;
+      var fi = st.fresh ? (st.freshIdx != null && st.freshIdx < n ? st.freshIdx : n - 1) : -1, at = st.fresh ? now - st.fresh : 1e9;   // 새 별 = 마지막 산책의 별(11/28)
       g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(bg, 0, 0);
       tw.forEach(function (t) { drawStar(g, t.x, t.y, t.r, [220, 228, 255], 0.22 + 0.28 * (0.5 + 0.5 * Math.sin(now / 1000 * t.sp + t.ph)), 0); });
       // 만난 날 별(분홍, 은은히 반짝)
@@ -344,8 +376,11 @@
           sc = tp < 1 ? (tp < 0.55 ? 1.7 * ease(tp / 0.55) : 1.7 - 0.7 * ease((tp - 0.55) / 0.45)) : 1;
           flare = Math.max(flare, 1 - clamp01(tp));
         }
-        if (i < GOAL && P[i].eye) { L = { r: L.r * 1.15, c: [255, 214, 236] }; if (full) flare = Math.max(flare, 0.32 + 0.12 * Math.sin(now / 700 + i)); }
-        if (i >= GOAL) flare = Math.max(flare, 0.4);
+        var onShape = i < lit;
+        if (onShape && P[i].eye) { L = { r: L.r * 1.15, c: [255, 214, 236] }; if (full) flare = Math.max(flare, 0.32 + 0.12 * Math.sin(now / 700 + i)); }
+        if (onShape && borum) flare = Math.max(flare, 0.22 + 0.14 * Math.sin(now / 800 + i * 0.7));   // 보름 — 별자리 전체가 반짝(11/28)
+        if (!onShape && all[i].near != null) L = { r: L.r * 0.62, c: L.c };   // 그날 점 옆 작은 별
+        else if (!onShape) flare = Math.max(flare, 0.4);
         var twk = 0.88 + 0.12 * Math.sin(now / 900 * (0.8 + (i % 5) * 0.23) + i * 1.7);
         drawStar(g, p.x, p.y, L.r * sc, L.c, twk, flare);
       }
@@ -369,13 +404,16 @@
   }
   function stateNow(fresh) {
     var m = month();
-    return { dog: dogId(), stars: m.stars, over: m.over, milky: m.milky, moon: m.moon, fresh: fresh && !REDUCE && (m.stars.length + m.over.length) ? performance.now() + 350 : 0, m: m };
+    var lw = fresh ? lastWalkStar() : null;
+    return { dog: dogId(), stars: m.stars, over: m.over, milky: m.milky, borum: m.borum, moon: m.moon, fresh: fresh && !REDUCE && (m.stars.length + m.over.length) ? performance.now() + 350 : 0,
+      freshIdx: lw && lw.got && lw.month && lw.month.ym === m.ym ? lw.index : null, m: m };
   }
   function countText(m) {
-    var n = m.stars.length, days = m.days != null ? m.days : n + m.over.length;
-    return '별 ' + n + ' / ' + GOAL + (days > GOAL ? ' · ' + days + '일' : '');
+    var w = m.walks ? m.walks.length : m.stars.length + m.over.length;
+    return '별 ' + w + '개 · ' + m.days + '일';
   }
-  function milestone(m) { return m.allDays ? '보름달이 떴어요' : m.milky ? '은하수가 흘러요' : m.full ? '눈을 떴어요' : ''; }
+
+  function milestone(m) { return m.allDays ? '보름달이 떴어요' : m.milky ? '은하수가 흘러요' : m.borum ? '보름을 채웠어요' : m.full ? '눈을 떴어요' : ''; }
   function monthLabel(ym) { return Number(ym.slice(5, 7)) + '월'; }
 
   // ── 아지트 창가 작은 하늘 ──
@@ -408,9 +446,10 @@
   function goalText(m) {
     var who = dogName() || '우리 개';
     if (m.allDays) return '한 달 내내 함께 걸었어요. 하늘에 보름달이 떴어요.';
-    if (m.milky) return m.days + '일 걸어 은하수가 흘러요. 하루도 안 빠지면 보름달이 떠요.';
-    if (m.full) return '보름을 채워 ' + who + ' 별자리가 눈을 떴어요. 25일이면 은하수가 흘러요.';
-    return '[산책 시작]을 누르고 걸은 날마다 별이 하나씩 떠서 보름이면 ' + who + ' 얼굴이 돼요. ' + (GOAL - m.days) + '일 남았어요.';
+    if (m.milky) return m.days + '일 걸어 은하수가 흘러요.';
+    if (m.borum) return '보름을 채워 ' + who + ' 별자리가 반짝여요. 25일이면 은하수가 흘러요.';
+    if (m.full) return who + ' 별자리가 눈을 떴어요. 보름(15일)이면 별자리가 반짝여요.';
+    return '[산책 시작]을 누르고 걸을 때마다 별이 하나씩 떠요. 걸은 날 ' + DAYS + '일이면 ' + who + ' 얼굴이 완성돼요. ' + (DAYS - m.days) + '일 남았어요.';
   }
 
   // ── 그날의 산책 별 카드(1번 — 11/27 가르시아가 보낸 "오늘의 산책 별" 그림 모양) — 1080×1350, 저장·공유도 이 그림 ──
@@ -656,7 +695,7 @@
 
   window.WalsonStars = { GOAL: GOAL, PER_DAY: PER_DAY, perDay: starsPerDay, MIN: MIN, MILKY: MILKY, month: month, lastWalkStar: lastWalkStar, metDay: metDay,
     starName: starName, countText: countText, goalText: goalText, thumb: thumb, open: open, card: card, todOf: todOf,
-    dayCard: dayCard, openDay: openDay, dogId: dogId, dogName: dogName, fmtDay: fmtDay, milestone: milestone,
+    DAYS: DAYS, BORUM: BORUM, dayCard: dayCard, openDay: openDay, dogId: dogId, dogName: dogName, fmtDay: fmtDay, milestone: milestone,
     // 3D 하늘(sky.html)이 같이 쓰는 것
     sky: sky, encode: encode, decode: decode, shareUrl: shareUrl, shapePoints: shapePoints, shapeEdges: shapeEdges, starSize: starSize,
     rng: rng, SkyCanvas: Sky, MET_C: MET_C, brand: brand, appUrl: appUrl };

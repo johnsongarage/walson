@@ -245,8 +245,8 @@
 
 <script src="walk-photos.js?v=1"></script>
 <script src="spots-data.js"></script>
-<script src="reward-rules.js?v=15"></script>
-<script src="walk-stars.js?v=10"></script>
+<script src="reward-rules.js?v=16"></script>
+<script src="walk-stars.js?v=11"></script>
 <script src="steady-stamp.js?v=5"></script>
 <script src="walk-screen.js?v=5"></script>
 <script src="mock-server.js?v=2"></script>
@@ -364,16 +364,17 @@
       if (!window.WalsonStars) return;
       var S = WalsonStars, r = S.lastWalkStar(walks);
       if (!r.month) return;
-      var n = r.month.stars.length, d;
-      // 11/27 날 기준 — 걸은 날마다 별 하나, 보름이면 눈을 뜨고 25일 은하수, 하루도 안 빠지면 보름달. 다녀와서 적은 산책은 별이 없다
-      var M = r.month, title;
+      var d;
+      // 11/28 — 켜고 걸을 때마다 별 하나(하루 몇 번이든). 걸은 날 8일이면 별자리가 눈을 뜨고 15일 보름 · 25일 은하수 · 하루도 안 빠지면 보름달. 다녀와서 적은 산책은 별이 없다
+      var M = r.month, title, DAYS = S.DAYS || 8;
       if (r.got) {
-        title = M.allDays && r.index === M.dim - 1 ? '한 달 내내 걸었어요 — 보름달이 떴어요!' : r.index === (S.MILKY || 25) - 1 ? '25일째 — 은하수가 흘러요!'
-          : r.index === S.GOAL - 1 ? '보름을 채웠어요 — 별자리가 눈을 떴어요!' : r.dust ? '별 하나 더 떴어요' : '별 하나 떴어요';
-        d = row(STAR, false, title, S.starName() + ' ' + Math.min(n, S.GOAL) + '/' + S.GOAL + (M.days > S.GOAL ? ' · ' + M.days + '일' : '') + ' · ');
-        chip(r.dust ? '별가루' : '별 하나', true);
-      } else if (r.reason === 'brighter') {
-        d = row(STAR, true, '오늘 별이 더 밝아졌어요', '같은 날 또 걸으면 그 별이 밝아져요 · ' + S.starName() + ' ' + Math.min(n, S.GOAL) + '/' + S.GOAL + ' · ');
+        var ms = r.milestone || '';
+        title = ms === '보름달이 떴어요' ? '한 달 내내 걸었어요 — 보름달이 떴어요!' : ms === '은하수가 흘러요' ? '25일째 — 은하수가 흘러요!'
+          : ms === '보름을 채웠어요' ? '보름을 채웠어요 — 별자리가 반짝여요!' : ms === '눈을 떴어요' ? DAYS + '일째 — 별자리가 눈을 떴어요!'
+          : r.newDay ? '별 하나 떴어요' : '오늘 별이 하나 더 떴어요';
+        var sub = M.full ? '이번 달 별 ' + M.walks.length + '개 · ' + M.days + '일' : S.starName() + ' ' + Math.min(M.days, DAYS) + '/' + DAYS + '일';
+        d = row(STAR, false, title, sub + ' · ');
+        chip(r.newDay ? '별 하나' : '별 하나 더', true);
       } else if (r.reason === 'after') {
         row(STAR, true, '다녀와서 적은 산책은 별이 안 떠요', '다음엔 [산책 시작]을 누르고 걸으면 그날 별이 떠요');
         return;
