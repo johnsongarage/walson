@@ -1,7 +1,9 @@
 // 왈슨 그림 공장 — 강아지 사진(또는 견종 도트 그림) 한 장 → 3×2 동작 그림 한 장 (2026-11-28)
 // 칸: 위 줄 앉기1 · 걷기1 · 걷기2 / 아래 줄 자기 · 웃기 · 앉기2. 자르기·배경 빼기는 앱(브라우저)에서.
 // 걷기 두 장(11/28 라운드 b): 왼다리·오른다리로 말하면 그림 모델이 못 알아듣는다(라운드 a — 두 장이 거의 같고 무릎이 사람처럼 꺾임).
-//   다리 이름 대신 모양으로 — A 벌림(뒤집은 V) / B 모음(다리 넷이 배 밑에 곧게). 작은 도트 걸음은 이 두 장이 가장 또렷하다.
+//   그래서 자세 안내 그림(회색 마네킹 A·B, _dev/gait-guide.py → sian-ref/dog-sheet/gait-guide.png)을 두 번째 그림으로 같이 보낸다.
+//   앞다리끼리·뒷다리끼리 X자로 엇갈리고, A → B에서 네 다리가 다 바뀐다(가르시아 11/28 "뒷다리는 변동이 없고 앞다리 교차가 안 됨").
+//   안내 그림은 사이트에서 받아 온다 — 그림만 고쳐 올리면 함수를 다시 올리지 않아도 바뀐다. 못 받으면 글만으로 그린다.
 //
 // 비밀 값: GEMINI_API_KEY(Supabase Edge Function secrets에만 — 저장소·채팅·노트에 적지 않는다).
 // SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY는 Supabase가 함수에 저절로 넣어 준다.
@@ -13,9 +15,22 @@
 
 const MODEL = 'gemini-nano-banana-2.1';
 const ORIGINS = ['https://johnsongarage.co.kr', 'http://localhost', 'http://127.0.0.1'];
-const MAX_B64 = 3_000_000;   // 사진 약 2.2MB까지(앱이 1024px로 줄여 보낸다)
+const MAX_B64 = 3_000_000;
+const GUIDE_URL = 'https://johnsongarage.co.kr/walson/sian-ref/dog-sheet/gait-guide.png';
+let guide: { data: string; at: number } | null = null;
+async function guideB64(): Promise<string | null> {   // 10분 동안 기억
+  if (guide && Date.now() - guide.at < 600_000) return guide.data;
+  try {
+    const r = await fetch(GUIDE_URL + '?t=' + Math.floor(Date.now() / 600_000));
+    if (!r.ok) throw new Error(String(r.status));
+    const u = new Uint8Array(await r.arrayBuffer());
+    let bin = ''; for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
+    guide = { data: btoa(bin), at: Date.now() };
+    return guide.data;
+  } catch (e) { console.log('guide', String(e).slice(0, 100)); return null; }
+}   // 사진 약 2.2MB까지(앱이 1024px로 줄여 보낸다)
 
-const PROMPT = (breed: string) => `Use the dog in the attached image as the only character reference${breed ? ` (breed: ${breed})` : ''}.
+const PROMPT = (breed: string) => `Use the dog in the FIRST attached image as the only character reference${breed ? ` (breed: ${breed})` : ''}.
 Draw a sprite sheet of THIS SAME DOG: 3 columns x 2 rows, six equal cells.
 Keep the breed, coat colors, markings, ear shape, tail and any clothing exactly the same in every cell.
 Style: cute pixel art with chunky visible pixels and a dark outline, full body, side view facing right unless noted.
@@ -23,10 +38,14 @@ Every cell: one dog only, centered, the same size, feet on the same ground line,
 No grid lines, no text, no numbers, no frames, no ground shadow, no props.
 Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no texture. Never use that green on the dog.
 Row 1, cell 1: sitting, calm, facing right.
-Row 1, cell 2 - WALK FRAME A, legs OPEN: a walking step seen from the side. Both front legs reach forward ahead of the chest and both back legs stretch backward behind the hips, so the legs form a wide upside-down V. The distance from the front paws to the back paws is longer than the body.
-Row 1, cell 3 - WALK FRAME B, legs TOGETHER: the in-between step. All four legs point almost straight down, gathered under the body, with the front paws and back paws close together under the belly.
-Frames A and B are played one after the other as a walk cycle, so their legs must look completely different. Everything except the legs (head, ears, tail, body, size, position in the cell) stays identical between A and B.
-In both walk frames draw the far-side legs a little darker than the near-side legs. Use real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward; never bend a leg forward like a human knee.
+Row 1, cell 2 and cell 3 - WALKING, two frames that alternate as a walk cycle.
+The SECOND attached image is only a POSE GUIDE: two gray mannequin dogs, walk frame A on the left and walk frame B on the right.
+Light gray legs are the near-side legs, dark gray legs are the far-side legs. Put the dog's legs exactly where the mannequin's legs are:
+cell 2 = frame A, cell 3 = frame B. Copy only the leg positions - never the gray color, the simple shapes or the style of the guide.
+In both frames the two front legs cross each other like an X and the two back legs cross each other like an X.
+From A to B every leg swaps: each front leg and each back leg that is forward in A is back in B. The back legs must move as much as the front legs.
+Head, ears, tail, body, size and position in the cell stay identical between A and B; only the legs change.
+Draw the far-side legs a little darker than the near-side legs. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.
 Row 2, cell 1: sleeping, lying curled up, eyes closed.
 Row 2, cell 2: happy, standing, mouth open, tongue out, tail up.
 Row 2, cell 3: sitting, head tilted, looking at the viewer.`;
@@ -79,11 +98,16 @@ Deno.serve(async (req) => {
   const id = Number(t.slice(3));
 
   try {
+    const g = await guideB64();
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: PROMPT(breed) }, { inline_data: { mime_type: mime, data: image } }] }],
+        contents: [{ role: 'user', parts: [
+          { text: PROMPT(breed) },
+          { inline_data: { mime_type: mime, data: image } },
+          ...(g ? [{ inline_data: { mime_type: 'image/png', data: g } }] : []),
+        ] }],
         generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:2', imageSize: '1K' } },
       }),
     });
