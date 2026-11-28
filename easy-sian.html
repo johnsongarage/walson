@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>쉬운 왈슨 · 시안</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=4">
+<meta name="theme-color" content="#fffdfd">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  /* 쉬운 왈슨 시안(2026-11-28 가르시아 현장 인터뷰 — "지금 만든 기능을 그분더러 쓰라면 절대 못 쓸 것 같아 · 50대도 쓰기 편한 단순한 앱이어야 할지도" → "그래 줘").
+     공원에서 견주에게 휴대폰을 건네고 설명 없이 세 가지를 시켜 본다: ① 산책 시작 ② 산책 끝 ③ 가족에게 오늘 산책 보내기.
+     화면은 셋뿐: 처음(큰 [산책 시작] 하나) → 걷는 중(큰 시간 · 큰 [산책 끝]) → 끝(오늘 카드 한 장 · 큰 [가족에게 보내기]).
+     글자 18px 이상, 버튼은 엄지로 누르기 넉넉하게, 말은 설명 없이 아는 말만. 시안이라 진짜 산책 기록(petwalk_walks)에는 쓰지 않는다 —
+     이 화면 칸(walson_easy_sian)에만. 위치도 쓰지 않는다(시간만). */
+  :root {
+    --bg: #fff6e2; --panel: #fffdf8; --panel-border: #efdcc0; --ink: #3a2e26; --ink-soft: #6f6052; --accent: #e2457f; --hl: #ffe1ec;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+    font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-size: 18px; -webkit-text-size-adjust: 100%; }
+  body { padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  .wrap { max-width: 480px; margin: 0 auto; min-height: calc(100vh - 40px); display: flex; flex-direction: column; }
+  .scr { display: flex; flex-direction: column; flex: 1; gap: 18px; }
+  .scr[hidden], [hidden] { display: none !important; }
+  .top { display: flex; align-items: center; justify-content: space-between; font-size: 16px; color: var(--ink-soft); }
+  .top b { font-size: 20px; font-weight: 900; color: var(--ink); }
+  .top button { font: inherit; font-size: 16px; background: none; border: 0; color: var(--ink-soft); text-decoration: underline; padding: 8px; }
+  h1 { font-size: 30px; line-height: 1.3; font-weight: 900; margin: 6px 0 0; letter-spacing: -0.02em; word-break: keep-all; }
+  .lead { font-size: 19px; line-height: 1.55; color: var(--ink-soft); margin: 0; word-break: keep-all; }
+  .dog { width: 46%; max-width: 200px; aspect-ratio: 1; margin: 6px auto 0; border-radius: 50%; background: var(--panel) center / 86% no-repeat;
+    border: 3px solid var(--panel-border); }
+  .today { text-align: center; font-size: 19px; color: var(--ink-soft); margin: 0; }
+  .today b { color: var(--ink); font-size: 24px; }
+  .spacer { flex: 1; }
+  .big { width: 100%; min-height: 84px; border: 0; border-radius: 22px; background: var(--accent); color: #fff; font: inherit; font-size: 28px; font-weight: 900;
+    letter-spacing: -0.01em; box-shadow: 0 6px 0 #b8295e; cursor: pointer; }
+  .big:active { transform: translateY(3px); box-shadow: 0 3px 0 #b8295e; }
+  .big.soft { background: var(--panel); color: var(--ink); box-shadow: 0 4px 0 var(--panel-border); border: 2px solid var(--panel-border); font-size: 22px; min-height: 68px; }
+  .big.kakao { background: #fee500; color: #191600; box-shadow: 0 6px 0 #c9b500; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .big { font-size: 22px; min-height: 72px; }
+  label.f { display: block; font-size: 20px; font-weight: 800; margin: 4px 0 8px; }
+  input.f { width: 100%; font: inherit; font-size: 24px; padding: 16px; border-radius: 16px; border: 2px solid var(--panel-border); background: var(--panel); color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chips button { font: inherit; font-size: 20px; font-weight: 800; padding: 14px 18px; border-radius: 16px; border: 2px solid var(--panel-border); background: var(--panel); color: var(--ink); min-width: 30%; flex: 1; }
+  .chips button[aria-pressed="true"] { border-color: var(--accent); background: var(--hl); }
+  .timer { text-align: center; font-size: 76px; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 10px 0 0; }
+  .walking { text-align: center; font-size: 22px; font-weight: 800; margin: 0; }
+  .paw { text-align: center; font-size: 46px; animation: bob 1.2s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-8px); } }
+  @media (prefers-reduced-motion: reduce) { .paw { animation: none; } }
+  .card { width: 100%; border-radius: 18px; overflow: hidden; box-shadow: 0 6px 18px rgba(58, 46, 38, .18); }
+  .card canvas { display: block; width: 100%; height: auto; }
+  .ask { background: var(--panel); border: 2px solid var(--panel-border); border-radius: 20px; padding: 18px; text-align: center; }
+  .ask p { margin: 0 0 14px; font-size: 22px; font-weight: 800; }
+  .demo { text-align: center; font-size: 14px; color: var(--ink-soft); }
+  .demo button { font: inherit; font-size: 14px; background: none; border: 0; color: var(--ink-soft); text-decoration: underline; padding: 6px; }
+  .msg { background: var(--panel); border: 2px dashed var(--panel-border); border-radius: 16px; padding: 14px; font-size: 18px; line-height: 1.5; margin: 0; word-break: keep-all; }
+</style>
+<script src="store.js?v=2"></script>
+<link rel="stylesheet" href="theme-black.css?v=1"><script src="theme.js?v=15"></script>
+<script src="site-config.js?v=12"></script>
+<script src="device.js?v=1"></script>
+<script src="save-image.js?v=4"></script>
+<script src="canvas-view.js?v=1"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 0. 처음 한 번 — 강아지 이름 · 나는 누구 -->
+  <section class="scr" id="s-setup" hidden>
+    <h1>반가워요!<br>강아지 이름이 뭐예요?</h1>
+    <div><input class="f" id="in-name" maxlength="10" placeholder="예: 콩이" autocomplete="off"></div>
+    <div>
+      <label class="f">가족에게 보낼 때 나는</label>
+      <div class="chips" id="who"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="big" type="button" id="setup-ok">다 했어요</button>
+  </section>
+
+  <!-- 1. 처음 화면 — 큰 버튼 하나 -->
+  <section class="scr" id="s-home" hidden>
+    <div class="top"><b>왈슨</b><button type="button" id="edit">이름 바꾸기</button></div>
+    <h1 id="hi">콩이랑 산책 갈까요?</h1>
+    <div class="dog" id="dog"></div>
+    <p class="today" id="today">오늘 아직 안 걸었어요</p>
+    <div class="spacer"></div>
+    <button class="big" type="button" id="start">산책 시작</button>
+  </section>
+
+  <!-- 2. 걷는 중 — 큰 시간 · 큰 [산책 끝] -->
+  <section class="scr" id="s-walk" hidden>
+    <p class="walking" id="walking">콩이랑 걷는 중</p>
+    <div class="timer" id="timer">0:00</div>
+    <div class="paw" aria-hidden="true">🐾</div>
+    <p class="lead" style="text-align:center">휴대폰은 주머니에 넣어도 돼요.<br>시간은 계속 세요.</p>
+    <div class="spacer"></div>
+    <div class="ask" id="ask" hidden>
+      <p>산책을 끝낼까요?</p>
+      <div class="row2"><button class="big soft" type="button" id="keep">더 걸을래요</button><button class="big" type="button" id="end-yes">끝내기</button></div>
+    </div>
+    <button class="big" type="button" id="end">산책 끝</button>
+    <div class="demo"><button type="button" id="demo30">시연용: 30분 걸은 걸로</button></div>
+  </section>
+
+  <!-- 3. 끝 — 오늘 카드 · 가족에게 보내기 -->
+  <section class="scr" id="s-done" hidden>
+    <h1 id="done-t">오늘 32분 걸었어요!</h1>
+    <div class="card" id="card"></div>
+    <p class="msg" id="msg"></p>
+    <button class="big kakao" type="button" id="send">가족에게 보내기</button>
+    <button class="big soft" type="button" id="home">처음으로</button>
+  </section>
+
+</div>
+<script>
+(function () {
+  var KEY = 'walson_easy_sian';
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function store(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) { /* 저장 못 해도 이 화면은 그대로 */ } }
+  var S = load();
+  var $ = function (id) { return document.getElementById(id); };
+  var WHO = ['엄마', '아빠', '할머니', '할아버지', '언니·누나', '형·오빠', '나'];
+  function show(id) { ['s-setup', 's-home', 's-walk', 's-done'].forEach(function (s) { $(s).hidden = s !== id; }); window.scrollTo(0, 0); }
+  function josa(w, a, b) { var c = w.charCodeAt(w.length - 1); return w + ((c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28) ? a : b); }
+  function dayKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function todOf(h) { return h < 5 ? '새벽' : h < 11 ? '아침' : h < 17 ? '낮' : h < 20 ? '저녁' : '밤'; }
+
+  // ── 0. 처음 한 번 ──
+  var who = S.who || '';
+  function fillWho() {
+    var box = $('who'); box.innerHTML = '';
+    WHO.forEach(function (w) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = w; b.setAttribute('aria-pressed', w === who ? 'true' : 'false');
+      b.addEventListener('click', function () { who = w; fillWho(); });
+      box.appendChild(b);
+    });
+  }
+  function setup() { $('in-name').value = S.name || ''; fillWho(); show('s-setup'); }
+  $('setup-ok').addEventListener('click', function () {
+    var n = $('in-name').value.trim();
+    if (!n) { $('in-name').focus(); $('in-name').placeholder = '이름을 적어 주세요'; return; }
+    S.name = n.slice(0, 10); S.who = who || '나'; store(S); home();
+  });
+
+  // ── 1. 처음 화면 ──
+  function home() {
+    var n = S.name;
+    $('hi').textContent = josa(n, '이랑', '랑') + ' 산책 갈까요?';
+    $('dog').style.backgroundImage = 'url(icons/dot-dogs/maltese.webp?v=6)';
+    var t = S.today && S.today.day === dayKey(new Date()) ? S.today.min : 0;
+    $('today').innerHTML = t ? '오늘 <b>' + t + '분</b> 걸었어요' : '오늘 아직 안 걸었어요';
+    if (S.walk) return walking();
+    show('s-home');
+  }
+  $('edit').addEventListener('click', setup);
+  $('start').addEventListener('click', function () { S.walk = { at: Date.now() }; store(S); walking(); });
+
+  // ── 2. 걷는 중 ──
+  var tick = 0;
+  function fmt(ms) { var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+    return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (x < 10 ? '0' : '') + x; }
+  function walking() {
+    $('walking').textContent = josa(S.name, '이랑', '랑') + ' 걷는 중';
+    $('ask').hidden = true; $('end').hidden = false;
+    show('s-walk');
+    clearInterval(tick);
+    var f = function () { if (S.walk) $('timer').textContent = fmt(Date.now() - S.walk.at); };
+    f(); tick = setInterval(f, 500);
+  }
+  $('end').addEventListener('click', function () { $('ask').hidden = false; $('end').hidden = true; });
+  $('keep').addEventListener('click', function () { $('ask').hidden = true; $('end').hidden = false; });
+  $('end-yes').addEventListener('click', function () { finish(Date.now()); });
+  $('demo30').addEventListener('click', function () { if (S.walk) { S.walk.at = Date.now() - 32 * 60000; store(S); finish(Date.now()); } });
+
+  function finish(endAt) {
+    clearInterval(tick);
+    var at = S.walk ? S.walk.at : endAt, min = Math.max(1, Math.round((endAt - at) / 60000));
+    var d = new Date(at), key = dayKey(d);
+    if (!S.today || S.today.day !== key) S.today = { day: key, min: 0, n: 0 };
+    S.today.min += min; S.today.n++;
+    S.last = { at: at, min: min };
+    S.walk = null; store(S);
+    done();
+  }
+
+  // ── 3. 끝 — 오늘 카드 ──
+  var big = null;
+  function message() {
+    var L = S.last, d = new Date(L.at), w = S.who && S.who !== '나' ? S.who : '';
+    return '오늘 ' + todOf(d.getHours()) + ' ' + (w ? josa(w, '이랑', '랑') + ' ' : '') + S.name + ' ' + L.min + '분 산책했어요 🐾';
+  }
+  function drawCard() {
+    var L = S.last, d = new Date(L.at), W = 1080, H = 1080, c = document.createElement('canvas'); c.width = W; c.height = H;
+    var g = c.getContext('2d'), font = 'Pretendard, "Apple SD Gothic Neo", sans-serif', b = (window.WALSON_CONFIG && WALSON_CONFIG.brand) || { name: 'WALSON', tagline: '당신과 강아지의 유의미한 산책' };
+    var grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, '#1b1f4b'); grd.addColorStop(1, '#3b2a63'); g.fillStyle = grd; g.fillRect(0, 0, W, H);
+    for (var k = 0; k < 120; k++) { var x = (k * 397) % W, y = (k * 613) % (H * 0.62); g.fillStyle = 'rgba(255,255,255,' + (0.25 + (k % 5) * 0.12) + ')'; g.beginPath(); g.arc(x, y, 1.5 + (k % 3), 0, 7); g.fill(); }
+    // 큰 별 — 시간대 색
+    var h = d.getHours(), col = h < 11 ? '#ffd24a' : h < 17 ? '#fff1a8' : h < 20 ? '#ff9cc6' : '#a7cdff';
+    var cx = W / 2, cy = 330, R = 120 + Math.min(80, L.min * 2);
+    var gl = g.createRadialGradient(cx, cy, 0, cx, cy, R * 2.2); gl.addColorStop(0, col); gl.addColorStop(0.25, 'rgba(255,255,255,0.35)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gl; g.fillRect(0, 0, W, H);
+    g.fillStyle = col; g.beginPath();
+    for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.45 : R; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    g.closePath(); g.fill();
+    g.textAlign = 'center'; g.fillStyle = '#fff';
+    g.font = '900 120px ' + font; g.fillText(L.min + '분', W / 2, 660);
+    g.font = '800 54px ' + font; g.fillText((d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + todOf(h) + ' 산책', W / 2, 750);
+    g.font = '700 50px ' + font; g.fillStyle = '#ffd9e8'; g.fillText(josa(S.name, '이와', '와') + ' 함께 걸었어요', W / 2, 830);
+    g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '900 40px ' + font; g.fillText(b.name, W / 2, 970);
+    g.font = '600 32px ' + font; g.fillText(b.tagline, W / 2, 1020);
+    return c;
+  }
+  function done() {
+    var L = S.last;
+    $('done-t').textContent = '오늘 ' + L.min + '분 걸었어요!';
+    big = drawCard();
+    var box = $('card'); box.innerHTML = '';
+    var v = document.createElement('canvas'); box.appendChild(v);
+    show('s-done');
+    if (window.WalsonView) WalsonView.show(v, big); else { v.width = big.width; v.height = big.height; v.getContext('2d').drawImage(big, 0, 0); }
+    $('msg').textContent = message();
+  }
+  $('send').addEventListener('click', function () {
+    var text = message();
+    if (window.WalsonSave && WalsonSave.share) WalsonSave.share(big, 'walson-walk.png', text);
+    else alert(text);
+  });
+  $('home').addEventListener('click', home);
+
+  if (!S.name) setup(); else home();
+})();
+</script>
+</body>
+</html>
