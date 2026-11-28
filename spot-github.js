@@ -227,7 +227,16 @@
     });
   }
 
+  // 파일 하나를 통째로 다시 쓴다(11/28 모델하우스 배치 showrooms-data.js — azit.html?house=edit).
+  // 지금 main의 그 파일 sha를 받아 그 위에 커밋 하나. 그 사이 누가 바꿨어도 받은 sha 기준이라 GitHub가 막지 않는다(파일 하나라 마지막 저장이 이김).
+  function putFile(path, text, message) {
+    return gh('GET', '/contents/' + path + '?ref=' + BRANCH).catch(function () { return {}; }).then(function (f) {
+      var body = { message: message, content: utf8ToB64(text), branch: BRANCH };
+      if (f && f.sha) body.sha = f.sha;
+      return gh('PUT', '/contents/' + path, body);
+    });
+  }
   window.SpotGitHub = {
-    OWNER: OWNER, REPO: REPO, parseData: parseData, buildData: buildData, hasToken: hasToken, setToken: setToken, check: check, load: load, publish: publish
+    OWNER: OWNER, REPO: REPO, parseData: parseData, buildData: buildData, hasToken: hasToken, setToken: setToken, check: check, load: load, publish: publish, putFile: putFile
   };
 })();

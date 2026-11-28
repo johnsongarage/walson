@@ -471,7 +471,8 @@
 <script src="spots-data.js"></script>
 <script src="reward-rules.js?v=15"></script>
 <script src="dex-card.js?v=6"></script>
-<script src="azit-room.js?v=27"></script>
+<script src="showrooms-data.js?v=1"></script>
+<script src="azit-room.js?v=28"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
@@ -992,6 +993,65 @@
   if (!state.dog || state.dogAuto) { state.dog = AZ.myDog(state, null); state.dogAuto = true; }
   function save() { if (!AZ.saveState(state)) toast('저장하지 못했어요. 저장 공간을 확인해 주세요.'); }
 
+  // ── 관리자: 모델하우스 꾸미기(2026-11-28 가르시아 "방별로 정교하게 배치 · 그 방 내용 수정을 내가 할 수 있도록 · 유저는 못 보게") ──
+  // azit.html?house=edit#room=번호 — 운영자 기기(스팟 편집과 같은 GitHub 토큰 petwalk_admin_token이 있는 브라우저)에서만 열린다. 토큰이 없으면 보통 아지트.
+  // 모델하우스 한 채를 "내 방" 자리에 불러와 평소처럼 꾸민다(끌어 옮기기·소품 넣고 빼기·벽지·강아지·머리 장식·팻말 방향 — 모든 소품이 열린 상태).
+  // 이 동안 save()는 이 휴대폰 아지트에 쓰지 않는다(편집 중 표시만). [저장소에 저장] = showrooms-data.js를 통째로 다시 써서 main에 커밋
+  // (spot-github.js putFile) → 몇 분 뒤 모든 사람의 모델하우스에. 손으로 만들 땐 _dev/showrooms-write.py.
+  var HE = (function houseEdit() {
+    if (!/[?&]house=edit/.test(location.search)) return null;
+    var tok = ''; try { tok = localStorage.getItem('petwalk_admin_token') || ''; } catch (e) { tok = ''; }
+    if (!tok) return null;
+    window.__walsonHouseEdit = true;
+    var sc = document.createElement('script'); sc.src = 'spot-github.js?v=6'; document.head.appendChild(sc);
+    var rooms = AZ.SHOWROOMS.map(function (r) {
+      return { id: r.id, name: r.name, owner: r.owner, dog: r.dog, theme: r.theme, acc: r.acc, level: r.level, line: r.line,
+        dogs: r.dogs, pos: JSON.parse(JSON.stringify(r.pos)), turn: JSON.parse(JSON.stringify(r.turn || {})) };
+    });
+    var orig = JSON.stringify(rooms);
+    var hm = /room=(\d+)/.exec(location.hash), k = hm ? Math.max(0, Math.min(rooms.length - 1, +hm[1])) : 0, dirty = false;
+    var full = {}; for (var f in prog) full[f] = prog[f];
+    ['walks', 'rankWalks', 'stamps', 'shop', 'steady', 'photos', 'poop', 'keyring', 'park', 'steady5', 'pals', 'night', 'winter', 'long', 'sniff', 'pass']
+      .forEach(function (f) { full[f] = 999; });
+    full.level = 3; full.rank = AZ.rankName(3);
+    prog = full;
+    function load(i) {
+      var r = rooms[i]; k = i;
+      state = { dog: r.dog, dogAuto: false, photoDog: null, dogPhoto: false, theme: r.theme, acc: r.acc, pos: {}, hidden: [], turn: JSON.parse(JSON.stringify(r.turn || {})),
+        seen: AZ.ITEMS.map(function (it) { return it.id; }).concat(AZ.ACCS.map(function (a) { return a.id; })), mood: '', moodDay: '', lampOn: false, undo: null };
+      AZ.ITEMS.forEach(function (it) {
+        var p = r.pos[it.id];
+        if (!p) state.hidden.push(it.id); else if (!it.corner) state.pos[it.id] = JSON.parse(JSON.stringify(p));
+      });
+    }
+    function r1(v) { return Math.round(v * 10) / 10; }
+    function sync() {   // 지금 꾸민 방 → rooms[k]
+      var r = rooms[k], pos = {};
+      AZ.ITEMS.forEach(function (it) {
+        if (state.hidden.indexOf(it.id) >= 0) return;
+        var p = state.pos[it.id];
+        if (it.corner) pos[it.id] = { corner: 1 };
+        else if (p && p.wall) pos[it.id] = { wall: p.wall, u: r1(p.u), h: r1(p.h) };
+        else if (p && p.shelf != null) pos[it.id] = { shelf: p.shelf };
+        else if (p && isFinite(p.i)) pos[it.id] = { i: r1(p.i), j: r1(p.j) };
+        else pos[it.id] = it.wall ? { wall: it.wall, u: it.u, h: it.h } : it.sh != null ? { shelf: it.sh } : { i: it.i, j: it.j };
+      });
+      r.pos = pos; r.dog = state.dog; r.theme = state.theme; r.acc = state.acc; r.turn = JSON.parse(JSON.stringify(state.turn || {}));
+    }
+    function fileText() {
+      sync();
+      return '// 왈슨 모델하우스(예시 방) 배치 — 자동 생성 파일.\n' +
+        '// 관리자 편집(azit.html?house=edit — GitHub 토큰이 있는 운영자 기기에서만 편집 막대가 뜸)이 이 파일을 통째로 다시 쓴다.\n' +
+        '// 자리: {i, j} 바닥(i = 오른쪽 벽 따라, j = 왼쪽 벽 따라) · {wall: R|L, u, h} 벽 · {shelf: 0~5} 선반 · {corner: 1} 가랜드.\n' +
+        '// 이 파일이 없거나 깨졌으면 azit-room.js 안의 기본 배치를 쓴다.\n' +
+        'window.WALSON_SHOWROOMS = [\n' + rooms.map(function (r) { return '  ' + JSON.stringify(r); }).join(',\n') + '\n];\n';
+    }
+    load(k);
+    return { rooms: rooms, load: load, sync: sync, fileText: fileText, k: function () { return k; }, orig: orig,
+      dirty: function (v) { if (v != null) dirty = v; return dirty; } };
+  })();
+  if (HE) save = function () { HE.dirty(true); var b = document.getElementById('he-status'); if (b) b.textContent = '고친 것 있음 — 저장소에 저장하면 모두에게 보여요'; };
+
   // ── 우리 개 = 워킹패스 사진 도트(11/24 가르시아 "나의 워킹패스를 가져와서 고를 수 있게도 해 줘") ──
   // 워킹패스 사진(맞추기 전 원본이 있으면 원본)에서 강아지만 찾아(photo-dot.js — 배경 지운 PNG면 그대로, 보통 사진이면 MediaPipe 모델을
   // 받아 와서) 1칸 = 방 1점인 작은 도트 그림으로 만든다. 누를 때만 만든다(모델 받기가 무거워서). 사진은 이 휴대폰 안에서만 다루고,
@@ -1104,7 +1164,7 @@
   function showModel(k) {
     var s = AZ.SHOWROOMS[k];
     return { me: false, show: true, sr: s, name: s.owner, dog: s.dog, theme: s.theme, acc: s.acc, level: s.level, rank: AZ.rankName(s.level),
-      items: s.items.slice(), pos: s.pos, open: true };
+      items: s.items.slice(), pos: s.pos, turn: s.turn || {}, open: true };
   }
   function modelOf(v) { return v === -1 ? meModel() : v <= -2 ? showModel(-2 - v) : friendModel(friends[v]); }
   function refreshModel() { cur = modelOf(view); staticDirty = true; }
@@ -1869,6 +1929,7 @@
       setSign([o.rank, '예시 방']);
     } else {
       $('title').textContent = o.me && !myName ? '우리 개 산책 아지트' : o.name + '네 산책 아지트';
+      if (HE && o.me) { var hr = HE.rooms[HE.k()]; $('title').textContent = '모델하우스 편집 · ' + hr.name; }
       $('sub').textContent = o.me ? (myName ? '내 아지트' : '워킹패스를 만들면 우리 개 이름이 붙어요') : '마실 중 · ' + walker + ' 손님으로 놀러 왔어요';
       $('count').textContent = o.me ? '산책 ' + prog.rankWalks + '번' : (o.entry.days || 1) + '번 만남';
       var ra = o.me ? '' : (o.entry.roomAt || '');
@@ -2819,11 +2880,77 @@
   if (!fromHash()) ui();
   fcSync();   // 친구 방·방명록을 켰으면 열 때마다 한 번 맞추기(서로 넣은 친구의 지금 방 · 새 방명록)
   Promise.all([picsReady, dogsReady, photoReady]).then(function () { dogCache = {}; fillCache = {}; refreshModel(); ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시(워킹패스 사진 도트도)
+  // ── 관리자 모델하우스 편집 막대(HE — 위 houseEdit) ── 방 고르기 · 이름 · 한 줄 · 등급 · 새 방 · 지우기 · 저장소에 저장 · 글자 복사
+  (function heBar() {
+    if (!HE) return;
+    var bar = el('div', 'he-bar'); bar.id = 'he-bar';
+    var st = document.createElement('style');
+    st.textContent = '.he-bar{position:relative;background:var(--panel);border:2px solid var(--accent);border-radius:14px;padding:10px;margin:8px 0 10px;font-size:13px;}' +
+      '.he-bar b{display:block;font-size:14px;margin-bottom:6px}.he-bar .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0}' +
+      '.he-bar input,.he-bar select{font:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--panel-border);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0;flex:1}' +
+      '.he-bar button{font:inherit;font-size:13px;font-weight:800;padding:7px 10px;border-radius:9px;border:1px solid var(--panel-border);background:var(--bg);color:var(--ink);cursor:pointer}' +
+      '.he-bar button.main{background:var(--accent);color:var(--panel);border-color:var(--accent)}.he-bar small{color:var(--ink-soft);display:block;margin-top:4px;line-height:1.5}';
+    document.head.appendChild(st);
+    bar.innerHTML = '<b>관리자 · 모델하우스 편집</b>' +
+      '<div class="row"><select id="he-room"></select><button type="button" id="he-new">＋ 새 방</button><button type="button" id="he-del">이 방 지우기</button></div>' +
+      '<div class="row"><input id="he-name" maxlength="30" placeholder="방 이름"><select id="he-level"></select></div>' +
+      '<div class="row"><input id="he-line" maxlength="40" placeholder="한 줄 설명 (예: 산책 30번이면 이렇게 돼요)"></div>' +
+      '<div class="row"><button type="button" class="main" id="he-save">저장소에 저장</button><button type="button" id="he-copy">글자로 복사</button><button type="button" id="he-reset">처음 불러온 대로</button></div>' +
+      '<small id="he-status">방에서 소품을 끌어 옮기고, 아래 [꾸미기]에서 소품 넣고 빼기·벽지·강아지·머리 장식을 고르세요.</small>' +
+      '<small>저장하면 몇 분 뒤 모든 사람의 모델하우스에 보여요. 이 화면에서 고친 것은 이 휴대폰 아지트에 저장되지 않아요.</small>';
+    var host = document.querySelector('main') || document.body;
+    host.insertBefore(bar, host.firstChild);
+    var R = HE.rooms;
+    function fillRooms() {
+      var sel = $('he-room'); sel.innerHTML = '';
+      R.forEach(function (r, i) { var o = document.createElement('option'); o.value = i; o.textContent = (i + 1) + '. ' + r.name; sel.appendChild(o); });
+      sel.value = HE.k();
+    }
+    var lv = $('he-level');
+    [0, 1, 2, 3].forEach(function (l) { var o = document.createElement('option'); o.value = l; o.textContent = '등급 표시: ' + AZ.rankName(l); lv.appendChild(o); });
+    function fillFields() { var r = R[HE.k()]; $('he-name').value = r.name; $('he-line').value = r.line || ''; lv.value = r.level; }
+    function show() { fillRooms(); fillFields(); refreshModel(); ui(); try { history.replaceState(null, '', location.pathname + location.search + '#room=' + HE.k()); } catch (e) { /* 무시 */ } }
+    function status(t) { $('he-status').textContent = t; }
+    $('he-room').addEventListener('change', function () { HE.sync(); HE.load(+this.value); show(); });
+    $('he-name').addEventListener('input', function () { R[HE.k()].name = this.value.trim() || '왈슨의 방'; fillRooms(); save(); refreshModel(); ui(); });
+    $('he-line').addEventListener('input', function () { R[HE.k()].line = this.value.trim(); save(); });
+    lv.addEventListener('change', function () { R[HE.k()].level = +this.value; save(); });
+    $('he-new').addEventListener('click', function () {
+      HE.sync();
+      var c = JSON.parse(JSON.stringify(R[HE.k()]));
+      c.id = 'room' + Date.now().toString(36).slice(-5); c.name = c.name + ' (복사)';
+      R.push(c); HE.load(R.length - 1); save(); show(); status('지금 방을 복사해 새 방을 만들었어요. 꾸미고 저장소에 저장하세요.');
+    });
+    $('he-del').addEventListener('click', function () {
+      if (R.length <= 1) { status('방이 하나뿐이라 지울 수 없어요.'); return; }
+      if (!confirm('"' + R[HE.k()].name + '"을(를) 모델하우스에서 지울까요?\n저장소에 저장해야 모두에게서 사라져요.')) return;
+      R.splice(HE.k(), 1); HE.load(Math.max(0, HE.k() - 1)); save(); show();
+    });
+    $('he-reset').addEventListener('click', function () {
+      if (!confirm('이번에 고친 것을 모두 버리고 처음 불러온 배치로 돌릴까요?')) return;
+      var o = JSON.parse(HE.orig); R.length = 0; o.forEach(function (r) { R.push(r); }); HE.load(0); HE.dirty(false); show(); status('처음 불러온 배치로 돌렸어요.');
+    });
+    $('he-copy').addEventListener('click', function () {
+      var t = HE.fileText();
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { status('showrooms-data.js 내용을 복사했어요.'); },
+        function () { prompt('복사해 두세요(showrooms-data.js 내용)', t); });
+    });
+    $('he-save').addEventListener('click', function () {
+      if (!window.SpotGitHub || !SpotGitHub.putFile) { status('저장 도구를 불러오는 중이에요. 잠시 뒤 다시 눌러 주세요.'); return; }
+      var btn = this; btn.disabled = true; status('저장소에 올리는 중…');
+      SpotGitHub.putFile('showrooms-data.js', HE.fileText(), '[아지트] 모델하우스 배치 고침(관리자 편집 — ' + R[HE.k()].name + ')').then(function () {
+        HE.dirty(false); status('저장했어요. 몇 분 뒤 모든 사람의 모델하우스에 보여요(휴대폰엔 새로고침 뒤).');
+      }, function (e) { status('저장하지 못했어요: ' + (e && e.message ? e.message : e)); }).then(function () { btn.disabled = false; });
+    });
+    window.addEventListener('beforeunload', function (e) { if (HE.dirty()) { e.preventDefault(); e.returnValue = ''; } });
+    show();
+  })();
+
   // ── 처음 온 사람 첫 만남(11/27 가르시아 "유입 경로에 따라 첫 화면을 다르게" — index.html이 끝낸 산책이 없는 사람을 ?first=1로 보냄) ──
   // ① 이름이 없으면 이름·견종(비슷한 도트 강아지) → 워킹패스 프로필에 이름·견종만 저장(사진·카드 번호는 나중에 [워킹패스]에서) → 다시 열기
   // ② 방에 우리 개가 있고 "산책 가자!" + [산책 나가기](go.html — 위치는 거기서 따로 묻는다). 첫 산책을 끝내면 index.html이 더는 여기로 안 보낸다
   (function firstMeet() {
-    var m = /[?&]first=(\d)/.exec(location.search); if (!m) return;
+    var m = /[?&]first=(\d)/.exec(location.search); if (!m || HE) return;
     var card = $('firstcard'), named = !!(profile && profile.name);
     var BREEDS = [['포메', 'pom'], ['푸들', 'poodle'], ['말티즈', 'maltese'], ['치와와', 'chihuahua'], ['닥스훈트', 'dachs'], ['진돗개', 'jindo'], ['시바', 'shiba'], ['비숑', 'bichon'], ['골든 리트리버', 'golden'], ['그 밖·잘 몰라요', '']];
     var pick = null;

@@ -417,6 +417,28 @@
         'cushion_blue', 'cushion_pink', 'bone', 'rope', 'ball_tennis', 'ball_watermelon', 'ball_spiky', 'ball_pastel', 'rug'],
         { frame_gold: { wall: 'L', u: 26, h: 96 }, frame_dog: { wall: 'L', u: 40, h: 97 }, bonsai: { i: 3, j: 58 } }) }
   ];
+  // 11/28 가르시아 "방 내용 수정을 내가 할 수 있게, 유저는 못 보게" — 배치는 showrooms-data.js(window.WALSON_SHOWROOMS)에서.
+  // 관리자 편집(azit.html?house=edit)이 그 파일을 저장소에 다시 쓴다. 파일이 없거나 방 모양이 이상하면 위 기본 배치를 그대로 쓴다.
+  (function useData(list) {
+    if (!Array.isArray(list) || !list.length) return;
+    var ok = list.map(function (r) {
+      if (!r || typeof r.id !== 'string' || !r.pos || typeof r.pos !== 'object') return null;
+      var pos = {};
+      Object.keys(r.pos).forEach(function (id) {
+        var it = byId(ITEMS, id), p = r.pos[id];
+        if (!it || !p || typeof p !== 'object') return;
+        if (it.corner) pos[id] = { corner: 1 };
+        else if (it.wall && (p.wall === 'R' || p.wall === 'L') && isFinite(p.u) && isFinite(p.h)) pos[id] = { wall: p.wall, u: +p.u, h: +p.h };
+        else if (it.shelf && p.shelf != null && SHELVES[p.shelf]) pos[id] = { shelf: +p.shelf };
+        else if (!it.wall && isFinite(p.i) && isFinite(p.j)) pos[id] = { i: +p.i, j: +p.j };
+      });
+      var d = r.dogs && r.dogs.host && r.dogs.guest ? r.dogs : { host: [40, 34], guest: [58, 30] };
+      return { id: r.id.slice(0, 20), name: String(r.name || '왈슨의 방').slice(0, 30), owner: String(r.owner || '왈슨').slice(0, 12),
+        dog: byId(DOGS, r.dog) ? r.dog : 'chihuahua', theme: THEMES.indexOf(r.theme) >= 0 ? r.theme : 'jelly', acc: cleanAcc(r.acc || ''),
+        level: Math.max(0, Math.min(3, parseInt(r.level, 10) || 0)), line: String(r.line || '').slice(0, 40), dogs: d, pos: pos, turn: cleanTurn(r.turn) };
+    }).filter(function (r) { return r && Object.keys(r.pos).length; });
+    if (ok.length) SHOWROOMS = ok;
+  })(window.WALSON_SHOWROOMS);
   // 방마다 놓은 소품 = pos에 자리가 있는 것(소품 순서대로)
   SHOWROOMS.forEach(function (s) { s.items = ITEMS.filter(function (it) { return s.pos[it.id]; }).map(function (it) { return it.id; }); });
   function copyPosOf(pos) { var o = {}; Object.keys(pos).forEach(function (k) { var p = pos[k], c = {}; for (var f in p) c[f] = p[f]; o[k] = c; }); return o; }
@@ -556,7 +578,7 @@
     var saved = null;
     try { saved = WalsonStore.getJSON ? WalsonStore.getJSON(KEPT_KEY) : JSON.parse(localStorage.getItem(KEPT_KEY) || 'null'); } catch (e) { saved = null; }
     if (Array.isArray(saved)) return (keptCache = saved);
-    if (WalsonStore.sampleOn && WalsonStore.sampleOn()) return [];
+    if (window.__walsonHouseEdit || (WalsonStore.sampleOn && WalsonStore.sampleOn())) return [];
     var lp = null; try { lp = legacyProgress(); } catch (e) { lp = null; }
     if (!lp) return [];
     var ids = ITEMS.filter(function (it) { return met(it.need, lp); }).map(function (it) { return it.id; });
@@ -569,7 +591,8 @@
     var ids = ITEMS.filter(function (it) { return met(it.need, p) || kept.indexOf(it.id) >= 0; }).map(function (it) { return it.id; });
     // 한 번 받은 소품은 남긴다 — 베타(조건 완화)가 끝나도, 보상표를 고쳐도 사라지지 않게. 샘플을 켠 동안은 남기지 않음
     var add = ids.filter(function (id) { return kept.indexOf(id) < 0; });
-    if (add.length && !(WalsonStore.sampleOn && WalsonStore.sampleOn())) {
+    // 관리자 모델하우스 편집(azit.html?house=edit — 모든 소품을 연 가짜 진행도)에선 남기지 않는다
+    if (add.length && !window.__walsonHouseEdit && !(WalsonStore.sampleOn && WalsonStore.sampleOn())) {
       keptCache = kept.concat(add);
       try { if (WalsonStore.setJSON) WalsonStore.setJSON(KEPT_KEY, keptCache); else localStorage.setItem(KEPT_KEY, JSON.stringify(keptCache)); } catch (e) {}
     }
