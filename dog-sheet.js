@@ -142,5 +142,12 @@
     return { poses: poses, maxH: maxH, W: W, H: H, missing: missing, clean: cv, names: NAMES, bad: bad, lines: lines, layout: layout in LAYOUTS ? layout : '3x2' };
   }
 
-  window.WalsonSheet = { cut: cut, LAYOUTS: LAYOUTS, NAMES: LAYOUTS['3x2'].names };
+  // 걷는 순서(11/28 가르시아 "3번으로 일단 가"): A ↔ 중간 두 장만 번갈아 — 다리 벌림 ↔ 모음.
+  // Gemini가 B(뒷다리까지 반대)를 다섯 번 고쳐 써도 못 그려서(A와 B가 같게 나옴), B는 그려 와도 쓰지 않는다.
+  // 진짜 네 박자 걸음은 영상 모델(Veo)로 — 견종 기본 강아지부터(아직 시험 전).
+  function walkSeq(sheet) {
+    var p = sheet.poses;
+    return p.walk1 && p.walkmid ? ['walk1', 'walkmid'] : p.walk1 && p.walk2 ? ['walk1', 'walk2'] : ['walk1'];
+  }
+  window.WalsonSheet = { cut: cut, walkSeq: walkSeq, LAYOUTS: LAYOUTS, NAMES: LAYOUTS['3x2'].names };
 })();

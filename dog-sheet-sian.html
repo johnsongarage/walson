@@ -66,7 +66,7 @@
   <p class="note">
     자르는 법(dog-sheet.js): ① 그림 가장자리부터 초록을 따라 들어가며 지우고, 번진 초록은 눌러 줌 ② 칸을 3등분하지 않고 강아지 덩어리를 찾아 칸에 나눔
     ③ 한 장 안에선 같은 비율(가장 큰 키 기준) ④ 기준점은 발바닥 가운데, 걷기 두 장은 코끝을 맞춤.<br>
-    마당 크기: 소형견 0.8 · 진돗개·골든 1.1(한 장 안에서 가장 큰 자세 기준). 그림 한 장 약 50원.<br>라운드 a(3×2 첫 시험): 걷기 두 장이 거의 같고 뒷다리 그대로 → 라운드 c: 회색 마네킹 자세 안내 그림을 같이 보냄(3×2는 A·B, 3×3은 A·중간·B·배뒤집기). 3×3 걷기는 A → 중간 → B → 중간. 칸 선을 그려 온 그림(라운드 c 포메)은 자르기가 선을 지움 — 검사(빠진 칸·붙은 칸)를 통과 못 하면 앱에서 다시 그린다.
+    마당 크기: 소형견 0.8 · 진돗개·골든 1.1(한 장 안에서 가장 큰 자세 기준). 그림 한 장 약 50원.<br>라운드 a(3×2 첫 시험): 걷기 두 장이 거의 같고 뒷다리 그대로 → 라운드 c: 회색 마네킹 자세 안내 그림을 같이 보냄(3×2는 A·B, 3×3은 A·중간·B·배뒤집기). 걷기는 A ↔ 중간 두 장만 번갈아(11/28 — Gemini가 뒷다리까지 바꾼 B를 못 그려서, B는 그려 와도 안 씀). 칸 선을 그려 온 그림(라운드 c 포메)은 자르기가 선을 지움 — 검사(빠진 칸·붙은 칸)를 통과 못 하면 앱에서 다시 그린다.
   </p>
 </div>
 <script src="dog-sheet.js"></script>
@@ -85,7 +85,7 @@
   ];
   var set = SETS[0];
   var sheets = {}, imgs = {}, pick = 'maltese';
-  function walkSeq(s) { return s.poses.walkmid2 ? ['walk1', 'walkmid', 'walk2', 'walkmid2'] : s.poses.walkmid ? ['walk1', 'walkmid', 'walk2', 'walkmid'] : ['walk1', 'walk2']; }
+  function walkSeq(s) { return WalsonSheet.walkSeq(s); }   // A ↔ 중간(11/28 "3번으로")
   var $ = function (id) { return document.getElementById(id); };
 
   function fit(c) {
