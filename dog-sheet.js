@@ -8,7 +8,7 @@
 //   ② 덩어리 찾기 — 칸을 3등분해 자르지 않고 강아지 덩어리를 찾아 가운데가 놓인 칸으로 나눈다(그림이 칸 선을 조금 넘어도 안 잘림).
 //   ③ 한 장 같은 비율 — 칸마다 따로 키우지 않고, 여섯 칸 중 가장 큰 키에 맞춘 한 비율만 쓴다(앉으면 작아지고 서면 커지게).
 //   ④ 발 맞추기 — 기준점은 발바닥 가운데. 걷기 두 장은 코끝(오른쪽 끝)을 맞춰 머리가 덜 흔들리게.
-// 쓰는 법: WalsonSheet.cut(img, '3x2'|'3x3') → { poses: { sit1, walk1, walk2, … }, maxH, missing }
+// 쓰는 법: WalsonSheet.cut(img, '3x2'|'3x3') → { poses: { sit1, walk1, walk2, … }, maxH, missing, bad(빈 배열이면 통과) }
 //   pose = { c: 잘린 캔버스(투명 배경), w, h, ax, ay(기준점 — 캔버스 안 픽셀) }
 (function () {
   var LAYOUTS = {
@@ -40,6 +40,17 @@
     }
     // 갇힌 진한 초록(다리·꼬리 사이) — 강아지에 이런 초록은 없다
     for (i = 0; i < N; i++) if (!bg[i]) { var r0 = d[i * 4], g0 = d[i * 4 + 1], b0 = d[i * 4 + 2]; if (g0 > 150 && r0 < 120 && b0 < 120) bg[i] = 1; }
+    // 칸 선 지우기(라운드 c 포메 — "선 없이"라고 해도 가끔 검은 칸 선을 그린다). 강아지 한 마리는 한 칸(그림의 1/3)을 못 넘으니,
+    // 한 줄에 그림 절반 넘게 끊김 없이 이어진 가로·세로 줄은 선이다 — 그 줄의 어두운 점만 지운다.
+    var lum = function (p) { return d[p * 4] * 0.3 + d[p * 4 + 1] * 0.59 + d[p * 4 + 2] * 0.11; }, lines = 0;
+    for (y = 0; y < H; y++) {
+      var cnt = 0, run = 0; for (x = 0; x < W; x++) { run = bg[y * W + x] ? 0 : run + 1; if (run > cnt) cnt = run; }   // 가장 길게 이어진 길이(강아지 셋이 한 줄에 있어도 안 걸리게)
+      if (cnt > W * 0.5) { lines++; for (x = 0; x < W; x++) { i = y * W + x; if (!bg[i] && lum(i) < 110) bg[i] = 1; } }
+    }
+    for (x = 0; x < W; x++) {
+      var cnt2 = 0, run2 = 0; for (y = 0; y < H; y++) { run2 = bg[y * W + x] ? 0 : run2 + 1; if (run2 > cnt2) cnt2 = run2; }
+      if (cnt2 > H * 0.5) { lines++; for (y = 0; y < H; y++) { i = y * W + x; if (!bg[i] && lum(i) < 110) bg[i] = 1; } }
+    }
     // 테두리에 번진 초록: 진하면 빼고, 옅으면 초록만 눌러 준다(두 겹)
     for (var pass = 0; pass < 2; pass++) {
       var drop = [];
@@ -91,12 +102,19 @@
       poses[nm] = { c: o, w: w, h: h, ax: w / 2, ay: h, box: c };
       if (h > maxH) maxH = h;
     });
+    // 검사 — 통과 못 하면 사용자에게 보이기 전에 다시 그린다(앱에서). 빠진 칸 · 칸보다 큰 덩어리(칸이 붙음) · 너무 작은 덩어리
+    var bad = missing.map(function (nm) { return 'miss:' + nm; });
+    NAMES.forEach(function (nm) {
+      var p = poses[nm]; if (!p) return;
+      if (p.w > W / 3 * 1.1 || p.h > H / ROWS * 1.1) bad.push('big:' + nm);
+      else if (p.h < maxH * 0.3) bad.push('small:' + nm);
+    });
     var walks = ['walk1', 'walkmid', 'walk2'].filter(function (k) { return poses[k]; });   // 코끝 맞추기
     if (walks.length > 1) {
       var wa = walks.reduce(function (t, k) { return t + poses[k].w; }, 0) / walks.length;
       walks.forEach(function (k) { poses[k].ax = poses[k].w - wa / 2; });
     }
-    return { poses: poses, maxH: maxH, W: W, H: H, missing: missing, clean: cv, names: NAMES, layout: layout in LAYOUTS ? layout : '3x2' };
+    return { poses: poses, maxH: maxH, W: W, H: H, missing: missing, clean: cv, names: NAMES, bad: bad, lines: lines, layout: layout in LAYOUTS ? layout : '3x2' };
   }
 
   window.WalsonSheet = { cut: cut, LAYOUTS: LAYOUTS, NAMES: LAYOUTS['3x2'].names };
