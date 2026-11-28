@@ -49,7 +49,10 @@
     greyhound: { line: [[35,45],[35,26],[32,15],[18,11],[26,2],[35,0],[41,3],[69,2],[77,11],[63,15],[60,26],[60,45]], face: [[38.8,16.6],[56.3,16.6],[47,33]] },
     bordercollie: { line: [[48,61],[45,44],[50,30],[41,7],[59,0],[71,7],[87,7],[102,0],[115,5],[107,25],[111,45],[111,61]], face: [[68,28],[91,28],[79.5,43]] },
     beagle: { line: [[48,55],[39,51],[32,29],[43,15],[47,8],[66,0],[86,0],[104,8],[108,15],[119,29],[117,38],[108,55]], face: [[62,22.1],[89.2,22.2],[76,35]] },
-    corgi: { line: [[7,47],[9,28],[0,11],[1,2],[9,1],[20,12],[37,12],[48,1],[54,0],[57,11],[48,28],[49,47]], face: [[19.8,24.8],[37.2,24.8],[28.5,32.1]] }
+    corgi: { line: [[7,47],[9,28],[0,11],[1,2],[9,1],[20,12],[37,12],[48,1],[54,0],[57,11],[48,28],[49,47]], face: [[19.8,24.8],[37.2,24.8],[28.5,32.1]] },
+    yorkie: { line: [[7,45],[0,22],[0,1],[4,0],[12,4],[15,9],[32,9],[43,0],[47,1],[47,22],[39,41],[41,45]], face: [[14.7,24.4],[31.5,24.5],[23,31.5]] },
+    shihtzu: { line: [[12,43],[14,37],[2,32],[0,21],[7,10],[17,2],[28,0],[44,2],[60,19],[61,28],[47,39],[51,43]], face: [[21.3,20.9],[38.7,20.9],[30,27.5]] },
+    minpin: { line: [[7,49],[6,24],[0,13],[5,0],[18,11],[34,11],[46,0],[51,2],[51,13],[45,24],[41,42],[46,49]], face: [[17.2,27],[34.7,27],[25.9,34.1]] }
   };
   var TOD = [
     { name: '아침', c: [255, 226, 150], from: 5, to: 11 }, { name: '낮', c: [255, 255, 255], from: 11, to: 17 },
@@ -104,7 +107,7 @@
       full: n >= GOAL, milky: n >= MILKY, allDays: n >= dim, moon: Math.min(1, n / dim), dayCapped: false };
   }
   // ── 1년 하늘 + 공유 링크 글자 ──
-  var DOG_IDS = ['pom', 'poodle', 'maltese', 'chihuahua', 'dachs', 'jindo', 'shiba', 'knit', 'spitz', 'cocker', 'chihuahua_long', 'bichon', 'golden', 'schnauzer', 'frenchie', 'sheltie', 'bedlington', 'maltipoo', 'greyhound', 'bordercollie', 'beagle', 'corgi'];   // 링크에 번호로 실린다 — 순서 바꾸지 말 것(새 것은 뒤에)
+  var DOG_IDS = ['pom', 'poodle', 'maltese', 'chihuahua', 'dachs', 'jindo', 'shiba', 'knit', 'spitz', 'cocker', 'chihuahua_long', 'bichon', 'golden', 'schnauzer', 'frenchie', 'sheltie', 'bedlington', 'maltipoo', 'greyhound', 'bordercollie', 'beagle', 'corgi', 'yorkie', 'shihtzu', 'minpin'];   // 링크에 번호로 실린다 — 순서 바꾸지 말 것(새 것은 뒤에)
   var SIZE_MIN = [10, 22, 37, 60], TOD_H = [8, 13, 18, 21];   // 크기 4단계·시간대 4가지 → 그리기용 분·시
   function sizeIdx(min) { return min < 15 ? 0 : min < 30 ? 1 : min < 45 ? 2 : 3; }
   function todIdx(h) { var t = todOf(h); return TOD.indexOf(t); }
