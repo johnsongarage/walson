@@ -47,7 +47,8 @@ async function rpc(name: string, args: Record<string, unknown>) {
     body: JSON.stringify(args),
   });
   if (!r.ok) throw new Error('rpc ' + name + ' ' + r.status);
-  return r.json();
+  const t = await r.text();   // walson_art_done은 빈 답(void)
+  return t ? JSON.parse(t) : null;
 }
 
 Deno.serve(async (req) => {
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
     if (!r.ok) {
       console.log('gemini', r.status, (await r.text()).slice(0, 300));   // 사진·키는 찍지 않는다
       await rpc('walson_art_done', { p_id: id, p_ok: false });
-      return out({ ok: false, why: 'gemini' }, 502);
+      return out({ ok: false, why: 'gemini', code: r.status }, 502);   // 402 = AI Studio 선불 크레딧 바닥
     }
     const j = await r.json();
     const parts = j?.candidates?.[0]?.content?.parts || [];

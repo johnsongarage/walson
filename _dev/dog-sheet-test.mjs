@@ -26,7 +26,7 @@ for (const b of breeds) {
   });
   const j = await r.json().catch(() => ({ ok: false, why: 'http ' + r.status }));
   const s = ((Date.now() - t0) / 1000).toFixed(1) + '초';
-  if (!j.ok) { console.log(b, '실패', j.why || r.status, s); if (j.why === 'day' || j.why === 'month') break; continue; }
+  if (!j.ok) { console.log(b, "실패", j.why || r.status, j.code || "", s); if (j.why === 'day' || j.why === 'month') break; continue; }
   const ext = /jpeg/.test(j.mime) ? 'jpg' : 'png';
   const out = path.join(outDir, `${round}_${b}.${ext}`);
   fs.writeFileSync(out, Buffer.from(j.image, 'base64'));

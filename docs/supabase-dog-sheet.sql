@@ -24,7 +24,7 @@ alter table public.walson_art_log enable row level security;
 revoke all on public.walson_art_log from anon, authenticated;
 
 -- 한 장 그려도 되는지 보고, 되면 줄을 하나 잡는다. 'ok:번호' 또는 'day'(오늘 다 씀) · 'dog'(이 강아지 다 씀) · 'month'(이번 달 다 씀)
--- 실패한 줄(ok = false)은 한도에 안 센다 — 구글 쪽 오류로 사용자가 기회를 잃지 않게. 그래도 비용은 들었을 수 있어 달 합계엔 센다.
+-- 실패한 줄(ok = false)은 한도에 안 센다 — 구글 쪽 오류로 사용자가 기회를 잃지 않게. 달 합계에도 0원으로 남는다.
 create or replace function public.walson_art_take(p_dog text, p_kind text, p_model text)
 returns text
 language plpgsql security definer set search_path = public as $$
@@ -48,7 +48,7 @@ grant execute on function public.walson_art_take(text, text, text) to service_ro
 create or replace function public.walson_art_done(p_id bigint, p_ok boolean)
 returns void
 language sql security definer set search_path = public as $$
-  update walson_art_log set ok = p_ok where id = p_id;
+  update walson_art_log set ok = p_ok, krw = case when p_ok then krw else 0 end where id = p_id;   -- 실패는 0원으로(구글이 거절한 건 돈이 안 든다)
 $$;
 revoke all on function public.walson_art_done(bigint, boolean) from public, anon, authenticated;
 grant execute on function public.walson_art_done(bigint, boolean) to service_role;
