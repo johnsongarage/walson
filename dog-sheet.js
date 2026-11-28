@@ -1,17 +1,23 @@
-// 3×2 강아지 동작 그림 자르기 (2026-11-28 그림 공장 — 서버 함수 supabase/functions/dog-sheet가 받아 온 그림을 브라우저에서 자른다)
-// 칸: 위 줄 앉기1 · 걷기1 · 걷기2 / 아래 줄 자기 · 웃기 · 앉기2. 배경은 초록 단색(#00FF00)으로 받는다.
+// 3×2·3×3 강아지 동작 그림 자르기 (2026-11-28 그림 공장 — 서버 함수 supabase/functions/dog-sheet가 받아 온 그림을 브라우저에서 자른다)
+// 칸(서버 함수 LAYOUTS와 같은 순서): 3x2 = 앉기1 · 걷기A · 걷기B / 자기 · 웃기 · 앉기2
+//                                   3x3 = 앉기1 · 앉기2 · 자기 / 걷기A · 걷기 중간 · 걷기B / 웃기 · 으르렁 · 배뒤집기
+// 배경은 초록 단색(#00FF00)으로 받는다. 걷기 A = walk1, B = walk2, 중간 = walkmid.
 // 하는 일:
 //   ① 배경 빼기 — 그림 가장자리부터 초록을 따라 들어가며 지운다(전체에서 초록을 한 번에 지우면 몸 안 색까지 먹을 수 있어서).
 //      다리 사이처럼 갇힌 진한 초록도 지우고, 테두리에 번진 초록(JPG)은 빼거나 회색으로 눌러 준다.
 //   ② 덩어리 찾기 — 칸을 3등분해 자르지 않고 강아지 덩어리를 찾아 가운데가 놓인 칸으로 나눈다(그림이 칸 선을 조금 넘어도 안 잘림).
 //   ③ 한 장 같은 비율 — 칸마다 따로 키우지 않고, 여섯 칸 중 가장 큰 키에 맞춘 한 비율만 쓴다(앉으면 작아지고 서면 커지게).
 //   ④ 발 맞추기 — 기준점은 발바닥 가운데. 걷기 두 장은 코끝(오른쪽 끝)을 맞춰 머리가 덜 흔들리게.
-// 쓰는 법: WalsonSheet.cut(img) → { poses: { sit1, walk1, walk2, sleep, happy, sit2 }, maxH }
+// 쓰는 법: WalsonSheet.cut(img, '3x2'|'3x3') → { poses: { sit1, walk1, walk2, … }, maxH, missing }
 //   pose = { c: 잘린 캔버스(투명 배경), w, h, ax, ay(기준점 — 캔버스 안 픽셀) }
 (function () {
-  var NAMES = ['sit1', 'walk1', 'walk2', 'sleep', 'happy', 'sit2'];
+  var LAYOUTS = {
+    '3x2': { rows: 2, names: ['sit1', 'walk1', 'walk2', 'sleep', 'happy', 'sit2'] },
+    '3x3': { rows: 3, names: ['sit1', 'sit2', 'sleep', 'walk1', 'walkmid', 'walk2', 'happy', 'growl', 'belly'] },
+  };
 
-  function cut(img) {
+  function cut(img, layout) {
+    var LY = LAYOUTS[layout] || LAYOUTS['3x2'], NAMES = LY.names, ROWS = LY.rows;
     var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     var g = cv.getContext('2d', { willReadFrequently: true });
@@ -69,7 +75,7 @@
     var cell = NAMES.map(function () { return null; });
     boxes.forEach(function (b) {
       if (b.n < MIN) return;   // 티끌
-      var col = Math.min(2, Math.floor(b.cx / (W / 3))), row = Math.min(1, Math.floor(b.cy / (H / 2))), c = cell[row * 3 + col];
+      var col = Math.min(2, Math.floor(b.cx / (W / 3))), row = Math.min(ROWS - 1, Math.floor(b.cy / (H / ROWS))), c = cell[row * 3 + col];
       if (!c) cell[row * 3 + col] = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, n: b.n };
       else { c.x0 = Math.min(c.x0, b.x0); c.y0 = Math.min(c.y0, b.y0); c.x1 = Math.max(c.x1, b.x1); c.y1 = Math.max(c.y1, b.y1); c.n += b.n; }
     });
@@ -85,13 +91,13 @@
       poses[nm] = { c: o, w: w, h: h, ax: w / 2, ay: h, box: c };
       if (h > maxH) maxH = h;
     });
-    if (poses.walk1 && poses.walk2) {   // 코끝 맞추기
-      var wa = (poses.walk1.w + poses.walk2.w) / 2;
-      poses.walk1.ax = poses.walk1.w - wa / 2;
-      poses.walk2.ax = poses.walk2.w - wa / 2;
+    var walks = ['walk1', 'walkmid', 'walk2'].filter(function (k) { return poses[k]; });   // 코끝 맞추기
+    if (walks.length > 1) {
+      var wa = walks.reduce(function (t, k) { return t + poses[k].w; }, 0) / walks.length;
+      walks.forEach(function (k) { poses[k].ax = poses[k].w - wa / 2; });
     }
-    return { poses: poses, maxH: maxH, W: W, H: H, missing: missing, clean: cv };
+    return { poses: poses, maxH: maxH, W: W, H: H, missing: missing, clean: cv, names: NAMES, layout: layout in LAYOUTS ? layout : '3x2' };
   }
 
-  window.WalsonSheet = { cut: cut, NAMES: NAMES };
+  window.WalsonSheet = { cut: cut, LAYOUTS: LAYOUTS, NAMES: LAYOUTS['3x2'].names };
 })();
