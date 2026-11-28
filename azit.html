@@ -102,6 +102,13 @@
   .azset-close { width: 34px; height: 34px; padding: 0; background: var(--panel); color: var(--ink); border: 2px solid var(--line); cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .azset-close svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
   .azset .acts { margin: 0; }
+  /* 샘플 방 안내(11/29 가르시아 "처음 들어왔을 때 샘플로 보여 준다는 안내부터 하고, 빠져나가거나 꾸밀 때 내 방 보기로 유도") — 모델하우스에서 아래 판 맨 위 */
+  .sample-note { background: var(--accent-tint); border: 2px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .sample-note[hidden] { display: none; }
+  .sample-note p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); word-break: keep-all; }
+  .sample-note b { color: var(--accent); }
+  .sample-note .sn-btns { display: flex; gap: 8px; }
+  .sample-note .sn-btns .pbtn { flex: 1; }
   #azset-body { display: flex; flex-direction: column; gap: 12px; }
   .roomsel::after { content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 12px; color: var(--ink-soft); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -444,6 +451,10 @@
       </div>
       <div class="ic-btns" id="ic-btns"></div>
     </div>
+    <div class="sample-note" id="sample-note" hidden>
+      <p><b>샘플 방이에요</b> — 왈슨이 꾸며 둔 방이에요. 산책하면 소품이 생겨서 내 방도 이렇게 꾸밀 수 있어요.</p>
+      <div class="sn-btns"><button type="button" class="pbtn main" id="sn-mine">내 방 보기</button><button type="button" class="pbtn" id="sn-deco">내 방 꾸미기</button></div>
+    </div>
     <p class="hint" id="hint"></p>
     <div class="azset" id="azset" role="dialog" aria-label="아지트 설정" hidden>
       <div class="azset-card">
@@ -502,7 +513,7 @@
 <script src="reward-rules.js?v=16"></script>
 <script src="dex-card.js?v=6"></script>
 <script src="showrooms-data.js?v=1"></script>
-<script src="azit-room.js?v=28"></script>
+<script src="azit-room.js?v=29"></script>
 <script src="photo-dot.js?v=2"></script>
 <script src="friends-cloud.js?v=1"></script>
 <script src="device.js?v=1"></script>
@@ -990,6 +1001,7 @@
   // ── 내 기록 · 만난 친구 ──
   var profile = WalsonStore.profile() || {};
   var myName = profile.name ? String(profile.name).slice(0, 12) : '';
+  var hadAzit = false; try { hadAzit = !!localStorage.getItem(AZ.KEY); } catch (e) { /* 모름 */ }   // 열기 전에 저장된 아지트가 있었나(아래 save가 곧 만든다) — 처음 온 사람 샘플(11/29)
   var state = AZ.loadState(), prog = AZ.progress();
   function byLast(a, b) { return (b.last || '') < (a.last || '') ? -1 : (b.last || '') > (a.last || '') ? 1 : 0; }
   var friends = WalsonStore.dex().filter(function (e) {
@@ -1989,6 +2001,7 @@
     var nx = nextOpen();
     $('visit').textContent = view >= 0 && nx < 0 ? '내 아지트로 ◀' : '마실 가기 ▶';
     $('mine-box').hidden = !o.me;
+    $('sample-note').hidden = !o.show;
     $('hint').textContent = o.me ? '바닥 톡 걸어가기 · 소품 톡 놀기 · 꾹 옮기기'   // 휴대폰에서 한 줄에(11/24 — 길어서 두 줄로 넘쳤다)
       : (o.open && o.items.length ? '소품을 누르면 어떻게 생기는지 보여요' : '바닥을 누르면 ' + walker + ' 걸어가요');
     var closed = $('closed');
@@ -2786,6 +2799,7 @@
     if (moveSel) endMove();
     if (v !== view) { visitPos = {}; staticDirty = true; }   // 친구 방에서 던져 옮긴 공은 나가면 원래 자리로
     view = v; gbShown = 12;
+    if (v === -1 && pendingFirst) { var pf = pendingFirst; pendingFirst = null; setTimeout(pf, 0); }   // 샘플을 보고 내 방으로 오면 첫 만남(이름·견종)
     stopAct(host); stopAct(guest); unseat(host); unseat(guest); host.fast = guest.fast = false; tipFor = null;
     var d = v <= -2 && AZ.SHOWROOMS[-2 - v].dogs;   // 모델하우스는 방마다 강아지 서는 자리(꾸민 것이 가려지지 않게)
     var hd = d ? d.host : HOME_DOGS.host, gd = d ? d.guest : HOME_DOGS.guest;
@@ -2939,6 +2953,24 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureBubble(); kick(); if (signParts && signParts.length) setSign(signParts); });   // 도트 글꼴이 늦게 오면 폭이 바뀐다
   fit(); refreshModel();
   if (!fromHash()) ui();
+  // 처음 아지트에 온 사람은 샘플(모델하우스 첫 채)부터(11/29) — 아지트를 저장해 둔 적이 있는 사람(예전부터 쓰던 사람)은 그대로 내 방
+  var pendingFirst = null, firstSample = false;
+  (function () {
+    var SEEN = 'walson_azit_seen';
+    try {
+      if (localStorage.getItem(SEEN) || HE || location.hash || view !== -1) return;
+      localStorage.setItem(SEEN, '1');
+      if (hadAzit && !/[?&]first=/.test(location.search)) return;
+      if (!AZ.SHOWROOMS || !AZ.SHOWROOMS.length) return;
+      firstSample = true; goTo(-2);
+    } catch (e) { /* 저장이 막히면 그대로 내 방 */ }
+  })();
+  function toMine(deco) {
+    goTo(-1);
+    if (deco) { $('mine-box').open = true; try { setSheet(true); } catch (e) { /* 판이 없으면 그대로 */ } setTimeout(function () { $('mine-box').scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 60); }
+  }
+  $('sn-mine').addEventListener('click', function () { toMine(false); });
+  $('sn-deco').addEventListener('click', function () { toMine(true); });
   fcSync();   // 친구 방·방명록을 켰으면 열 때마다 한 번 맞추기(서로 넣은 친구의 지금 방 · 새 방명록)
   Promise.all([picsReady, dogsReady, photoReady]).then(function () { dogCache = {}; fillCache = {}; refreshModel(); ui(); });   // 그림이 다 오면 방·소품 칸·단짝 액자를 다시(워킹패스 사진 도트도)
   // ── 관리자 모델하우스 편집 막대(HE — 위 houseEdit) ── 방 고르기 · 이름 · 한 줄 · 등급 · 새 방 · 지우기 · 저장소에 저장 · 글자 복사
@@ -3012,6 +3044,9 @@
   // ② 방에 우리 개가 있고 "산책 가자!" + [산책 나가기](go.html — 위치는 거기서 따로 묻는다). 첫 산책을 끝내면 index.html이 더는 여기로 안 보낸다
   (function firstMeet() {
     var m = /[?&]first=(\d)/.exec(location.search); if (!m || HE) return;
+    if (firstSample) { pendingFirst = run; return; }   // 샘플 방 안내부터 — [내 방 보기]로 오면 시작
+    run();
+    function run() {
     var card = $('firstcard'), named = !!(profile && profile.name);
     var BREEDS = [['포메', 'pom'], ['푸들', 'poodle'], ['말티즈', 'maltese'], ['치와와', 'chihuahua'], ['닥스훈트', 'dachs'], ['진돗개', 'jindo'], ['시바', 'shiba'], ['비숑', 'bichon'], ['골든 리트리버', 'golden'], ['그 밖·잘 몰라요', '']];
     var pick = null;
@@ -3043,6 +3078,7 @@
     $('fc-walk-title').textContent = ga(myName || '우리 개') + ' 리드줄을 물고 왔어요 — 산책 가자!';
     $('fc-skip2').addEventListener('click', close);
     setTimeout(function () { try { sayFor(host, '산책 가자!', 6); } catch (e) { /* 그림을 아직 못 읽었으면 말풍선은 건너뜀 */ } }, 900);
+    }
   })();
 
   // 톱니 설정 판은 11/28 가르시아 "톱니는 여기선 제거"로 뺐다 — 아지트 안내 둘은 개인정보 안내(privacy.html #azit·#friends)에

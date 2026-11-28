@@ -477,7 +477,7 @@
     return t;
   }
   function cleanHidden(raw) { return Array.isArray(raw) ? raw.filter(function (id) { return !!byId(ITEMS, id); }) : []; }
-  function cleanAcc(a) { return (a === '' || byId(ACCS, a)) ? a : 'ribbon'; }
+  function cleanAcc(a) { return (a === '' || byId(ACCS, a)) ? a : ''; }   // 처음엔 머리 위 장식 없이(11/29 가르시아 "머리 리본은 기본적으로 안 쓰고 있게" — 예전 기본은 리본)
   // 워킹패스 사진 도트 — 작은 PNG(점 그림이라 몇 KB)만 받는다. 모양이 이상하면 없는 것으로
   function cleanPhotoDog(p) {
     return p && typeof p === 'object' && typeof p.sig === 'string' && typeof p.png === 'string' &&
