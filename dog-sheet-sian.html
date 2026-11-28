@@ -77,6 +77,8 @@
   var LABEL = { sit1: '앉기1', walk1: '걷기 A', walkmid: '걷기 중간', walk2: '걷기 B', sleep: '자기', happy: '웃기', sit2: '앉기2', growl: '으르렁', belly: '배뒤집기' };
   var ALL = BREEDS.map(function (b) { return b[0]; });
   var SETS = [
+    { id: 'f', label: '3×3 푸들 · 웹 라운드 f', pre: 'f_3x3_', layout: '3x3', breeds: ['poodle'], ext: '.webp' },
+    { id: 'e', label: '3×3 푸들 · 웹 라운드 e', pre: 'e_3x3_', layout: '3x3', breeds: ['poodle'], ext: '.webp' },
     { id: 'c33', label: '3×3 · 라운드 c', pre: 'c_3x3_', layout: '3x3', breeds: ALL },
     { id: 'c32', label: '3×2 고친 걷기 · 라운드 c', pre: 'c_3x2_', layout: '3x2', breeds: ['maltese', 'bichon', 'golden'] },
     { id: 'a', label: '3×2 첫 시험 · 라운드 a', pre: 'a_', layout: '3x2', breeds: ALL },
@@ -212,7 +214,7 @@
         if (sheets[b[0]].bad.length) console.warn(b[0], '검사 못 넘음', sheets[b[0]].bad);
         if (b[0] === pick) detail();
       };
-      im.src = 'sian-ref/dog-sheet/' + st.pre + b[0] + '.jpg';
+      im.src = 'sian-ref/dog-sheet/' + st.pre + b[0] + (st.ext || '.jpg');
       dogs.push(newDog(b, i));
     });
     }
