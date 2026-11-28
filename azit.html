@@ -83,7 +83,26 @@
   /* 방 고르기 칸(11/28 — 머리 오른쪽, 예전 톱니 자리) */
   .roomsel { flex: none; position: relative; display: block; }
   .roomsel select { font: inherit; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--panel); border: 3px solid var(--line); box-shadow: 2px 2px 0 var(--line);
-    padding: 7px 26px 7px 10px; max-width: 160px; appearance: none; -webkit-appearance: none; border-radius: 0; cursor: pointer; text-overflow: ellipsis; }
+    padding: 7px 24px 7px 9px; max-width: 116px; appearance: none; -webkit-appearance: none; border-radius: 0; cursor: pointer; text-overflow: ellipsis; }
+  /* 아지트 설정(11/29 가르시아 "방명록·워킹패스 만들기·도감 찍기는 아지트만의 설정 버튼으로 몰아 — 그대로 보여 주지 말자.
+     아지트 모습과 방 꾸미기만 남겨") — 방 고르기 칸 옆 톱니. 누르면 아래에서 올라오는 판에 킁킁 방명록 · 내 카드·QR · 친구 방 켜기 */
+  .setbtn { flex: none; position: relative; width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--panel); color: var(--ink); border: 3px solid var(--line); box-shadow: 2px 2px 0 var(--line); cursor: pointer; }
+  .setbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .setbtn:active { transform: translate(2px, 2px); box-shadow: none; }
+  .setbtn .dot { position: absolute; right: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); }
+  .setbtn .dot[hidden] { display: none; }
+  .head-r { display: flex; align-items: center; gap: 6px; flex: none; }
+  .azset { position: fixed; inset: 0; z-index: 1200; background: rgba(var(--shadow-rgb), .35); display: flex; align-items: flex-end; justify-content: center; }
+  .azset[hidden] { display: none; }
+  .azset-card { width: min(520px, 100%); max-height: 82vh; overflow: auto; background: var(--panel); border: 3px solid var(--line); border-bottom: 0;
+    padding: 12px 14px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; }
+  .azset-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .azset-head b { font-size: 16px; font-weight: 900; }
+  .azset-close { width: 34px; height: 34px; padding: 0; background: var(--panel); color: var(--ink); border: 2px solid var(--line); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .azset-close svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+  .azset .acts { margin: 0; }
+  #azset-body { display: flex; flex-direction: column; gap: 12px; }
   .roomsel::after { content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 12px; color: var(--ink-soft); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   /* 아래 판(11/28) — 방은 위에, 그 아래는 판 안에서 스크롤. 손잡이로 끌어 올리면 방을 덮는다(top만 바뀜) */
@@ -365,12 +384,16 @@
     <!-- 화면 순서(2026-11-23 밤 가르시아 "구성이 맞는지 점검 · 오늘 기분 고르는 게 먼저 나오는 게 맞는지"):
          제목 → 친구 줄 → 방(내 방이면 왼쪽 위 모서리 칸에서 오늘 기분 — 11/24) → 킁킁 방명록 → 내 카드·QR 찍기 → 방 꾸미기(접기).
          개방명록(만난 친구·방명록·QR)이 축이라 위로, 꾸미기(강아지·소품·장식·벽지)는 한 줄로 접는다. 산책 횟수는 제목 아래 줄로
-         11/28 가르시아: 제목 · [보는 방 고르기 칸](예전 친구 칸 줄·톱니 자리) → 방(늘 위) → 아래 판(끌어 올리면 방을 덮음): 별자리 줄 · 킁킁 방명록 · 방 꾸미기 · 내 카드·QR · 친구 방 켜기 -->
+         11/28 가르시아: 제목 · [보는 방 고르기 칸](예전 친구 칸 줄·톱니 자리) → 방(늘 위) → 아래 판(끌어 올리면 방을 덮음): 별자리 줄 · 킁킁 방명록 · 방 꾸미기 · 내 카드·QR · 친구 방 켜기
+         11/29 가르시아 "아지트 모습과 방 꾸미기만 남겨": 아래 판엔 방 꾸미기만(별자리 줄 뺌). 킁킁 방명록 · 내 카드·QR · 친구 방 켜기는 머리 톱니 [아지트 설정] 판으로 -->
     <div class="head">
       <div class="head-txt"><div class="title" id="title" role="heading" aria-level="1"></div><div class="sub"><span id="sub"></span><span class="count" id="count"></span></div></div>
       <button type="button" class="pbtn" id="visit" hidden>마실 가기 ▶</button>
       <!-- 방 고르기(11/28 가르시아 "위에 내 방·모델하우스를 톱니 쪽에 콤보로, 톱니는 여기선 제거") — 내 방 · 모델하우스 · 만난 친구 -->
-      <label class="roomsel"><span class="sr">보는 방</span><select id="roomsel" aria-label="보는 방 고르기"></select></label>
+      <div class="head-r">
+        <label class="roomsel"><span class="sr">보는 방</span><select id="roomsel" aria-label="보는 방 고르기"></select></label>
+        <button type="button" class="setbtn" id="azset-btn" aria-label="아지트 설정 — 방명록 · 내 카드 · 친구" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="dot" id="azset-dot" hidden></span></button>
+      </div>
     </div>
     <div class="friends px" id="friends" role="group" aria-label="내 아지트와 만난 친구" hidden></div>
 
@@ -422,6 +445,12 @@
       <div class="ic-btns" id="ic-btns"></div>
     </div>
     <p class="hint" id="hint"></p>
+    <div class="azset" id="azset" role="dialog" aria-label="아지트 설정" hidden>
+      <div class="azset-card">
+        <div class="azset-head"><b>아지트 설정</b><button type="button" class="azset-close" id="azset-close" aria-label="닫기"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button></div>
+        <div id="azset-body"></div>
+      </div>
+    </div>
     <button type="button" class="skyrow" id="skyrow" hidden><canvas id="skythumb" aria-hidden="true"></canvas><span class="sk-t"><b id="sky-t">✦ 창가 별자리</b><small id="sky-s"></small></span><span class="sk-n" id="sky-n"></span></button>
     <!-- 모델하우스에서만: 방 고르기 + [이 방처럼 놓기](11/23 2단계) -->
     <div class="show-bar" id="show-bar" hidden>
@@ -1239,6 +1268,17 @@
   // (문 쪽 왼쪽 끝·오른쪽 벽 끝), 칸이 VW_MIN보다 좁으면 방을 조금 줄인다. 위는 선반 위 트로피까지(OY), 아래는 바닥 앞 끝까지(VH).
   // K = 방 한 점의 CSS 크기, Z = 방 한 점의 화면 픽셀 수(정수가 아닐 수 있음 — 원본 그림은 곱게, 점 그림은 점째)
   var K = 1, Z = 3, VW = 345, VH = 300, OX = 64, OY = 30, XC = 236, VW_MIN = 340;   // 390폭 휴대폰 방 칸 ≈ 345 CSS 픽셀 → 1점 = 1픽셀(Z 정수)
+  // 아지트 설정 판(11/29) — 방명록 · 친구 칸 안내 · 내 카드·QR · 친구 방 켜기를 판 안으로 옮긴다(화면엔 방과 방 꾸미기만)
+  (function () {
+    var body = $('azset-body'), pane = $('azset');
+    ['fr-hint', 'acts', 'gb-fold', 'fc-box'].forEach(function (id) { var n = $(id); if (n) body.appendChild(n); });
+    document.body.appendChild(pane);
+    function close() { pane.hidden = true; document.body.style.overflow = ''; $('azset-btn').focus(); }
+    $('azset-btn').addEventListener('click', function () { pane.hidden = false; document.body.style.overflow = 'hidden'; });
+    $('azset-close').addEventListener('click', close);
+    pane.addEventListener('click', function (e) { if (e.target === pane) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pane.hidden) close(); });
+  })();
   // 소품 보기 창은 body 바로 밑으로(11/28) — 끌어 올리는 판(#sheet, z-index 20) 안에 있으면 크게 보기(방 칸 z-index 1050) 밑에 깔려 안 보였다
   document.body.appendChild($('itemcard'));
   var full = false, rot = false;   // 전체 화면(아래 setFull) · 세로 휴대폰에서 방을 눕혔나
@@ -1734,6 +1774,8 @@
   }
   function acts() {
     var a = $('acts'); a.innerHTML = '';
+    var pd = DC.pendingList ? DC.pendingList().length : 0;
+    if ($('azset-dot')) $('azset-dot').hidden = !pd;   // 공원에서 받아 둔 카드가 있으면 톱니에 점
     function link(text, href, main) { var x = el('a', 'pbtn' + (main ? ' main' : ''), text); x.href = href; a.appendChild(x); }
     // 받아 둔 카드(11/24 받아 두기) — 공원에서 찍어 두고 아직 넣을지 고르지 않은 카드가 있으면 맨 앞에
     var pend = DC.pendingList ? DC.pendingList().length : 0;
@@ -1909,7 +1951,7 @@
     var row = $('skyrow');
     if (!window.WalsonStars || !me || cur.show) { row.hidden = true; return; }
     var S = WalsonStars, m = S.month(), n = m.stars.length;
-    row.hidden = false;
+    row.hidden = true;   // 11/29 가르시아 "창가 별자리도 없애 — 별자리 진입 경로 많으니 다르게 표현" — 줄은 안 보이고, 아래 자동 열기만 남김
     $('sky-t').textContent = '✦ 창가 별자리 · ' + S.starName();
     // 11/27 날 기준 — 켜고 걸은 날마다 별 하나, 보름이면 얼굴 완성 · 25일 은하수 · 하루도 안 빠지면 보름달
     $('sky-s').textContent = n ? (S.milestone && S.milestone(m) ? '이번 달 ' + S.milestone(m) + ' · 창문 너머 밤하늘로' : '켜고 걸은 날마다 별 하나 — 보름까지 ' + (S.GOAL - m.days) + '일')
