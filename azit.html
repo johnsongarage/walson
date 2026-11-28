@@ -127,21 +127,22 @@
   /* 전체 화면(11/27 가르시아 "PC로 봤을 때 아지트 전체 화면 볼 수 있게 해 줘") — 마우스 쓰는 화면에만 방 오른쪽 아래 버튼.
      누르면 방 칸만 화면 가득(방 전체 폭이 다 들어가게 키워 가운데에 — 자리는 fit()이 정함) + 브라우저 전체 화면도(Esc로 나옴).
      방 이름표·기분 칸·말풍선은 방 모서리 그대로, 소품 보기 창·알림은 방 위에 뜬다 */
-  .fullbtn { display: none; position: absolute; right: 8px; bottom: 8px; z-index: 3; width: 34px; height: 34px; padding: 0; align-items: center; justify-content: center;
+  /* 11/28 가르시아 "모바일에서도 아지트 화면 크게 볼 수 있게" — 버튼을 휴대폰에도. 세로로 든 휴대폰은 방을 옆으로 눕혀(90도) 화면 가득 — 폰을 옆으로 돌려 본다.
+     안드로이드는 가로 고정도 시도(되면 눕힐 필요 없음). 가로로 든 휴대폰·PC는 그대로 키움 */
+  .fullbtn { display: flex; position: absolute; right: 8px; bottom: 8px; z-index: 3; width: 34px; height: 34px; padding: 0; align-items: center; justify-content: center;
     background: var(--panel); color: var(--ink); border: 2px solid var(--line); box-shadow: 2px 2px 0 var(--line); cursor: pointer; }
   .fullbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   .fullbtn:active { transform: translate(2px, 2px); box-shadow: none; }
   .fullbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  @media (hover: hover) and (pointer: fine) {
-    .fullbtn { display: flex; }
-    .closed { right: 50px; }   /* 버튼 자리 */
-  }
+  .closed { right: 50px; }   /* 버튼 자리 */
   .fullback { position: fixed; inset: 0; z-index: 1049; background-color: var(--accent-tint);
     background-image: radial-gradient(rgba(var(--shadow-rgb), .07) 1px, transparent 1.5px); background-size: 12px 12px; }
   .fullback[hidden] { display: none; }
   .stage.full { position: fixed; z-index: 1050; margin: 0; padding: 0; border: 3px solid var(--line); box-shadow: 5px 5px 0 var(--line); }
   .stage.full::before { display: none; }
   .stage.full .fullbtn { display: flex; }
+  .stage.full #room { touch-action: none; }   /* 크게 볼 땐 화면이 안 내려가니 끌기가 바로 되게 */
+  .stage.full.rot { transform-origin: 0 0; }
   body.azit-full { overflow: hidden; }
   /* 휴대폰에서 방 위를 위아래로 밀면 화면이 내려간다(pan-y, 11/23 가르시아 "고쳐줘" — 시안은 none이라 방 위에선 안 내려갔음).
      내 방 소품 위를 누를 때만 아래 스크립트(touchstart)가 막아서 끌기가 된다 */
@@ -1238,15 +1239,23 @@
   // (문 쪽 왼쪽 끝·오른쪽 벽 끝), 칸이 VW_MIN보다 좁으면 방을 조금 줄인다. 위는 선반 위 트로피까지(OY), 아래는 바닥 앞 끝까지(VH).
   // K = 방 한 점의 CSS 크기, Z = 방 한 점의 화면 픽셀 수(정수가 아닐 수 있음 — 원본 그림은 곱게, 점 그림은 점째)
   var K = 1, Z = 3, VW = 345, VH = 300, OX = 64, OY = 30, XC = 236, VW_MIN = 340;   // 390폭 휴대폰 방 칸 ≈ 345 CSS 픽셀 → 1점 = 1픽셀(Z 정수)
-  var full = false;   // 전체 화면(PC — 아래 setFull)
+  // 소품 보기 창은 body 바로 밑으로(11/28) — 끌어 올리는 판(#sheet, z-index 20) 안에 있으면 크게 보기(방 칸 z-index 1050) 밑에 깔려 안 보였다
+  document.body.appendChild($('itemcard'));
+  var full = false, rot = false;   // 전체 화면(아래 setFull) · 세로 휴대폰에서 방을 눕혔나
+  var TOUCH = window.matchMedia && matchMedia('(pointer: coarse)').matches;
   function fit() {
     var avail = $('stage').clientWidth, dpr = window.devicePixelRatio || 1, vw, k, z;
     if (full) {
       // 전체 화면: 방 전체 폭(429점) × 보통 높이(300점)가 화면에 다 들어가게 키워 가운데에. 화면 점은 방 한 점에 6개까지만(큰 모니터에서 그리기가 무거워지지 않게 — 넘으면 조금 키워 보임)
-      var fw = window.innerWidth, fh = window.innerHeight, edge = 3;
-      vw = RW; k = Math.max(0.5, Math.min((fw - 40) / RW, (fh - 40) / 300)); z = Math.min(k * dpr, 6);
-      var st = $('stage').style;
-      st.left = Math.max(0, Math.round((fw - RW * k) / 2 - edge)) + 'px'; st.top = Math.max(0, Math.round((fh - 300 * k) / 2 - edge)) + 'px';
+      // 세로로 든 휴대폰(11/28)은 방을 90도 눕혀 긴 쪽(세로)에 방 폭을 맞춘다 — 그냥 키우면 세로 화면에선 오히려 작아져서
+      var W0 = window.innerWidth, H0 = window.innerHeight, edge = 3;
+      rot = TOUCH && H0 > W0;
+      var fw = rot ? H0 : W0, fh = rot ? W0 : H0, pad = rot ? 16 : 40;
+      vw = RW; k = Math.max(0.5, Math.min((fw - pad) / RW, (fh - pad) / 300)); z = Math.min(k * dpr, 6);
+      var stg = $('stage'), st = stg.style, bw = RW * k + edge * 2, bh = 300 * k + edge * 2;
+      stg.classList.toggle('rot', rot);
+      if (rot) { st.left = Math.round((W0 - bh) / 2) + 'px'; st.top = Math.round((H0 - bw) / 2) + 'px'; st.transform = 'translateX(' + bh + 'px) rotate(90deg)'; }
+      else { st.left = Math.max(0, Math.round((fw - RW * k) / 2 - edge)) + 'px'; st.top = Math.max(0, Math.round((fh - 300 * k) / 2 - edge)) + 'px'; st.transform = ''; }
     } else {
       if (avail <= 0) return;
       vw = Math.min(RW, Math.max(VW_MIN, avail)); k = avail / vw; z = k * dpr;
@@ -1953,7 +1962,11 @@
 
   // ── 누르기: 소품이면 끌기(내 방만), 아니면 강아지가 그 바닥 칸으로 ──
   var drag = null, downAt = null;
-  function at(e) { var r = canvas.getBoundingClientRect(); return { x: OX + (e.clientX - r.left) * VW / r.width, y: OY + (e.clientY - r.top) * VH / r.height }; }
+  function at(e) {
+    var r = canvas.getBoundingClientRect();
+    if (rot) return { x: OX + (e.clientY - r.top) * VW / r.height, y: OY + (r.right - e.clientX) * VH / r.width };   // 90도 눕힌 방(세로 휴대폰 크게 보기)
+    return { x: OX + (e.clientX - r.left) * VW / r.width, y: OY + (e.clientY - r.top) * VH / r.height };
+  }
   // 그 자리에 놓인 소품(위에 그린 것부터) — 그림이 실제로 있는 점(둘레 2점까지)을 눌렀을 때만(11/24 꽉 찬 방: 네모 칸으로 보면
   // 앞 소품의 빈 귀퉁이가 뒤 소품을 가로채서). 그림의 불투명 점은 그림마다 한 번만 읽어 둔다
   var maskCache = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -2853,7 +2866,7 @@
     full = on;
     var stg = $('stage'), b = $('fullbtn');
     stg.classList.toggle('full', on); $('fullback').hidden = !on; document.body.classList.toggle('azit-full', on);
-    if (!on) { stg.style.left = ''; stg.style.top = ''; }
+    if (!on) { stg.style.left = ''; stg.style.top = ''; stg.style.transform = ''; stg.classList.remove('rot'); rot = false; }
     b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', on ? '전체 화면 끝내기' : '전체 화면으로 보기'); b.title = on ? '전체 화면 끝내기 (Esc)' : '전체 화면';
     $('fullico').setAttribute('d', on ? 'M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5' : 'M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10');
     fit(); measureBubble(); staticDirty = true; kick();
@@ -2863,8 +2876,14 @@
     if (!full) {
       setFull(true);
       var de = document.documentElement;
-      try { if (de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen().catch(function () { /* 화면 안에서만 */ }); } catch (e) { /* 화면 안에서만 */ }
+      try {
+        if (de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen().then(function () {
+          // 안드로이드: 가로로 고정되면 방을 눕힐 필요 없이 그대로 크게(아이폰은 안 됨 — 눕혀 보임)
+          if (TOUCH && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').then(function () { fit(); measureBubble(); staticDirty = true; kick(); }).catch(function () { /* 눕혀 보임 */ });
+        }).catch(function () { /* 화면 안에서만 */ });
+      } catch (e) { /* 화면 안에서만 */ }
     } else {
+      try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* 그대로 */ }
       try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {}); } catch (e) { /* 그대로 */ }
       setFull(false);
     }
