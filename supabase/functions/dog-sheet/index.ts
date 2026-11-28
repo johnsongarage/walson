@@ -23,7 +23,7 @@
 // 사진은 받아서 구글로 넘기고 바로 버린다 — 어디에도 저장하지 않고, 기록 표엔 번호·날짜·됐는지만.
 //
 // 부르는 법: POST { dog: '번호(영소문자·숫자·_ 24자까지)', kind: 'breed'|'photo', breed?: '견종 이름', image: base64, mime: 'image/png'|'image/jpeg'|'image/webp',
-//                  layout?: '3x2'(기본)|'3x3', look?: { walk: 'smile'|'calm', happy: 'smile'|'growl', tilt: 'left'|'right' } }
+//                  layout?: '3x2'(기본)|'3x3'|'pose'(정지 자세 3x2)|'walk'(걷기 2x2), look?: { walk: 'smile'|'calm', happy: 'smile'|'growl', tilt: 'left'|'right' } }
 // 받는 것:  { ok: true, image: base64, mime, layout, look } 또는 { ok: false, why: 'day'|'dog'|'month'|'bad'|'gemini'|'noimage' }
 
 const MODEL = 'gemini-nano-banana-2.1';
@@ -68,6 +68,7 @@ Every cell: one dog only, centered, the same size, feet on the same ground line,
 No grid lines, no text, no numbers, no frames, no ground shadow, no props, no motion lines or effect marks.
 Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no texture. Never use that green on the dog.
 `;
+const BELLY = 'belly-show half roll: lying on its side on the ground line with the body rolled slightly back so the belly shows, front paws loosely bent up in the air, back legs relaxed, tail on the ground. The head stays UPRIGHT (not upside down), lifted a little and turned to look at the viewer with a happy face - two eyes, nose and mouth clearly readable. Show the belly in a lighter shade of the coat.';
 const SIT1 = 'sitting, facing right, with a gentle slight smile (mouth softly curved, closed or only a little open).';
 const SIT2 = (look: Look) => `sitting, ${TILT[look.tilt]}, curious face, looking at the viewer.`;
 const LEGS = `The guide is a stick figure: thick black lines are the near-side legs, thin light gray lines are the far-side legs, small circles are the joints. Put the dog's legs where those lines are.
@@ -108,7 +109,27 @@ Head, face, ears, tail, body, size and position in the cell stay identical in al
 ${WALK_FACE[look.walk]}
 Row 3, cell 1: ${SMILE}
 Row 3, cell 2: ${GROWL}
-Row 3, cell 3: belly-show half roll (do not use the fourth stick figure for this): lying on its side on the ground line with the body rolled slightly back so the belly shows, front paws loosely bent up in the air, back legs relaxed, tail on the ground. The head stays UPRIGHT (not upside down), lifted a little and turned to look at the viewer with a happy face - two eyes, nose and mouth clearly readable. Show the belly in a lighter shade of the coat.`,
+Row 3, cell 3: (do not use the fourth stick figure for this) ${BELLY}`,
+  },
+  // 11/28 가르시아 "걷기 모션만 2x2로 빼는 게 맞겠네? 나머지는 2x3으로" — 한 마리에 두 장(정지 자세 · 걷기)
+  'pose': {
+    aspect: '3:2', guide: '',
+    prompt: (breed: string, look: Look) => COMMON(breed, '3 columns x 2 rows', 'six') + `Row 1, cell 1: ${SIT1}
+Row 1, cell 2: ${SIT2(look)}
+Row 1, cell 3: sleeping, lying curled up, eyes closed.
+Row 2, cell 1: ${SMILE}
+Row 2, cell 2: ${GROWL}
+Row 2, cell 3: ${BELLY}`,
+  },
+  'walk': {
+    aspect: '4:3', guide: 'walk-guide-2x2.png',
+    prompt: (breed: string, look: Look) => COMMON(breed, '2 columns x 2 rows', 'four') + `All four cells are ONE walk cycle, walking to the right, played in this order: top-left A, top-right middle 1, bottom-left B, bottom-right middle 2, then A again.
+The SECOND attached image is only a POSE GUIDE laid out the same way: four stick-figure dogs in a 2 x 2 grid, one for each cell.
+${LEGS}
+Middle 1 (top-right): the legs that were forward in A stand straight under the body on the ground; the other two legs are lifted, bent and passing forward under the body.
+Middle 2 (bottom-right): the opposite pair - the legs that were forward in B stand straight on the ground; the other two are lifted and passing forward.
+Head, face, ears, tail, body, size and position in the cell stay identical in all four cells; only the legs change.
+${WALK_FACE[look.walk]}`,
   },
 } as const;
 type LayoutName = keyof typeof LAYOUTS;
@@ -150,11 +171,11 @@ Deno.serve(async (req) => {
   const breed = String(b?.breed || '').replace(/[^\p{L}\p{N} \-]/gu, '').slice(0, 30);
   const mime = String(b?.mime || '');
   const image = String(b?.image || '');
-  const layout: LayoutName = b?.layout === '3x3' ? '3x3' : '3x2';
+  const layout: LayoutName = (['3x3', 'pose', 'walk'] as const).find((k) => k === b?.layout) || '3x2';
   const L = LAYOUTS[layout];
   const look: Look = {
     walk: b?.look?.walk in WALK_FACE ? b.look.walk : (Math.random() < 0.5 ? 'smile' : 'calm'),
-    happy: layout === '3x3' ? 'smile' : b?.look?.happy in HAPPY_FACE ? b.look.happy : (Math.random() < 0.7 ? 'smile' : 'growl'),
+    happy: layout !== '3x2' ? 'smile' : b?.look?.happy in HAPPY_FACE ? b.look.happy : (Math.random() < 0.7 ? 'smile' : 'growl'),
     tilt: b?.look?.tilt in TILT ? b.look.tilt : (Math.random() < 0.5 ? 'left' : 'right'),
   };
   if (!/^[a-z0-9_]{1,24}$/.test(dog) || !/^image\/(png|jpeg|webp)$/.test(mime)
@@ -168,7 +189,7 @@ Deno.serve(async (req) => {
   const id = Number(t.slice(3));
 
   try {
-    const g = await guideB64(L.guide);
+    const g = L.guide ? await guideB64(L.guide) : null;
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },

@@ -1,5 +1,5 @@
 // 그림 공장 첫 시험 — 견종 도트 그림 8장을 서버 함수(dog-sheet)에 보내 3×2 그림을 받아 sian-ref/dog-sheet/에 둔다. (2026-11-28)
-// 쓰는 법: node _dev/dog-sheet-test.mjs [라운드 글자(기본 a)] [견종…]   — 3×3은 LAYOUT=3x3 node …
+// 쓰는 법: node _dev/dog-sheet-test.mjs [라운드 글자(기본 a)] [견종…]   — 3×3은 LAYOUT=3x3 node …, 정지 자세 3×2는 LAYOUT=pose, 걷기 2×2는 LAYOUT=walk
 //   라운드 글자는 번호 앞에 붙는다(a_maltese) — 한 마리 3장 한도라 프롬프트를 바꿔 다시 시험할 땐 b, c…로.
 // 한 장 약 50원. 8장 약 400원. 하루 20장 한도.
 import fs from 'node:fs';
@@ -17,7 +17,7 @@ fs.mkdirSync(outDir, { recursive: true });
 
 // 표정은 번갈아 정해 두 가지가 다 나오게(앱에선 서버가 뽑는다)
 const LOOKS = [{ walk: 'smile', happy: 'smile', tilt: 'left' }, { walk: 'calm', happy: 'growl', tilt: 'right' }, { walk: 'calm', happy: 'smile', tilt: 'right' }, { walk: 'smile', happy: 'growl', tilt: 'left' }];
-const layout = process.env.LAYOUT === '3x3' ? '3x3' : '3x2';
+const layout = ['3x3', 'pose', 'walk'].includes(process.env.LAYOUT) ? process.env.LAYOUT : '3x2';
 let n = 0;
 for (const b of breeds) {
   const look = LOOKS[n++ % LOOKS.length];

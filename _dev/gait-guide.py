@@ -93,3 +93,22 @@ save(im, 'gait-guide.png')
 im = Image.new('RGB', (CW * 4 + 120, CH), (255, 255, 255)); d = ImageDraw.Draw(im)
 dog(d, 0, A); dog_mid(d, CW + 40); dog(d, (CW + 40) * 2, B); dog_belly(d, (CW + 40) * 3)
 save(im, 'pose-guide-3x3.png')
+
+def dog_mid2(d, ox):
+    # 걷기 중간2(B → A 사이): B에서 앞에 있던 짝(먼 앞 + 가까운 뒤)이 땅을 딛고 곧게, 다른 짝(가까운 앞 + 먼 뒤)은 들어 올려 지나감
+    g = 380; S = (ox + 360, 215); Hp = (ox + 175, 215)
+    leg(d, front(S[0] - 18, S[1], 6, g), FAR)
+    leg(d, hind_up(Hp[0] + 18, Hp[1], 16, g), FAR)
+    body(d, ox)
+    leg(d, front_up(*S, 12, g), NEAR)
+    leg(d, hind(*Hp, -4, g), NEAR)
+
+# 걷기 2×2용(11/28 가르시아 "걷기 모션만 2x2로 빼는 게 맞겠네, 나머지는 2x3"): 칸 배치 그대로
+#   위 줄 A · 중간1 / 아래 줄 B · 중간2 — 돌리는 순서는 A → 중간1 → B → 중간2
+GAP = 40
+im = Image.new('RGB', (CW * 2 + GAP, CH * 2 + GAP), (255, 255, 255)); d = ImageDraw.Draw(im)
+tile = Image.new('RGB', (CW, CH), (255, 255, 255))
+for k, fn in enumerate([lambda dd: dog(dd, 0, A), lambda dd: dog_mid(dd, 0), lambda dd: dog(dd, 0, B), lambda dd: dog_mid2(dd, 0)]):
+    t = tile.copy(); fn(ImageDraw.Draw(t))
+    im.paste(t, ((k % 2) * (CW + GAP), (k // 2) * (CH + GAP)))
+save(im, 'walk-guide-2x2.png')

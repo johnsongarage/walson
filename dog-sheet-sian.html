@@ -85,7 +85,7 @@
   ];
   var set = SETS[0];
   var sheets = {}, imgs = {}, pick = 'maltese';
-  function walkSeq(s) { return s.poses.walkmid ? ['walk1', 'walkmid', 'walk2', 'walkmid'] : ['walk1', 'walk2']; }
+  function walkSeq(s) { return s.poses.walkmid2 ? ['walk1', 'walkmid', 'walk2', 'walkmid2'] : s.poses.walkmid ? ['walk1', 'walkmid', 'walk2', 'walkmid'] : ['walk1', 'walk2']; }
   var $ = function (id) { return document.getElementById(id); };
 
   function fit(c) {
