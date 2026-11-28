@@ -93,14 +93,23 @@
       }
       boxes.push({ n: n, x0: x0, y0: y0, x1: x1, y1: y1, cx: sx / n, cy: sy / n });
     }
-    var cell = NAMES.map(function () { return null; });
+    var cell = NAMES.map(function () { return null; }), parts = NAMES.map(function () { return []; });
     boxes.forEach(function (b) {
       if (b.n < MIN) return;   // 티끌
       var bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1;
       if (Math.min(bw, bh) <= 10 && Math.max(bw, bh) > 40) return;   // 가늘고 긴 조각 = 선 남은 것
-      var col = Math.min(2, Math.floor(b.cx / (W / 3))), row = Math.min(ROWS - 1, Math.floor(b.cy / (H / ROWS))), c = cell[row * 3 + col];
-      if (!c) cell[row * 3 + col] = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, n: b.n };
-      else { c.x0 = Math.min(c.x0, b.x0); c.y0 = Math.min(c.y0, b.y0); c.x1 = Math.max(c.x1, b.x1); c.y1 = Math.max(c.y1, b.y1); c.n += b.n; }
+      var col = Math.min(2, Math.floor(b.cx / (W / 3))), row = Math.min(ROWS - 1, Math.floor(b.cy / (H / ROWS)));
+      parts[row * 3 + col].push(b);
+    });
+    // 칸마다 가장 큰 덩어리의 5%도 안 되는 조각은 버린다 — Gemini 웹의 반짝이 표시(✦)·떨어진 점이 강아지 상자를 키우지 않게
+    parts.forEach(function (list, k) {
+      var big = list.reduce(function (m, b) { return Math.max(m, b.n); }, 0);
+      list.forEach(function (b) {
+        if (b.n < big * 0.05) return;
+        var c = cell[k];
+        if (!c) cell[k] = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, n: b.n };
+        else { c.x0 = Math.min(c.x0, b.x0); c.y0 = Math.min(c.y0, b.y0); c.x1 = Math.max(c.x1, b.x1); c.y1 = Math.max(c.y1, b.y1); c.n += b.n; }
+      });
     });
 
     // ③④ 자르고 기준점
