@@ -108,7 +108,7 @@
 <script src="reward-rules.js?v=15"></script>
 <script src="azit-room.js?v=27"></script>
 <script src="walk-stars.js?v=10"></script>
-<script src="night-extras.js?v=3"></script>
+<script src="night-extras.js?v=4"></script>
 <script>
 // 데이터·글자(3D 모듈보다 먼저) — 결과는 window.SKY에
 (function () {
@@ -421,18 +421,21 @@ function start(renderer) {
   // 받은 로켓을 타고 별자리들 위 높이(약 50°, 조금씩 오르내림)를 46초에 한 바퀴. 하늘 한가운데서 올려다보면 화면 위쪽에 타원 곡선으로 지나간다.
   // 가는 쪽으로 그림을 뒤집고 길 기울기만큼 기울임. 말풍선으로 떠들고(night-extras.js SAY), 누르면 다음 말.
   // UFO(외계 생명체가 돔 안에, 11/27 "외계인도 UFO 안에 있어야 해") — 25~50초에 한 번쯤 보는 쪽 하늘에 4.5초 지나감, 누르면 휙 도망.
+  // 11/28 가르시아 "3D 화면에서 우주인과 로켓 사이즈 10분의 1로 줄이고 대사 제거해줘" — night-extras.js ON3D(size·say): 1/10 크기, 말풍선 없이,
+  // 순찰대를 눌러도 아무 일 없음(별자리 누르기로 넘어감). UFO는 작아진 만큼 위아래 흔들림도 줄이고, 누르는 자리는 조금 넉넉히. 2D 밤하늘은 ON으로 꺼 둔 채.
   const NX = window.WalsonNightExtras, deg = THREE.MathUtils.degToRad;
+  const X3 = (NX && NX.ON3D) || { patrol: false, alien: false, size: 1, say: false };
   const who = D.name || (D.mine && S.dogName ? S.dogName() : '') || '멍멍이';
-  const patrol = { sprite: null, tex: null, texL: null, aspect: NX ? NX.ROCKET.aspect : 1.4, R: 150, el: deg(50), W: 22 };
+  const patrol = { sprite: null, tex: null, texL: null, aspect: NX ? NX.ROCKET.aspect : 1.4, R: 150, el: deg(50), W: 22 * X3.size };
   const sayEl = $('say3d'), headEl = document.querySelector('.top > div');
   let sayI = 0, sayHold = performance.now() + 5200, faceL = false, seenN = 0;
   try { seenN = +(localStorage.getItem('walson_alien_seen') || 0); } catch (e) { seenN = 0; }
-  function speak(text, hold) { sayEl.textContent = text.replace('{who}', who); sayHold = performance.now() + (hold || 5200); }
+  function speak(text, hold) { if (!X3.say) return; sayEl.textContent = text.replace('{who}', who); sayHold = performance.now() + (hold || 5200); }
   function nextSay() { if (!NX) return; sayI = (sayI + 1) % NX.SAY.length; speak(NX.SAY[sayI]); }
-  if (NX && NX.ON && NX.ON.patrol) {   // 11/28 "로케트랑 외계인은 지금 빼줘" — night-extras.js ON이 false면 안 나옴
+  if (NX && X3.patrol) {   // night-extras.js ON3D.patrol이 false면 안 나옴
     speak(NX.SAY[0]);
     Promise.all([NX.loadImg(NX.ART.rocket), NX.loadImg('icons/dot-dogs/' + D.dog + '.webp?v=1')]).then(([rocket, dog]) => {
-      const w = 384, h = Math.round(w / patrol.aspect);
+      const w = X3.size < 0.5 ? 128 : 384, h = Math.round(w / patrol.aspect);   // 작게 띄우면 그림 칸도 작게
       const mk = (flip) => {
         const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
         if (flip) { g.translate(w, 0); g.scale(-1, 1); }
@@ -446,12 +449,12 @@ function start(renderer) {
     });
   }
   const ufo = { sprite: null, canvas: null, tex: null, img: null, t0: 0, nextAt: performance.now() + 9000 + Math.random() * 14000, az0: 0, dir: 1, el: 0, flee: 0, R: 165 };
-  if (NX && NX.ON && NX.ON.alien && !REDUCE) {
+  if (NX && X3.alien && !REDUCE) {
     NX.loadImg(NX.ART.ufo).then((im) => { ufo.img = im; });
-    ufo.canvas = document.createElement('canvas'); ufo.canvas.width = 256; ufo.canvas.height = 180;
+    ufo.canvas = document.createElement('canvas'); ufo.canvas.width = X3.size < 0.5 ? 64 : 256; ufo.canvas.height = Math.round(ufo.canvas.width * 180 / 256);
     ufo.tex = new THREE.CanvasTexture(ufo.canvas);
     ufo.sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: ufo.tex, transparent: true, depthWrite: false }));
-    ufo.sprite.scale.set(20, 14, 1); ufo.sprite.visible = false; scene.add(ufo.sprite);
+    ufo.sprite.scale.set(20 * X3.size, 14 * X3.size, 1); ufo.sprite.visible = false; scene.add(ufo.sprite);
   }
   const camAz = () => { const d = camera.position.clone().negate(); return Math.atan2(d.x, -d.z); };
   function screenOf(p) {
@@ -469,7 +472,8 @@ function start(renderer) {
     if (Math.abs(dx) > 0.01) { const l = dx < 0; if (l !== faceL) { faceL = l; patrol.sprite.material.map = l ? patrol.texL : patrol.tex; patrol.sprite.material.needsUpdate = true; } }
     let ang = Math.atan2(-dy, dx); if (faceL) ang = ang > 0 ? ang - Math.PI : ang + Math.PI;
     patrol.sprite.material.rotation = Math.max(-0.45, Math.min(0.45, ang * 0.7));
-    // 말풍선 — 로켓이 화면에 있을 때만, 로켓 위
+    // 말풍선 — 로켓이 화면에 있을 때만, 로켓 위(11/28부터 대사 없음 — ON3D.say)
+    if (!X3.say) return;
     if (t > sayHold + 2600) nextSay();
     const showing = a.on && t < sayHold;
     sayEl.style.opacity = showing ? '1' : '0';
@@ -495,11 +499,11 @@ function start(renderer) {
       speak('앗, 저기! 우주인?!', 3200);
     }
     const p = (t - ufo.t0) / 4500;
-    let az = ufo.az0 + ufo.dir * 0.5 * p, el = ufo.el + deg(2.5) * Math.sin((t - ufo.t0) / 300), R = ufo.R, sc = 1;
+    let az = ufo.az0 + ufo.dir * 0.5 * p, el = ufo.el + deg(2.5) * X3.size * Math.sin((t - ufo.t0) / 300), R = ufo.R, sc = 1;
     if (ufo.flee) { const f = Math.min(1, (t - ufo.flee) / 650); el += deg(25) * f * f; sc = 1 - 0.8 * f; ufo.sprite.material.opacity = 1 - f; if (f >= 1) { ufo.sprite.visible = false; ufo.nextAt = t + 25000 + Math.random() * 25000; return; } }
     else if (p >= 1) { ufo.sprite.visible = false; ufo.nextAt = t + 25000 + Math.random() * 25000; if (t < sayHold) speak('방금 그거 봤어? 다음엔 꼭 잡을게', 3600); return; }
-    ufo.sprite.position.copy(dirOf(az, el).multiplyScalar(R)); ufo.sprite.scale.set(20 * sc, 14 * sc, 1);
-    if (Math.floor(t / 50) !== ufo.lastDraw) { ufo.lastDraw = Math.floor(t / 50); NX.drawUfo(ufo.canvas.getContext('2d'), 256, 180, t, ufo.img); ufo.tex.needsUpdate = true; }
+    ufo.sprite.position.copy(dirOf(az, el).multiplyScalar(R)); ufo.sprite.scale.set(20 * sc * X3.size, 14 * sc * X3.size, 1);
+    if (Math.floor(t / 50) !== ufo.lastDraw) { ufo.lastDraw = Math.floor(t / 50); NX.drawUfo(ufo.canvas.getContext('2d'), ufo.canvas.width, ufo.canvas.height, t, ufo.img); ufo.tex.needsUpdate = true; }
   }
   function hitSprite(sp, x, y, extra) {
     if (!sp || !sp.visible) return false;
@@ -544,8 +548,8 @@ function start(renderer) {
   canvas.addEventListener('pointerup', (e) => {
     if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; return; }
     downAt = null;
-    if (hitSprite(ufo.sprite, e.clientX, e.clientY, 14) && !ufo.flee) { ufo.flee = performance.now(); speak('앗, 놓쳤다! 우주인 목격 ' + seenN + '번째…', 4200); return; }
-    if (hitSprite(patrol.sprite, e.clientX, e.clientY, 8)) { nextSay(); return; }
+    if (hitSprite(ufo.sprite, e.clientX, e.clientY, X3.size < 0.5 ? 22 : 14) && !ufo.flee) { ufo.flee = performance.now(); speak('앗, 놓쳤다! 우주인 목격 ' + seenN + '번째…', 4200); return; }
+    if (X3.say && hitSprite(patrol.sprite, e.clientX, e.clientY, 8)) { nextSay(); return; }
     const rc = canvas.getBoundingClientRect(), x = e.clientX - rc.left, y = e.clientY - rc.top;
     let best = null, bd = Math.min(rc.width, rc.height) * 0.24;
     const v = new THREE.Vector3();
