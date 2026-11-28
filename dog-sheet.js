@@ -1,0 +1,97 @@
+// 3×2 강아지 동작 그림 자르기 (2026-11-28 그림 공장 — 서버 함수 supabase/functions/dog-sheet가 받아 온 그림을 브라우저에서 자른다)
+// 칸: 위 줄 앉기1 · 걷기1 · 걷기2 / 아래 줄 자기 · 웃기 · 앉기2. 배경은 초록 단색(#00FF00)으로 받는다.
+// 하는 일:
+//   ① 배경 빼기 — 그림 가장자리부터 초록을 따라 들어가며 지운다(전체에서 초록을 한 번에 지우면 몸 안 색까지 먹을 수 있어서).
+//      다리 사이처럼 갇힌 진한 초록도 지우고, 테두리에 번진 초록(JPG)은 빼거나 회색으로 눌러 준다.
+//   ② 덩어리 찾기 — 칸을 3등분해 자르지 않고 강아지 덩어리를 찾아 가운데가 놓인 칸으로 나눈다(그림이 칸 선을 조금 넘어도 안 잘림).
+//   ③ 한 장 같은 비율 — 칸마다 따로 키우지 않고, 여섯 칸 중 가장 큰 키에 맞춘 한 비율만 쓴다(앉으면 작아지고 서면 커지게).
+//   ④ 발 맞추기 — 기준점은 발바닥 가운데. 걷기 두 장은 코끝(오른쪽 끝)을 맞춰 머리가 덜 흔들리게.
+// 쓰는 법: WalsonSheet.cut(img) → { poses: { sit1, walk1, walk2, sleep, happy, sit2 }, maxH }
+//   pose = { c: 잘린 캔버스(투명 배경), w, h, ax, ay(기준점 — 캔버스 안 픽셀) }
+(function () {
+  var NAMES = ['sit1', 'walk1', 'walk2', 'sleep', 'happy', 'sit2'];
+
+  function cut(img) {
+    var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+    var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    var g = cv.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0);
+    var im = g.getImageData(0, 0, W, H), d = im.data, N = W * H;
+    var bg = new Uint8Array(N);
+    function greenish(i) { var r = d[i * 4], gg = d[i * 4 + 1], b = d[i * 4 + 2]; return gg > 90 && gg - r > 40 && gg - b > 40; }
+
+    // ① 가장자리에서 초록 따라 들어가기
+    var q = new Int32Array(N), qh = 0, qt = 0, x, y, i;
+    function seed(p) { if (!bg[p] && greenish(p)) { bg[p] = 1; q[qt++] = p; } }
+    for (x = 0; x < W; x++) { seed(x); seed((H - 1) * W + x); }
+    for (y = 0; y < H; y++) { seed(y * W); seed(y * W + W - 1); }
+    while (qh < qt) {
+      var p = q[qh++], px = p % W;
+      if (px > 0) seed(p - 1);
+      if (px < W - 1) seed(p + 1);
+      if (p >= W) seed(p - W);
+      if (p < N - W) seed(p + W);
+    }
+    // 갇힌 진한 초록(다리·꼬리 사이) — 강아지에 이런 초록은 없다
+    for (i = 0; i < N; i++) if (!bg[i]) { var r0 = d[i * 4], g0 = d[i * 4 + 1], b0 = d[i * 4 + 2]; if (g0 > 150 && r0 < 120 && b0 < 120) bg[i] = 1; }
+    // 테두리에 번진 초록: 진하면 빼고, 옅으면 초록만 눌러 준다(두 겹)
+    for (var pass = 0; pass < 2; pass++) {
+      var drop = [];
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        i = y * W + x; if (bg[i]) continue;
+        var edge = (x > 0 && bg[i - 1]) || (x < W - 1 && bg[i + 1]) || (y > 0 && bg[i - W]) || (y < H - 1 && bg[i + W]);
+        if (!edge) continue;
+        var R = d[i * 4], G = d[i * 4 + 1], B = d[i * 4 + 2], m = Math.max(R, B), gr = G - m;
+        if (gr > 50) drop.push(i); else if (gr > 0) d[i * 4 + 1] = m;
+      }
+      for (var k = 0; k < drop.length; k++) bg[drop[k]] = 1;
+    }
+    for (i = 0; i < N; i++) if (bg[i]) d[i * 4 + 3] = 0;
+    g.putImageData(im, 0, 0);
+
+    // ② 덩어리 → 칸
+    var lab = new Int32Array(N), boxes = [], MIN = Math.max(60, N * 0.0004);
+    for (i = 0; i < N; i++) {
+      if (bg[i] || lab[i]) continue;
+      var id = boxes.length + 1, x0 = W, y0 = H, x1 = 0, y1 = 0, n = 0, sx = 0, sy = 0;
+      qh = 0; qt = 0; q[qt++] = i; lab[i] = id;
+      while (qh < qt) {
+        var p2 = q[qh++], cx = p2 % W, cy = (p2 / W) | 0;
+        n++; sx += cx; sy += cy;
+        if (cx < x0) x0 = cx; if (cx > x1) x1 = cx; if (cy < y0) y0 = cy; if (cy > y1) y1 = cy;
+        if (cx > 0 && !bg[p2 - 1] && !lab[p2 - 1]) { lab[p2 - 1] = id; q[qt++] = p2 - 1; }
+        if (cx < W - 1 && !bg[p2 + 1] && !lab[p2 + 1]) { lab[p2 + 1] = id; q[qt++] = p2 + 1; }
+        if (cy > 0 && !bg[p2 - W] && !lab[p2 - W]) { lab[p2 - W] = id; q[qt++] = p2 - W; }
+        if (cy < H - 1 && !bg[p2 + W] && !lab[p2 + W]) { lab[p2 + W] = id; q[qt++] = p2 + W; }
+      }
+      boxes.push({ n: n, x0: x0, y0: y0, x1: x1, y1: y1, cx: sx / n, cy: sy / n });
+    }
+    var cell = NAMES.map(function () { return null; });
+    boxes.forEach(function (b) {
+      if (b.n < MIN) return;   // 티끌
+      var col = Math.min(2, Math.floor(b.cx / (W / 3))), row = Math.min(1, Math.floor(b.cy / (H / 2))), c = cell[row * 3 + col];
+      if (!c) cell[row * 3 + col] = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, n: b.n };
+      else { c.x0 = Math.min(c.x0, b.x0); c.y0 = Math.min(c.y0, b.y0); c.x1 = Math.max(c.x1, b.x1); c.y1 = Math.max(c.y1, b.y1); c.n += b.n; }
+    });
+
+    // ③④ 자르고 기준점
+    var poses = {}, maxH = 0, missing = [];
+    NAMES.forEach(function (nm, k) {
+      var c = cell[k];
+      if (!c) { missing.push(nm); return; }
+      var w = c.x1 - c.x0 + 1, h = c.y1 - c.y0 + 1, o = document.createElement('canvas');
+      o.width = w; o.height = h;
+      o.getContext('2d').drawImage(cv, c.x0, c.y0, w, h, 0, 0, w, h);
+      poses[nm] = { c: o, w: w, h: h, ax: w / 2, ay: h, box: c };
+      if (h > maxH) maxH = h;
+    });
+    if (poses.walk1 && poses.walk2) {   // 코끝 맞추기
+      var wa = (poses.walk1.w + poses.walk2.w) / 2;
+      poses.walk1.ax = poses.walk1.w - wa / 2;
+      poses.walk2.ax = poses.walk2.w - wa / 2;
+    }
+    return { poses: poses, maxH: maxH, W: W, H: H, missing: missing, clean: cv };
+  }
+
+  window.WalsonSheet = { cut: cut, NAMES: NAMES };
+})();
