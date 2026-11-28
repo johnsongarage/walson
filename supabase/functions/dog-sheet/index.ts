@@ -12,8 +12,9 @@
 // 한도: docs/supabase-dog-sheet.sql의 walson_art_take(하루 20장 · 한 마리 3장 · 이번 달 어림 8,000원).
 // 사진은 받아서 구글로 넘기고 바로 버린다 — 어디에도 저장하지 않고, 기록 표엔 번호·날짜·됐는지만.
 //
-// 부르는 법: POST { dog: '번호(영소문자·숫자·_ 24자까지)', kind: 'breed'|'photo', breed?: '견종 이름', image: base64, mime: 'image/png'|'image/jpeg'|'image/webp' }
-// 받는 것:  { ok: true, image: base64, mime } 또는 { ok: false, why: 'day'|'dog'|'month'|'bad'|'gemini'|'noimage' }
+// 부르는 법: POST { dog: '번호(영소문자·숫자·_ 24자까지)', kind: 'breed'|'photo', breed?: '견종 이름', image: base64, mime: 'image/png'|'image/jpeg'|'image/webp',
+//                  look?: { walk: 'smile'|'calm', happy: 'smile'|'growl' } }   (look을 안 주면 뽑기: 걷기 웃음 반반 · 웃기 칸 으르렁 10번에 3번)
+// 받는 것:  { ok: true, image: base64, mime, look } 또는 { ok: false, why: 'day'|'dog'|'month'|'bad'|'gemini'|'noimage' }
 
 const MODEL = 'gemini-nano-banana-2.1';
 const ORIGINS = ['https://johnsongarage.co.kr', 'http://localhost', 'http://127.0.0.1'];
@@ -32,14 +33,24 @@ async function guideB64(): Promise<string | null> {   // 10분 동안 기억
   } catch (e) { console.log('guide', String(e).slice(0, 100)); return null; }
 }   // 사진 약 2.2MB까지(앱이 1024px로 줄여 보낸다)
 
-const PROMPT = (breed: string) => `Use the dog in the FIRST attached image as the only character reference${breed ? ` (breed: ${breed})` : ''}.
+// 표정(11/28 가르시아): 앉기1은 늘 살짝 웃게. 걷기 얼굴(두 장 같음)과 웃기 칸은 강아지마다 뽑는다 — 부를 때 look으로 정할 수도.
+const WALK_FACE = {
+  smile: 'In both walk frames the face is happy: mouth open in a smile, tongue slightly out.',
+  calm: 'In both walk frames the face is calm: mouth closed, relaxed, looking ahead.',
+};
+const HAPPY_FACE = {
+  smile: 'happy, standing, big smile with mouth open, tongue out, tail up.',
+  growl: 'a playful little growl, standing: nose slightly wrinkled, lips lifted to show a few tiny teeth, ears forward, tail still up and wagging. Cute and teasing like play time, never scary or aggressive.',
+};
+type Look = { walk: keyof typeof WALK_FACE; happy: keyof typeof HAPPY_FACE };
+const PROMPT = (breed: string, look: Look) => `Use the dog in the FIRST attached image as the only character reference${breed ? ` (breed: ${breed})` : ''}.
 Draw a sprite sheet of THIS SAME DOG: 3 columns x 2 rows, six equal cells.
 Keep the breed, coat colors, markings, ear shape, tail and any clothing exactly the same in every cell.
 Style: cute pixel art with chunky visible pixels and a dark outline, full body, side view facing right unless noted.
 Every cell: one dog only, centered, the same size, feet on the same ground line, generous empty margin, nothing touching the cell edges.
 No grid lines, no text, no numbers, no frames, no ground shadow, no props.
 Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no texture. Never use that green on the dog.
-Row 1, cell 1: sitting, calm, facing right.
+Row 1, cell 1: sitting, facing right, with a gentle slight smile (mouth softly curved, closed or only a little open).
 Row 1, cell 2 and cell 3 - WALKING, two frames that alternate as a walk cycle.
 The SECOND attached image is only a POSE GUIDE: two gray mannequin dogs, walk frame A on the left and walk frame B on the right.
 Light gray legs are the near-side legs, dark gray legs are the far-side legs. Put the dog's legs exactly where the mannequin's legs are:
@@ -47,10 +58,11 @@ cell 2 = frame A, cell 3 = frame B. Copy only the leg positions - never the gray
 In both frames the two front legs cross each other like an X and the two back legs cross each other like an X.
 Diagonal pairs move together like a trot: when the near front leg is forward, the far back leg is also forward, and the far front leg and near back leg are back.
 From A to B every leg swaps: each front leg and each back leg that is forward in A is back in B. The back legs must move as much as the front legs.
-Head, ears, tail, body, size and position in the cell stay identical between A and B; only the legs change.
+Head, face, ears, tail, body, size and position in the cell stay identical between A and B; only the legs change.
+${WALK_FACE[look.walk]}
 Draw the far-side legs a little darker than the near-side legs. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.
 Row 2, cell 1: sleeping, lying curled up, eyes closed.
-Row 2, cell 2: happy, standing, mouth open, tongue out, tail up.
+Row 2, cell 2: ${HAPPY_FACE[look.happy]}
 Row 2, cell 3: sitting, head tilted, looking at the viewer.`;
 
 function cors(req: Request) {
@@ -90,6 +102,10 @@ Deno.serve(async (req) => {
   const breed = String(b?.breed || '').replace(/[^\p{L}\p{N} \-]/gu, '').slice(0, 30);
   const mime = String(b?.mime || '');
   const image = String(b?.image || '');
+  const look: Look = {
+    walk: b?.look?.walk in WALK_FACE ? b.look.walk : (Math.random() < 0.5 ? 'smile' : 'calm'),
+    happy: b?.look?.happy in HAPPY_FACE ? b.look.happy : (Math.random() < 0.7 ? 'smile' : 'growl'),
+  };
   if (!/^[a-z0-9_]{1,24}$/.test(dog) || !/^image\/(png|jpeg|webp)$/.test(mime)
     || !image || image.length > MAX_B64 || !/^[A-Za-z0-9+/=]+$/.test(image)) return out({ ok: false, why: 'bad' }, 400);
 
@@ -107,7 +123,7 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [
-          { text: PROMPT(breed) },
+          { text: PROMPT(breed, look) },
           { inline_data: { mime_type: mime, data: image } },
           ...(g ? [{ inline_data: { mime_type: 'image/png', data: g } }] : []),
         ] }],
@@ -128,7 +144,7 @@ Deno.serve(async (req) => {
       return out({ ok: false, why: 'noimage' }, 502);
     }
     await rpc('walson_art_done', { p_id: id, p_ok: true });
-    return out({ ok: true, image: pic.data, mime: pic.mimeType || pic.mime_type || 'image/png' });
+    return out({ ok: true, image: pic.data, mime: pic.mimeType || pic.mime_type || 'image/png', look });
   } catch (e) {
     console.log('fail', String(e).slice(0, 200));
     await rpc('walson_art_done', { p_id: id, p_ok: false }).catch(() => {});

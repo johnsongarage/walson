@@ -15,14 +15,18 @@ const breeds = process.argv.slice(3).length ? process.argv.slice(3)
 const outDir = path.join(root, 'sian-ref', 'dog-sheet');
 fs.mkdirSync(outDir, { recursive: true });
 
+// 표정은 번갈아 정해 두 가지가 다 나오게(앱에선 서버가 뽑는다)
+const LOOKS = [{ walk: 'smile', happy: 'smile' }, { walk: 'calm', happy: 'growl' }, { walk: 'calm', happy: 'smile' }, { walk: 'smile', happy: 'growl' }];
+let n = 0;
 for (const b of breeds) {
+  const look = LOOKS[n++ % LOOKS.length];
   const f = path.join(root, 'icons', 'dot-dogs', b + '.webp');
   if (!fs.existsSync(f)) { console.log(b, '그림 없음'); continue; }
   const t0 = Date.now();
   const r = await fetch(url + '/functions/v1/dog-sheet', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: anon, Origin: 'http://localhost' },
-    body: JSON.stringify({ dog: round + '_' + b, kind: 'breed', breed: b, mime: 'image/webp', image: fs.readFileSync(f).toString('base64') }),
+    body: JSON.stringify({ dog: round + '_' + b, kind: 'breed', breed: b, mime: 'image/webp', image: fs.readFileSync(f).toString('base64'), look }),
   });
   const j = await r.json().catch(() => ({ ok: false, why: 'http ' + r.status }));
   const s = ((Date.now() - t0) / 1000).toFixed(1) + '초';
@@ -30,5 +34,5 @@ for (const b of breeds) {
   const ext = /jpeg/.test(j.mime) ? 'jpg' : 'png';
   const out = path.join(outDir, `${round}_${b}.${ext}`);
   fs.writeFileSync(out, Buffer.from(j.image, 'base64'));
-  console.log(b, '됨', s, path.relative(root, out));
+  console.log(b, '됨', s, '걷기 ' + j.look?.walk + ' · 웃기 ' + j.look?.happy, path.relative(root, out));
 }
