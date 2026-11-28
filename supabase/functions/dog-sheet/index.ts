@@ -9,6 +9,7 @@
 //   짝은 대각선(가까운 앞 + 먼 뒤) — 빠른 걸음(트롯). 진짜 '걷기'는 네 박자라 두세 장으로는 못 그리고,
 //   같은 쪽 짝은 낙타 걸음처럼 보인다(점검 11/28). 중간 장은 A → 중간 → B → 중간으로 두 번 쓴다.
 //   안내 그림은 사이트에서 받아 온다 — 그림만 고쳐 올리면 함수를 다시 올리지 않아도 바뀐다. 못 받으면 글만으로 그린다.
+// 목줄·하네스는 늘 뺀다(11/28 가르시아 "목줄 찬 채로 있는 가능성도 엄청 커" — 끊긴 줄이 매달리고 자르기도 망가짐). 옷은 그대로(벗기기는 나중에 고르게).
 // 표정(11/28 가르시아): 앉기1은 늘 살짝 웃음. 걷기 얼굴은 웃음/덤덤 반반, 갸웃 방향은 왼/오 반반,
 //   3x2 웃기 칸은 10번에 3번 장난 으르렁(3x3은 으르렁 칸이 따로). 부를 때 look으로 정할 수도.
 //
@@ -55,6 +56,7 @@ type Look = { walk: keyof typeof WALK_FACE; happy: keyof typeof HAPPY_FACE; tilt
 const COMMON = (breed: string, grid: string, n: string) => `Use the dog in the FIRST attached image as the only character reference${breed ? ` (breed: ${breed})` : ''}.
 Draw a sprite sheet of THIS SAME DOG: ${grid}, ${n} equal cells.
 Keep the breed, coat colors, markings, ear shape, tail and any clothing exactly the same in every cell.
+Never draw a leash, lead or harness (a small collar is fine); if the photo has one, leave it out and fill in the fur it covered.
 Style: cute pixel art with chunky visible pixels and a dark outline, full body, side view facing right unless noted.
 Every cell: one dog only, centered, the same size, feet on the same ground line, generous empty margin, nothing touching the cell edges.
 No grid lines, no text, no numbers, no frames, no ground shadow, no props.
