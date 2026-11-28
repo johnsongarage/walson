@@ -1,5 +1,7 @@
 // 왈슨 그림 공장 — 강아지 사진(또는 견종 도트 그림) 한 장 → 3×2 동작 그림 한 장 (2026-11-28)
 // 칸: 위 줄 앉기1 · 걷기1 · 걷기2 / 아래 줄 자기 · 웃기 · 앉기2. 자르기·배경 빼기는 앱(브라우저)에서.
+// 걷기 두 장(11/28 라운드 b): 왼다리·오른다리로 말하면 그림 모델이 못 알아듣는다(라운드 a — 두 장이 거의 같고 무릎이 사람처럼 꺾임).
+//   다리 이름 대신 모양으로 — A 벌림(뒤집은 V) / B 모음(다리 넷이 배 밑에 곧게). 작은 도트 걸음은 이 두 장이 가장 또렷하다.
 //
 // 비밀 값: GEMINI_API_KEY(Supabase Edge Function secrets에만 — 저장소·채팅·노트에 적지 않는다).
 // SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY는 Supabase가 함수에 저절로 넣어 준다.
@@ -21,8 +23,10 @@ Every cell: one dog only, centered, the same size, feet on the same ground line,
 No grid lines, no text, no numbers, no frames, no ground shadow, no props.
 Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no texture. Never use that green on the dog.
 Row 1, cell 1: sitting, calm, facing right.
-Row 1, cell 2: walking mid-stride. Front-left leg and back-right leg reach forward; front-right and back-left legs push back.
-Row 1, cell 3: walking, the opposite stride. Front-right leg and back-left leg reach forward; front-left and back-right push back. Legs must look clearly different from cell 2 so the two frames alternate as a walk cycle.
+Row 1, cell 2 - WALK FRAME A, legs OPEN: a walking step seen from the side. Both front legs reach forward ahead of the chest and both back legs stretch backward behind the hips, so the legs form a wide upside-down V. The distance from the front paws to the back paws is longer than the body.
+Row 1, cell 3 - WALK FRAME B, legs TOGETHER: the in-between step. All four legs point almost straight down, gathered under the body, with the front paws and back paws close together under the belly.
+Frames A and B are played one after the other as a walk cycle, so their legs must look completely different. Everything except the legs (head, ears, tail, body, size, position in the cell) stays identical between A and B.
+In both walk frames draw the far-side legs a little darker than the near-side legs. Use real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward; never bend a leg forward like a human knee.
 Row 2, cell 1: sleeping, lying curled up, eyes closed.
 Row 2, cell 2: happy, standing, mouth open, tongue out, tail up.
 Row 2, cell 3: sitting, head tilted, looking at the viewer.`;
