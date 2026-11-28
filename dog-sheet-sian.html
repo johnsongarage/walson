@@ -50,6 +50,7 @@
     <button data-all="happy">다 웃기</button>
     <button data-all="growl">다 으르렁</button>
     <button data-all="belly">다 배뒤집기</button>
+    <button data-all="poop">다 똥 자세</button>
   </div>
 
   <h2>한 마리 자세히</h2>
@@ -77,6 +78,7 @@
   var LABEL = { poop: '똥 자세', sit1: '앉기1', walk1: '걷기 A', walkmid: '걷기 중간', walk2: '걷기 B', sleep: '자기', happy: '웃기', sit2: '앉기2', growl: '으르렁', belly: '배뒤집기' };
   var ALL = BREEDS.map(function (b) { return b[0]; });
   var SETS = [
+    { id: 'g', label: '3×3 한 장(걷기 A·중간·똥) · 웹 푸들', pre: 'g_3x3_', layout: '3x3', breeds: ['poodle'], ext: '.webp' },
     { id: 'f', label: '3×3 푸들 · 웹 라운드 f', pre: 'f_3x3_', layout: '3x3old', breeds: ['poodle'], ext: '.webp' },
     { id: 'e', label: '3×3 푸들 · 웹 라운드 e', pre: 'e_3x3_', layout: '3x3old', breeds: ['poodle'], ext: '.webp' },
     { id: 'c33', label: '3×3 · 라운드 c', pre: 'c_3x3_', layout: '3x3old', breeds: ALL },
@@ -190,8 +192,8 @@
     var lift = $('bob').checked ? (cur === 'walkmid' ? 3 : wf % 2 ? 2 : 0) : 0;
     drawPose(g, s, cur, wx, y - lift, px, false);
     // 제자리 두 장 비교(겹쳐 보기)
-    g.globalAlpha = 0.5; drawPose(g, s, 'walk1', WK.w - px * 0.7, y, px * 0.6, false); drawPose(g, s, 'walk2', WK.w - px * 0.7, y, px * 0.6, false); g.globalAlpha = 1;
-    g.fillStyle = '#8a7a72'; g.font = '12px Pretendard'; g.fillText('걷기 A·B 겹쳐 보기', WK.w - px * 1.3, 18);
+    g.globalAlpha = 0.5; sq.filter(function (k, i) { return sq.indexOf(k) === i; }).forEach(function (k) { drawPose(g, s, k, WK.w - px * 0.7, y, px * 0.6, false); }); g.globalAlpha = 1;
+    g.fillStyle = '#8a7a72'; g.font = '12px Pretendard'; g.fillText('걷는 두 장 겹쳐 보기', WK.w - px * 1.3, 18);
   }
   $('step').oninput = function () { $('step-v').textContent = this.value; };
   $('boxes').onchange = detail;
