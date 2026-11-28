@@ -4,8 +4,8 @@
 //   3x3: 앉기1 · 앉기2(갸웃) · 자기 / 걷기A · 걷기 중간 · 걷기B / 웃기 · 으르렁 · 배뒤집기 — 1K 1:1
 //   자르기·배경 빼기는 앱(브라우저, dog-sheet.js)에서.
 // 걷기: 왼다리·오른다리로 말하면 그림 모델이 못 알아듣는다(라운드 a — 두 장이 거의 같고 뒷다리는 그대로, 앞다리 교차 없음).
-//   그래서 자세 안내 그림(회색 마네킹, _dev/gait-guide.py)을 두 번째 그림으로 같이 보낸다 — 3x2는 gait-guide.png(A·B),
-//   3x3은 pose-guide-3x3.png(A·중간·B·배뒤집기). 밝은 다리 = 가까운 쪽, 어두운 다리 = 먼 쪽.
+//   그래서 자세 안내 그림(막대 뼈대 — 라운드 c의 굵은 회색 마네킹은 다리 질감·일자 꼬리까지 따라 해서 바꿈, _dev/gait-guide.py)을 두 번째 그림으로 같이 보낸다 — 3x2는 gait-guide.png(A·B),
+//   3x3은 pose-guide-3x3.png(A·중간·B·배뒤집기). 검은 굵은 선 = 가까운 다리, 옅은 회색 가는 선 = 먼 다리. 꼬리는 일부러 안 그림.
 //   짝은 대각선(가까운 앞 + 먼 뒤) — 빠른 걸음(트롯). 진짜 '걷기'는 네 박자라 두세 장으로는 못 그리고,
 //   같은 쪽 짝은 낙타 걸음처럼 보인다(점검 11/28). 중간 장은 A → 중간 → B → 중간으로 두 번 쓴다.
 //   안내 그림은 사이트에서 받아 온다 — 그림만 고쳐 올리면 함수를 다시 올리지 않아도 바뀐다. 못 받으면 글만으로 그린다.
@@ -46,7 +46,7 @@ const WALK_FACE = {
   calm: 'In every walk frame the face is calm: mouth closed, relaxed, looking ahead.',
 };
 const SMILE = 'happy, standing, big smile with mouth open, tongue out, tail up.';
-const GROWL = 'a playful little growl, standing: nose slightly wrinkled, lips lifted to show a few tiny teeth, ears forward, tail still up and wagging. Cute and teasing like play time, never scary or aggressive.';
+const GROWL = 'a playful little growl, standing: nose slightly wrinkled, lips lifted to show a few tiny teeth, ears forward, tail still up and wagging. Eyes stay soft and happy. Cute and teasing like play time, never grumpy, scary or aggressive.';
 const HAPPY_FACE = { smile: SMILE, growl: GROWL };
 const TILT = {   // 강아지 기준 왼·오가 아니라 그림 기준으로 말한다(모델이 덜 헷갈림)
   left: 'head tilted so the top of the head leans toward the LEFT side of the picture',
@@ -57,6 +57,8 @@ type Look = { walk: keyof typeof WALK_FACE; happy: keyof typeof HAPPY_FACE; tilt
 const COMMON = (breed: string, grid: string, n: string) => `Use the dog in the FIRST attached image as the only character reference${breed ? ` (breed: ${breed})` : ''}.
 Draw a sprite sheet of THIS SAME DOG: ${grid}, ${n} equal cells.
 Keep the breed, coat colors, markings, ear shape, tail and any clothing exactly the same in every cell.
+Keep the coat texture (curly, fluffy, long, wiry or smooth) on the whole body in every cell, legs included - legs are as furry as in the reference, with real paws.
+Keep the tail shape of the reference dog in every cell (curled, plumed, fluffy, short...). Never draw a straight stick tail.
 Never draw a leash, lead or harness (a small collar is fine); if the photo has one, leave it out and fill in the fur it covered.
 Style: cute pixel art with chunky visible pixels and a dark outline, full body, side view facing right unless noted.
 Every cell: one dog only, centered, the same size, feet on the same ground line, generous empty margin, nothing touching the cell edges.
@@ -65,19 +67,19 @@ Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no tex
 `;
 const SIT1 = 'sitting, facing right, with a gentle slight smile (mouth softly curved, closed or only a little open).';
 const SIT2 = (look: Look) => `sitting, ${TILT[look.tilt]}, curious face, looking at the viewer.`;
-const LEGS = `Light gray legs are the near-side legs, dark gray legs are the far-side legs. Put the dog's legs exactly where the mannequin's legs are.
-Copy only the leg positions - never the gray color, the simple shapes or the style of the guide.
+const LEGS = `The guide is a stick figure: thick black lines are the near-side legs, thin light gray lines are the far-side legs, small circles are the joints. Put the dog's legs where those lines are.
+The lines only show positions. Draw real furry legs of this dog over them - never copy the lines, circles, colors or the outline body of the guide, and the guide has no tail on purpose.
 Diagonal pairs move together like a trot: when the near front leg is forward, the far back leg is also forward, and the far front leg and near back leg are back.
 In walk frames A and B the two front legs cross each other like an X and the two back legs cross each other like an X.
 From A to B every leg swaps: each front leg and each back leg that is forward in A is back in B. The back legs must move as much as the front legs.
-All four legs have the dog's own fur color. The far-side legs are only a slightly deeper shade of that same fur color - never gray or black unless the dog's fur really is. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.`;
+All four legs have the dog's own fur color. The far-side legs are only a slightly deeper shade of that same fur color - never gray or black unless the dog's fur really is. For a white or cream dog the far-side legs are a very light cream. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.`;
 
 const LAYOUTS = {
   '3x2': {
     aspect: '3:2', guide: 'gait-guide.png',
     prompt: (breed: string, look: Look) => COMMON(breed, '3 columns x 2 rows', 'six') + `Row 1, cell 1: ${SIT1}
 Row 1, cell 2 and cell 3 - WALKING, two frames that alternate as a walk cycle.
-The SECOND attached image is only a POSE GUIDE: two gray mannequin dogs, walk frame A on the left and walk frame B on the right.
+The SECOND attached image is only a POSE GUIDE: two stick-figure dogs, walk frame A on the left and walk frame B on the right.
 Cell 2 = frame A, cell 3 = frame B.
 ${LEGS}
 Head, face, ears, tail, body, size and position in the cell stay identical between A and B; only the legs change.
@@ -92,7 +94,7 @@ Row 2, cell 3: ${SIT2(look)}`,
 Row 1, cell 2: ${SIT2(look)}
 Row 1, cell 3: sleeping, lying curled up, eyes closed.
 Row 2 - WALKING, three frames of one walk cycle, played A, middle, B, middle.
-The SECOND attached image is only a POSE GUIDE: four gray mannequin dogs from left to right = walk frame A, walk middle frame, walk frame B, belly-up pose.
+The SECOND attached image is only a POSE GUIDE: four stick-figure dogs from left to right = walk frame A, walk middle frame, walk frame B, belly-up pose.
 Row 2, cell 1 = frame A, cell 2 = middle frame, cell 3 = frame B.
 In the middle frame the legs that were forward in A stand straight under the body on the ground, and the other two legs are lifted, bent and passing forward under the body.
 ${LEGS}
@@ -100,7 +102,7 @@ Head, face, ears, tail, body, size and position in the cell stay identical in al
 ${WALK_FACE[look.walk]}
 Row 3, cell 1: ${SMILE}
 Row 3, cell 2: ${GROWL}
-Row 3, cell 3: belly-up, like the fourth mannequin: lying on its back on the ground line, belly up, all four paws loosely bent in the air, head resting sideways on the ground turned toward the viewer with a happy face, tail on the ground. Show the belly in a lighter shade of the coat.`,
+Row 3, cell 3: belly-up, like the fourth stick figure: lying on its back on the ground line, belly up, all four paws loosely bent in the air, head resting sideways on the ground turned toward the viewer with a happy face, tail on the ground. Show the belly in a lighter shade of the coat.`,
   },
 } as const;
 type LayoutName = keyof typeof LAYOUTS;

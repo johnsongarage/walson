@@ -43,14 +43,24 @@
     // 칸 선 지우기(라운드 c 포메 — "선 없이"라고 해도 가끔 검은 칸 선을 그린다). 강아지 한 마리는 한 칸(그림의 1/3)을 못 넘으니,
     // 한 줄에 그림 절반 넘게 끊김 없이 이어진 가로·세로 줄은 선이다 — 그 줄의 어두운 점만 지운다.
     var lum = function (p) { return d[p * 4] * 0.3 + d[p * 4 + 1] * 0.59 + d[p * 4 + 2] * 0.11; }, lines = 0;
+    // 선 둘레(앞뒤 3줄)의 회색 점도 지운다 — 선 가장자리의 옅은 회색이 강아지에 붙어 걸을 때 격자가 따라다녔다(라운드 c 포메).
+    var grayish = function (p) { var r = d[p * 4], gg = d[p * 4 + 1], b = d[p * 4 + 2]; return Math.max(r, gg, b) - Math.min(r, gg, b) < 45 && lum(p) < 215; };
+    var lineRows = [], lineCols = [];
     for (y = 0; y < H; y++) {
       var cnt = 0, run = 0; for (x = 0; x < W; x++) { run = bg[y * W + x] ? 0 : run + 1; if (run > cnt) cnt = run; }   // 가장 길게 이어진 길이(강아지 셋이 한 줄에 있어도 안 걸리게)
-      if (cnt > W * 0.5) { lines++; for (x = 0; x < W; x++) { i = y * W + x; if (!bg[i] && lum(i) < 110) bg[i] = 1; } }
+      if (cnt > W * 0.5) lineRows.push(y);
     }
     for (x = 0; x < W; x++) {
       var cnt2 = 0, run2 = 0; for (y = 0; y < H; y++) { run2 = bg[y * W + x] ? 0 : run2 + 1; if (run2 > cnt2) cnt2 = run2; }
-      if (cnt2 > H * 0.5) { lines++; for (y = 0; y < H; y++) { i = y * W + x; if (!bg[i] && lum(i) < 110) bg[i] = 1; } }
+      if (cnt2 > H * 0.5) lineCols.push(x);
     }
+    lines = lineRows.length + lineCols.length;
+    lineRows.forEach(function (ly) {
+      for (var yy = Math.max(0, ly - 3); yy <= Math.min(H - 1, ly + 3); yy++) for (x = 0; x < W; x++) { i = yy * W + x; if (!bg[i] && grayish(i)) bg[i] = 1; }
+    });
+    lineCols.forEach(function (lx) {
+      for (var xx = Math.max(0, lx - 3); xx <= Math.min(W - 1, lx + 3); xx++) for (y = 0; y < H; y++) { i = y * W + xx; if (!bg[i] && grayish(i)) bg[i] = 1; }
+    });
     // 테두리에 번진 초록: 진하면 빼고, 옅으면 초록만 눌러 준다(두 겹)
     for (var pass = 0; pass < 2; pass++) {
       var drop = [];
@@ -86,6 +96,8 @@
     var cell = NAMES.map(function () { return null; });
     boxes.forEach(function (b) {
       if (b.n < MIN) return;   // 티끌
+      var bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1;
+      if (Math.min(bw, bh) <= 10 && Math.max(bw, bh) > 40) return;   // 가늘고 긴 조각 = 선 남은 것
       var col = Math.min(2, Math.floor(b.cx / (W / 3))), row = Math.min(ROWS - 1, Math.floor(b.cy / (H / ROWS))), c = cell[row * 3 + col];
       if (!c) cell[row * 3 + col] = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, n: b.n };
       else { c.x0 = Math.min(c.x0, b.x0); c.y0 = Math.min(c.y0, b.y0); c.x1 = Math.max(c.x1, b.x1); c.y1 = Math.max(c.y1, b.y1); c.n += b.n; }
