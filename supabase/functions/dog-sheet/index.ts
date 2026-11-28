@@ -3,6 +3,8 @@
 // 걷기 두 장(11/28 라운드 b): 왼다리·오른다리로 말하면 그림 모델이 못 알아듣는다(라운드 a — 두 장이 거의 같고 무릎이 사람처럼 꺾임).
 //   그래서 자세 안내 그림(회색 마네킹 A·B, _dev/gait-guide.py → sian-ref/dog-sheet/gait-guide.png)을 두 번째 그림으로 같이 보낸다.
 //   앞다리끼리·뒷다리끼리 X자로 엇갈리고, A → B에서 네 다리가 다 바뀐다(가르시아 11/28 "뒷다리는 변동이 없고 앞다리 교차가 안 됨").
+//   짝은 대각선(가까운 앞 + 먼 뒤) — 빠른 걸음(트롯) 방식. 진짜 '걷기'는 네 박자(뒤 → 같은 쪽 앞 → 반대쪽 뒤 → 반대쪽 앞)라
+//   두 장으로는 못 그리고, 두 장만 번갈면 대각선 짝이 가장 자연스럽다(같은 쪽 짝은 낙타 걸음처럼 보임). 점검 11/28.
 //   안내 그림은 사이트에서 받아 온다 — 그림만 고쳐 올리면 함수를 다시 올리지 않아도 바뀐다. 못 받으면 글만으로 그린다.
 //
 // 비밀 값: GEMINI_API_KEY(Supabase Edge Function secrets에만 — 저장소·채팅·노트에 적지 않는다).
@@ -43,6 +45,7 @@ The SECOND attached image is only a POSE GUIDE: two gray mannequin dogs, walk fr
 Light gray legs are the near-side legs, dark gray legs are the far-side legs. Put the dog's legs exactly where the mannequin's legs are:
 cell 2 = frame A, cell 3 = frame B. Copy only the leg positions - never the gray color, the simple shapes or the style of the guide.
 In both frames the two front legs cross each other like an X and the two back legs cross each other like an X.
+Diagonal pairs move together like a trot: when the near front leg is forward, the far back leg is also forward, and the far front leg and near back leg are back.
 From A to B every leg swaps: each front leg and each back leg that is forward in A is back in B. The back legs must move as much as the front legs.
 Head, ears, tail, body, size and position in the cell stay identical between A and B; only the legs change.
 Draw the far-side legs a little darker than the near-side legs. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.
