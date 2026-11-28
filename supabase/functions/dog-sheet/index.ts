@@ -9,6 +9,7 @@
 //   짝은 대각선(가까운 앞 + 먼 뒤) — 빠른 걸음(트롯). 진짜 '걷기'는 네 박자라 두세 장으로는 못 그리고,
 //   같은 쪽 짝은 낙타 걸음처럼 보인다(점검 11/28). 중간 장은 A → 중간 → B → 중간으로 두 번 쓴다.
 //   안내 그림은 사이트에서 받아 온다 — 그림만 고쳐 올리면 함수를 다시 올리지 않아도 바뀐다. 못 받으면 글만으로 그린다.
+// 먼 다리 색(라운드 b 3x3 말티즈): '조금 어둡게'라고 하니 안내 그림처럼 진회색으로 칠함 → '같은 털색의 조금 짙은 색'으로.
 // 목줄·하네스는 늘 뺀다(11/28 가르시아 "목줄 찬 채로 있는 가능성도 엄청 커" — 끊긴 줄이 매달리고 자르기도 망가짐). 옷은 그대로(벗기기는 나중에 고르게).
 // 표정(11/28 가르시아): 앉기1은 늘 살짝 웃음. 걷기 얼굴은 웃음/덤덤 반반, 갸웃 방향은 왼/오 반반,
 //   3x2 웃기 칸은 10번에 3번 장난 으르렁(3x3은 으르렁 칸이 따로). 부를 때 look으로 정할 수도.
@@ -59,7 +60,7 @@ Keep the breed, coat colors, markings, ear shape, tail and any clothing exactly 
 Never draw a leash, lead or harness (a small collar is fine); if the photo has one, leave it out and fill in the fur it covered.
 Style: cute pixel art with chunky visible pixels and a dark outline, full body, side view facing right unless noted.
 Every cell: one dog only, centered, the same size, feet on the same ground line, generous empty margin, nothing touching the cell edges.
-No grid lines, no text, no numbers, no frames, no ground shadow, no props.
+No grid lines, no text, no numbers, no frames, no ground shadow, no props, no motion lines or effect marks.
 Background: one flat pure chroma green (#00FF00) everywhere, no gradient, no texture. Never use that green on the dog.
 `;
 const SIT1 = 'sitting, facing right, with a gentle slight smile (mouth softly curved, closed or only a little open).';
@@ -69,7 +70,7 @@ Copy only the leg positions - never the gray color, the simple shapes or the sty
 Diagonal pairs move together like a trot: when the near front leg is forward, the far back leg is also forward, and the far front leg and near back leg are back.
 In walk frames A and B the two front legs cross each other like an X and the two back legs cross each other like an X.
 From A to B every leg swaps: each front leg and each back leg that is forward in A is back in B. The back legs must move as much as the front legs.
-Draw the far-side legs a little darker than the near-side legs. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.`;
+All four legs have the dog's own fur color. The far-side legs are only a slightly deeper shade of that same fur color - never gray or black unless the dog's fur really is. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.`;
 
 const LAYOUTS = {
   '3x2': {
