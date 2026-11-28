@@ -10,6 +10,8 @@
 //   같은 쪽 짝은 낙타 걸음처럼 보인다(점검 11/28). 중간 장은 A → 중간 → B → 중간으로 두 번 쓴다.
 //   안내 그림은 사이트에서 받아 온다 — 그림만 고쳐 올리면 함수를 다시 올리지 않아도 바뀐다. 못 받으면 글만으로 그린다.
 // 먼 다리 색(라운드 b 3x3 말티즈): '조금 어둡게'라고 하니 안내 그림처럼 진회색으로 칠함 → '같은 털색의 조금 짙은 색'으로.
+// 라운드 e(웹, 푸들): 갸웃 해결, 앞다리는 바뀌는데 뒷다리는 그대로, 배뒤집기 얼굴 여전히 거꾸로 뭉개짐 → 뒷다리 바꾸기를 따로 강조,
+//   배뒤집기는 '옆으로 반쯤 뒹굴기 · 머리는 똑바로'로(가르시아 11/28 "다시 줘").
 // 라운드 d(웹, 푸들): 털·꼬리는 해결, 걷기 A와 B가 같게 나옴 → B를 A의 반대로 다리마다 적고 '같으면 다시' · 배뒤집기 얼굴 뭉개짐 · 갸웃 약함 → 30도.
 // 목줄·하네스는 늘 뺀다(11/28 가르시아 "목줄 찬 채로 있는 가능성도 엄청 커" — 끊긴 줄이 매달리고 자르기도 망가짐). 옷은 그대로(벗기기는 나중에 고르게).
 // 표정(11/28 가르시아): 앉기1은 늘 살짝 웃음. 걷기 얼굴은 웃음/덤덤 반반, 갸웃 방향은 왼/오 반반,
@@ -72,9 +74,10 @@ const LEGS = `The guide is a stick figure: thick black lines are the near-side l
 The lines only show positions. Draw real furry legs of this dog over them - never copy the lines, circles, colors or the outline body of the guide, and the guide has no tail on purpose.
 Diagonal pairs move together like a trot: when the near front leg is forward, the far back leg is also forward, and the far front leg and near back leg are back.
 In walk frames A and B the two front legs cross each other like an X and the two back legs cross each other like an X.
+THE BACK LEGS MUST SWAP TOO - this is the most common mistake. In frame A the lighter near back leg stretches backward behind the hips; in frame B the darker far back leg stretches backward behind the hips and the lighter near back leg comes forward under the belly.
 Frame A: the near front leg reaches FORWARD in front of the chest and the far front leg is BACK under the belly; the near back leg stretches BACKWARD behind the hips and the far back leg is forward under the belly.
 Frame B is the exact opposite: the near front leg is BACK under the belly and the far front leg reaches FORWARD in front of the chest; the near back leg is forward under the belly and the far back leg stretches BACKWARD behind the hips.
-Check before finishing: in A and B the near (lighter) front leg points in opposite directions, and so does the near back leg. If A and B look alike, redraw B. The back legs move as much as the front legs.
+Check before finishing: compare A and B leg by leg - the lighter front leg AND the lighter back leg each point in opposite directions in A and B. If A and B look alike, redraw B. The back legs move as much as the front legs.
 All four legs have the dog's own fur color. The far-side legs are only a slightly deeper shade of that same fur color - never gray or black unless the dog's fur really is. For a white or cream dog the far-side legs are a very light cream. Real dog anatomy: front legs bend at the wrist, back legs bend at the hock which points backward.`;
 
 const LAYOUTS = {
@@ -105,7 +108,7 @@ Head, face, ears, tail, body, size and position in the cell stay identical in al
 ${WALK_FACE[look.walk]}
 Row 3, cell 1: ${SMILE}
 Row 3, cell 2: ${GROWL}
-Row 3, cell 3: belly-up, like the fourth stick figure: lying on its back on the ground line, belly up, all four paws loosely bent in the air, head resting sideways on the ground turned toward the viewer with a happy face that is clearly readable - two eyes, nose and mouth in their normal places, ears hanging down to the ground and never mixed into the face. Tail on the ground. Show the belly in a lighter shade of the coat.`,
+Row 3, cell 3: belly-show half roll (do not use the fourth stick figure for this): lying on its side on the ground line with the body rolled slightly back so the belly shows, front paws loosely bent up in the air, back legs relaxed, tail on the ground. The head stays UPRIGHT (not upside down), lifted a little and turned to look at the viewer with a happy face - two eyes, nose and mouth clearly readable. Show the belly in a lighter shade of the coat.`,
   },
 } as const;
 type LayoutName = keyof typeof LAYOUTS;
